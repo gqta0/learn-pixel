@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LÒ PIXEL — Xưởng luyện vẽ pixel art cho game 2D</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand"><b>Lò Pixel</b><span>xưởng luyện asset 2D</span></div>
+    <div class="prog">Tiến độ: <b id="progText">0/0</b></div>
+    <button class="btn tiny" id="btnUndo" title="Hoàn tác (Ctrl+Z)">↶</button>
+    <button class="btn tiny" id="btnRedo" title="Làm lại (Ctrl+Y)">↷</button>
+    <button class="btn tiny" id="themeBtn" title="Đổi nền sáng/tối">☀</button>
+  </div>
+
+  <div class="workspace">
+
+    <!-- ================= CỘT TRÁI ================= -->
+    <div class="col left">
+      <div class="block">
+        <p class="eyebrow">Dụng cụ</p>
+        <div class="tools" id="tools"></div>
+        <div class="row" style="margin-top:9px">
+          <label class="mini grow">Cỡ bút <b id="brushLbl">1</b></label>
+        </div>
+        <input type="range" id="brush" min="1" max="6" value="1">
+        <div class="row">
+          <button class="btn tiny grow" id="mirX" aria-pressed="false">⇄ Gương X</button>
+          <button class="btn tiny grow" id="mirY" aria-pressed="false">⇅ Gương Y</button>
+        </div>
+      </div>
+
+      <div class="block">
+        <p class="eyebrow">Bút S-Pen</p>
+        <div class="row">
+          <button class="btn tiny grow on" id="pressBtn" aria-pressed="true">Áp lực → cỡ bút</button>
+        </div>
+        <div class="row">
+          <button class="btn tiny grow" id="fingerBtn2">Ngón tay: vẽ</button>
+        </div>
+        <p class="kbd" style="margin-top:7px">Giữ <b>nút bên</b> của S-Pen khi vẽ để dùng màu phụ. Rê bút cách mặt kính (hover) để ngắm ô pixel trước khi chạm. Hai ngón để kéo và phóng canvas.</p>
+      </div>
+
+      <div class="block">
+        <p class="eyebrow">Màu</p>
+        <div class="colors">
+          <input type="color" id="colPick" value="#ffb43f">
+          <div class="chip" id="chipPri" title="Màu chính"></div>
+          <div class="chip sec" id="chipSec" title="Màu phụ (Shift+bấm ô màu)"></div>
+          <button class="btn tiny" id="swapCol" title="Đổi chỗ (X)">⇆</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <select id="palSel" class="grow"></select>
+        </div>
+        <div class="swatches" id="swatches"></div>
+        <div class="row">
+          <button class="btn tiny grow" id="addSwatch">+ Thêm màu chính</button>
+        </div>
+        <div class="row">
+          <button class="btn tiny grow" id="replaceCol" title="Đổi mọi pixel màu phụ thành màu chính, trên lớp hiện tại, ở tất cả khung">Thay màu phụ → chính</button>
+        </div>
+      </div>
+
+      <div class="block">
+        <p class="eyebrow">Dải màu theo chất liệu</p>
+        <p class="kbd" style="margin:0 0 6px">Dải sáng–tối có <b>lệch tông</b>: nền tảng của tô khối. Chọn chất liệu để có đúng kiểu tương phản.</p>
+        <div class="row">
+          <select id="matSel" class="grow"></select>
+        </div>
+        <div class="row">
+          <label class="mini grow">Số bậc</label>
+          <select id="rampSteps"><option>3</option><option selected>5</option><option>7</option><option>9</option></select>
+        </div>
+        <div class="row"><label class="mini grow">Lệch tông <b id="hsLbl">28°</b></label></div>
+        <input type="range" id="hueShift" min="0" max="60" value="28">
+        <div class="ramp" id="rampOut"></div>
+        <div class="row"><button class="btn tiny grow" id="rampAdd">Đưa dải vào bảng màu</button></div>
+        <p class="kbd" style="margin:7px 0 0">Dụng cụ <b>◐ Tô khối (S)</b> đi trên đúng dải này: bấm để sáng lên 1 bậc, chuột phải để tối đi.</p>
+      </div>
+    </div>
+
+    <!-- ================= SÂN KHẤU ================= -->
+    <div class="stage">
+      <div class="stagebar">
+        <label class="mini">Khổ</label>
+        <select id="sizeSel">
+          <option value="8">8 × 8</option>
+          <option value="16">16 × 16</option>
+          <option value="24">24 × 24</option>
+          <option value="32" selected>32 × 32</option>
+          <option value="48">48 × 48</option>
+          <option value="64">64 × 64</option>
+        </select>
+        <button class="btn tiny" id="applySize">Đổi khổ</button>
+        <div class="sep"></div>
+        <button class="btn tiny" id="zoomOut">−</button>
+        <span class="kbd" id="zoomLbl" style="min-width:44px;text-align:center">×12</span>
+        <button class="btn tiny" id="zoomIn">+</button>
+        <button class="btn tiny" id="zoomFit">Vừa khung</button>
+        <div class="sep"></div>
+        <button class="btn tiny" id="gridBtn" aria-pressed="true">▦ Lưới</button>
+        <button class="btn tiny" id="onionBtn" aria-pressed="false">◍ Bóng khung trước</button>
+        <button class="btn tiny" id="symLine" aria-pressed="false">┊ Trục giữa</button>
+        <button class="btn tiny" id="tileBtn" aria-pressed="false" title="Xem trước lặp 3×3 — kiểm tra tile có lộ mối nối không">▩ Lặp 3×3</button>
+        <div class="sep"></div>
+        <button class="btn tiny" id="flipH" title="Lật ngang lớp hiện tại">⇋ Lật ngang</button>
+        <button class="btn tiny" id="flipV" title="Lật dọc lớp hiện tại">⇵ Lật dọc</button>
+        <div class="sep"></div>
+        <button class="btn tiny" id="clearBtn">Xoá lớp</button>
+      </div>
+
+      <div class="canvasarea">
+      <div class="quickbar" id="quickbar">
+        <button class="qb" data-q="pencil" aria-pressed="true" title="Bút">✏️</button>
+        <button class="qb" data-q="eraser" aria-pressed="false" title="Xoá">🧽</button>
+        <button class="qb" data-q="picker" aria-pressed="false" title="Hút màu">💧</button>
+        <button class="qb" data-q="fill" aria-pressed="false" title="Tô loang">🪣</button>
+        <button class="qb" id="qbUndo" title="Hoàn tác">↶</button>
+        <button class="qb" id="fingerBtn" title="Ngón tay: vẽ hay di chuyển">✋</button>
+        <button class="qb qbcol" id="qbColor" title="Màu đang dùng — bấm để mở bảng màu"><i></i></button>
+      </div>
+
+      <div class="canvaswrap" id="wrap">
+        <div class="canvasholder">
+          <canvas id="board" width="384" height="384"></canvas>
+          <div class="hud" id="hud">—</div>
+        </div>
+      </div>
+      </div>
+
+      <div class="filmstrip">
+        <div style="flex:1;min-width:0">
+          <p class="eyebrow" style="margin-bottom:6px">Khung hình</p>
+          <div class="frames" id="frames"></div>
+          <div class="row" style="margin-top:6px">
+            <button class="btn tiny" id="frAdd">+ Khung trống</button>
+            <button class="btn tiny" id="frDup">⧉ Nhân bản</button>
+            <button class="btn tiny" id="frDel">✕ Xoá</button>
+            <button class="btn tiny" id="frLeft">←</button>
+            <button class="btn tiny" id="frRight">→</button>
+          </div>
+        </div>
+        <div class="playbox">
+          <canvas id="preview" width="96" height="96"></canvas>
+          <div class="row">
+            <button class="btn tiny" id="playBtn">▶</button>
+            <input type="number" id="fps" value="8" min="1" max="30" style="width:52px">
+            <span class="kbd">fps</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= CỘT PHẢI ================= -->
+    <div class="col right">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-pane="pEx">Bài tập</button>
+        <button class="tab" role="tab" aria-selected="false" data-pane="pTh">Lý thuyết</button>
+        <button class="tab" role="tab" aria-selected="false" data-pane="pFile">Lớp &amp; xuất</button>
+      </div>
+
+      <div class="pane on" id="pEx">
+        <div class="block">
+          <p class="eyebrow">Lộ trình 9 chặng</p>
+          <p class="kbd" style="margin:0">Làm tuần tự. Mỗi bài bấm <b>Dựng khung</b> để đặt đúng khổ canvas, vẽ xong thì tích ô hoàn thành.</p>
+        </div>
+        <div id="exList"></div>
+      </div>
+
+      <div class="pane" id="pTh">
+        <div class="block">
+          <p class="eyebrow">Lý thuyết có hình minh hoạ</p>
+          <p class="kbd" style="margin:0">Mọi hình dưới đây được vẽ bằng chính thuật toán pixel — so sánh <b>sai</b> / <b>đúng</b> để nhớ lâu.</p>
+        </div>
+        <div id="thList"></div>
+      </div>
+
+      <div class="pane" id="pFile">
+        <div class="block">
+          <p class="eyebrow">Lớp</p>
+          <div class="layers" id="layers"></div>
+          <div class="row" style="margin-top:7px">
+            <button class="btn tiny" id="lyAdd">+ Lớp</button>
+            <button class="btn tiny" id="lyDup">⧉</button>
+            <button class="btn tiny" id="lyMerge">⤓ Gộp xuống</button>
+            <button class="btn tiny" id="lyDel">✕</button>
+          </div>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">Ảnh mẫu (đè mờ dưới nét vẽ)</p>
+          <label class="btn tiny wide filelabel">Chọn ảnh mẫu…<input type="file" id="refFile" accept="image/*"></label>
+          <div class="row" style="margin-top:6px"><label class="mini grow">Độ mờ <b id="refLbl">50%</b></label></div>
+          <input type="range" id="refOp" min="0" max="100" value="50">
+          <div class="row">
+            <button class="btn tiny grow" id="refToPix">Ảnh → pixel (vào lớp hiện tại)</button>
+            <button class="btn tiny" id="refClear">Bỏ</button>
+          </div>
+          <div class="row">
+            <button class="btn tiny grow" id="refToPal" title="Rút 16 màu hay gặp nhất trong ảnh ra bảng màu">Ảnh → bảng màu (16 màu)</button>
+          </div>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">Xuất</p>
+          <div class="row">
+            <label class="mini grow">Nhân khổ</label>
+            <select id="expScale"><option>1</option><option selected>4</option><option>8</option><option>16</option></select>
+          </div>
+          <div class="grid2" style="margin-top:7px">
+            <button class="btn" id="expPng">PNG khung này</button>
+            <button class="btn" id="expSheet">PNG spritesheet</button>
+          </div>
+          <div class="grid2" style="margin-top:6px">
+            <button class="btn primary" id="expJson">Lưu dự án .json</button>
+            <label class="btn filelabel" style="text-align:center">Mở .json<input type="file" id="impJson" accept=".json"></label>
+          </div>
+          <p class="kbd" style="margin-top:8px">File .json lưu cả tranh, bảng màu và tiến độ bài tập.</p>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">Lưu tự động</p>
+          <p class="kbd" id="saveInfo" style="margin:0 0 7px">—</p>
+          <button class="btn tiny wide" id="wipeSave">Xoá bản lưu &amp; làm lại từ đầu</button>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">Phím tắt</p>
+          <p class="kbd"><b>B</b> bút · <b>E</b> xoá · <b>G</b> tô loang · <b>I</b> hút màu · <b>L</b> đường · <b>U</b> chữ nhật · <b>O</b> ê-líp · <b>M</b> dịch lớp · <b>S</b> tô khối<br>
+          <b>X</b> đổi màu · <b>[ ]</b> cỡ bút · <b>Ctrl+Z / Ctrl+Y</b> hoàn tác · <b>, .</b> đổi khung</p>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">Đưa vào Godot 4</p>
+          <p class="kbd">Project Settings → Rendering → Textures → <b>Default Texture Filter = Nearest</b>. Với từng ảnh: tắt <b>Mipmaps</b>, tắt <b>Filter</b>. Camera2D bật <b>Snap 2D Transforms to Pixel</b>. Cửa sổ: <b>viewport</b> + <b>keep</b>, và chỉ phóng theo số nguyên (×2, ×3, ×4).</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <nav class="mnav" id="mnav">
+    <button data-view="draw" aria-current="true">✏️<span>Vẽ</span></button>
+    <button data-view="tools" aria-current="false">🎨<span>Màu</span></button>
+    <button data-view="ex" aria-current="false">📋<span>Bài tập</span></button>
+    <button data-view="th" aria-current="false">📖<span>Lý thuyết</span></button>
+    <button data-view="file" aria-current="false">💾<span>File</span></button>
+  </nav>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
