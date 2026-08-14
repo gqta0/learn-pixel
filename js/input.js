@@ -6,7 +6,7 @@ import { pushUndo, undo } from './history.js';
 import { syncColors, shadeStep } from './palette.js';
 import { paintThumbs } from './frames.js';
 import { syncFingerBtn } from './tools.js';
-import { inside, stamp, lineStamp, rectStamp, ellipseStamp, floodFill,
+import { inside, normSel, stamp, lineStamp, rectStamp, ellipseStamp, floodFill,
          shiftLayer, pixelAt, preview, setPreview, setStrokeSeen } from './raster.js';
 
 /* ---------------- chuột / cảm ứng ---------------- */
@@ -78,6 +78,7 @@ board.addEventListener('pointerdown', e=>{
   setStrokeSeen(strokeTool==='shade' ? new Set() : null);
 
   if(strokeTool==='picker'){ pick(p); drawing=false; return; }
+  if(strokeTool==='select'){ view.sel=null; render(); return; }   // kéo tiếp mới thành vùng
   pushUndo();
   if(strokeTool==='pencil' || strokeTool==='shade'){ stamp(activeData(),p.x,p.y,col); }
   else if(strokeTool==='eraser'){ stamp(activeData(),p.x,p.y,0); }
@@ -93,6 +94,7 @@ function strokeColor(e){
 }
 function applyStroke(p, col){
   const t=strokeTool;
+  if(t==='select'){ view.sel=normSel(start.x,start.y,p.x,p.y); return; }
   if(t==='pencil' || t==='shade'){ lineStamp(activeData(),last.x,last.y,p.x,p.y,col); last=p; }
   else if(t==='eraser'){ lineStamp(activeData(),last.x,last.y,p.x,p.y,0); last=p; }
   else if(t==='move'){ const d=activeData(); d.set(moveBase); shiftLayer(d,p.x-start.x,p.y-start.y); }
@@ -158,6 +160,8 @@ function endStroke(e){
   }
   if(!drawing) return;
   drawing=false; setStrokeSeen(null);
+  // chạm một cái bằng dụng cụ chọn = bỏ chọn
+  if(strokeTool==='select' && view.sel && view.sel.w===1 && view.sel.h===1) view.sel=null;
   if(preview){ activeData().set(preview.data); setPreview(null); }
   moveBase=null; view.brushEff=view.brush;
   render(); paintThumbs();

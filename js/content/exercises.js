@@ -6,7 +6,7 @@ import { invalidateBuf } from './../raster.js';
 import { fitZoom } from './../render.js';
 import { autosave } from './../storage.js';
 import { syncAll } from './../ui.js';
-import { renderDemo } from './demos.js';
+import { DEMOS, renderDemo, demoToCanvas } from './demos.js';
 
 export const PHASES = [
   {n:'Chặng 0', t:'Điều khiển từng pixel', d:'Tay nghề cơ bản: đường, cong, hình khối sạch.'},
@@ -245,7 +245,7 @@ export const EXERCISES = [
  tips:['Giới hạn màu buộc bạn dùng lại màu ở chỗ khác — đó là cách palette trở nên hoà.','Viền chọn lọc: viền tối ở phía tối, bỏ viền ở phía sáng.'],
  trap:'Thêm màu mỗi khi thấy bí → 40 màu, nhân vật rời rạc.'},
 
-{p:5,size:48,t:'Chân dung ba biểu cảm',time:'70 phút',frames:3, art:'portrait3',
+{p:5,size:48,h:64,t:'Chân dung ba biểu cảm',time:'70 phút',frames:3, art:'portrait3',
  goal:'Portrait kiểu hộp thoại (Stardew/visual novel).',
  steps:['Khung 1 bình thường, khung 2 vui, khung 3 tức giận.',
         'Chỉ đổi mắt, miệng, mày — giữ nguyên khối đầu và tóc.',
@@ -453,7 +453,7 @@ export const EXERCISES = [
        'Cỏ rủ xuống mép là chi tiết rẻ nhất để bệ hết trông như viên gạch.'],
  trap:'Làm mép trước ô giữa → ghép vào thấy vênh, phải vẽ lại cả bộ.'},
 
-{p:9,size:48,t:'Vách đá và lớp phủ',time:'70 phút',frames:2, art:'sidescene',
+{p:9,size:32,h:64,t:'Vách đá và lớp phủ',time:'70 phút',frames:2, art:'sidescene',
  goal:'Cho khối đất có chiều sâu thay vì là một mảng đặc.',
  steps:['Khung 1: một vách đá cao, chia mảng lớn nhỏ khác nhau, càng xuống sâu càng tối và càng ít chi tiết.',
         'Khung 2: lớp phủ đặt đè lên vách — dây leo, rễ cây, vệt rêu, đá lồi.',
@@ -462,7 +462,7 @@ export const EXERCISES = [
        'Rêu và dây leo dùng màu của cỏ ở tile đất để cả màn cùng một palette.'],
  trap:'Rải chi tiết đều khắp vách → mắt không có chỗ nghỉ, nhân vật bị chìm vào nền.'},
 
-{p:9,size:64,t:'Ba lớp nền lùi xa cho màn ngang',time:'80 phút',frames:3, art:'parallax',
+{p:9,size:64,h:32,t:'Ba lớp nền lùi xa cho màn ngang',time:'80 phút',frames:3, art:'parallax',
  goal:'Chiều sâu bằng tương phản, không bằng chi tiết.',
  steps:['Khung 1: trời + núi xa, nhạt, ngả màu trời, gần như không chi tiết.',
         'Khung 2: rừng hoặc mái nhà tầm trung, tối hơn một bậc.',
@@ -511,16 +511,43 @@ export const EXERCISES = [
 export const doneSet = new Set();
 export function setupExercise(ex){
   const nf = ex.frames||1;
-  if(!confirm('Dựng khung '+ex.size+'×'+ex.size+(nf>1?' • '+nf+' khung hình':'')+
+  const W=ex.size, H=ex.h||ex.size;
+  if(!confirm('Dựng khung '+W+'×'+H+(nf>1?' • '+nf+' khung hình':'')+
               '\n\nTranh hiện tại sẽ bị xoá. Lưu .json trước nếu cần giữ.')) return;
   pushUndo();
-  doc.w=ex.size; doc.h=ex.size;
+  doc.w=W; doc.h=H;
   const names = ex.layers || ['Phác thảo','Nét chính'];
   doc.layers=names.map(n=>({name:n,vis:true}));
   doc.frames=[];
-  for(let i=0;i<nf;i++) doc.frames.push(doc.layers.map(()=>new Uint32Array(ex.size*ex.size)));
+  for(let i=0;i<nf;i++) doc.frames.push(doc.layers.map(()=>new Uint32Array(W*H)));
   doc.af=0; doc.al = ex.layers ? doc.layers.length-1 : Math.min(1, doc.layers.length-1);
   invalidateBuf(); fitZoom(); syncAll();
+}
+/* Đổ mẫu tham khảo thành pixel mờ vào một lớp riêng, canh giữa canvas.
+   Mẫu to hơn khung thì cắt bớt — vẫn đủ để lấy dáng. */
+export function loadDemoLayer(name){
+  const cv=demoToCanvas(name);
+  if(!cv) return;
+  const g=cv.getContext('2d');
+  const src=new Uint32Array(g.getImageData(0,0,cv.width,cv.height).data.buffer);
+  pushUndo();
+  let li=doc.layers.findIndex(l=>l.name==='Mẫu');
+  if(li<0){
+    doc.layers.unshift({name:'Mẫu',vis:true});
+    doc.frames.forEach(f=>f.unshift(new Uint32Array(doc.w*doc.h)));
+    li=0; doc.al=Math.min(doc.al+1, doc.layers.length-1);
+  }
+  const dst=doc.frames[doc.af][li];
+  dst.fill(0);
+  const ox=Math.floor((doc.w-cv.width)/2), oy=Math.floor((doc.h-cv.height)/2);
+  for(let y=0;y<cv.height;y++) for(let x=0;x<cv.width;x++){
+    const v=src[y*cv.width+x];
+    if(((v>>>24)&255)===0) continue;
+    const px=ox+x, py=oy+y;
+    if(px<0||py<0||px>=doc.w||py>=doc.h) continue;
+    dst[py*doc.w+px] = (v & 0x00ffffff) | (110<<24);      // giữ màu, hạ độ đục để vẽ đè
+  }
+  syncAll();
 }
 export function buildExercises(){
   const box=$('#exList'); box.innerHTML='';
@@ -545,7 +572,7 @@ export function buildExercises(){
         '<div class="exhead">'+
           '<label class="tick"><input type="checkbox" '+(doneSet.has(gi)?'checked':'')+' aria-label="Đánh dấu bài này đã xong"></label>'+
           '<div><div class="extitle">'+num+'. '+ex.t+'</div>'+
-          '<div class="exmeta">'+ex.size+'×'+ex.size+(ex.frames?' · '+ex.frames+' khung':'')+' · '+ex.time+'</div></div>'+
+          '<div class="exmeta">'+ex.size+'×'+(ex.h||ex.size)+(ex.frames?' · '+ex.frames+' khung':'')+' · '+ex.time+'</div></div>'+
         '</div>'+
         '<p class="exgoal"><b>Đích đến:</b> '+ex.goal+'</p>'+
         '<ol>'+ex.steps.map(s=>'<li>'+s+'</li>').join('')+'</ol>'+
@@ -558,9 +585,16 @@ export function buildExercises(){
         wrap.insertBefore(lab, fig);
       }
       const btns=document.createElement('div'); btns.className='exbtns';
-      const b1=document.createElement('button'); b1.className='btn tiny'; b1.textContent='Dựng khung '+ex.size+'×'+ex.size+(ex.frames?' ×'+ex.frames:'');
+      const b1=document.createElement('button'); b1.className='btn tiny'; b1.textContent='Dựng khung '+ex.size+'×'+(ex.h||ex.size)+(ex.frames?' ×'+ex.frames:'');
       b1.addEventListener('click', ()=>setupExercise(ex));
       btns.appendChild(b1);
+      if(ex.art && DEMOS[ex.art]){
+        const b2=document.createElement('button'); b2.className='btn tiny';
+        b2.textContent='Nạp mẫu để vẽ đè';
+        b2.title='Đổ mẫu tham khảo thành pixel mờ vào một lớp riêng, để vẽ đè lên';
+        b2.addEventListener('click', ()=>loadDemoLayer(ex.art));
+        btns.appendChild(b2);
+      }
       wrap.appendChild(btns);
       wrap.querySelector('input').addEventListener('change', e=>{
         if(e.target.checked) doneSet.add(gi); else doneSet.delete(gi);

@@ -76,6 +76,8 @@ export function setStrokeSeen(s){ strokeSeen=s; }
 export function put(data,x,y,col){
   if(!inside(x,y)) return;
   const i=idx(x,y);
+  if(view.lockAlpha && !data[i]) return;         // khoá alpha: chỉ vẽ lên chỗ đã có pixel
+  if(view.sel && !inSel(x,y)) return;            // có vùng chọn thì chỉ vẽ trong vùng
   if(typeof col!=='function'){ data[i]=col; return; }
   if(strokeSeen){ if(strokeSeen.has(i)) return; strokeSeen.add(i); }
   data[i]=col(data[i]);
@@ -122,10 +124,11 @@ export function floodFill(data,x,y,col){
   if(!inside(x,y)) return;
   const target=data[idx(x,y)];
   if(target===col) return;
+  if(view.lockAlpha && !target) return;          // khoá alpha: không loang ra vùng trống
   const st=[x,y];
   while(st.length){
     const cy=st.pop(), cx=st.pop();
-    if(!inside(cx,cy)) continue;
+    if(!inside(cx,cy) || !inSel(cx,cy)) continue;
     const i=idx(cx,cy);
     if(data[i]!==target) continue;
     data[i]=col;
@@ -139,6 +142,40 @@ export function shiftLayer(data,dx,dy){
     if(inside(sx,sy)) out[idx(x,y)]=data[idx(sx,sy)];
   }
   data.set(out);
+}
+/* ---------------- vùng chọn & bộ nhớ tạm ---------------- */
+export function inSel(x,y){
+  const s=view.sel;
+  return !s || (x>=s.x && y>=s.y && x<s.x+s.w && y<s.y+s.h);
+}
+export function normSel(x0,y0,x1,y1){
+  const x=Math.max(0,Math.min(x0,x1)), y=Math.max(0,Math.min(y0,y1));
+  const w=Math.min(doc.w,Math.max(x0,x1)+1)-x, h=Math.min(doc.h,Math.max(y0,y1)+1)-y;
+  return (w>0&&h>0) ? {x,y,w,h} : null;
+}
+let clip=null;                                   // {w,h,data} — dùng chung mọi lớp, mọi khung
+export function hasClip(){ return !!clip; }
+export function copySel(data){
+  const s=view.sel; if(!s) return false;
+  const out=new Uint32Array(s.w*s.h);
+  for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++) out[y*s.w+x]=data[idx(s.x+x,s.y+y)];
+  clip={w:s.w,h:s.h,data:out};
+  return true;
+}
+export function clearSel(data){
+  const s=view.sel; if(!s) return false;
+  for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++) data[idx(s.x+x,s.y+y)]=0;
+  return true;
+}
+/* dán vào góc trên-trái của vùng chọn; chưa chọn thì dán về đúng chỗ cũ */
+export function pasteClip(data){
+  if(!clip) return false;
+  const ox=view.sel?view.sel.x:0, oy=view.sel?view.sel.y:0;
+  for(let y=0;y<clip.h;y++) for(let x=0;x<clip.w;x++){
+    const v=clip.data[y*clip.w+x];
+    if(v && inside(ox+x,oy+y)) data[idx(ox+x,oy+y)]=v;
+  }
+  return true;
 }
 /* lật lớp theo chiều ngang hoặc dọc */
 export function flipData(data,horiz){

@@ -87,14 +87,9 @@
     <div class="stage">
       <div class="stagebar">
         <label class="mini">Khổ</label>
-        <select id="sizeSel">
-          <option value="8">8 × 8</option>
-          <option value="16">16 × 16</option>
-          <option value="24">24 × 24</option>
-          <option value="32" selected>32 × 32</option>
-          <option value="48">48 × 48</option>
-          <option value="64">64 × 64</option>
-        </select>
+        <input type="number" id="sizeW" min="4" max="128" value="32" style="width:56px" title="Chiều ngang">
+        <span class="kbd">×</span>
+        <input type="number" id="sizeH" min="4" max="128" value="32" style="width:56px" title="Chiều dọc">
         <button class="btn tiny" id="applySize">Đổi khổ</button>
         <div class="sep"></div>
         <button class="btn tiny" id="zoomOut">−</button>
@@ -109,6 +104,15 @@
         <div class="sep"></div>
         <button class="btn tiny" id="flipH" title="Lật ngang lớp hiện tại">⇋ Lật ngang</button>
         <button class="btn tiny" id="flipV" title="Lật dọc lớp hiện tại">⇵ Lật dọc</button>
+        <button class="btn tiny" id="lockA" aria-pressed="false" title="Khoá alpha: chỉ vẽ lên chỗ đã có pixel">🔒 Khoá alpha</button>
+        <span id="selBar" style="display:none;gap:5px;align-items:center">
+          <div class="sep"></div>
+          <button class="btn tiny" id="selCut" title="Cắt vùng chọn (Ctrl+X)">✂ Cắt</button>
+          <button class="btn tiny" id="selCopy" title="Chép vùng chọn (Ctrl+C)">⧉ Chép</button>
+          <button class="btn tiny" id="selPaste" title="Dán vào góc trên-trái vùng chọn (Ctrl+V)">📋 Dán</button>
+          <button class="btn tiny" id="selDel" title="Xoá sạch vùng chọn (Delete)">⌫ Xoá vùng</button>
+          <button class="btn tiny" id="selNone" title="Bỏ chọn (Esc)">✕ Bỏ chọn</button>
+        </span>
         <div class="sep"></div>
         <button class="btn tiny" id="clearBtn">Xoá lớp</button>
       </div>
@@ -220,6 +224,13 @@
             <label class="btn filelabel" style="text-align:center">Mở .json<input type="file" id="impJson" accept=".json"></label>
           </div>
           <p class="kbd" style="margin-top:8px">File .json lưu cả tranh, bảng màu và tiến độ bài tập.</p>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">Soi bài</p>
+          <p class="kbd" style="margin:0 0 7px">Máy đếm hộ mấy lỗi mà giáo trình đang dạy bằng lời: số màu, pixel lạc, viền dày, mốc chân lệch giữa các khung.</p>
+          <button class="btn tiny wide" id="lintBtn">Soi khung đang vẽ</button>
+          <div id="lintOut"></div>
         </div>
 
         <div class="block">

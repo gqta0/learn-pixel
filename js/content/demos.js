@@ -273,6 +273,17 @@ Object.assign(DEMOS, {
   ]
 });
 
+/* Vẽ mẫu của một bài ra canvas 1:1 để nạp vào tranh.
+   Ưu tiên khung được đánh dấu "đúng", vì đó mới là cái đáng vẽ đè. */
+export function demoToCanvas(name){
+  const list=DEMOS[name]||[];
+  if(!list.length) return null;
+  const p = list.find(x=>x.cls==='good') || list[list.length-1];
+  const cv=document.createElement('canvas'); cv.width=p.w; cv.height=p.h;
+  const g=cv.getContext('2d');
+  p.fn(g);                                   // không tô nền: chỉ lấy phần có hình
+  return cv;
+}
 export function renderDemo(name, small){
   const row=document.createElement('div'); row.className='demo'+(small?' sm':'');
   (DEMOS[name]||[]).forEach(p=>{
