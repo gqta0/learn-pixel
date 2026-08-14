@@ -1,4 +1,4 @@
-/* Nội dung: lộ trình 9 chặng bài tập, và phần dựng giao diện cho chúng. */
+/* Nội dung: lộ trình 11 chặng bài tập, và phần dựng giao diện cho chúng. */
 import { $ } from './../dom.js';
 import { doc } from './../state.js';
 import { pushUndo } from './../history.js';
@@ -17,7 +17,9 @@ export const PHASES = [
   {n:'Chặng 5', t:'Nhân vật', d:'Từ chibi 16px tới nhân vật 48px 4 hướng và chân dung.'},
   {n:'Chặng 6', t:'Bộ phận & lắp ghép', d:'Vẽ rời từng part, ghép thành nhân vật, tạo tư thế và chuyển động bằng cách dịch part.'},
   {n:'Chặng 7', t:'Chuyển động', d:'Idle, đi, đánh, hiệu ứng — và cách làm cho mượt.'},
-  {n:'Chặng 8', t:'Hero — bộ asset hoàn chỉnh', d:'Một tay làm ra cả bộ asset đồng nhất.'}
+  {n:'Chặng 8', t:'Nhìn ngang: nhân vật hành động', d:'Bộ động tác platformer: đứng, chạy 8 khung, nhảy, combo chém có vệt, ngã.'},
+  {n:'Chặng 9', t:'Nhìn ngang: tile & cảnh nền', d:'Mặt đất có mặt trên và thân, bệ, dốc, vách, nền lùi xa.'},
+  {n:'Chặng 10', t:'Hero — bộ asset hoàn chỉnh', d:'Một tay làm ra cả bộ asset đồng nhất.'}
 ];
 
 export const EXERCISES = [
@@ -366,8 +368,122 @@ export const EXERCISES = [
        'Đây cũng là cách làm khăn, đuôi, dây lưng, lá cờ.'],
  trap:'Mọi bộ phận chuyển động cùng lúc, cùng biên độ → cứng như con rối gỗ.'},
 
-/* --- Chặng 8 --- */
-{p:8,size:48,t:'Kẻ địch và trùm',time:'90 phút',frames:2, art:'enemy',
+/* --- Chặng 8: nhìn ngang, nhân vật hành động --- */
+{p:8,size:48,t:'Tư thế thủ nhìn ngang',time:'60 phút', art:'sideprop',
+ layers:['Phác khối','Nét chính','Tô khối'],
+ goal:'Một tư thế đứng nói được nhân vật này làm nghề gì — mốc gốc của cả bộ động tác.',
+ steps:['Kẻ 4 đường mốc trên lớp Phác khối: đỉnh đầu, vai, hông, mặt đất. Nhân vật cao 4 đầu, đầu chiếm 1/4 — tỉ lệ của dòng action platformer.',
+        'Vẽ silhouette một màu: chân hơi tách, trọng tâm hạ thấp, vai xoay chếch về phía người xem, vũ khí cầm ở tay gần.',
+        'Đưa 2px trống dưới chân làm mốc tiếp đất, và ghi nhớ con số đó — mọi khung sau đều phải dùng đúng mốc này.',
+        'Tô khối theo một nguồn sáng, dùng tối đa 16 màu.'],
+ tips:['Nhìn ngang thì mặt chỉ còn một con mắt và một đường mũi — đừng vẽ hai mắt.',
+       'Tóc, khăn, vạt áo choàng là nơi kể chuyển động sau này: cho chúng nhô ra khỏi silhouette.',
+       'Chân hơi mở tạo thế đứng vững; chân sát nhau trông như đang đứng nghiêm.'],
+ trap:'Vẽ tư thế đứng thẳng đơ như hình mẫu giải phẫu — không dùng lại được cho khung nào khác.'},
+
+{p:8,size:48,t:'Idle 4 khung: thở và lắc áo',time:'50 phút',frames:4, art:'sideidle',
+ goal:'Đứng yên mà vẫn sống, không tốn khung.',
+ steps:['Nhân bản tư thế thủ thành 4 khung.',
+        'Khung 2 và 4 hạ thân 1px; khung 3 về gốc. Bàn chân tuyệt đối không nhúc nhích.',
+        'Tóc và vạt áo trễ 1 khung so với thân.',
+        'Chạy 6 fps.'],
+ tips:['Vai hạ theo thân nhưng chỉ 1px, đầu gần như đứng yên.','Nếu thấy giật, kiểm tra xem có khung nào chân bị lệch 1px không.'],
+ trap:'Cho cả người nhấp nhô 2–3px → thành nhún nhảy chứ không phải thở.'},
+
+{p:8,size:48,t:'Chạy 8 khung nhìn ngang',time:'2 giờ',frames:8, art:'run8',
+ goal:'Bài khó nhất của game hành động 2D — và là thứ người xem đánh giá đầu tiên.',
+ steps:['8 khung theo vòng: chạm đất → hạ thấp → lướt qua → vươn lên, rồi lặp lại với chân kia.',
+        'Thân nhấp nhô 2px: thấp nhất ở khung hạ, cao nhất ở khung vươn.',
+        'Tay ngược pha với chân. Áo choàng và tóc bay ngược hướng chạy, trễ 1 khung.',
+        'Chạy 12–14 fps, kiểm tra bàn chân có bị "trượt băng" không.'],
+ tips:['Vẽ 4 khung cực trị trước (2 chạm đất, 2 lướt qua), 4 khung còn lại chỉ là trung gian.',
+       'Bước chân dài hơn bạn tưởng: gót chân sau phải rời khỏi mặt đất rõ ràng.',
+       'Bật Bóng khung trước và nhìn quỹ đạo đỉnh đầu — phải là một đường sóng đều.'],
+ trap:'Chỉ đổi chân mà thân đứng yên → nhân vật trượt trên băng chứ không chạy.'},
+
+{p:8,size:48,t:'Bộ nhảy 5 khung',time:'70 phút',frames:5, art:'jump5',
+ goal:'Nhảy trong game không phải một animation liền — nó là 5 trạng thái engine gọi riêng.',
+ steps:['Khung 1 nhún lấy đà (giữ 2–3 khung thời gian). Khung 2 bật lên, người vươn dài.',
+        'Khung 3 đỉnh: co chân, giữ lâu nhất — đây là lúc người chơi thấy rõ nhất.',
+        'Khung 4 rơi: chân duỗi xuống đón đất, áo bay ngược lên.',
+        'Khung 5 tiếp đất: nhún sâu rồi mới về tư thế thủ.'],
+ tips:['Lên nhanh, đỉnh chậm, xuống nhanh — đó là trọng lực.',
+       'Người vươn dài khi bật và co lại khi ở đỉnh: squash & stretch đúng chỗ.',
+       'Trong engine: khung 3 lặp khi còn bay, khung 4 lặp khi rơi.'],
+ trap:'Chia đều 5 khung → cú nhảy nhẹ bẫng, không có sức nặng.'},
+
+{p:8,size:48,t:'Combo chém 3 đòn có vệt',time:'2 giờ',frames:6, art:'slash4',
+ goal:'Đòn đánh có lực: lấy đà, bung kèm vệt, khung chạm, rồi thu.',
+ steps:['Đòn 1 (khung 1–2): lấy đà ngược hướng rồi bung ngang, vệt kiếm là một cung sáng 2 màu.',
+        'Đòn 2 (khung 3–4): chém ngược lại, vệt đi theo hướng ngược.',
+        'Đòn 3 (khung 5–6): đâm hoặc chém xoay, vệt to nhất, thân lao tới trước 2–3px.',
+        'Mỗi đòn phải trở về được tư thế thủ để engine nối combo.'],
+ tips:['Vệt kiếm sáng ở mép ngoài, mờ dần vào trong — và chỉ tồn tại 1–2 khung.',
+       'Khung chạm: đẩy cả nhân vật tới trước 2px, đó là cảm giác "va" mà người chơi thấy.',
+       'Lưỡi kiếm ở khung nhanh nhất được phép biến mất, chỉ còn vệt.'],
+ trap:'Vẽ vệt kiếm kéo dài qua 4–5 khung → trông như cầm que phát sáng, mất cảm giác chém.'},
+
+{p:8,size:48,t:'Khung nhoè (smear) và trúng đòn',time:'60 phút',frames:3, art:'smear',
+ goal:'Hai khung rẻ tiền nhất nhưng làm game "đã tay" hẳn.',
+ steps:['Khung 1: khung smear của đòn chém — kéo lưỡi kiếm thành vệt méo, phi thực tế.',
+        'Khung 2: nhân vật trúng đòn — ngả người về sau, đầu hất ra, toàn thân phủ một lớp trắng.',
+        'Khung 3: ngã gục — đổ nghiêng, kiếm rời tay, tóc và áo đổ theo trọng lực.'],
+ tips:['Khung phủ trắng chỉ hiện 1–2 khung, engine thường tự làm nhưng vẽ tay vẫn đẹp hơn.',
+       'Khi ngã, silhouette phải đổi hẳn sang phương ngang để đọc được ngay.'],
+ trap:'Khung smear vẽ quá đẹp và quá lâu → hết tác dụng, vì mắt kịp nhìn thấy nó méo.'},
+
+/* --- Chặng 9: nhìn ngang, tile & cảnh nền --- */
+{p:9,size:16,t:'Tile đất nhìn ngang: mặt trên và thân',time:'50 phút', art:'sidetile',
+ goal:'Hiểu khác biệt gốc rễ: top-down nhìn xuống mặt đất, side view nhìn vào vách cắt của nó.',
+ steps:['Vẽ tile 16×16: 1px cỏ sáng trên cùng, 2px cỏ tối, phần còn lại là thân đất.',
+        'Thân đất tối dần xuống dưới — đó là ánh sáng trời chiếu từ trên.',
+        'Rắc vài viên sạn sáng hơn, nhưng đừng rắc ở giữa tile (mắt sẽ thấy hoa văn lặp).',
+        'Bật Lặp 3×3 để kiểm tra mối nối.'],
+ tips:['Ranh giới cỏ–đất phải gãy khúc ngẫu nhiên, không được là một đường thẳng.',
+       'Tile thân (nằm sâu dưới đất) vẽ riêng, không có cỏ.'],
+ trap:'Tô đất một màu phẳng rồi kẻ cỏ lên trên → nhìn như nhìn từ trên xuống, không có chiều sâu.'},
+
+{p:9,size:32,t:'Bộ tile nền: giữa, mép, góc, dốc',time:'90 phút',frames:6, art:'platedge',
+ goal:'Đủ để dựng một màn platformer thật.',
+ steps:['6 khung: ô giữa, mép trái, mép phải, góc trên-trái, góc trên-phải, dốc 45°.',
+        'Mép bên là vách cắt: tối hơn mặt trước một bậc, có vân đá dọc.',
+        'Bo tròn hai góc trên của bệ và cho vài túm cỏ rủ xuống mép.',
+        'Xuất spritesheet và ghép thử một bệ 3 ô, một bệ 1 ô.'],
+ tips:['Dốc dùng bậc 2:1 hoặc 1:1, và phải khớp được với ô giữa ở cả hai đầu.',
+       'Cỏ rủ xuống mép là chi tiết rẻ nhất để bệ hết trông như viên gạch.'],
+ trap:'Làm mép trước ô giữa → ghép vào thấy vênh, phải vẽ lại cả bộ.'},
+
+{p:9,size:48,t:'Vách đá và lớp phủ',time:'70 phút',frames:2, art:'sidescene',
+ goal:'Cho khối đất có chiều sâu thay vì là một mảng đặc.',
+ steps:['Khung 1: một vách đá cao, chia mảng lớn nhỏ khác nhau, càng xuống sâu càng tối và càng ít chi tiết.',
+        'Khung 2: lớp phủ đặt đè lên vách — dây leo, rễ cây, vệt rêu, đá lồi.',
+        'Lớp phủ phải phá được đường thẳng đứng của vách.'],
+ tips:['Chi tiết dồn ở phần trên (nơi mắt nhìn), phần dưới để trống cho đỡ rối.',
+       'Rêu và dây leo dùng màu của cỏ ở tile đất để cả màn cùng một palette.'],
+ trap:'Rải chi tiết đều khắp vách → mắt không có chỗ nghỉ, nhân vật bị chìm vào nền.'},
+
+{p:9,size:64,t:'Ba lớp nền lùi xa cho màn ngang',time:'80 phút',frames:3, art:'parallax',
+ goal:'Chiều sâu bằng tương phản, không bằng chi tiết.',
+ steps:['Khung 1: trời + núi xa, nhạt, ngả màu trời, gần như không chi tiết.',
+        'Khung 2: rừng hoặc mái nhà tầm trung, tối hơn một bậc.',
+        'Khung 3: lớp tiền cảnh — cành cây, bụi cỏ cắt ngang mép dưới màn hình, tối nhất.',
+        'Xếp chồng 3 lớp và tự hỏi: nhân vật có nổi lên khỏi nền không?'],
+ tips:['Lớp nào càng xa thì càng ít tương phản và càng ngả về màu trời.',
+       'Tiền cảnh nên tối gần như silhouette — nó chỉ để tạo khung, không để nhìn.'],
+ trap:'Nền vẽ đẹp ngang nhân vật → người chơi không biết nhìn vào đâu.'},
+
+{p:9,size:64,t:'Ghép một khung cảnh hoàn chỉnh',time:'2 giờ', art:'sidescene',
+ goal:'Kiểm tra cuối: nhân vật, tile, nền có thuộc về cùng một thế giới không.',
+ steps:['Dựng một cảnh 64×64: mặt đất, một bệ lơ lửng, một dốc, nền lùi xa, và nhân vật đứng đúng mốc chân.',
+        'Kiểm tra: cùng palette? cùng hướng sáng? nhân vật có tách khỏi nền không?',
+        'Thêm bóng đổ dưới chân nhân vật và dưới bệ.',
+        'Nhìn ở ×2 và nheo mắt — còn phân biệt được nhân vật với nền không?'],
+ tips:['Nhân vật nên là chỗ tương phản mạnh nhất màn hình.',
+       'Bóng đổ dưới bệ giúp người chơi biết bệ đang lơ lửng chứ không dán vào nền.'],
+ trap:'Nhân vật và tile vẽ ở hai mức chi tiết khác nhau — lỗi lộ ra ngay khi ghép cảnh.'},
+
+/* --- Chặng 10 --- */
+{p:10,size:48,t:'Kẻ địch và trùm',time:'90 phút',frames:2, art:'enemy',
  goal:'Thiết kế hình để người chơi đọc được mức nguy hiểm.',
  steps:['Khung 1: quái thường. Khung 2: bản trùm — to hơn, thêm 1 đặc điểm đe doạ (gai, sừng, mắt đỏ).',
         'Dùng cùng palette với nhân vật chính nhưng dồn về tông tối/lạnh.',
@@ -375,7 +491,7 @@ export const EXERCISES = [
  tips:['Người chơi phải phân biệt bạn/địch trong 1/4 giây.','Màu đỏ tươi nên để dành cho điểm nguy hiểm.'],
  trap:'Quái cùng bảng màu, cùng dáng với nhân vật → gây nhầm lẫn khi chơi.'},
 
-{p:8,size:32,t:'Bộ asset nhỏ dùng chung palette',time:'3–4 giờ',frames:12, art:'palettebar',
+{p:10,size:32,t:'Bộ asset nhỏ dùng chung palette',time:'3–4 giờ',frames:12, art:'palettebar',
  goal:'Sản phẩm thật đầu tiên: 12 asset đồng nhất.',
  steps:['Chốt 1 palette ≤ 24 màu và 1 hướng sáng cho toàn bộ.',
         '12 khung: 1 nhân vật, 3 tile nền, 4 vật phẩm, 2 props, 2 icon UI.',
@@ -383,7 +499,7 @@ export const EXERCISES = [
  tips:['Xem tất cả cạnh nhau mới thấy cái nào lệch tông.','Cái nào lệch thì sửa cái đó, đừng đổi palette chung.'],
  trap:'Vẽ từng asset riêng lẻ nhiều ngày → cuối cùng không cái nào hợp cái nào.'},
 
-{p:8,size:48,t:'Vòng soát đồng nhất',time:'2 giờ', art:'pivot',
+{p:10,size:48,t:'Vòng soát đồng nhất',time:'2 giờ', art:'pivot',
  goal:'Kỹ năng của người làm asset chuyên nghiệp: pass kiểm tra cuối.',
  steps:['Mở lại toàn bộ asset đã vẽ, lập bảng kiểm: cùng palette? cùng hướng sáng? cùng độ dày viền? cùng mức chi tiết?',
         'Sửa mọi chỗ lệch, kể cả phải vẽ lại từ đầu 1–2 asset.',

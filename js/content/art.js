@@ -229,18 +229,26 @@ export const P_ARM  =['kck','kck','kck','kfk'];                                 
 export const P_ARM_DIA=['..kf','.kck','kck.','kk..'];                                 // chếch lên, vai ở đáy
 export const P_ARM_UP =['kfk','kck','kck','kck'];                                     // giơ thẳng, vai ở đáy
 export const ARMS={down:[P_ARM,0], dia:[P_ARM_DIA,-3], up:[P_ARM_UP,-3]};             // [hình, lệch để vai đứng yên]
-export const P_LEG  =['kbk','kbk','kbk','kkk'];                                       // 3×4
+export const P_LEG  =['kbk','kbk','kbk','kkk'];                                       // đứng, hông ở đỉnh
+export const P_LEG_F=['kbk..','.kbk.','..kbk','..kkk'];                               // bước tới
+export const P_LEG_B=['..kbk','.kbk.','kbk..','kkk..'];                               // đạp về sau
+export const P_LEG_U=['kbk..','kbbk.','.kkk.','.....'];                               // co lên
+export const LEGS={thang:[P_LEG,0], truoc:[P_LEG_F,0], sau:[P_LEG_B,-2], co:[P_LEG_U,0]};
+/* katana chéo lên, chuôi ở góc dưới-trái */
+export const P_KATANA=['.....S','....Sk','...Sk.','..Sk..','.bk...','bk....'];
 export const FAR={c:'#3d7d8c', f:'#c8ae94', b:'#4a3020'};      // part phía xa: tối hơn một bậc
 /* lắp 6 part lại; pose là các độ lệch pixel của từng part */
 export function drawRig(g,ox,oy,pose){
-  const P=Object.assign({hx:0,hy:0,ax:0,ay:0,fax:0,fay:0,lx:0,ly:0,flx:0,fly:0,ty:0,arm:'down'}, pose||{});
-  const A=ARMS[P.arm];
+  const P=Object.assign({hx:0,hy:0,ax:0,ay:0,fax:0,fay:0,lx:0,ly:0,flx:0,fly:0,ty:0,
+                         arm:'down', legN:'thang', legF:'thang', sword:null}, pose||{});
+  const A=ARMS[P.arm], LN=LEGS[P.legN], LF=LEGS[P.legF];
   art(g,P_ARM,  ox+3+P.fax, oy+6+P.fay+P.ty, null, FAR);
-  art(g,P_LEG,  ox+4+P.flx, oy+9+P.fly,      null, FAR);
-  art(g,P_LEG,  ox+7+P.lx,  oy+9+P.ly);
+  art(g,LF[0],  ox+4+LF[1]+P.flx, oy+9+P.fly, null, FAR);
+  art(g,LN[0],  ox+7+LN[1]+P.lx,  oy+9+P.ly);
   art(g,P_TORSO,ox+4,       oy+5+P.ty);
   art(g,P_HEAD, ox+3+P.hx,  oy+P.hy+P.ty);
   art(g,A[0],   ox+8+P.ax,  oy+6+A[1]+P.ay+P.ty);
+  if(P.sword) art(g,P_KATANA, ox+P.sword[0], oy+P.sword[1]);
 }
 export function drawCleanup(g,ox,oy,done){
   drawRig(g,ox,oy);
@@ -459,4 +467,100 @@ export function drawSoft(g,size,soft){
       if(a>0){ g.fillStyle='rgba(255,180,63,'+(a*a).toFixed(2)+')'; g.fillRect(x,y,1,1); }
     }else if(d<=r) px(g,x,y,'#ffb43f');
   }
+}
+
+/* =======================================================================
+   GÓC NHÌN NGANG (side view) — nhân vật hành động & tile nền
+   ======================================================================= */
+
+/* --- bộ động tác: mỗi khung chỉ là một tập độ lệch của các part --- */
+export const RUN_POSES=[
+  {legN:'truoc', legF:'sau',   ty:0,  arm:'dia'},
+  {legN:'thang', legF:'co',    ty:1,  arm:'down'},
+  {legN:'co',    legF:'thang', ty:0,  arm:'down'},
+  {legN:'sau',   legF:'truoc', ty:-1, arm:'dia'},
+  {legN:'sau',   legF:'truoc', ty:0,  arm:'down'},
+  {legN:'co',    legF:'thang', ty:1,  arm:'down'},
+  {legN:'thang', legF:'co',    ty:0,  arm:'dia'},
+  {legN:'truoc', legF:'sau',   ty:-1, arm:'dia'}
+];
+export const JUMP_POSES=[
+  {legN:'co',    legF:'co',    ty:2,  arm:'down'},   // nhún lấy đà
+  {legN:'sau',   legF:'sau',   ty:-2, arm:'up'},     // bật lên
+  {legN:'co',    legF:'co',    ty:-3, arm:'up'},     // đỉnh
+  {legN:'truoc', legF:'sau',   ty:-2, arm:'dia'},    // rơi
+  {legN:'truoc', legF:'sau',   ty:3,  arm:'down'}    // tiếp đất
+];
+/* vệt chém: một cung hai màu quanh tâm xoay của lưỡi kiếm */
+export function slashArc(g,cx,cy,r,a0,a1,cols){
+  for(let a=a0;a<=a1;a+=0.04){
+    const c=Math.cos(a), s=Math.sin(a);
+    px(g, Math.round(cx+c*r),     Math.round(cy+s*r),     cols[0]);
+    px(g, Math.round(cx+c*(r-1)), Math.round(cy+s*(r-1)), cols[1]);
+  }
+}
+/* một khung của combo chém: lấy đà → bung (có vệt) → chạm → thu */
+export function drawSlash(g,ox,oy,phase){
+  const P=[
+    {pose:{legN:'sau',legF:'truoc',ty:1,arm:'up'},    sword:[9,1]},
+    {pose:{legN:'truoc',legF:'sau',ty:0,arm:'dia'},   sword:[10,4], arc:[11,8,7,-1.5,0.2]},
+    {pose:{legN:'truoc',legF:'sau',ty:1,arm:'down'},  sword:[10,8], arc:[11,9,5,-0.6,1.2]},
+    {pose:{legN:'thang',legF:'thang',ty:0,arm:'down'},sword:[10,7]}
+  ][phase];
+  drawRig(g,ox,oy,Object.assign({sword:P.sword},P.pose));
+  if(P.arc) slashArc(g, ox+P.arc[0], oy+P.arc[1], P.arc[2], P.arc[3], P.arc[4], ['#fff6e0','#e88a5a']);
+}
+/* khung nhoè (smear): kéo dài lưỡi kiếm thành vệt, chỉ hiện 1/12 giây */
+export function drawSmear(g,ox,oy,on){
+  drawRig(g,ox,oy,{legN:'truoc',legF:'sau',arm:'dia',sword:on?null:[10,4]});
+  if(on){
+    slashArc(g,ox+10,oy+7,7,-1.7,0.5,['#fff6e0','#e88a5a']);
+    slashArc(g,ox+10,oy+7,5,-1.4,0.2,['#e88a5a','#8c2f39']);
+  }
+}
+
+/* --- tile nền nhìn ngang --- */
+export const GROUND={g1:'#8ab547',g2:'#5d9c3c',g3:'#356b30',
+                     d1:'#a06534',d2:'#8a5630',d3:'#6b4423',d4:'#43290f'};
+/* vol=false: hai màu phẳng như nhìn từ trên xuống — sai với góc nhìn ngang */
+export function sideGround(g,ox,oy,w,h,vol){
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let c;
+    if(!vol){ c = y<3 ? GROUND.g2 : GROUND.d2; }
+    else if(y===0) c=GROUND.g1;
+    else if(y===1) c = hash01(ox+x,7)>0.4 ? GROUND.g2 : GROUND.g1;
+    else if(y===2) c = hash01(x*2,y*3)>0.45 ? GROUND.g3 : GROUND.g2;
+    else{
+      const t=(y-3)/Math.max(1,h-4);
+      c = t<0.2?GROUND.d1 : t<0.55?GROUND.d2 : t<0.85?GROUND.d3 : GROUND.d4;
+      if(hash01(x*5+ox,y*7)>0.9) c=GROUND.d1;                   // sạn đá
+      if(y===3 && hash01(x*3,1)>0.6) c=GROUND.d1;               // rễ cỏ ăn xuống
+    }
+    px(g,ox+x,oy+y,c);
+  }
+}
+/* cảnh nhỏ: nền xa, mặt đất, bệ lơ lửng, dốc bậc — và nhân vật đứng đúng mốc chân */
+export function sideScene(g,w,h){
+  for(let x=0;x<w;x++){                                          // đồi xa, nhạt và ngả lam
+    const top = h-16-Math.round(3+Math.sin(x*0.22)*2+Math.sin(x*0.07)*2);
+    for(let y=top;y<h-16;y++) px(g,x,y, y===top?'#5d7f8c':'#46626e');
+  }
+  sideGround(g,0,h-16,w,16,true);                                // mặt đất chính
+  sideGround(g,4,h-27,13,7,true);                                // bệ lơ lửng
+  for(let s=0;s<4;s++) sideGround(g, w-16+s*4, h-16-(s+1)*3, 4, 3+(s+1)*3, true);  // dốc bậc
+  drawRig(g,20,h-30);                                            // chân chạm đúng mặt đất
+}
+/* mép bệ: bo tròn và cỏ rủ xuống hay cắt vuông như miếng gạch */
+export function platformEdge(g,ox,oy,w,h,soft){
+  sideGround(g,ox,oy,w,h,true);
+  if(!soft) return;
+  px(g,ox,oy,PAL.k); px(g,ox+w-1,oy,PAL.k);                      // bo hai góc trên
+  for(const x of [1,3,w-4,w-2]){                                 // cỏ rủ xuống mép
+    px(g,ox+x,oy+3,GROUND.g2); px(g,ox+x,oy+4,GROUND.g3);
+  }
+}
+/* tư thế thủ + 4 đường mốc tỉ lệ (đỉnh đầu · vai · hông · mặt đất) */
+export function drawSideProp(g,w,h,guides){
+  if(guides) for(const y of [3,8,12,16]) for(let x=0;x<w;x+=2) px(g,x,y,TH.mid);
+  drawRig(g,1,3,{sword:[10,7]});
 }
