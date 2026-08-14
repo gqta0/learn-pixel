@@ -16,8 +16,8 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 - Bảng màu dựng sẵn (PICO-8, DawnBringer 16, Sweetie 16…), rút bảng màu từ ảnh, thay màu hàng loạt (palette swap).
 
 **Học**
-- 42 bài tập chia 9 chặng, mỗi bài có đích đến, các bước, mẹo, bẫy thường gặp và nút dựng sẵn đúng khổ canvas / số khung / số lớp.
-- 19 bài lý thuyết, mọi hình minh hoạ đều được vẽ bằng chính thuật toán pixel nên đổi theo nền sáng/tối.
+- 53 bài tập chia 11 chặng, mỗi bài có đích đến, các bước, mẹo, bẫy thường gặp và nút dựng sẵn đúng khổ canvas / số khung / số lớp.
+- 22 bài lý thuyết, mọi hình minh hoạ đều được vẽ bằng chính thuật toán pixel nên đổi theo nền sáng/tối.
 
 **Lưu**
 - Tự lưu vào trình duyệt (localStorage) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập.
@@ -64,8 +64,8 @@ js/
   content/
     art.js            thư viện hình vẽ bằng thuật toán
     demos.js          bảng "sai / đúng" đặt cạnh nhau
-    exercises.js      9 chặng bài tập
-    lessons.js        18 bài lý thuyết
+    exercises.js      11 chặng bài tập
+    lessons.js        22 bài lý thuyết
 ```
 
 Quy tắc phụ thuộc: `state` và `raster` không được biết gì về DOM; `ui` là nơi duy nhất được biết cả hai phía.

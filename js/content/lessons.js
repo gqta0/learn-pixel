@@ -1,4 +1,4 @@
-/* Nội dung: 18 bài lý thuyết, mỗi bài gọi hình minh hoạ theo tên trong DEMOS. */
+/* Nội dung: 22 bài lý thuyết, mỗi bài gọi hình minh hoạ theo tên trong DEMOS. */
 import { $ } from './../dom.js';
 import { renderDemo } from './demos.js';
 
@@ -178,6 +178,62 @@ export const LESSONS=[
  {p:'<b>Cutout hay vẽ tay?</b> Dịch part là cách nhanh để tìm ra tư thế và nhịp. Nhưng sprite cuối cùng luôn cần một lượt <b>vẽ tay lại</b>: nối viền ngoài thành một đường duy nhất, cho vai và nách biến dạng theo tay.'},
  {demo:'cleanup'},
  {note:'Quy trình gọn nhất: dựng bộ part → lắp tư thế cực trị → chỉnh giãn cách bằng onion skin → vẽ tay dọn nét → chạy ở fps thật.'}
+]},
+
+{t:'Góc nhìn ngang khác top-down chỗ nào', b:[
+ {p:'Top-down: máy quay treo trên cao, bạn nhìn <b>xuống mặt đất</b>. Góc nhìn ngang: máy quay đứng ngang tầm mắt, bạn nhìn vào <b>vách cắt</b> của thế giới. Đổi một chữ thôi nhưng mọi luật vẽ đổi theo.'},
+ {ul:['Trọng lực có thật và luôn hướng xuống mép dưới màn hình — mọi vật đều phải <b>đứng trên</b> hoặc <b>treo vào</b> một thứ gì đó.',
+      'Mặt đất không còn là một mảng cỏ trải rộng, mà là <b>một dải mỏng ở trên</b> cộng với <b>thân đất dày</b> bên dưới.',
+      'Nhân vật chỉ có hai hướng: trái và phải, lật gương cho nhau. Không có mặt sau.',
+      'Nhìn ngang thì mặt chỉ còn <b>một con mắt</b>, một đường mũi, một tai.',
+      'Pivot nằm ở <b>giữa hai bàn chân</b>, không phải giữa sprite — engine dùng đúng điểm đó để đặt nhân vật lên mặt đất.']},
+ {demo:'sidetile'},
+ {p:'Chỗ người mới sai nhiều nhất: vẽ tile đất theo thói quen top-down — một mảng nâu phẳng có cỏ ở trên. Nhìn ngang thì thân đất phải <b>tối dần xuống dưới</b>, vì ánh sáng trời rọi từ trên, và phần sâu dưới lòng đất thì không nhận được gì.'},
+ {demo:'sidescene'},
+ {note:'Cùng một palette, cùng một nhân vật, chỉ đổi cách tô mặt đất là cả thế giới đổi từ Stardew sang Hollow Knight.'}
+]},
+
+{t:'Nhân vật hành động nhìn ngang', b:[
+ {p:'Dòng art trong các game hành động 2D (kiểu samurai/ninja sidescroller) thường ở <b>48–64px</b>, tỉ lệ khoảng <b>4 đầu</b>: đủ chỗ cho nét mặt và nếp áo, nhưng vẫn giữ được cái đáng yêu của tỉ lệ rút gọn.'},
+ {demo:'sideprop'},
+ {ul:['<b>Tư thế thủ</b> là gốc của cả bộ: trọng tâm thấp, chân tách, vai xoay chếch về phía người xem để thân không bị dẹt.',
+      '<b>Vải là bạn</b>: áo choàng, khăn, đuôi tóc nhô ra khỏi silhouette. Chúng vừa làm dáng đẹp vừa là chỗ kể chuyển động mà không phải vẽ lại thân.',
+      '<b>Viền chọn lọc</b>: viền tối phía dưới và phía sau, bỏ viền phía trên nơi ánh sáng chiếu vào. Viền đen kín sẽ làm nhân vật dán lên nền.',
+      '<b>Ánh sáng viền (rim light)</b> một bên: 1px sáng dọc mép lưng hoặc mép vai — mẹo rẻ nhất để nhân vật bật khỏi nền tối.',
+      '<b>Giới hạn 16–24 màu</b> cho cả nhân vật: 4 màu da, 4 tóc, 4 áo, 3 kim loại, 2 viền.']},
+ {p:'Vẽ nhân vật ở tư thế thủ trước, rồi tách thành part như Chặng 6. Mọi khung sau đó là dịch và vẽ lại part, không bao giờ vẽ lại cả người.'}
+]},
+
+{t:'Bộ động tác chuẩn của game hành động 2D', b:[
+ {p:'Engine không gọi "một animation dài". Nó gọi <b>từng trạng thái riêng</b>, và mỗi trạng thái phải nối được vào các trạng thái kia. Đây là bộ tối thiểu để một nhân vật chơi được:'},
+ {ul:['<b>Idle</b> 4 khung, 6 fps — thân hạ 1px, chân đứng yên.',
+      '<b>Chạy</b> 8 khung, 12–14 fps — 4 khung cực trị + 4 trung gian.',
+      '<b>Nhảy</b> 5 trạng thái rời: nhún · bật · đỉnh (lặp) · rơi (lặp) · tiếp đất.',
+      '<b>Đánh</b> 3 đòn, mỗi đòn 4–6 khung, và đòn nào cũng phải quay về được tư thế thủ.',
+      '<b>Trúng đòn</b> 2 khung · <b>Ngã</b> 4–6 khung — silhouette đổi hẳn sang phương ngang.']},
+ {demo:'run8'},
+ {p:'Vòng chạy vẽ theo thứ tự: hai khung <b>chạm đất</b> trước (bước dài nhất), rồi hai khung <b>lướt qua</b> (chân chồng nhau, thân cao nhất), cuối cùng mới điền 4 khung trung gian. Đỉnh đầu phải vạch một đường sóng đều — kiểm bằng onion skin.'},
+ {demo:'jump5'},
+ {p:'Cú nhảy có sức nặng nhờ giãn cách: lên nhanh, <b>giữ lâu ở đỉnh</b>, xuống nhanh, và bắt buộc có khung nhún khi tiếp đất. Bỏ khung tiếp đất là lỗi làm cú nhảy nhẹ bẫng phổ biến nhất.'},
+ {demo:'slash4'},
+ {ul:['Đòn chém: nhiều khung cho <b>lấy đà</b>, đúng <b>một khung</b> cho lúc bung.',
+      '<b>Vệt kiếm</b> chỉ sống 1–2 khung, sáng ở mép ngoài và mờ dần vào trong.',
+      'Khung chạm: đẩy cả nhân vật tới trước 2px — đó chính là cảm giác "va".']},
+ {demo:'smear'},
+ {note:'Khung nhoè (smear) được phép vẽ xấu, méo, phi lý. Nếu người xem kịp nhìn thấy nó méo thì nghĩa là bạn đã giữ nó quá lâu.'}
+]},
+
+{t:'Tile và cảnh nền nhìn ngang', b:[
+ {p:'Tile platformer khác tile top-down ở chỗ nó có <b>mặt trước</b> và <b>mép</b>. Bộ tối thiểu để dựng được một màn: ô giữa, mép trái, mép phải, hai góc trên, và một ô dốc.'},
+ {demo:'platedge'},
+ {ul:['Mép bệ nên <b>bo góc</b> và có <b>cỏ rủ xuống</b> — nếu không, bệ trông y hệt viên gạch dán lơ lửng.',
+      'Vách bên là mặt cắt: tối hơn mặt trước một bậc, vân chạy dọc.',
+      'Dốc dùng bậc 1:1 hoặc 2:1, và phải khớp được với ô giữa ở cả hai đầu.',
+      'Chi tiết dồn ở phần trên của khối đất, phần sâu để trống cho mắt nghỉ.',
+      'Bóng đổ dưới bệ cho người chơi biết nó đang lơ lửng.']},
+ {p:'Nền lùi xa theo luật <b>phối cảnh không khí</b>: càng xa càng nhạt, càng ít tương phản, càng ngả về màu trời. Lớp tiền cảnh thì ngược lại — gần như silhouette, chỉ để tạo khung.'},
+ {demo:'parallax'},
+ {note:'Phép thử cuối cùng của một màn ngang: nheo mắt nhìn. Nhân vật phải là chỗ tương phản mạnh nhất màn hình. Nếu nền tranh mất sự chú ý với nhân vật, hãy làm nền nhạt đi chứ đừng làm nhân vật gắt lên.'}
 ]},
 
 {t:'Quy trình làm asset cho game', b:[

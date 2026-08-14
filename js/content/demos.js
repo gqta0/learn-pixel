@@ -5,12 +5,13 @@ import { buildRamp } from './../color.js';
 import { PALETTES } from './../palette.js';
 import {
   AA_SOFT, A_ARROW, A_BAG, A_CHEST, A_CHEST_OPEN, A_CHIBI, A_CHIBI_BACK, A_CHIBI_SIDE, A_COIN,
-  A_KEY, A_PLUS, A_STAFF, A_STAR, A_SWORD, A_TREE, CURVE_BAD, CURVE_GOOD, FAR, P_ARM, P_HEAD,
-  P_LEG, P_TORSO, art, artFlip, drawApple, drawBands, drawBoom, drawBox, drawBread, drawCleanup,
-  drawCrop, drawCyl, drawFace, drawFrame, drawGradient, drawHairLag, drawHouse, drawMap,
-  drawMaterial, drawParallax, drawPotion, drawRig, drawShadow, drawSoft, drawSpacing,
-  drawSphere, drawTile, drawTile9, drawTiming, drawWalk, handPath, heartShape, onBg, px,
-  ringShape, runsLine
+  A_KEY, A_PLUS, A_STAFF, A_STAR, A_SWORD, A_TREE, CURVE_BAD, CURVE_GOOD, FAR, JUMP_POSES,
+  P_ARM, P_HEAD, P_LEG, P_TORSO, RUN_POSES, art, artFlip, drawApple, drawBands, drawBoom,
+  drawBox, drawBread, drawCleanup, drawCrop, drawCyl, drawFace, drawFrame, drawGradient,
+  drawHairLag, drawHouse, drawMap, drawMaterial, drawParallax, drawPotion, drawRig, drawShadow,
+  drawSideProp, drawSlash, drawSmear, drawSoft, drawSpacing, drawSphere, drawTile, drawTile9,
+  drawTiming, drawWalk, handPath, heartShape, onBg, platformEdge, px, ringShape, runsLine,
+  sideGround, sideScene
 } from './art.js';
 
 const RAMP_FLAT = ['#4a1414','#7a2020','#a82c2c','#d63a3a','#f26a6a'];
@@ -229,6 +230,42 @@ Object.assign(DEMOS, {
     {cap:'Tóc hạ cùng lúc với thân', cls:'bad',  w:14,h:14, fn:onBg(14,14,g=>drawHairLag(g,0,0,false))},
     {cap:'Tóc trễ 1 khung', cls:'good', w:14,h:14, fn:onBg(14,14,g=>drawHairLag(g,0,0,true))}
   ],
+  /* --- góc nhìn ngang --- */
+  sideprop:[
+    {cap:'4 mốc: đỉnh đầu · vai · hông · mặt đất', cls:'', w:20,h:19, fn:onBg(20,19,g=>drawSideProp(g,20,19,true))},
+    {cap:'Tư thế thủ — trọng tâm thấp, vai chếch', cls:'good', w:20,h:19, fn:onBg(20,19,g=>drawSideProp(g,20,19,false))}
+  ],
+  sideidle:[
+    {cap:'Khung 1', cls:'', w:16,h:19, fn:onBg(16,19,g=>{for(let x=0;x<16;x++) px(g,x,16,TH.mid); drawRig(g,1,3);})},
+    {cap:'Khung 2 — hạ đúng 1px, chân đứng yên', cls:'good', w:16,h:19, fn:onBg(16,19,g=>{for(let x=0;x<16;x++) px(g,x,16,TH.mid); drawRig(g,1,3,{ty:1});})}
+  ],
+  run8: RUN_POSES.map((pose,i)=>({
+    cap:String(i+1)+(i===0?' — chạm đất':(i===2?' — lướt qua':'')), cls:i===0?'good':'',
+    w:16,h:19, fn:onBg(16,19,g=>{ for(let x=0;x<16;x++) px(g,x,16,TH.mid); drawRig(g,1,3,pose); })
+  })),
+  jump5: JUMP_POSES.map((pose,i)=>({
+    cap:['1 nhún lấy đà','2 bật lên','3 đỉnh — chậm nhất','4 rơi','5 tiếp đất — nhún lại'][i],
+    cls:i===2?'good':'',
+    w:16,h:19, fn:onBg(16,19,g=>{ for(let x=0;x<16;x++) px(g,x,16,TH.mid); drawRig(g,1,3,pose); })
+  })),
+  slash4:[0,1,2,3].map(i=>({
+    cap:['1 lấy đà','2 bung + vệt','3 chạm','4 thu về'][i], cls:i===1?'good':'',
+    w:20,h:19, fn:onBg(20,19,g=>{ for(let x=0;x<20;x++) px(g,x,16,TH.mid); drawSlash(g,1,3,i); })
+  })),
+  smear:[
+    {cap:'Khung nhanh vẽ nét sạch → hụt lực', cls:'bad',  w:20,h:19, fn:onBg(20,19,g=>drawSmear(g,1,3,false))},
+    {cap:'Khung nhanh kéo thành vệt (smear)', cls:'good', w:20,h:19, fn:onBg(20,19,g=>drawSmear(g,1,3,true))}
+  ],
+  sidetile:[
+    {cap:'Hai màu phẳng → như nhìn từ trên xuống', cls:'bad',  w:16,h:16, fn:g=>sideGround(g,0,0,16,16,false)},
+    {cap:'Mặt trên mỏng, thân dày dần tối', cls:'good', w:16,h:16, fn:g=>sideGround(g,0,0,16,16,true)}
+  ],
+  platedge:[
+    {cap:'Mép cắt vuông → như miếng gạch', cls:'bad',  w:16,h:10, fn:g=>platformEdge(g,0,0,16,10,false)},
+    {cap:'Bo góc, cỏ rủ xuống mép', cls:'good', w:16,h:10, fn:g=>platformEdge(g,0,0,16,10,true)}
+  ],
+  sidescene:[{cap:'Đất · bệ · dốc bậc · đồi xa — chân nhân vật đúng mốc', cls:'good',
+    w:64,h:48, fn:g=>sideScene(g,64,48)}],
   sizes3:[
     {cap:'8×8 — chỉ còn hình dáng', cls:'', w:8,h:8,   fn:g=>heartShape(g,0,0,8,['#c94f4f','#e88a5a','#8c2f39'])},
     {cap:'16×16 — đủ 3 bậc màu', cls:'', w:16,h:16, fn:g=>heartShape(g,0,0,16,['#c94f4f','#e88a5a','#8c2f39'])},
