@@ -7,8 +7,9 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 ## Có gì trong này
 
 **Trình vẽ**
-- Khổ 8→64, 11 dụng cụ (bút, xoá, tô loang, hút màu, đường, chữ nhật, ê-líp, dịch lớp, **tô khối theo dải**), gương X/Y, lật ngang/dọc.
-- Nhiều lớp, nhiều khung hình, xem trước animation theo fps, bóng khung trước (onion skin), xem trước lặp 3×3 cho tile.
+- Khổ chữ nhật tuỳ ý tới 128×128, 12 dụng cụ (bút, xoá, tô loang, hút màu, đường, chữ nhật, ê-líp, dịch lớp, **tô khối theo dải**, **chọn vùng**), gương X/Y, lật ngang/dọc, **khoá alpha**.
+- Nhiều lớp, nhiều khung hình, xem trước animation theo fps, bóng khung trước và sau (onion skin), xem trước lặp 3×3 cho tile.
+- Cắt / chép / dán vùng chọn giữa mọi lớp và khung.
 - Hoàn tác 80 bước. Hỗ trợ S-Pen: áp lực → cỡ bút, nút bên = màu phụ, hai ngón để kéo/phóng.
 
 **Màu**
@@ -18,6 +19,8 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 **Học**
 - 53 bài tập chia 11 chặng, mỗi bài có đích đến, các bước, mẹo, bẫy thường gặp và nút dựng sẵn đúng khổ canvas / số khung / số lớp.
 - 22 bài lý thuyết, mọi hình minh hoạ đều được vẽ bằng chính thuật toán pixel nên đổi theo nền sáng/tối.
+- Nút **Nạp mẫu để vẽ đè**: đổ hình mẫu của bài thành pixel mờ vào một lớp riêng.
+- **Soi bài**: máy đếm số màu, màu ngoài bảng màu, pixel lạc, viền dày 2px và mốc chân lệch giữa các khung.
 
 **Lưu**
 - Tự lưu vào trình duyệt (localStorage) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập.
@@ -59,6 +62,7 @@ js/
   frames.js           dải khung hình + xem trước animation
   layers.js           danh sách lớp
   storage.js          xuất/nhập, lưu tự động
+  lint.js             soi bài: đếm lỗi mà giáo trình dạy bằng lời
   ui.js               đồng bộ giao diện + nối mọi sự kiện
   main.js             khởi động
   content/

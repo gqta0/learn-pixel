@@ -3,7 +3,7 @@
 import { $, $$ } from './dom.js';
 import { doc, view, blank, newFrame, activeData } from './state.js';
 import { hexToInt, intToHex } from './color.js';
-import { invalidateBuf, flipData } from './raster.js';
+import { invalidateBuf, flipData, copySel, clearSel, pasteClip } from './raster.js';
 import { pushUndo, undo, redo } from './history.js';
 import { render, fitZoom, setZoom } from './render.js';
 import { paintThumbs, paintPreview, togglePlay } from './frames.js';
@@ -13,18 +13,19 @@ import { setTool, setTheme, setView, syncFingerBtn } from './tools.js';
 import { SAVE_KEY, exportPng, exportSheet, exportJson, importJson,
          loadRef, refToPixels, refToPalette } from './storage.js';
 import { updateProgress } from './content/exercises.js';
+import { runLint } from './lint.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
-/* đổi khổ canvas, giữ hoặc bỏ phần tranh cũ */
-export function resizeDoc(n, keep){
+/* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ */
+export function resizeDoc(w, h, keep){
   const old={w:doc.w,h:doc.h,frames:doc.frames};
   pushUndo();
-  doc.w=n; doc.h=n;
+  doc.w=w; doc.h=h;
   doc.frames = old.frames.map(f=> f.map(src=>{
     const d=blank();
     if(keep){
-      const cw=Math.min(old.w,n), ch=Math.min(old.h,n);
-      for(let y=0;y<ch;y++) for(let x=0;x<cw;x++) d[y*n+x]=src[y*old.w+x];
+      const cw=Math.min(old.w,w), ch=Math.min(old.h,h);
+      for(let y=0;y<ch;y++) for(let x=0;x<cw;x++) d[y*w+x]=src[y*old.w+x];
     }
     return d;
   }));
@@ -47,7 +48,9 @@ function replaceColor(from,to){
 }
 
 export function syncAll(){
-  $('#sizeSel').value = String(doc.w);
+  $('#sizeW').value = String(doc.w);
+  $('#sizeH').value = String(doc.h);
+  $('#hud').textContent = doc.w+'×'+doc.h;
   paintLayers(); paintThumbs(); syncColors(); render(); updateProgress();
 }
 
@@ -85,9 +88,10 @@ $('#rampAdd').addEventListener('click', ()=>{
 });
 
 $('#applySize').addEventListener('click', ()=>{
-  const n=parseInt($('#sizeSel').value,10);
-  if(n===doc.w) return;
-  resizeDoc(n, confirm('Giữ lại phần tranh hiện có ở góc trên-trái?\nOK = giữ, Cancel = xoá sạch.'));
+  const num=(sel,cur)=>{ const v=parseInt($(sel).value,10); return isFinite(v) ? Math.max(4,Math.min(128,v)) : cur; };
+  const w=num('#sizeW',doc.w), h=num('#sizeH',doc.h);
+  if(w===doc.w && h===doc.h) return;
+  resizeDoc(w, h, confirm('Giữ lại phần tranh hiện có ở góc trên-trái?\nOK = giữ, Cancel = xoá sạch.'));
 });
 $('#zoomIn').addEventListener('click', ()=>setZoom(view.zoom+2));
 $('#zoomOut').addEventListener('click', ()=>setZoom(view.zoom-2));
@@ -107,6 +111,24 @@ $('#tileBtn').addEventListener('click', e=>{
   e.currentTarget.setAttribute('aria-pressed', view.tile3);
   e.currentTarget.classList.toggle('on', view.tile3);
   paintPreview();
+});
+/* ---------------- vùng chọn ---------------- */
+function selAct(fn, undoable){
+  if(!view.sel && undoable!=='paste') return;
+  if(undoable) pushUndo();
+  if(fn(activeData())===false && undoable) undo();
+  render(); paintThumbs();
+}
+$('#selCopy').addEventListener('click', ()=>selAct(d=>copySel(d), false));
+$('#selCut').addEventListener('click',  ()=>selAct(d=>{ copySel(d); return clearSel(d); }, true));
+$('#selDel').addEventListener('click',  ()=>selAct(d=>clearSel(d), true));
+$('#selPaste').addEventListener('click',()=>selAct(d=>pasteClip(d), 'paste'));
+$('#selNone').addEventListener('click', ()=>{ view.sel=null; render(); });
+$('#lintBtn').addEventListener('click', runLint);
+$('#lockA').addEventListener('click', e=>{
+  view.lockAlpha=!view.lockAlpha;
+  e.currentTarget.setAttribute('aria-pressed', view.lockAlpha);
+  e.currentTarget.classList.toggle('on', view.lockAlpha);
 });
 $('#flipH').addEventListener('click', ()=>flipLayer(true));
 $('#flipV').addEventListener('click', ()=>flipLayer(false));
@@ -161,8 +183,15 @@ window.addEventListener('keydown', e=>{
   const k=e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey) && k==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
   if((e.ctrlKey||e.metaKey) && k==='y'){ e.preventDefault(); redo(); return; }
+  if((e.ctrlKey||e.metaKey) && 'cxv'.includes(k)){
+    e.preventDefault();
+    $(k==='c'?'#selCopy':k==='x'?'#selCut':'#selPaste').click();
+    return;
+  }
   if(e.ctrlKey||e.metaKey) return;
-  const map={b:'pencil',e:'eraser',g:'fill',i:'picker',l:'line',u:'rect',o:'ellipse',m:'move',s:'shade'};
+  if(k==='escape'){ view.sel=null; render(); return; }
+  if(k==='delete'||k==='backspace'){ e.preventDefault(); $('#selDel').click(); return; }
+  const map={b:'pencil',e:'eraser',g:'fill',i:'picker',l:'line',u:'rect',o:'ellipse',m:'move',s:'shade',a:'select'};
   if(map[k]){ setTool(map[k]); return; }
   if(k==='x'){ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); }
   if(k==='['){ view.brush=Math.max(1,view.brush-1); $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; }

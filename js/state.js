@@ -22,6 +22,7 @@ export const view = {
   tool:'pencil', brush:1,
   pri: hexToInt('#ffb43f'), sec: hexToInt('#2e2e42'),
   playing:false, fps:8, tile3:false,
+  lockAlpha:false, sel:null,
   ref:null, refOp:0.5,
   pressure:true, fingerMode:'draw', brushEff:1, hover:null
 };

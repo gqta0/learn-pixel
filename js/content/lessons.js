@@ -211,6 +211,7 @@ export const LESSONS=[
       '<b>Nhảy</b> 5 trạng thái rời: nhún · bật · đỉnh (lặp) · rơi (lặp) · tiếp đất.',
       '<b>Đánh</b> 3 đòn, mỗi đòn 4–6 khung, và đòn nào cũng phải quay về được tư thế thủ.',
       '<b>Trúng đòn</b> 2 khung · <b>Ngã</b> 4–6 khung — silhouette đổi hẳn sang phương ngang.']},
+ {note:'<b>Chọn khổ khung một lần cho cả bộ.</b> Mọi động tác của một nhân vật phải nằm trong khung <b>cùng kích thước</b> — lấy theo động tác rộng nhất (thường là đòn chém). Nhân vật cao 32px thì khung 48×48 là vừa: dư chỗ cho kiếm vung và áo bay, mà engine vẫn cắt spritesheet đều ô. Khổ chữ nhật để dành cho thứ khác: chân dung 48×64, dải nền 64×32, vách đá 32×64.'},
  {demo:'run8'},
  {p:'Vòng chạy vẽ theo thứ tự: hai khung <b>chạm đất</b> trước (bước dài nhất), rồi hai khung <b>lướt qua</b> (chân chồng nhau, thân cao nhất), cuối cùng mới điền 4 khung trung gian. Đỉnh đầu phải vạch một đường sóng đều — kiểm bằng onion skin.'},
  {demo:'jump5'},

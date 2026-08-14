@@ -16,7 +16,8 @@ export const TOOLS=[
   {id:'ellipse',ic:'◯', key:'O', name:'Ê-líp rỗng (O)'},
   {id:'ellipsef',ic:'⬤', key:'', name:'Ê-líp đầy'},
   {id:'move',   ic:'✥', key:'M', name:'Dịch lớp (M)'},
-  {id:'shade',  ic:'◐', key:'S', name:'Tô khối theo dải (S) — bấm để sáng lên 1 bậc, chuột phải / nút bên S-Pen để tối đi'}
+  {id:'shade',  ic:'◐', key:'S', name:'Tô khối theo dải (S) — bấm để sáng lên 1 bậc, chuột phải / nút bên S-Pen để tối đi'},
+  {id:'select', ic:'⬚', key:'A', name:'Chọn vùng (A) — kéo để chọn, chạm một cái để bỏ chọn'}
 ];
 export function buildTools(){
   const box=$('#tools');

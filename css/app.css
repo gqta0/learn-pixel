@@ -278,6 +278,10 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 .demo figcaption{font-family:var(--mono);font-size:10px;letter-spacing:.08em;margin-top:4px;text-transform:uppercase}
 .demo .bad figcaption{color:var(--rose)}
 .demo .good figcaption{color:var(--leaf)}
+.lint{margin:6px 0;font-size:12.5px;padding-left:17px;text-indent:-17px}
+.lint.ok{color:var(--leaf)}
+.lint.warn{color:var(--rose)}
+.lint b{color:var(--text)}
 .note{
   border-left:2px solid var(--amber);background:var(--note-bg);padding:7px 10px;margin:9px 0;font-size:13px;
 }
