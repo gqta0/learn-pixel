@@ -434,6 +434,22 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   .quickbar .qb{width:48px;height:48px;border-radius:24px}
   .mnav{padding-bottom:env(safe-area-inset-bottom)}
 }
+/* Khổ dọc: bề ngang mới là thứ hiếm, chiều cao thì dư — nên thanh nhanh
+   nằm hẳn trong bố cục (ăn chiều cao) thay vì nổi đè lên tranh (ăn bề ngang).
+   Khổ ngang thì ngược lại: tranh bị bó theo chiều cao nên nhỏ và nằm giữa,
+   thanh nhanh nổi ở mép phải không chạm vào tranh — giữ nguyên như cũ. */
+@media (max-width:1000px) and (orientation:portrait){
+  .quickbar{
+    position:static;display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;
+    max-width:244px;margin:0 auto;gap:6px;padding:6px 0 2px;
+    pointer-events:auto;
+  }
+  .quickbar .qb{
+    width:44px;height:44px;border-radius:22px;
+    background:var(--panel-2);box-shadow:0 2px 6px rgba(0,0,0,.22);
+  }
+  .quickbar .qb.haspop::after{right:4px;bottom:4px}
+}
 /* nằm ngang: chiều cao quý, thu gọn dải khung hình chứ không giấu đi —
    không có nó thì không đổi được khung khi vẽ animation */
 @media (max-width:1000px) and (orientation:landscape){
@@ -447,8 +463,18 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   .filmstrip .playbox canvas{display:none}
   .filmstrip .playbox .row{display:flex}
   .frame canvas{width:34px;height:34px}
-  /* nằm ngang thì xếp thanh nhanh theo hàng — xếp dọc sẽ dài hơn cả vùng canvas */
-  .quickbar{top:6px;right:calc(6px + env(safe-area-inset-right));flex-direction:row}
-  .quickbar .qb{width:44px;height:44px;border-radius:22px}
+  /* thanh nhanh nằm hẳn bên phải tranh, ăn bề ngang (thứ đang dư) chứ không đè lên */
+  .canvasarea{flex-direction:row-reverse}
+  .quickbar{
+    position:static;display:grid;grid-template-columns:repeat(3,44px);
+    align-content:center;justify-content:center;gap:6px;
+    padding:4px calc(6px + env(safe-area-inset-right)) 4px 6px;
+    pointer-events:auto;
+  }
+  .quickbar .qb{
+    width:44px;height:44px;border-radius:22px;
+    background:var(--panel-2);box-shadow:0 2px 6px rgba(0,0,0,.22);
+  }
+  .quickbar .qb.haspop::after{right:4px;bottom:4px}
 }
 
