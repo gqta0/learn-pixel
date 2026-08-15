@@ -8,7 +8,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 **Trình vẽ**
 - Khổ chữ nhật tuỳ ý tới 128×128, 12 dụng cụ (bút, xoá, tô loang, hút màu, đường, chữ nhật, ê-líp, dịch lớp, **tô khối theo dải**, **chọn vùng**), gương X/Y, lật ngang/dọc, **khoá alpha**.
-- Nhiều lớp, nhiều khung hình, xem trước animation theo fps, bóng khung trước và sau (onion skin), xem trước lặp 3×3 cho tile.
+- Nhiều lớp (đổi được thứ tự chồng), nhiều khung hình, **thời lượng riêng cho từng khung**, bóng khung trước và sau (onion skin), xem trước lặp 3×3 cho tile.
 - Cắt / chép / dán vùng chọn giữa mọi lớp và khung.
 - Hoàn tác 80 bước. Hỗ trợ S-Pen: áp lực → cỡ bút, nút bên = màu phụ, hai ngón để kéo/phóng.
 
@@ -23,8 +23,8 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 - **Soi bài**: máy đếm số màu, màu ngoài bảng màu, pixel lạc, viền dày 2px và mốc chân lệch giữa các khung.
 
 **Lưu**
-- Tự lưu vào trình duyệt (localStorage) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập.
-- Xuất PNG / PNG spritesheet, lưu & mở dự án `.json`.
+- Tự lưu vào trình duyệt (localStorage, nén RLE) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập. Tiến độ lưu theo tên bài nên chèn bài mới không làm lệch.
+- Xuất PNG / PNG spritesheet / PNG bảng màu, lưu & mở dự án `.json` (nén RLE).
 
 ## Đưa lên GitHub Pages
 

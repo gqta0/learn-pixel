@@ -508,7 +508,22 @@ export const EXERCISES = [
  trap:'Bỏ qua pass này — game sẽ luôn trông "chắp vá" dù từng asset đều đẹp.'}
 ];
 
+/* Tiến độ lưu theo TÊN BÀI, không theo số thứ tự: chèn bài mới vào giữa lộ trình
+   là số thứ tự lệch hết, còn tên thì không. */
 export const doneSet = new Set();
+export const exKey = ex => ex.t;
+/* bản lưu cũ ghi số thứ tự — chỉ bài thuộc Chặng 0–5 mới còn đúng vị trí,
+   vì mọi lần chèn về sau đều nằm sau chúng */
+export function migrateDone(list){
+  const safe = EXERCISES.filter(e=>e.p<=5).length;
+  let mat=0, mat2=0;
+  doneSet.clear();
+  list.forEach(v=>{
+    if(typeof v==='string'){ doneSet.add(v); mat2++; return; }
+    if(v<safe && EXERCISES[v]){ doneSet.add(exKey(EXERCISES[v])); mat++; }
+  });
+  return {cu:mat, moi:mat2, bo:list.length-mat-mat2};
+}
 export function setupExercise(ex){
   const nf = ex.frames||1;
   const W=ex.size, H=ex.h||ex.size;
@@ -518,7 +533,7 @@ export function setupExercise(ex){
   doc.w=W; doc.h=H;
   const names = ex.layers || ['Phác thảo','Nét chính'];
   doc.layers=names.map(n=>({name:n,vis:true}));
-  doc.frames=[];
+  doc.frames=[]; doc.dur=[];
   for(let i=0;i<nf;i++) doc.frames.push(doc.layers.map(()=>new Uint32Array(W*H)));
   doc.af=0; doc.al = ex.layers ? doc.layers.length-1 : Math.min(1, doc.layers.length-1);
   invalidateBuf(); fitZoom(); syncAll();
@@ -555,7 +570,7 @@ export function buildExercises(){
     const list = EXERCISES.filter(e=>e.p===pi);
     const det=document.createElement('details'); det.className='phase'; if(pi===0) det.open=true;
     const sum=document.createElement('summary');
-    const doneN = list.filter(e=>doneSet.has(EXERCISES.indexOf(e))).length;
+    const doneN = list.filter(e=>doneSet.has(exKey(e))).length;
     sum.innerHTML = '<span class="pn">'+ph.n+'</span><span>'+ph.t+'</span><span class="pc">'+doneN+'/'+list.length+'</span>';
     det.appendChild(sum);
     const intro=document.createElement('div');
@@ -564,7 +579,7 @@ export function buildExercises(){
     det.appendChild(intro);
 
     list.forEach(ex=>{
-      const gi=EXERCISES.indexOf(ex);
+      const gi=exKey(ex);
       const wrap=document.createElement('div');
       wrap.className='ex'+(doneSet.has(gi)?' done':'');
       const num=list.indexOf(ex)+1;
@@ -599,7 +614,7 @@ export function buildExercises(){
       wrap.querySelector('input').addEventListener('change', e=>{
         if(e.target.checked) doneSet.add(gi); else doneSet.delete(gi);
         wrap.classList.toggle('done', e.target.checked);
-        sum.querySelector('.pc').textContent = list.filter(x=>doneSet.has(EXERCISES.indexOf(x))).length+'/'+list.length;
+        sum.querySelector('.pc').textContent = list.filter(x=>doneSet.has(exKey(x))).length+'/'+list.length;
         updateProgress();
       });
       det.appendChild(wrap);

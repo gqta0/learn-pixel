@@ -176,6 +176,45 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   padding:7px 12px;border-bottom:1px solid var(--line);background:var(--panel);
   flex:0 0 auto;
 }
+/* ---------- bảng chọn nhanh khi chạm giữ ---------- */
+.popup{
+  position:fixed;z-index:60;padding:8px;border-radius:4px;
+  background:var(--panel);border:1px solid var(--line-hi);
+  box-shadow:0 10px 28px rgba(0,0,0,.45);
+}
+.poptitle{
+  margin:0 0 7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);
+}
+.popitems{display:flex;flex-wrap:wrap;gap:5px;max-width:236px}
+.popitems .btn{min-width:40px;justify-content:center}
+.popcol{
+  width:32px;height:32px;padding:0;border:1px solid rgba(0,0,0,.4);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
+}
+.popcol.on{box-shadow:inset 0 0 0 2px var(--text), 0 0 0 1px var(--text)}
+/* góc vát báo nút này chạm giữ được */
+.haspop{position:relative}
+.haspop::after{
+  content:"";position:absolute;right:2px;bottom:2px;
+  border:4px solid transparent;border-right-color:var(--dim);border-bottom-color:var(--dim);
+  opacity:.65;pointer-events:none;
+}
+.quickbar .qb.haspop::after{right:5px;bottom:5px}
+.tool, .qb, .chip{user-select:none;-webkit-user-select:none}
+
+/* nhóm nút ít dùng, xổ xuống để thanh công cụ không dài quá màn hình điện thoại */
+.more{position:relative}
+.more > summary{list-style:none;display:inline-flex;align-items:center}
+.more > summary::-webkit-details-marker{display:none}
+.more[open] > summary{background:var(--panel);border-color:var(--line-hi)}
+.morebox{
+  position:absolute;top:calc(100% + 5px);left:0;z-index:30;
+  display:flex;flex-direction:column;gap:5px;padding:7px;min-width:150px;
+  background:var(--panel);border:1px solid var(--line-hi);border-radius:3px;
+  box-shadow:0 8px 22px rgba(0,0,0,.35);
+}
+.morebox .btn{text-align:left;justify-content:flex-start}
 .stagebar .sep{width:1px;height:20px;background:var(--line);margin:0 2px}
 /* vùng canvas: mốc định vị cho thanh nhanh, để nó luôn nằm dưới thanh công cụ */
 .canvasarea{position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
@@ -315,7 +354,9 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   .stage{order:-1}
 }
 /* ---------- thanh nhanh cạnh canvas + nav dưới (chỉ mobile) ---------- */
-.quickbar{display:none;position:absolute;right:8px;top:8px;z-index:15;flex-direction:column;gap:6px}
+.quickbar{display:none;position:absolute;right:8px;top:8px;bottom:8px;z-index:15;
+  flex-direction:column;flex-wrap:wrap-reverse;align-content:flex-end;gap:6px;pointer-events:none}
+.quickbar > *{pointer-events:auto}
 .quickbar .qb{
   width:46px;height:46px;display:grid;place-items:center;font-size:19px;
   background:var(--panel);
@@ -380,9 +421,11 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   /* hàng nút quản lý khung: cho trượt ngang thay vì bóp chữ xuống hai dòng */
   .filmstrip .row{overflow-x:auto;padding-bottom:2px}
   .filmstrip .row > *{flex:0 0 auto;white-space:nowrap}
+  .filmstrip .sep{width:1px;height:24px;background:var(--line);margin:0 3px}
 
   /* iOS phóng to trang khi tiêu điểm vào ô nhập nhỏ hơn 16px */
   select,input[type=number],input[type=text]{padding:9px 8px;font-size:16px;min-height:44px}
+  #sizeW,#sizeH{width:52px;padding:9px 4px}
   input[type=range]{height:44px}
   input[type=color]{width:44px;height:44px}
 
