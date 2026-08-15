@@ -6,7 +6,7 @@ import { pushUndo } from './history.js';
 import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
 import { palette, setPalette, paintSwatches } from './palette.js';
-import { doneSet, buildExercises } from './content/exercises.js';
+import { doneSet, buildExercises, migrateDone } from './content/exercises.js';
 import { syncAll } from './ui.js';
 
 function download(name, url){
@@ -31,11 +31,25 @@ export function exportSheet(){
   });
   download('spritesheet_'+doc.w+'x'+doc.h+'_'+doc.frames.length+'f.png', cv.toDataURL('image/png'));
 }
+/* Nén RLE từng lớp: pixel art toàn mảng màu liền nhau nên một lớp 128×128
+   trống rỗng còn 2 số thay vì 16384. Đây là thứ giữ bản lưu không vượt quota. */
+function rle(a){
+  const o=[]; let v=a[0], n=1;
+  for(let i=1;i<a.length;i++){ if(a[i]===v) n++; else { o.push(v,n); v=a[i]; n=1; } }
+  o.push(v,n);
+  return o;
+}
+function unrle(o,len){
+  const a=new Uint32Array(len);
+  let i=0;
+  for(let k=0;k<o.length && i<len;k+=2){ const end=Math.min(len,i+o[k+1]); a.fill(o[k],i,end); i=end; }
+  return a;
+}
 function serialize(){
   return {
-    app:'lo-pixel', version:1, w:doc.w, h:doc.h, af:doc.af, al:doc.al,
+    app:'lo-pixel', version:2, w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers:doc.layers, palette:palette,
-    frames:doc.frames.map(f=>f.map(d=>Array.from(d))),
+    frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur,
     done: Array.from(doneSet)
   };
 }
@@ -43,11 +57,22 @@ function applyData(d){
   if(!d || !d.frames || !d.layers) throw new Error('thiếu dữ liệu tranh');
   doc.w=d.w; doc.h=d.h;
   doc.layers=d.layers.map(l=>({name:l.name,vis:l.vis!==false}));
-  doc.frames=d.frames.map(f=>f.map(a=>Uint32Array.from(a)));
+  const len=d.w*d.h;
+  doc.frames=d.frames.map(f=>f.map(a=> d.version>=2 ? unrle(a,len) : Uint32Array.from(a)));
+  doc.dur=(d.dur||[]).slice();
   doc.af=Math.min(d.af||0, doc.frames.length-1); doc.al=Math.min(d.al||0, doc.layers.length-1);
   if(d.palette){ setPalette(d.palette); }
-  if(d.done){ doneSet.clear(); d.done.forEach(i=>doneSet.add(i)); }
+  if(d.done) migrateDone(d.done);
   invalidateBuf(); fitZoom(); buildExercises(); syncAll();
+}
+/* dải màu 1px mỗi màu, nhân theo cỡ xuất — đúng dạng Lospec hay dùng */
+export function exportPalettePng(){
+  const s=parseInt($('#expScale').value,10);
+  const cv=document.createElement('canvas');
+  cv.width=palette.length*s; cv.height=s;
+  const c=cv.getContext('2d');
+  palette.forEach((hex,i)=>{ c.fillStyle=hex; c.fillRect(i*s,0,s,s); });
+  download('palette_'+palette.length+'mau.png', cv.toDataURL('image/png'));
 }
 export function exportJson(){
   const blob=new Blob([JSON.stringify(serialize())],{type:'application/json'});
@@ -65,7 +90,7 @@ export function importJson(file){
 /* ---------------- lưu tự động vào trình duyệt ---------------- */
 export const SAVE_KEY='lo-pixel-save';
 let saveT=null;
-// ponytail: lưu thẳng mảng số cho gọn; nếu gặp lỗi hết chỗ thì nén RLE từng lớp.
+// ponytail: RLE đủ cho pixel art; nếu vẫn vượt quota thì chuyển sang IndexedDB.
 export function autosave(){
   clearTimeout(saveT);
   saveT=setTimeout(()=>{

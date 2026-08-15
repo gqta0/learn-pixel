@@ -40,6 +40,17 @@ export function delLayer(){
   doc.frames.forEach(f=>f.splice(doc.al,1));
   doc.al=Math.max(0,doc.al-1); syncAll();
 }
+/* đổi thứ tự chồng — Chặng 6 dạy đúng luật này nên phải sửa được thứ tự */
+export function moveLayer(dir){
+  const to=doc.al+dir;
+  if(to<0 || to>=doc.layers.length) return;
+  pushUndo();
+  const [L]=doc.layers.splice(doc.al,1);
+  doc.layers.splice(to,0,L);
+  doc.frames.forEach(f=>{ const [d]=f.splice(doc.al,1); f.splice(to,0,d); });
+  doc.al=to;
+  syncAll();
+}
 export function mergeDown(){
   if(doc.al===0) return;
   pushUndo();

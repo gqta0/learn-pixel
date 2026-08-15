@@ -7,10 +7,11 @@ import { invalidateBuf, flipData, copySel, clearSel, pasteClip } from './raster.
 import { pushUndo, undo, redo } from './history.js';
 import { render, fitZoom, setZoom } from './render.js';
 import { paintThumbs, paintPreview, togglePlay } from './frames.js';
-import { paintLayers, addLayer, delLayer, mergeDown } from './layers.js';
-import { PALETTES, palette, setPalette, paintSwatches, paintRamp, syncColors, rampCols } from './palette.js';
-import { setTool, setTheme, setView, syncFingerBtn } from './tools.js';
-import { SAVE_KEY, exportPng, exportSheet, exportJson, importJson,
+import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.js';
+import { PALETTES, palette, setPalette, paintSwatches, paintRamp, syncColors, rampCols,
+         attachPalettePopup } from './palette.js';
+import { setTool, setTheme, setView, syncFingerBtn, attachMods } from './tools.js';
+import { SAVE_KEY, exportPng, exportSheet, exportPalettePng, exportJson, importJson,
          loadRef, refToPixels, refToPalette } from './storage.js';
 import { updateProgress } from './content/exercises.js';
 import { runLint } from './lint.js';
@@ -70,7 +71,9 @@ $('#fingerBtn').addEventListener('click', toggleFinger);
 $('#fingerBtn2').addEventListener('click', toggleFinger);
 $('#qbUndo').addEventListener('click', undo);
 $('#qbColor').addEventListener('click', ()=>setView('tools'));
-$$('.quickbar .qb[data-q]').forEach(b=>b.addEventListener('click', ()=>setTool(b.dataset.q)));
+$$('.quickbar .qb[data-q]').forEach(b=>{ b.addEventListener('click', ()=>setTool(b.dataset.q)); attachMods(b, b.dataset.q); });
+attachPalettePopup($('#qbColor'));
+attachPalettePopup($('#chipPri'));
 $$('#mnav button').forEach(b=>b.addEventListener('click', ()=>setView(b.dataset.view)));
 
 $('#colPick').addEventListener('input', e=>{ view.pri=hexToInt(e.target.value); syncColors(); });
@@ -144,17 +147,24 @@ $('#clearBtn').addEventListener('click', ()=>{ pushUndo(); activeData().fill(0);
 $('#btnUndo').addEventListener('click', undo);
 $('#btnRedo').addEventListener('click', redo);
 
-$('#frAdd').addEventListener('click', ()=>{ pushUndo(); doc.frames.splice(doc.af+1,0,newFrame()); doc.af++; paintThumbs(); render(); });
-$('#frDup').addEventListener('click', ()=>{ pushUndo(); doc.frames.splice(doc.af+1,0, doc.frames[doc.af].map(d=>d.slice())); doc.af++; paintThumbs(); render(); });
+$('#frAdd').addEventListener('click', ()=>{ pushUndo(); doc.frames.splice(doc.af+1,0,newFrame()); doc.dur.splice(doc.af+1,0,0); doc.af++; paintThumbs(); render(); });
+$('#frDup').addEventListener('click', ()=>{ pushUndo(); doc.frames.splice(doc.af+1,0, doc.frames[doc.af].map(d=>d.slice())); doc.dur.splice(doc.af+1,0,doc.dur[doc.af]||0); doc.af++; paintThumbs(); render(); });
 $('#frDel').addEventListener('click', ()=>{
   if(doc.frames.length<2) return;
-  pushUndo(); doc.frames.splice(doc.af,1); doc.af=Math.max(0,doc.af-1); paintThumbs(); render();
+  pushUndo(); doc.frames.splice(doc.af,1); doc.dur.splice(doc.af,1); doc.af=Math.max(0,doc.af-1); paintThumbs(); render();
 });
-$('#frLeft').addEventListener('click', ()=>{ if(doc.af>0){ pushUndo(); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af-1,0,f); doc.af--; paintThumbs(); render(); } });
-$('#frRight').addEventListener('click', ()=>{ if(doc.af<doc.frames.length-1){ pushUndo(); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af+1,0,f); doc.af++; paintThumbs(); render(); } });
+$('#frLeft').addEventListener('click', ()=>{ if(doc.af>0){ pushUndo(); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af-1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af-1,0,t||0); doc.af--; paintThumbs(); render(); } });
+$('#frRight').addEventListener('click', ()=>{ if(doc.af<doc.frames.length-1){ pushUndo(); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af+1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af+1,0,t||0); doc.af++; paintThumbs(); render(); } });
+$('#frDur').addEventListener('change', e=>{
+  const v=parseInt(e.target.value,10);
+  doc.dur[doc.af] = isFinite(v) ? Math.max(10,Math.min(4000,v)) : 0;
+  paintThumbs();
+});
 $('#playBtn').addEventListener('click', togglePlay);
 $('#fps').addEventListener('change', e=>{ view.fps=Math.max(1,+e.target.value||8); if(view.playing){ togglePlay(); togglePlay(); } });
 
+$('#lyUp').addEventListener('click', ()=>moveLayer(1));
+$('#lyDown').addEventListener('click', ()=>moveLayer(-1));
 $('#lyAdd').addEventListener('click', ()=>addLayer(false));
 $('#lyDup').addEventListener('click', ()=>addLayer(true));
 $('#lyDel').addEventListener('click', delLayer);
@@ -167,6 +177,7 @@ $('#refClear').addEventListener('click', ()=>{ view.ref=null; render(); });
 
 $('#expPng').addEventListener('click', exportPng);
 $('#expSheet').addEventListener('click', exportSheet);
+$('#expPal').addEventListener('click', exportPalettePng);
 $('#expJson').addEventListener('click', exportJson);
 $('#impJson').addEventListener('change', e=>{ if(e.target.files[0]) importJson(e.target.files[0]); });
 

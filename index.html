@@ -99,12 +99,15 @@
         <div class="sep"></div>
         <button class="btn tiny" id="gridBtn" aria-pressed="true">▦ Lưới</button>
         <button class="btn tiny" id="onionBtn" aria-pressed="false">◍ Bóng khung trước</button>
-        <button class="btn tiny" id="symLine" aria-pressed="false">┊ Trục giữa</button>
-        <button class="btn tiny" id="tileBtn" aria-pressed="false" title="Xem trước lặp 3×3 — kiểm tra tile có lộ mối nối không">▩ Lặp 3×3</button>
-        <div class="sep"></div>
-        <button class="btn tiny" id="flipH" title="Lật ngang lớp hiện tại">⇋ Lật ngang</button>
-        <button class="btn tiny" id="flipV" title="Lật dọc lớp hiện tại">⇵ Lật dọc</button>
-        <button class="btn tiny" id="lockA" aria-pressed="false" title="Khoá alpha: chỉ vẽ lên chỗ đã có pixel">🔒 Khoá alpha</button>
+        <details class="more"><summary class="btn tiny">⋯ Thêm</summary>
+          <div class="morebox">
+            <button class="btn tiny" id="symLine" aria-pressed="false">┊ Trục giữa</button>
+            <button class="btn tiny" id="tileBtn" aria-pressed="false" title="Xem trước lặp 3×3 — kiểm tra tile có lộ mối nối không">▩ Lặp 3×3</button>
+            <button class="btn tiny" id="flipH" title="Lật ngang lớp hiện tại">⇋ Lật ngang</button>
+            <button class="btn tiny" id="flipV" title="Lật dọc lớp hiện tại">⇵ Lật dọc</button>
+            <button class="btn tiny" id="lockA" aria-pressed="false" title="Khoá alpha: chỉ vẽ lên chỗ đã có pixel">🔒 Khoá alpha</button>
+          </div>
+        </details>
         <span id="selBar" style="display:none;gap:5px;align-items:center">
           <div class="sep"></div>
           <button class="btn tiny" id="selCut" title="Cắt vùng chọn (Ctrl+X)">✂ Cắt</button>
@@ -123,6 +126,8 @@
         <button class="qb" data-q="eraser" aria-pressed="false" title="Xoá">🧽</button>
         <button class="qb" data-q="picker" aria-pressed="false" title="Hút màu">💧</button>
         <button class="qb" data-q="fill" aria-pressed="false" title="Tô loang">🪣</button>
+        <button class="qb" data-q="shade" aria-pressed="false" title="Tô khối theo dải">◐</button>
+        <button class="qb" data-q="select" aria-pressed="false" title="Chọn vùng">⬚</button>
         <button class="qb" id="qbUndo" title="Hoàn tác">↶</button>
         <button class="qb" id="fingerBtn" title="Ngón tay: vẽ hay di chuyển">✋</button>
         <button class="qb qbcol" id="qbColor" title="Màu đang dùng — bấm để mở bảng màu"><i></i></button>
@@ -146,6 +151,10 @@
             <button class="btn tiny" id="frDel">✕ Xoá</button>
             <button class="btn tiny" id="frLeft">←</button>
             <button class="btn tiny" id="frRight">→</button>
+            <span class="sep"></span>
+            <input type="number" id="frDur" min="10" max="4000" step="10" placeholder="theo fps"
+                   title="Thời lượng riêng của khung đang chọn. Để trống là chạy theo fps chung." style="width:76px">
+            <span class="kbd">ms</span>
           </div>
         </div>
         <div class="playbox">
@@ -188,6 +197,8 @@
           <p class="eyebrow">Lớp</p>
           <div class="layers" id="layers"></div>
           <div class="row" style="margin-top:7px">
+            <button class="btn tiny" id="lyUp" title="Đưa lớp lên trên">▲</button>
+            <button class="btn tiny" id="lyDown" title="Đưa lớp xuống dưới">▼</button>
             <button class="btn tiny" id="lyAdd">+ Lớp</button>
             <button class="btn tiny" id="lyDup">⧉</button>
             <button class="btn tiny" id="lyMerge">⤓ Gộp xuống</button>
@@ -218,6 +229,7 @@
           <div class="grid2" style="margin-top:7px">
             <button class="btn" id="expPng">PNG khung này</button>
             <button class="btn" id="expSheet">PNG spritesheet</button>
+            <button class="btn" id="expPal">PNG bảng màu</button>
           </div>
           <div class="grid2" style="margin-top:6px">
             <button class="btn primary" id="expJson">Lưu dự án .json</button>
@@ -241,8 +253,8 @@
 
         <div class="block">
           <p class="eyebrow">Phím tắt</p>
-          <p class="kbd"><b>B</b> bút · <b>E</b> xoá · <b>G</b> tô loang · <b>I</b> hút màu · <b>L</b> đường · <b>U</b> chữ nhật · <b>O</b> ê-líp · <b>M</b> dịch lớp · <b>S</b> tô khối<br>
-          <b>X</b> đổi màu · <b>[ ]</b> cỡ bút · <b>Ctrl+Z / Ctrl+Y</b> hoàn tác · <b>, .</b> đổi khung</p>
+          <p class="kbd"><b>B</b> bút · <b>E</b> xoá · <b>G</b> tô loang · <b>I</b> hút màu · <b>L</b> đường · <b>U</b> chữ nhật · <b>O</b> ê-líp · <b>M</b> dịch lớp · <b>S</b> tô khối · <b>A</b> chọn vùng<br>
+          <b>X</b> đổi màu · <b>[ ]</b> cỡ bút · <b>Ctrl+Z / Ctrl+Y</b> hoàn tác · <b>, .</b> đổi khung<br><b>Chạm giữ</b> (hoặc chuột phải) lên nút có góc vát để mở bảng chọn nhanh: cỡ bút, chiều tô khối, hình rỗng/đầy, thao tác vùng chọn, bảng màu.</p>
         </div>
 
         <div class="block">

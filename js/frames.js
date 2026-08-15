@@ -16,6 +16,7 @@ export function paintThumbs(){
     b.addEventListener('click', ()=>{ doc.af=i; paintThumbs(); render(); });
     box.appendChild(b);
   });
+  $('#frDur').value = doc.dur[doc.af] || '';
   paintPreview();
 }
 const pvCv=$('#preview'), pvCtx=pvCv.getContext('2d');
@@ -31,13 +32,21 @@ export function paintPreview(){
   for(let j=0;j<rep;j++) for(let i=0;i<rep;i++)
     pvCtx.drawImage(buf, i*doc.w*s, j*doc.h*s, doc.w*s, doc.h*s);
 }
+/* khung nào có thời lượng riêng thì giữ đúng chừng đó — đây là thứ tạo ra "lực"
+   mà bài Giãn cách dạy: khung lấy đà giữ lâu, khung bung chỉ một nhịp chớp */
+function frameMs(i){ return doc.dur[i] || 1000/Math.max(1,view.fps); }
+function stepFrame(){
+  pvFrame=(pvFrame+1)%doc.frames.length;
+  paintPreview();
+  pvTimer=setTimeout(stepFrame, frameMs(pvFrame));
+}
 export function togglePlay(){
   view.playing=!view.playing;
   $('#playBtn').textContent = view.playing ? '⏸' : '▶';
   $('#playBtn').classList.toggle('on', view.playing);
-  clearInterval(pvTimer);
+  clearTimeout(pvTimer);
   if(view.playing){
-    pvFrame=0;
-    pvTimer=setInterval(()=>{ pvFrame++; paintPreview(); }, 1000/Math.max(1,view.fps));
+    pvFrame=0; paintPreview();
+    pvTimer=setTimeout(stepFrame, frameMs(0));
   } else paintPreview();
 }

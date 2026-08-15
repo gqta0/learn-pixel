@@ -89,7 +89,8 @@ board.addEventListener('pointerdown', e=>{
 });
 
 function strokeColor(e){
-  if(strokeTool==='shade') return v=>shadeStep(v, penAlt(e)? -1 : 1);   // nút bên / chuột phải = tối đi
+  // chiều mặc định đặt ở nút Tô khối (chạm giữ để đổi); nút bên S-Pen / chuột phải thì lật ngược lại
+  if(strokeTool==='shade'){ const d = penAlt(e) ? -view.shadeDir : view.shadeDir; return v=>shadeStep(v, d); }
   return penAlt(e) ? view.sec : view.pri;
 }
 function applyStroke(p, col){

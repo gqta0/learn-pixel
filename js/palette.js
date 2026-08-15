@@ -3,6 +3,7 @@ import { $ } from './dom.js';
 import { view } from './state.js';
 import { MATERIALS, buildRamp, hexToInt, intToHex, intToCss } from './color.js';
 import { autosave } from './storage.js';
+import { onLongPress, popover } from './popup.js';
 
 export const PALETTES = {
   'PICO-8 (16 màu)': ['#000000','#1d2b53','#7e2553','#008751','#ab5236','#5f574f','#c2c3c7','#fff1e8',
@@ -76,4 +77,16 @@ export function shadeStep(v, dir){
     if(d<bd){ bd=d; bi=i; }
   });
   return hexToInt(rampCols[Math.max(0,Math.min(rampCols.length-1, bi+dir))], (v>>>24)&255);
+}
+
+/* chạm giữ ô màu để lấy nhanh màu trong bảng và trong dải, khỏi phải mở thẻ Màu */
+export function attachPalettePopup(el){
+  if(!el) return;
+  el.classList.add('haspop');
+  onLongPress(el, ()=>{
+    const cur=intToHex(view.pri);
+    const items=palette.map(hex=>({color:hex, on:hex.toLowerCase()===cur, fn:()=>{ view.pri=hexToInt(hex); syncColors(); }}));
+    rampCols.forEach(hex=>items.push({color:hex, title:'Dải: '+hex, fn:()=>{ view.pri=hexToInt(hex); syncColors(); }}));
+    popover(el, 'Bảng màu · dải đang dùng', items);
+  });
 }
