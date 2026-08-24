@@ -3,7 +3,7 @@
    24 màu xen kẽ (trường hợp xấu nhất) chỉ ~13 KB, nên chứa được hàng trăm bức. */
 import { $ } from './dom.js';
 import { doc } from './state.js';
-import { serialize, applyData } from './storage.js';
+import { serialize, applyData, download } from './storage.js';
 
 const KEY='lo-pixel-projects';
 let items={};        // id -> {name, at, data}
@@ -52,7 +52,8 @@ function unrle(o,len){
   for(let k=0;k<o.length && i<len;k+=2){ const e=Math.min(len,i+o[k+1]); a.fill(o[k],i,e); i=e; }
   return a;
 }
-function thumb(p, box){
+/* dựng ảnh 1:1 của một bản đã lưu */
+function renderProject(p){
   const d=p.data, w=d.w, h=d.h, len=w*h;
   const out=new Uint32Array(len);
   const frame=d.frames[Math.min(d.af||0, d.frames.length-1)] || d.frames[0] || [];
@@ -66,13 +67,16 @@ function thumb(p, box){
   const im=g.createImageData(w,h);
   new Uint32Array(im.data.buffer).set(out);
   g.putImageData(im,0,0);
-
-  const s=Math.max(1, Math.floor(box/Math.max(w,h)));
+  return cv;
+}
+/* phóng nguyên số lần cho vừa một ô vuông cạnh box */
+function thumb(p, box){
+  const src=renderProject(p), s=Math.max(1, Math.floor(box/Math.max(src.width,src.height)));
   const big=document.createElement('canvas');
-  big.width=w*s; big.height=h*s;
-  const bg=big.getContext('2d');
-  bg.imageSmoothingEnabled=false;
-  bg.drawImage(cv,0,0,big.width,big.height);
+  big.width=src.width*s; big.height=src.height*s;
+  const g=big.getContext('2d');
+  g.imageSmoothingEnabled=false;
+  g.drawImage(src,0,0,big.width,big.height);
   return big;
 }
 
@@ -150,4 +154,42 @@ export function keepBeforeReplace(){
   }
   openId=null;                   // bức mới sẽ là một bản riêng
   return true;
+}
+
+/* ---------------- bảng liên hoàn ----------------
+   Bài cuối lộ trình bảo "xem tất cả cạnh nhau mới thấy cái nào lệch tông".
+   Đây là cái ảnh đó: mọi bản vẽ trong thư viện, xếp lưới, có tên dưới mỗi ô. */
+export function exportContactSheet(){
+  read();
+  const ids=Object.keys(items).sort((a,b)=>items[a].at-items[b].at);
+  if(!ids.length){ alert('Thư viện chưa có bản vẽ nào để xếp thành bảng.'); return 0; }
+
+  const cvs=ids.map(id=>renderProject(items[id]));
+  const maxDim=Math.max(...cvs.map(c=>Math.max(c.width,c.height)));
+  const cols=Math.min(6, Math.ceil(Math.sqrt(ids.length)));
+  const rows=Math.ceil(ids.length/cols);
+  const s=Math.max(1, Math.min(8, Math.floor(1500/(cols*maxDim))));   // giữ tấm ảnh quanh 1500px
+  const cell=maxDim*s, pad=Math.max(12,s*3), lab=16;
+
+  const sheet=document.createElement('canvas');
+  sheet.width  = cols*(cell+pad)+pad;
+  sheet.height = rows*(cell+pad+lab)+pad;
+  const g=sheet.getContext('2d');
+  g.fillStyle='#15151d'; g.fillRect(0,0,sheet.width,sheet.height);
+  g.imageSmoothingEnabled=false;
+
+  cvs.forEach((c,i)=>{
+    const cx=pad+(i%cols)*(cell+pad), cy=pad+Math.floor(i/cols)*(cell+pad+lab);
+    g.fillStyle='#0f0f16';
+    g.fillRect(cx,cy,cell,cell);
+    g.drawImage(c, cx+Math.floor((cell-c.width*s)/2), cy+Math.floor((cell-c.height*s)/2),
+                c.width*s, c.height*s);
+    g.fillStyle='#8f8fa8';
+    g.font='11px ui-monospace, Consolas, monospace';
+    g.textBaseline='top';
+    const t=items[ids[i]].name;
+    g.fillText(t.length>Math.floor(cell/6) ? t.slice(0,Math.floor(cell/6)-1)+'…' : t, cx, cy+cell+3);
+  });
+  download('bang-lien-hoan_'+ids.length+'-buc.png', sheet.toDataURL('image/png'));
+  return ids.length;
 }

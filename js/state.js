@@ -23,7 +23,7 @@ export const view = {
   tool:'pencil', brush:1,
   pri: hexToInt('#ffb43f'), sec: hexToInt('#2e2e42'),
   playing:false, fps:8, tile3:false,
-  lockAlpha:false, sel:null, shadeDir:1,   // tô khối đi lên (+1) hay đi xuống (-1) trên dải
+  lockAlpha:false, sel:null, shadeDir:1, gridStep:8, realSize:false,   // tô khối đi lên (+1) hay đi xuống (-1) trên dải
   ref:null, refOp:0.5,
   pressure:true, fingerMode:'draw', brushEff:1, hover:null
 };

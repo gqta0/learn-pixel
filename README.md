@@ -26,6 +26,10 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 - Mỗi bài có đích đến, các bước, mẹo, bẫy thường gặp, nút dựng sẵn đúng khổ / số khung / số lớp, và nút nạp mẫu để vẽ đè.
 - Nút **Nạp mẫu để vẽ đè**: đổ hình mẫu của bài thành pixel mờ vào một lớp riêng.
 - **Soi bài**: máy đếm số màu, màu ngoài bảng màu, pixel lạc, viền dày 2px và mốc chân lệch giữa các khung.
+- **Học tiếp**: một nút mở thẳng bài chưa làm, kèm số ngày đã vẽ liên tiếp.
+- Tích xong một bài thì app soi ngay và báo gọn tại chỗ.
+- **Bảng liên hoàn**: xếp mọi bản vẽ trong thư viện thành một tấm PNG để soi cả bộ cùng lúc.
+- Xem khung đang vẽ ở **cỡ thật ×1 và ×2**, và chọn bước lưới đậm 4/8/16/32 cho tile.
 
 **Lưu**
 - **Thư viện bản vẽ**: giữ nhiều bức cùng lúc, xem dạng lưới ảnh nhỏ, mở lại bất cứ lúc nào.
@@ -70,7 +74,8 @@ js/
   layers.js           danh sách lớp
   storage.js          xuất/nhập, lưu tự động
   lint.js             soi bài: đếm lỗi mà giáo trình dạy bằng lời
-  library.js          thư viện bản vẽ: cất, mở lại, đổi tên, xoá
+  library.js          thư viện bản vẽ + bảng liên hoàn
+  daily.js            nhịp học: bài tiếp theo, số ngày đã vẽ
   ui.js               đồng bộ giao diện + nối mọi sự kiện
   main.js             khởi động
   content/

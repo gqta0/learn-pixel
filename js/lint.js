@@ -78,7 +78,7 @@ function feetRows(){
   });
 }
 
-export function runLint(){
+export function runLint(quiet){
   const box=$('#lintOut');
   const d=flat(doc.af);
   const used=countColors(d);
@@ -86,7 +86,7 @@ export function runLint(){
   const ok=(t)=>rows.push(['ok',t]);
   const warn=(t)=>rows.push(['warn',t]);
 
-  if(!used.size){ box.innerHTML='<p class="kbd">Khung này còn trống.</p>'; return; }
+  if(!used.size){ box.innerHTML='<p class="kbd">Khung này còn trống.</p>'; return 0; }
 
   // màu
   const off=offPalette(used);
@@ -128,4 +128,5 @@ export function runLint(){
 
   box.innerHTML = rows.map(([k,t])=>
     '<p class="lint '+k+'">'+(k==='ok'?'✓':'⚠')+' '+t+'</p>').join('');
+  return rows.filter(r=>r[0]==='warn').length;
 }

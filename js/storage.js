@@ -9,7 +9,7 @@ import { palette, setPalette, paintSwatches } from './palette.js';
 import { doneSet, buildExercises, migrateDone } from './content/exercises.js';
 import { syncAll } from './ui.js';
 
-function download(name, url){
+export function download(name, url){
   const a=document.createElement('a'); a.href=url; a.download=name;
   document.body.appendChild(a); a.click(); a.remove();
 }

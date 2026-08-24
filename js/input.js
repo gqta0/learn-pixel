@@ -4,6 +4,7 @@ import { doc, view, activeData } from './state.js';
 import { board, render, setZoom } from './render.js';
 import { pushUndo, undo } from './history.js';
 import { syncColors, paintSwatches, shadeStep } from './palette.js';
+import { markToday } from './daily.js';
 import { paintThumbs } from './frames.js';
 import { syncFingerBtn } from './tools.js';
 import { inside, normSel, stamp, lineStamp, rectStamp, ellipseStamp, floodFill,
@@ -167,6 +168,7 @@ function endStroke(e){
   moveBase=null; view.brushEff=view.brush;
   render(); paintThumbs();
   paintSwatches();          // nét vừa xong có thể thêm/bớt màu đang dùng — cập nhật dấu trên bảng màu
+  markToday();
 }
 board.addEventListener('pointerup', endStroke);
 board.addEventListener('pointercancel', endStroke);

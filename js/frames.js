@@ -24,6 +24,15 @@ let pvFrame=0, pvTimer=null;
 export function paintPreview(){
   const f = view.playing ? (pvFrame % doc.frames.length) : doc.af;
   compositeToBuf(f);
+  if(view.realSize){                       // cỡ thật: đúng thứ bài học bắt phải nhìn
+    const w=doc.w, h=doc.h, gap=6;
+    pvCv.width=w*3+gap; pvCv.height=Math.max(h*2, h);
+    pvCtx.imageSmoothingEnabled=false;
+    pvCtx.clearRect(0,0,pvCv.width,pvCv.height);
+    pvCtx.drawImage(buf,0,0,w,h);                      // ×1
+    pvCtx.drawImage(buf,w+gap,0,w*2,h*2);              // ×2
+    return;
+  }
   const rep = view.tile3 ? 3 : 1;
   const s=Math.max(1, Math.floor(96/(Math.max(doc.w,doc.h)*rep)));
   pvCv.width=doc.w*s*rep; pvCv.height=doc.h*s*rep;

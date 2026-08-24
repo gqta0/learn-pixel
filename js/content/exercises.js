@@ -7,6 +7,8 @@ import { fitZoom } from './../render.js';
 import { autosave } from './../storage.js';
 import { syncAll } from './../ui.js';
 import { keepBeforeReplace } from './../library.js';
+import { runLint } from './../lint.js';
+import { paintDaily } from './../daily.js';
 import { DEMOS, renderDemo, demoToCanvas } from './demos.js';
 
 export const PHASES = [
@@ -786,6 +788,7 @@ export function buildExercises(){
       const gi=exKey(ex);
       const wrap=document.createElement('div');
       wrap.className='ex'+(doneSet.has(gi)?' done':'');
+      wrap.dataset.k=gi;
       const num=list.indexOf(ex)+1;
       wrap.innerHTML =
         '<div class="exhead">'+
@@ -803,6 +806,8 @@ export function buildExercises(){
         const lab=document.createElement('p'); lab.className='exart'; lab.textContent='Mẫu tham khảo';
         wrap.insertBefore(lab, fig);
       }
+      const note=document.createElement('p'); note.className='exlint'; note.hidden=true;
+      wrap.appendChild(note);
       const btns=document.createElement('div'); btns.className='exbtns';
       const b1=document.createElement('button'); b1.className='btn tiny'; b1.textContent='Dựng khung '+ex.size+'×'+(ex.h||ex.size)+(ex.frames?' ×'+ex.frames:'');
       b1.addEventListener('click', ()=>setupExercise(ex));
@@ -819,7 +824,14 @@ export function buildExercises(){
         if(e.target.checked) doneSet.add(gi); else doneSet.delete(gi);
         wrap.classList.toggle('done', e.target.checked);
         sum.querySelector('.pc').textContent = list.filter(x=>doneSet.has(exKey(x))).length+'/'+list.length;
-        updateProgress();
+        updateProgress(); paintDaily();
+        if(e.target.checked){                       // vừa xong thì soi luôn, đúng lúc muốn biết mình sai đâu
+          const n=runLint(true);
+          note.textContent = n>0
+            ? '⚠ Soi nhanh: '+n+' điều nên xem lại — mở thẻ Lớp & xuất để đọc chi tiết.'
+            : (n===0 ? '✓ Soi nhanh: không thấy lỗi nào ở khung đang mở.' : '');
+          note.hidden = !note.textContent;
+        } else note.hidden = true;
       });
       det.appendChild(wrap);
     });

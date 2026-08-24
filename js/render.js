@@ -49,8 +49,9 @@ export function render(){
     ctx.stroke();
     ctx.strokeStyle=TH.gridB;
     ctx.beginPath();
-    for(let x=8;x<doc.w;x+=8){ ctx.moveTo(x*z+lw/2,0); ctx.lineTo(x*z+lw/2,H); }
-    for(let y=8;y<doc.h;y+=8){ ctx.moveTo(0,y*z+lw/2); ctx.lineTo(W,y*z+lw/2); }
+    const gs=view.gridStep||8;
+    for(let x=gs;x<doc.w;x+=gs){ ctx.moveTo(x*z+lw/2,0); ctx.lineTo(x*z+lw/2,H); }
+    for(let y=gs;y<doc.h;y+=gs){ ctx.moveTo(0,y*z+lw/2); ctx.lineTo(W,y*z+lw/2); }
     ctx.stroke();
   }
   if(view.hover && inside(view.hover.x,view.hover.y)){

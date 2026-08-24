@@ -117,6 +117,9 @@
             <button class="btn tiny" id="flipH" title="Lật ngang lớp hiện tại">⇋ Lật ngang</button>
             <button class="btn tiny" id="flipV" title="Lật dọc lớp hiện tại">⇵ Lật dọc</button>
             <button class="btn tiny" id="lockA" aria-pressed="false" title="Khoá alpha: chỉ vẽ lên chỗ đã có pixel">🔒 Khoá alpha</button>
+            <button class="btn tiny" id="realBtn" aria-pressed="false" title="Xem khung này ở cỡ thật ×1 và ×2 trong ô xem trước">👁 Cỡ thật</button>
+            <label class="mini" style="margin-top:4px">Lưới đậm mỗi</label>
+            <select id="gridStep"><option>4</option><option selected>8</option><option>16</option><option>32</option></select>
           </div>
         </details>
         <span id="selBar" style="display:none;gap:5px;align-items:center">
@@ -192,6 +195,17 @@
           <p class="eyebrow">Lộ trình</p>
           <select id="trackSel" style="width:100%"></select>
           <p class="kbd" id="trackNote" style="margin:7px 0 0"></p>
+          <button class="btn tiny wide primary" id="dailyNext" style="margin-top:8px" hidden></button>
+          <p class="kbd" id="dailyInfo" style="margin:6px 0 0"></p>
+        </div>
+        <div class="block onboard" id="onboard" hidden>
+          <p class="eyebrow">Bắt đầu thế nào</p>
+          <ol style="margin:0;padding-left:18px">
+            <li>Chọn lộ trình ở trên — mới học thì để <b>Lộ trình chung</b>.</li>
+            <li>Bấm <b>Học tiếp</b> để mở bài đầu tiên, rồi bấm <b>Dựng khung</b> trong bài đó.</li>
+            <li>Vẽ. Xong thì tích ô bên cạnh tên bài — app sẽ soi giúp bạn mấy lỗi hay gặp.</li>
+          </ol>
+          <button class="btn tiny wide" id="onboardOk" style="margin-top:9px">Hiểu rồi, ẩn đi</button>
         </div>
         <div id="exList"></div>
       </div>
@@ -281,6 +295,7 @@
   <div class="libwrap" id="libWrap" hidden>
     <div class="libbar">
       <p class="eyebrow" style="margin:0;flex:1">Bản vẽ của bạn <span class="kbd" id="libCount"></span></p>
+      <button class="btn tiny" id="libSheet" title="Xếp mọi bản vẽ thành một tấm PNG để soi cả bộ">🖼 Bảng liên hoàn</button>
       <button class="btn tiny primary" id="libSave">Cất bản đang vẽ</button>
       <button class="btn tiny" id="libClose">✕ Đóng</button>
     </div>

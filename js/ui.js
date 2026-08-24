@@ -18,7 +18,8 @@ import { updateProgress, TRACKS, setTrack, buildExercises } from './content/exer
 import { buildTheory } from './content/lessons.js';
 import { runLint } from './lint.js';
 import { closePopup } from './popup.js';
-import { openLibrary, closeLibrary, saveCurrent, isBlank } from './library.js';
+import { openLibrary, closeLibrary, saveCurrent, isBlank, exportContactSheet } from './library.js';
+import { paintDaily, goToNext } from './daily.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
 /* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ */
@@ -160,11 +161,27 @@ const TRACK_NOTE={
 export function applyTrack(t){
   setTrack(t);
   $('#trackNote').innerHTML = TRACK_NOTE[t] || TRACK_NOTE.core;
-  buildExercises(); buildTheory(); updateProgress();
+  buildExercises(); buildTheory(); updateProgress(); paintDaily();
   try{ localStorage.setItem('lo-pixel-track', t); }catch(_){}
 }
 $('#trackSel').addEventListener('change', e=>applyTrack(e.target.value));
 /* ---------------- thư viện bản vẽ ---------------- */
+$('#libSheet').addEventListener('click', ()=>{
+  const n=exportContactSheet();
+  if(n) $('#libCount').textContent = n+' bản vẽ đã cất · vừa xuất bảng liên hoàn';
+});
+$('#dailyNext').addEventListener('click', goToNext);
+$('#onboardOk').addEventListener('click', ()=>{
+  $('#onboard').hidden=true;
+  try{ localStorage.setItem('lo-pixel-seen','1'); }catch(_){}
+});
+$('#realBtn').addEventListener('click', e=>{
+  view.realSize=!view.realSize;
+  e.currentTarget.setAttribute('aria-pressed', view.realSize);
+  e.currentTarget.classList.toggle('on', view.realSize);
+  paintPreview();
+});
+$('#gridStep').addEventListener('change', e=>{ view.gridStep=parseInt(e.target.value,10)||8; render(); });
 $('#libBtn').addEventListener('click', openLibrary);
 $('#libClose').addEventListener('click', closeLibrary);
 $('#libSave').addEventListener('click', ()=>{

@@ -6,6 +6,7 @@ import { fillPalSelect } from './palette.js';
 import { buildTools, setView, syncFingerBtn } from './tools.js';
 import { loadSave } from './storage.js';
 import { syncAll, applyTrack } from './ui.js';
+import { paintDaily } from './daily.js';
 import { buildExercises, TRACKS } from './content/exercises.js';
 import { buildTheory } from './content/lessons.js';
 import './input.js';                 // gắn sự kiện chuột / cảm ứng / S-Pen
@@ -31,6 +32,10 @@ function boot(){
   applyTrack(sel.value);
   fitZoom();
   syncAll();
+  let seen='0';
+  try{ seen=localStorage.getItem('lo-pixel-seen')||'0'; }catch(_){}
+  $('#onboard').hidden = seen==='1';
+  paintDaily();
   loadSave();                       // có bản lưu thì mở lại, không thì giữ canvas trắng
   $('#hud').textContent = doc.w+'×'+doc.h;
 }

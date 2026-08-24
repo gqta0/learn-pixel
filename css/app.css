@@ -302,6 +302,19 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 .extrap{color:var(--rose);font-size:12.5px}
 .exbtns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 
+
+/* thẻ chỉ đường lần đầu mở app */
+.onboard{background:var(--note-bg);border-bottom:1px solid var(--accent-bd)}
+.onboard li{margin:4px 0;font-size:13px}
+/* kết quả soi nhanh ngay dưới bài vừa tích xong */
+.exlint{margin:6px 0 0;font-size:12.5px;color:var(--rose)}
+.exlint:first-letter{font-size:14px}
+.ex.done .exlint{color:var(--leaf)}
+/* nháy nhẹ khi nhảy tới bài tiếp theo, để mắt bắt được chỗ vừa cuộn đến */
+@keyframes flash{0%{background:var(--accent-bg)}100%{background:transparent}}
+.ex.flash{animation:flash 1.2s ease-out}
+@media (prefers-reduced-motion:reduce){ .ex.flash{animation:none;background:var(--accent-bg)} }
+
 /* ---------- lý thuyết ---------- */
 .lesson{border-bottom:1px solid var(--line)}
 .lesson > summary{
