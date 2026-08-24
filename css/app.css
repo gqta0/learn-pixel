@@ -162,18 +162,21 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 .colors{display:flex;gap:8px;align-items:center}
 .chip{width:34px;height:34px;border:1px solid var(--line);border-radius:2px;position:relative}
 .chip.sec{width:24px;height:24px}
-.swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:8px}
+.swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:8px}
+/* Ô màu phải hiện ĐÚNG màu thật: không viền đè lên, không lớp phủ, không giảm độ đục.
+   Mọi dấu hiệu (đang chọn, màu phụ, đã dùng) đều đẩy ra ngoài ô hoặc thu vào một góc nhỏ. */
 .swatch{
-  aspect-ratio:1;border:1px solid rgba(0,0,0,.38);border-radius:1px;padding:0;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
+  aspect-ratio:1;border:0;border-radius:1px;padding:0;position:relative;
+  box-shadow:0 0 0 1px var(--line);
 }
-.swatch[aria-current=true]{box-shadow:inset 0 0 0 2px var(--text), 0 0 0 1px var(--text)}
-/* màu chưa dùng ở khung này thì mờ đi — nhìn ra ngay bảng màu đang thừa chỗ nào */
-.swatch.unused{opacity:.38}
-.swatch.unused:hover{opacity:1}
-/* dấu góc báo đây là màu phụ */
-.swatch.issec{box-shadow:inset 0 0 0 1px rgba(255,255,255,.10), inset -6px -6px 0 -3px var(--cyan)}
-.swatches .swatch{position:relative}
+.swatch[aria-current=true]{box-shadow:0 0 0 2px var(--text)}
+.swatch.issec{box-shadow:0 0 0 2px var(--cyan)}
+.swatch[aria-current=true].issec{box-shadow:0 0 0 2px var(--text), 0 0 0 4px var(--cyan)}
+/* chấm nhỏ ở góc báo màu này đang có mặt trong khung — thay cho việc làm mờ cả ô */
+.swatch.used::after{
+  content:"";position:absolute;right:2px;bottom:2px;width:4px;height:4px;border-radius:1px;
+  background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.6);pointer-events:none;
+}
 .ramp{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-top:7px}
 
 /* ---------- sân khấu vẽ ---------- */

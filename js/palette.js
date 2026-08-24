@@ -111,9 +111,9 @@ export function paintSwatches(){
   let n=0;
   palette.forEach((hex,i)=>{
     const b=document.createElement('button');
-    b.className='swatch'+(dung.has(hex)?'':' unused');
+    b.className='swatch'+(dung.has(hex)?' used':'');
     b.style.background=hex;
-    b.title=hex+(dung.has(hex)?' — đang dùng':' — chưa dùng ở khung này');
+    b.title=hex+(dung.has(hex)?' — đang dùng ở khung này (chấm trắng ở góc)':' — chưa dùng ở khung này');
     if(dung.has(hex)) n++;
     b.setAttribute('aria-current', hex===cur ? 'true':'false');
     if(hex===sec) b.classList.add('issec');

@@ -63,8 +63,15 @@ export const LESSONS=[
       'Giới hạn tổng số màu (16–32 cho cả bộ asset) — chính giới hạn tạo nên sự hoà hợp.',
       'Dùng lại màu giữa các vùng: màu sáng nhất của da có thể là màu tối nhất của áo.',
       'Tránh đen tuyệt đối #000 và trắng tuyệt đối #fff; dùng đen ngả lam và trắng ngả vàng.',
-      'Panel <b>Tạo dải màu</b> bên trái sinh dải lệch tông sẵn — bấm "Đưa dải vào bảng màu".']},
- {demo:'ramp5'}
+      'Panel <b>Dải màu theo chất liệu</b> bên trái sinh dải lệch tông sẵn — bấm <b>Đưa dải vào bảng màu</b>.']},
+ {demo:'ramp5'},
+ {p:'<b>Khối Màu bên trái làm việc theo đúng mấy luật trên.</b> Bảng màu không phải danh sách chết — nó là thứ bạn tỉa dần trong lúc vẽ:'},
+ {ul:['Ô nào đang có mặt trong khung hiện tại thì có <b>chấm trắng ở góc</b>. Ô không chấm là màu bạn nghĩ sẽ cần nhưng chưa dùng tới.',
+      '<b>Chạm giữ một ô</b> để làm màu phụ, sửa mã màu, hoặc bỏ nó khỏi bảng.',
+      '<b>↕ Sắp xếp</b> xếp lại theo tông rồi theo độ sáng — bảng lộ ra cấu trúc, thấy ngay chỗ nào thiếu bậc.',
+      '<b>⌫ Bỏ màu thừa</b> dọn những màu không xuất hiện ở khung nào. Đây là cách ép mình về đúng giới hạn màu đã chốt.',
+      '<b>Rút từ tranh</b> làm ngược lại: gom mọi màu đang vẽ vào bảng, để soi xem mình đã lỡ đẻ ra bao nhiêu màu.']},
+ {note:'Chốt được bảng màu ưng ý thì bấm <b>💾 Lưu bảng màu…</b> — nó nằm lại trong máy, tách khỏi file tranh, nên dự án sau mở lên vẫn chọn được đúng bảng đó. Đây chính là cái mà bài cuối lộ trình gọi là "lưu palette ra để dùng cho các asset sau".'}
 ]},
 
 {t:'Tô khối: một nguồn sáng', b:[

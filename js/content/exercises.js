@@ -107,7 +107,7 @@ export const EXERCISES = [
 /* --- Chặng 2 --- */
 {p:2,size:32,t:'Dải màu 5 bậc có lệch tông',time:'25 phút', art:'ramp5',
  goal:'Tự tạo dải màu chuyên nghiệp thay vì kéo tối/sáng đơn thuần.',
- steps:['Chọn một màu thân (ví dụ đỏ), dùng panel Tạo dải màu với lệch tông 25–35°, đưa dải vào bảng màu.',
+ steps:['Chọn một màu thân (ví dụ đỏ), dùng panel Dải màu theo chất liệu với lệch tông 25–35°, bấm Đưa dải vào bảng màu.',
         'Vẽ 2 hình cầu cạnh nhau: một tô bằng dải không lệch tông (tự pha), một bằng dải có lệch tông.',
         'So sánh: cái nào "có không khí" hơn?'],
  tips:['Bóng tối kéo về lam/tím, vùng sáng kéo về vàng.','Giảm độ tươi ở hai đầu dải để bớt gắt.'],
