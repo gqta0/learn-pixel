@@ -29,7 +29,12 @@ export const PHASES = [
   {tr:'terraria', n:'Phần 1', t:'Khối và tường', d:'Đá, đất, cỏ, quặng, gỗ — thứ chiếm 90% màn hình.'},
   {tr:'terraria', n:'Phần 2', t:'Vật phẩm', d:'Thanh kim loại, kiếm, cuốc, thuốc — đọc được trong ô túi đồ.'},
   {tr:'terraria', n:'Phần 3', t:'Nhân vật và quái', d:'Sprite nhìn ngang đúng tỉ lệ, khung đi, slime.'},
-  {tr:'terraria', n:'Phần 4', t:'Xuất và cắm vào game', d:'Tilesheet đúng lưới, và soi cả bộ trên nền hang tối.'}
+  {tr:'terraria', n:'Phần 4', t:'Xuất và cắm vào game', d:'Tilesheet đúng lưới, và soi cả bộ trên nền hang tối.'},
+  {tr:'stick', n:'Phần 0', t:'Bộ khung que', d:'Chín khớp, tư thế đọc được, và thứ tự vẽ khung mà dân animation dùng.'},
+  {tr:'stick', n:'Phần 1', t:'Bốn luật nền', d:'Bóng nảy, quả lắc, trễ pha, trọng lượng — học một lần dùng cả đời.'},
+  {tr:'stick', n:'Phần 2', t:'Vòng lặp cơ bản', d:'Đi, chạy, nhảy — ba thứ mọi game đều cần.'},
+  {tr:'stick', n:'Phần 3', t:'Hành động', d:'Đấm, đá, ngã, và cách nối các động tác lại với nhau.'},
+  {tr:'stick', n:'Phần 4', t:'Từ que sang nhân vật', d:'Đắp khối lên bộ xương đã chạy đúng nhịp.'}
 ];
 
 export const EXERCISES = [
@@ -701,14 +706,195 @@ export const EXERCISES = [
         'Sửa mọi chỗ lệch, kể cả phải vẽ lại từ đầu 1–2 asset.',
         'Lưu palette ra một PNG dải màu để dùng cho các asset sau.'],
  tips:['Mức chi tiết là thứ hay bị lệch nhất: một asset quá mịn sẽ tố cáo các asset còn lại.','Lưu file .json làm bản gốc, xuất PNG làm bản dùng.'],
- trap:'Bỏ qua pass này — game sẽ luôn trông "chắp vá" dù từng asset đều đẹp.'}
+ trap:'Bỏ qua pass này — game sẽ luôn trông "chắp vá" dù từng asset đều đẹp.'},
+
+/* ===================== LỘ TRÌNH RIÊNG: NGƯỜI QUE =====================
+   Bỏ hết màu, khối, viền — chỉ còn tư thế và nhịp. Vẽ một khung người que mất
+   ba mươi giây, nên bạn dám vẽ tám khung và dám vứt đi làm lại. Đó là lý do
+   mọi trường animation đều bắt đầu ở đây. Khổ 32×48 cho cả bộ, một màu duy
+   nhất, một lớp. ===================================================== */
+
+/* --- Phần 0 --- */
+{tr:'stick',p:16,size:32,h:48,t:'Bộ xương chín khớp',time:'30 phút', art:'stickkhop',
+ goal:'Vẽ được một người que đúng tỉ lệ trong ba mươi giây.',
+ steps:['Vẽ cột sống dài 9px, đầu là vòng tròn bán kính 3 ngay trên đỉnh cột sống.',
+        'Tay: vai ở đỉnh cột sống, cánh trên 6px, cẳng 5px. Chân: hông ở đáy, đùi 7px, cẳng 7px.',
+        'Chấm một pixel màu khác vào chín khớp: cổ, hông, hai vai, hai khuỷu, hai gối, hai cổ chân.',
+        'Vẽ lại năm lần cho tới khi không phải nghĩ nữa.'],
+ tips:['Người que chỉ được gập ở khớp. Cẳng tay không cong, đùi không uốn.',
+       'Giữ đúng độ dài các đoạn ở mọi khung — chân dài ngắn thất thường là lỗi lộ nhất.',
+       'Một màu, một lớp. Đừng tô gì cả.'],
+ trap:'Vẽ người que quá nhỏ. Dưới 24px cao thì không đủ chỗ cho khớp gập, mọi tư thế đều giống nhau.'},
+
+{tr:'stick',p:16,size:32,h:48,t:'Sáu tư thế đọc được',time:'45 phút',frames:6, art:'stickpose',
+ goal:'Một tư thế phải nói được nó đang làm gì, trong một giây.',
+ steps:['Sáu khung, mỗi khung một tư thế: đẩy, kéo, né, với lên cao, ngồi thụp, ngã ngửa.',
+        'Mỗi tư thế phải có một <b>đường trục</b> — một đường cong tưởng tượng chạy từ chân qua thân tới đầu hoặc tay.',
+        'Thử che đầu đi: còn đoán được nó đang làm gì không? Nếu không thì tư thế chưa đủ rõ.',
+        'Đưa cho người khác xem từng khung một giây và bảo họ đoán.'],
+ tips:['Trục cong = có lực. Trục thẳng đứng = đứng chờ.',
+       'Hai tay đối xứng nhau là dấu hiệu tư thế chết. Lệch một bên đi.',
+       'Nghiêng cả thân còn nói được nhiều hơn là cử động tay chân.'],
+ trap:'Vẽ tư thế bằng cách gập tay chân mà thân giữ nguyên thẳng đứng — nhìn như con rối treo dây.'},
+
+{tr:'stick',p:16,size:32,h:48,t:'Cực trị, phá, trung gian',time:'40 phút',frames:5, art:'stickcuctri',
+ goal:'Hiểu thứ tự vẽ mà dân animation dùng: không bao giờ vẽ tuần tự từ 1 tới 5.',
+ steps:['Chọn một động tác đơn giản, ví dụ vung tay từ dưới lên trên.',
+        'Vẽ <b>khung 1 và khung 5</b> trước — hai điểm cực trị, tay ở đáy và tay ở đỉnh.',
+        'Vẽ <b>khung 3</b> — khung phá, quyết định đường đi cong về phía nào.',
+        'Cuối cùng mới vẽ khung 2 và 4 xen vào giữa.',
+        'Chạy 10 fps.'],
+ tips:['Cực trị là hai khung mà nếu chỉ xem hai cái đó vẫn hiểu được động tác.',
+       'Khung phá là chỗ bạn quyết định cung chuyển động — vẽ sau cực trị nhưng trước trung gian.',
+       'Trung gian là phần dễ nhất và ít quan trọng nhất. Đừng vẽ nó trước.'],
+ trap:'Vẽ tuần tự 1→2→3→4→5. Tới khung cuối mới phát hiện động tác sai, và phải bỏ cả năm khung.'},
+
+/* --- Phần 1 --- */
+{tr:'stick',p:17,size:48,h:32,t:'Bóng nảy: giãn cách quyết định tất cả',time:'60 phút',frames:8, art:'stickbong',
+ goal:'Bài học đầu tiên của mọi khoá animation, và là bài dạy nhiều nhất.',
+ steps:['8 khung một quả bóng rơi từ trên xuống, nảy lên, rồi rơi lại thấp hơn.',
+        'Lúc rơi nhanh thì hai khung liên tiếp cách nhau xa (6–8px). Gần đỉnh thì cách nhau 1–2px.',
+        'Khung chạm đất: bẹt quả bóng theo chiều ngang, nhưng phải cao lên tương ứng để giữ khối lượng.',
+        'Khung ngay sau khi bật: kéo dài theo chiều bay.',
+        'Chạy 12 fps. Nếu nhìn như bong bóng trôi thì giãn cách của bạn còn đang đều.'],
+ tips:['Vẽ quỹ đạo tâm quả bóng ra một lớp riêng trước, rồi mới đặt bóng lên từng điểm.',
+       'Quả bóng cao su nảy cao và bẹt nhiều; quả bóng bowling gần như không bẹt và không nảy.',
+       'Bật Bóng khung trước để nhìn dãy vệt — thưa dày phải rõ ràng.'],
+ trap:'Bẹt quả bóng mà quên cho nó cao lên — trông như quả bóng xì hơi chứ không phải va chạm.'},
+
+{tr:'stick',p:17,size:48,h:40,t:'Quả lắc: cung và điểm chậm',time:'45 phút',frames:6, art:'sticklac',
+ goal:'Cảm nhận easing bằng tay, không bằng công thức.',
+ steps:['Vẽ một sợi dây treo từ đỉnh canvas, đầu dưới có quả nặng. 6 khung lắc từ trái sang phải.',
+        'Chia góc KHÔNG đều: hai khung ở hai đầu biên sát nhau, hai khung ở giữa cách xa nhau.',
+        'Đầu dây phải vạch một cung tròn, không phải đường zigzag.',
+        'Chạy 10 fps, rồi thử 6 fps để thấy nhịp đổi.'],
+ tips:['Ở biên, quả lắc gần như đứng yên một nhịp — đó là chỗ mắt người nghỉ.',
+       'Giữa cung là chỗ nhanh nhất, có thể bỏ hẳn một khung mà mắt vẫn nối được.'],
+ trap:'Chia đều góc mỗi khung → quả lắc quay như kim đồng hồ, không có trọng lực.'},
+
+{tr:'stick',p:17,size:48,h:32,t:'Roi và đuôi: trễ pha',time:'50 phút',frames:6, art:'sticklac',
+ goal:'Chuyển động phụ — thứ làm mọi animation trông đắt tiền.',
+ steps:['Vẽ một sợi roi gồm 5 đốt nối nhau, tay cầm ở gốc.',
+        '6 khung: tay vung từ trái sang phải. Đốt gần tay đi trước, mỗi đốt sau trễ hơn một chút.',
+        'Khi tay đã dừng hẳn, các đốt cuối vẫn còn đi tiếp rồi mới quật ngược lại.',
+        'Chạy 12 fps.'],
+ tips:['Càng xa gốc thì càng trễ và càng đi xa hơn.',
+       'Đây chính là cách làm tóc, khăn, áo choàng, đuôi thú.'],
+ trap:'Cho cả sợi roi cùng quay một lượt → thành cây gậy cứng chứ không phải roi.'},
+
+{tr:'stick',p:17,size:64,h:32,t:'Trọng lượng: nhẹ và nặng',time:'60 phút',frames:2, art:'sticknang',
+ goal:'Cùng một động tác, đổi nhịp là đổi hẳn cân nặng nhân vật.',
+ steps:['Khung 1: người que nhẹ nhảy qua một vật — bật cao, thân vươn dài, ít khung lấy đà.',
+        'Khung 2: người que nặng nhảy qua đúng vật đó — bật thấp, thân co, nhiều khung lấy đà và tiếp đất nặng.',
+        'Vẽ mỗi bên thành một chuỗi 5 tư thế trong cùng một khung, xếp ngang.',
+        'So hai hàng: khác nhau ở đâu?'],
+ tips:['Nặng = lấy đà lâu, bật thấp, tiếp đất lún sâu và lâu mới đứng dậy.',
+       'Nhẹ = gần như không lấy đà, bay cao, chạm đất rồi bật đi luôn.',
+       'Cân nặng nằm ở NHỊP chứ không nằm ở hình dáng — người que nào cũng như nhau.'],
+ trap:'Vẽ người nặng to hơn để tỏ ra nặng. Cùng một bộ que mà vẫn phải cảm được cân nặng mới đúng.'},
+
+/* --- Phần 2 --- */
+{tr:'stick',p:18,size:32,h:48,t:'Vòng đi 8 khung',time:'2 giờ',frames:8, art:'stickdi',
+ goal:'Vòng lặp kinh điển. Làm được cái này là làm được nửa số animation trong game.',
+ steps:['Vẽ 4 khung chủ trước: chạm đất trái, hạ thấp, lướt qua, vươn lên.',
+        'Nhân đôi 4 khung đó, lật đổi chân trái/phải để thành khung 5–8.',
+        'Đầu phải nhấp nhô: cao nhất ở khung vươn lên, thấp nhất ở khung hạ thấp.',
+        'Tay luôn ngược pha với chân cùng bên.',
+        'Chạy 10 fps và bật lặp. Chỉnh cho tới khi bàn chân trụ không trượt.'],
+ tips:['Kẻ một hàng pixel làm mặt đất và dán nó qua mọi khung — chân phải chạm đúng hàng đó.',
+       'Bàn chân đang trụ phải đứng yên tuyệt đối so với mặt đất, nếu không sẽ như trượt patin.',
+       'Khung lướt qua là khung dễ sai nhất: chân sau phải nhấc gót, không kéo lê.'],
+ trap:'Chỉ gập đầu gối mà thân không nhấp nhô — thành người đi trên băng chuyền.'},
+
+{tr:'stick',p:18,size:32,h:48,t:'Vòng chạy 4–6 khung',time:'2 giờ',frames:6, art:'stickchay',
+ goal:'Chạy không phải là đi nhanh hơn. Nó khác về chất.',
+ steps:['Thân đổ về trước rõ rệt (nghiêng 10–15°), không dựng thẳng như lúc đi.',
+        'Phải có khung <b>bay</b> — khoảnh khắc cả hai chân rời đất. Đi thì không bao giờ có.',
+        'Tay gập khuỷu gần vuông góc và vung mạnh hơn nhiều.',
+        'Bước sải dài, đầu gối nâng cao.',
+        'Chạy 12–15 fps.'],
+ tips:['Chạy chỉ cần 6 khung là đủ, có game chỉ dùng 4.',
+       'Càng nhanh thì càng đổ người về trước.',
+       'Đầu nhấp nhô biên độ lớn hơn lúc đi.'],
+ trap:'Giữ thân thẳng đứng như lúc đi rồi tăng fps — nhìn như đi bộ tua nhanh.'},
+
+{tr:'stick',p:18,size:32,h:48,t:'Nhảy: năm trạng thái',time:'90 phút',frames:5, art:'sticknhay',
+ goal:'Nhảy trong game không phải một vòng lặp, mà là năm trạng thái riêng.',
+ steps:['Khung 1 <b>nhún</b>: co người xuống lấy đà. Đây là anticipation.',
+        'Khung 2 <b>bật</b>: duỗi hết cỡ, thân kéo dài, tay vung lên.',
+        'Khung 3 <b>đỉnh</b>: co chân lại, giữ khung này lâu nhất.',
+        'Khung 4 <b>rơi</b>: chân duỗi xuống chuẩn bị chạm.',
+        'Khung 5 <b>tiếp đất</b>: khuỵu sâu rồi mới đứng dậy.',
+        'Đặt thời lượng riêng cho từng khung: đỉnh 200ms, bật 60ms.'],
+ tips:['Game thường tách 5 khung này thành 3 trạng thái: bật · lơ lửng · tiếp đất.',
+       'Không có khung nhún thì cú nhảy trông như bị hất lên.',
+       'Không có khung khuỵu thì trông như đáp xuống mặt trăng.'],
+ trap:'Cho cả 5 khung cùng thời lượng — cú nhảy mất hết sức nặng.'},
+
+/* --- Phần 3 --- */
+{tr:'stick',p:19,size:32,h:48,t:'Cú đấm: lấy đà, bung, thu',time:'90 phút',frames:6, art:'stickdam',
+ goal:'Ba nhịp của mọi đòn tấn công trong game.',
+ steps:['Khung 1–2 <b>lấy đà</b>: kéo tay ra sau, xoay vai, thân vặn ngược hướng đánh.',
+        'Khung 3 <b>bung</b>: chỉ MỘT khung. Tay duỗi hết, thân xoay theo.',
+        'Khung 4 <b>chạm</b>: giữ 2–3 khung thời lượng để người chơi thấy đã trúng.',
+        'Khung 5–6 <b>thu</b>: về thế thủ, chậm hơn lúc bung.',
+        'Đặt thời lượng: lấy đà 80ms · bung 40ms · chạm 120ms · thu 80ms.'],
+ tips:['Lấy đà càng lớn thì cú đấm càng mạnh — đây là thứ người xem cảm được chứ không đếm được.',
+       'Khung bung chỉ tồn tại một nhịp. Nhiều hơn là mất tốc độ.',
+       'Vẽ thêm một vệt mờ theo đường nắm đấm ở khung bung.'],
+ trap:'Dàn đều số khung cho ba giai đoạn. Đòn đánh phải lệch: đà chậm, bung chớp nhoáng, chạm đọng lại.'},
+
+{tr:'stick',p:19,size:48,h:48,t:'Cú đá và cú ngã',time:'2 giờ',frames:8, art:'stickdam',
+ goal:'Hai động tác dùng cả người, không chỉ một chi.',
+ steps:['4 khung đá: trụ một chân, xoay hông, chân đá vạch một cung, thu về.',
+        '4 khung ngã: mất thăng bằng, tay quơ, đập xuống, nảy nhẹ rồi nằm im.',
+        'Cú ngã phải có một khung nảy nhẹ sau khi chạm đất — nếu không sẽ như bao cát rơi.',
+        'Chạy 12 fps.'],
+ tips:['Đá là động tác của hông chứ không phải của chân. Xoay hông trước, chân theo sau.',
+       'Chân trụ phải cắm chặt xuống đất suốt cả bốn khung.',
+       'Sau khi ngã, để nhân vật nằm im vài khung — mắt cần thời gian đăng ký.'],
+ trap:'Đá bằng cách duỗi chân ra mà hông và thân đứng yên — nhìn như đá phản xạ ở phòng khám.'},
+
+{tr:'stick',p:19,size:48,h:48,t:'Nối ba động tác thành một chuỗi',time:'2 giờ',frames:12, art:'stickcuctri',
+ goal:'Chuyển giữa các động tác là chỗ animation game hay vỡ nhất.',
+ steps:['Chọn chuỗi: chạy → nhảy → tiếp đất → đấm.',
+        'Vẽ riêng từng đoạn, rồi vẽ thêm 1–2 khung <b>nối</b> giữa hai đoạn.',
+        'Khung nối phải mượn tư thế cuối của đoạn trước và tư thế đầu của đoạn sau.',
+        'Chạy cả chuỗi 12 fps. Chỗ nào giật là chỗ thiếu khung nối.'],
+ tips:['Nếu tư thế cuối đoạn A và tư thế đầu đoạn B đã gần nhau thì không cần khung nối.',
+       'Đây là lý do người ta thiết kế mọi vòng lặp bắt đầu và kết thúc ở tư thế trung tính.'],
+ trap:'Ghép thẳng hai đoạn — nhân vật đột ngột đổi tư thế, gọi là "pop".'},
+
+/* --- Phần 4 --- */
+{tr:'stick',p:20,size:32,h:48,t:'Đắp khối lên bộ que',time:'2 giờ',frames:2, art:'stickdap',
+ goal:'Bộ que là bộ xương. Giờ mới đắp thịt lên.',
+ steps:['Mở lại bài vòng đi 8 khung. Nhân đôi lớp, đổi lớp que thành màu xám mờ.',
+        'Trên lớp mới, đắp khối quanh từng đoạn que: thân thành hình thang, tay chân thành ống.',
+        'Đầu thay vòng tròn bằng khối đầu có tóc.',
+        'Xoá lớp que đi. Chạy lại — nhịp phải y hệt.'],
+ tips:['Nếu nhịp hỏng sau khi đắp khối thì bạn đã vô tình dịch khớp.',
+       'Giữ lớp que lại làm tham chiếu cho mọi nhân vật sau này.',
+       'Đây chính là quy trình của studio thật: blocking bằng que trước, hoàn thiện sau.'],
+ trap:'Vẽ lại nhân vật từ đầu ở mỗi khung thay vì đắp lên que — mất hết công đã làm.'},
+
+{tr:'stick',p:20,size:48,h:48,t:'Bộ chuyển động hoàn chỉnh của một nhân vật',time:'4 giờ',frames:16, art:'stickdap',
+ goal:'Bài tốt nghiệp: một nhân vật, đủ bộ động tác để cắm vào game.',
+ steps:['Một nhân vật đã đắp khối, làm đủ: đứng chờ (2 khung) · đi (8) · nhảy (3 trạng thái) · đấm (3).',
+        'Mọi động tác dùng chung một bộ khung xương và cùng chiều cao.',
+        'Đứng chờ chỉ cần thở: đầu nhích 1 pixel, vai nhích 1 pixel.',
+        'Xuất một bảng khung ngang, mỗi hàng một động tác.'],
+ tips:['Đứng chờ là động tác người chơi nhìn lâu nhất mà lại hay bị làm qua loa nhất.',
+       'Kiểm bằng cách xếp chồng mọi khung: chân phải luôn cùng một hàng.',
+       'Chạy Soi bài để bắt lỗi lệch chân giữa các khung.'],
+ trap:'Mỗi động tác vẽ nhân vật cao thấp khác nhau — lúc ghép vào game sẽ thấy nhấp nhô.'},
+
 ];
 
 /* Tiến độ lưu theo TÊN BÀI, không theo số thứ tự: chèn bài mới vào giữa lộ trình
    là số thứ tự lệch hết, còn tên thì không. */
 /* Hai lộ trình tách biệt: lộ trình chung, và bộ asset kiểu Terraria.
    Bộ chọn ở đầu thẻ Bài tập lọc cả danh sách bài lẫn danh sách lý thuyết. */
-export const TRACKS={core:'Lộ trình chung', terraria:'Bộ Terraria'};
+export const TRACKS={core:'Lộ trình chung', terraria:'Bộ Terraria', stick:'Người que · chuyển động'};
 export let track='core';
 export function setTrack(t){ track = TRACKS[t] ? t : 'core'; }
 export const inTrack = o => (o.tr||'core')===track;

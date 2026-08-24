@@ -6,13 +6,15 @@ import { PALETTES } from './../palette.js';
 import {
   AA_SOFT, A_ARROW, A_BAG, A_CHEST, A_CHEST_OPEN, A_CHIBI, A_CHIBI_BACK, A_CHIBI_SIDE, A_COIN,
   A_KEY, A_PLUS, A_STAFF, A_STAR, A_SWORD, A_TREE, CURVE_BAD, CURVE_GOOD, FAR, JUMP_POSES,
-  P_ARM, P_HEAD, P_LEG, P_TORSO, RUN_POSES, TERRA, art, artFlip, drawApple, drawBands, drawBoom,
-  drawBox, drawBread, drawCleanup, drawCrop, drawCyl, drawFace, drawFrame, drawGradient,
-  drawHairLag, drawHouse, drawMap, drawMaterial, drawParallax, drawPotion, drawRig, drawShadow,
-  drawSideProp, drawSlash, drawSmear, drawSoft, drawSpacing, drawSphere, drawTile, drawTile9,
-  drawTiming, drawWalk, handPath, heartShape, onBg, platformEdge, px, ringShape, runsLine,
-  sideGround, sideScene, terraBar, terraBlock, terraChar, terraGrass, terraOre, terraSet,
-  terraSheet, terraSlime, terraSword, terraTool, terraWalk, terraWall, terraWood
+  P_ARM, P_HEAD, P_LEG, P_TORSO, RUN_POSES, STICK_COL, STICK_JUMP, STICK_PUNCH, STICK_RUN,
+  STICK_WALK, TERRA, art, artFlip, drawApple, drawBands, drawBoom, drawBox, drawBread,
+  drawCleanup, drawCrop, drawCyl, drawFace, drawFrame, drawGradient, drawHairLag, drawHouse,
+  drawMap, drawMaterial, drawParallax, drawPotion, drawRig, drawShadow, drawSideProp,
+  drawSlash, drawSmear, drawSoft, drawSpacing, drawSphere, drawTile, drawTile9, drawTiming,
+  drawWalk, handPath, heartShape, onBg, platformEdge, px, ringShape, runsLine, sideGround,
+  sideScene, stickBall, stickPendulum, stickPose, stickWeight, stickman, terraBar, terraBlock,
+  terraChar, terraGrass, terraOre, terraSet, terraSheet, terraSlime, terraSword, terraTool,
+  terraWalk, terraWall, terraWood
 } from './art.js';
 
 const RAMP_FLAT = ['#4a1414','#7a2020','#a82c2c','#d63a3a','#f26a6a'];
@@ -319,6 +321,58 @@ Object.assign(DEMOS, {
   ],
   terrasheet:[{cap:'Sáu ô 16×16, cách nhau đúng 2px', cls:'good', w:56,h:38, fn:g=>terraSheet(g,56,38)}],
   terraset:[{cap:'Cả bộ trên nền hang tối — cái nào chìm thì sửa cái đó', cls:'good', w:78,h:40, fn:g=>terraSet(g,78,40)}],
+  /* --- người que --- */
+  stickkhop:[
+    {cap:'Chín khớp: cổ, hông, hai vai, hai khuỷu, hai gối', cls:'good', w:26,h:34,
+     fn:g=>stickman(g,0,0,{khop:true})},
+    {cap:'Không chấm khớp — vẫn phải gập đúng chỗ đó', cls:'', w:26,h:34,
+     fn:g=>stickman(g,0,0,{})}
+  ],
+  stickpose:[
+    {cap:'Thẳng đơ, đối xứng — không nói được gì', cls:'bad', w:26,h:34, fn:g=>stickPose(g,0,0,'do')},
+    {cap:'Vươn lên — trục cong xuyên từ chân tới tay', cls:'good', w:26,h:34, fn:g=>stickPose(g,0,0,'vuon')},
+    {cap:'Né người — trục cong ngược lại', cls:'good', w:26,h:34, fn:g=>stickPose(g,0,0,'ne')}
+  ],
+  stickcuctri:[
+    {cap:'Cực trị 1', cls:'good', w:26,h:34, fn:g=>stickman(g,0,0,STICK_PUNCH[0])},
+    {cap:'Trung gian — vẽ sau cùng', cls:'', w:26,h:34, fn:g=>stickman(g,0,0,STICK_PUNCH[1])},
+    {cap:'Cực trị 2', cls:'good', w:26,h:34, fn:g=>stickman(g,0,0,STICK_PUNCH[2])}
+  ],
+  stickbong:[
+    {cap:'Khoảng cách đều → trôi như bong bóng', cls:'bad',  w:46,h:22, fn:g=>stickBall(g,46,22,true)},
+    {cap:'Nhanh lúc rơi, chậm ở đỉnh, bẹt lúc chạm', cls:'good', w:46,h:22, fn:g=>stickBall(g,46,22,false)}
+  ],
+  sticklac:[
+    {cap:'Chia đều góc → máy móc', cls:'bad',  w:34,h:26, fn:g=>stickPendulum(g,34,26,false)},
+    {cap:'Chậm ở hai đầu, nhanh ở giữa', cls:'good', w:34,h:26, fn:g=>stickPendulum(g,34,26,true)}
+  ],
+  sticknang:[
+    {cap:'Người nhẹ — bay cao, người vươn dài', cls:'', w:70,h:30, fn:g=>stickWeight(g,70,30,false)},
+    {cap:'Người nặng — thấp, lì, thân co lại', cls:'good', w:70,h:30, fn:g=>stickWeight(g,70,30,true)}
+  ],
+  stickdi:STICK_WALK.map((p,i)=>({
+    cap:['1 chạm đất','2 hạ thấp','3 lướt qua','4 vươn lên'][i], cls:i===0?'good':'',
+    w:26,h:34, fn:g=>{ stickman(g,0,0,p); for(let x=0;x<26;x++) px(g,x,32,STICK_COL.mo); }
+  })),
+  stickchay:STICK_RUN.map((p,i)=>({
+    cap:'Khung '+(i+1)+(i===0?' — chạm đất':''), cls:i===0?'good':'',
+    w:26,h:34, fn:g=>{ stickman(g,0,0,p); for(let x=0;x<26;x++) px(g,x,32,STICK_COL.mo); }
+  })),
+  sticknhay:STICK_JUMP.map((p,i)=>({
+    cap:['1 nhún','2 bật','3 đỉnh — giữ lâu nhất','4 rơi','5 tiếp đất'][i], cls:i===2?'good':'',
+    w:26,h:34, fn:g=>{ stickman(g,0,0,p); for(let x=0;x<26;x++) px(g,x,32,STICK_COL.mo); }
+  })),
+  stickdam:STICK_PUNCH.map((p,i)=>({
+    cap:['1 lấy đà','2 bung','3 chạm','4 thu về'][i], cls:i===1?'good':'',
+    w:28,h:34, fn:g=>{ stickman(g,0,0,p); for(let x=0;x<28;x++) px(g,x,32,STICK_COL.mo); }
+  })),
+  stickdap:[
+    {cap:'Bộ que — chỉ có tư thế và nhịp', cls:'', w:26,h:34, fn:g=>stickman(g,0,0,{})},
+    {cap:'Đắp khối lên đúng bộ que đó', cls:'good', w:26,h:34, fn:g=>{
+      stickman(g,0,0,{col:STICK_COL.mo});
+      drawRig(g,6,17);
+    }}
+  ],
   sizes3:[
     {cap:'8×8 — chỉ còn hình dáng', cls:'', w:8,h:8,   fn:g=>heartShape(g,0,0,8,['#c94f4f','#e88a5a','#8c2f39'])},
     {cap:'16×16 — đủ 3 bậc màu', cls:'', w:16,h:16, fn:g=>heartShape(g,0,0,16,['#c94f4f','#e88a5a','#8c2f39'])},

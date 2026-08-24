@@ -767,3 +767,145 @@ export function terraSet(g,w,h){
   terraSword(g,38,20,20); 
   drawRig(g,60,20);
 }
+
+/* =======================================================================
+   NGƯỜI QUE — học chuyển động khi đã bỏ hết màu và khối
+   Bộ xương dựng bằng góc khớp, nên mọi hình minh hoạ dưới đây đều là một
+   tư thế thật chứ không phải hình vẽ tay: đổi vài con số là ra khung khác.
+   Góc tính theo độ, 0° là hướng sang phải, 90° là hướng xuống.
+   ======================================================================= */
+const DEG=Math.PI/180;
+function segLine(g,x0,y0,x1,y1,c){          // Bresenham, vẽ nét dày 1 pixel
+  x0=Math.round(x0); y0=Math.round(y0); x1=Math.round(x1); y1=Math.round(y1);
+  let dx=Math.abs(x1-x0), dy=Math.abs(y1-y0);
+  let sx=x0<x1?1:-1, sy=y0<y1?1:-1, err=dx-dy;
+  for(;;){
+    px(g,x0,y0,c);
+    if(x0===x1&&y0===y1) break;
+    const e2=2*err;
+    if(e2>-dy){ err-=dy; x0+=sx; }
+    if(e2<dx){ err+=dx; y0+=sy; }
+  }
+}
+function chain(x,y,segs){                    // nối các đoạn theo góc, trả về danh sách khớp
+  const pts=[[x,y]]; let cx=x, cy=y;
+  segs.forEach(([len,a])=>{ cx+=Math.cos(a*DEG)*len; cy+=Math.sin(a*DEG)*len; pts.push([cx,cy]); });
+  return pts;
+}
+function ring(g,cx,cy,r,c){
+  for(let a=0;a<360;a+=12) px(g, Math.round(cx+Math.cos(a*DEG)*r), Math.round(cy+Math.sin(a*DEG)*r), c);
+}
+export const STICK_COL={ nguoi:'#e8e8f2', mo:'#5a5a70', khop:'#ffb43f', cung:'#58d5ff' };
+
+/* p: {x,y} hông · spine · tayA/tayB [góc trên, góc dưới] · chanA/chanB · dai (tỉ lệ kéo dài) */
+export function stickman(g,ox,oy,p){
+  const P=Object.assign({
+    x:12, y:21, spine:-90, dai:1, col:STICK_COL.nguoi, khop:false,
+    tayA:[64,76], tayB:[116,100], chanA:[75,85], chanB:[105,95]
+  }, p||{});
+  const L=(v)=>v*P.dai;
+  const [hip, neck] = chain(ox+P.x, oy+P.y, [[L(9), P.spine]]);
+  const headC = chain(neck[0],neck[1], [[L(4), P.spine]])[1];
+  segLine(g,hip[0],hip[1],neck[0],neck[1],P.col);            // cột sống
+  ring(g, headC[0], headC[1], 3, P.col);                      // đầu
+  const parts=[];
+  [['tayA',6,5,neck],['tayB',6,5,neck],['chanA',7,7,hip],['chanB',7,7,hip]].forEach(([k,l1,l2,root])=>{
+    const a=P[k];
+    const pts=chain(root[0],root[1], [[L(l1),a[0]],[L(l2),a[1]]]);
+    segLine(g,pts[0][0],pts[0][1],pts[1][0],pts[1][1],P.col);
+    segLine(g,pts[1][0],pts[1][1],pts[2][0],pts[2][1],P.col);
+    parts.push(pts);
+  });
+  if(P.khop){                                                 // chấm khớp: dạy chỗ được phép gập
+    px(g,Math.round(hip[0]),Math.round(hip[1]),STICK_COL.khop);
+    px(g,Math.round(neck[0]),Math.round(neck[1]),STICK_COL.khop);
+    parts.forEach(pts=>px(g,Math.round(pts[1][0]),Math.round(pts[1][1]),STICK_COL.khop));
+  }
+  return {hip, neck, head:headC, parts};
+}
+
+/* ---- các tư thế dùng lại nhiều lần ---- */
+export const STICK_WALK=[
+  {chanA:[62,88],  chanB:[118,96], tayA:[115,102],tayB:[66,80], y:21},   // chạm đất
+  {chanA:[80,92],  chanB:[104,120],tayA:[106,98], tayB:[76,86], y:22},   // hạ thấp
+  {chanA:[92,95],  chanB:[86,128], tayA:[92,92],  tayB:[88,88],  y:20},   // lướt qua
+  {chanA:[104,96], chanB:[70,92],  tayA:[70,82],  tayB:[110,98],  y:21}    // vươn lên
+];
+export const STICK_RUN=[
+  {chanA:[45,80],  chanB:[135,70], tayA:[62,-18],  tayB:[122,200], y:20, spine:-82},
+  {chanA:[75,110], chanB:[100,25], tayA:[85,10],   tayB:[105,185], y:23, spine:-80},
+  {chanA:[125,72], chanB:[50,85],  tayA:[122,200], tayB:[62,-18],   y:20, spine:-82},
+  {chanA:[100,20], chanB:[78,112], tayA:[105,185], tayB:[85,10],  y:23, spine:-80}
+];
+export const STICK_JUMP=[
+  {chanA:[70,130], chanB:[110,50], tayA:[128,162],tayB:[122,158],   y:25, spine:-78, dai:0.9},  // nhún
+  {chanA:[85,88],  chanB:[95,92],  tayA:[-56,-76], tayB:[-124,-104],y:18, spine:-95, dai:1.1}, // bật
+  {chanA:[60,120], chanB:[120,60], tayA:[-135,-160],tayB:[-45,-20], y:16, spine:-90},           // đỉnh
+  {chanA:[80,100], chanB:[110,88], tayA:[150,170], tayB:[30,10],y:19, spine:-86, dai:1.05}, // rơi
+  {chanA:[68,128], chanB:[112,52], tayA:[60,20],   tayB:[74,34],y:26,spine:-74, dai:0.88}  // tiếp đất
+];
+export const STICK_PUNCH=[
+  {tayA:[135,170], tayB:[85,55], chanA:[70,90], chanB:[112,96], spine:-96, x:11},   // lấy đà
+  {tayA:[20,0],    tayB:[95,70],  chanA:[75,88], chanB:[108,94], spine:-90, x:12},   // bung
+  {tayA:[5,-5],    tayB:[100,75], chanA:[80,86], chanB:[104,92], spine:-84, x:14},   // chạm
+  {tayA:[60,25],   tayB:[90,65],chanA:[76,88], chanB:[106,94], spine:-88, x:12}    // thu
+];
+
+/* bóng nảy: giãn cách và squash — bài học đầu tiên của mọi khoá animation */
+export function stickBall(g,w,h,deu){
+  const n=7, dat=h-3, cao=h-8, nay=0.62;
+  for(let i=0;i<n;i++){
+    const x = 3+Math.round(i/(n-1)*(w-7));
+    let len;                                   // độ cao so với mặt đất
+    if(deu){                                   // chia đều → không có trọng lực
+      len = i<=3 ? cao*(3-i)/3 : cao*nay*(i-3)/3;
+    }else{                                     // parabol: rơi nhanh dần, lên chậm dần
+      const f = i<=3 ? i/3 : (i-3)/3;
+      len = i<=3 ? cao*(1-f*f) : cao*nay*(1-(1-f)*(1-f));
+    }
+    const y = Math.round(dat-len);
+    const cham = !deu && i===3;                // chỉ khung chạm đất mới bẹt
+    const rx = cham?3:2, ry = cham?1:2;
+    for(let dy=-ry;dy<=ry;dy++) for(let dx=-rx;dx<=rx;dx++)
+      if((dx/rx)**2+(dy/ry)**2<=1.05) px(g,x+dx,y+dy, i===3?STICK_COL.khop:STICK_COL.nguoi);
+  }
+  for(let x=0;x<w;x++) px(g,x,h-1,STICK_COL.mo);
+}
+/* quả lắc: cung tròn, chậm ở hai đầu */
+export function stickPendulum(g,w,h,cung){
+  const cx=w/2, cy=1;
+  for(let i=0;i<7;i++){
+    const t=i/6;
+    const a = cung ? (-50+100*(1-Math.cos(t*Math.PI))/2) : (-50+100*t);
+    const x=cx+Math.sin(a*DEG)*(h-5), y=cy+Math.cos(a*DEG)*(h-5);
+    segLine(g,cx,cy,x,y, i===6?STICK_COL.cung:STICK_COL.mo);
+    px(g,Math.round(x),Math.round(y), i===6?STICK_COL.khop:STICK_COL.nguoi);
+  }
+}
+/* trọng lượng: cùng một cú nhảy, người nhẹ bay cao và nhanh, người nặng thấp và lâu */
+export function stickWeight(g,w,h,nang){
+  const n=5;
+  for(let i=0;i<n;i++){
+    const t=i/(n-1);
+    const cao = nang ? 6 : 14;
+    const y = h-16-Math.round(Math.sin(t*Math.PI)*cao);
+    stickman(g, i*(w/n)+1, y-6, {
+      dai: nang?0.92:1.05,
+      spine: nang?-80:-92,
+      chanA:[nang?70:60, nang?120:110], chanB:[nang?110:120, nang?60:50],
+      tayA:[nang?104:-120, nang?134:-150], tayB:[nang?82:-58, nang?112:-28],
+      col: i===n-1?STICK_COL.khop:STICK_COL.nguoi
+    });
+  }
+  for(let x=0;x<w;x++) px(g,x,h-1,STICK_COL.mo);
+}
+/* đường trục: dáng có một đường cong xuyên suốt thì đọc được, dáng thẳng đơ thì không */
+export function stickPose(g,ox,oy,kieu){
+  if(kieu==='do'){                              // đứng thẳng đơ, tay chân đối xứng
+    stickman(g,ox,oy,{spine:-90, tayA:[88,90], tayB:[92,90], chanA:[85,88], chanB:[95,92]});
+  }else if(kieu==='vuon'){                      // vươn người, trục cong từ chân tới tay
+    stickman(g,ox,oy,{spine:-100, tayA:[-48,-68], tayB:[-132,-146], chanA:[70,80], chanB:[100,110], y:22});
+  }else{                                        // né người, trục cong ngược lại
+    stickman(g,ox,oy,{spine:-72, tayA:[36,-14], tayB:[140,172], chanA:[65,95], chanB:[115,90], y:20});
+  }
+}

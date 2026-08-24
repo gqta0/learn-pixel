@@ -299,6 +299,46 @@ export const LESSONS=[
  {demo:'terrapal'},
  {note:'Dùng <b>Soi bài</b> ở thẻ Lớp &amp; xuất để đếm số màu và bắt màu lạc ngoài bảng màu chung. Một bộ asset Terraria gọn gàng hiếm khi cần quá 24 màu cho toàn bộ.'}
 ]},
+
+{tr:'stick', t:'Vì sao lại bắt đầu bằng người que', b:[
+ {p:'Một khung nhân vật pixel hoàn chỉnh mất nửa tiếng. Một khung người que mất ba mươi giây. Khi giá một khung rẻ như vậy, bạn mới dám vẽ tám khung, xem thử, thấy sai, rồi xoá cả tám cái làm lại. Đó chính là cách người ta học chuyển động — bằng cách vứt đi thật nhiều lần.'},
+ {demo:'stickkhop'},
+ {p:'Người que chỉ có <b>chín khớp</b>: cổ, hông, hai vai, hai khuỷu, hai gối, hai cổ chân. Toàn bộ chuyển động của con người nằm gọn trong chín con số góc đó. Bỏ hết màu, khối, viền, ánh sáng đi thì cái còn lại mới là thứ quyết định animation đẹp hay xấu.'},
+ {ul:['Đoạn giữa hai khớp là thanh cứng — <b>không được đổi độ dài</b> giữa các khung.',
+      'Chỉ được gập ở khớp. Cẳng tay cong nghĩa là bạn vừa vẽ gãy xương.',
+      'Một màu, một lớp. Thêm bất cứ thứ gì cũng là làm chậm vòng thử sai.']},
+ {p:'Studio thật gọi giai đoạn này là <i>blocking</i>: dựng nhịp bằng hình thô, duyệt xong mới hoàn thiện. Bỏ qua nó là chấp nhận rủi ro vẽ xong hai mươi khung đẹp rồi mới phát hiện động tác sai từ gốc.'},
+ {demo:'stickpose'},
+ {note:'Thử nghiệm bóng: tô đen đặc một khung người que rồi nhìn. Nếu chỉ còn cái bóng mà vẫn đoán được nhân vật đang làm gì thì tư thế đã đủ rõ. Đây là phép thử dùng được cho mọi khung của mọi động tác.'}
+]},
+
+{tr:'stick', t:'Giãn cách, cung và trễ pha', b:[
+ {p:'Ba thứ này giải thích gần hết khác biệt giữa animation nghiệp dư và animation chuyên nghiệp. Đáng nói là không thứ nào liên quan tới kỹ năng vẽ.'},
+ {p:'<b>Giãn cách</b> — khoảng cách giữa hai khung liên tiếp chính là tốc độ. Khung cách xa nhau thì vật đang bay nhanh; khung sát nhau thì nó đang chậm lại. Vẽ đủ số khung mà giãn cách đều nhau thì mọi vật đều trôi lờ đờ như dưới nước.'},
+ {demo:'stickbong'},
+ {p:'Quả bóng nảy dạy điều này rõ nhất: lúc rơi thì các khung xa dần, tới gần đỉnh thì chụm lại vì trọng lực đang hãm nó. Chỗ chụm khung ở đỉnh là chỗ mắt người được nghỉ, và cũng là chỗ animation có được cảm giác trọng lực.'},
+ {p:'<b>Cung</b> — không có gì trong tự nhiên đi theo đường thẳng. Bàn tay vung, đầu khi đi bộ, quả lắc, viên đạn: tất cả đều vạch cung. Đường thẳng là dấu hiệu của máy móc, và mắt người nhận ra ngay dù không nói được vì sao.'},
+ {demo:'sticklac'},
+ {p:'<b>Trễ pha</b> — không phải bộ phận nào cũng dừng cùng lúc. Tay dừng trước, bàn tay dừng sau; thân dừng trước, tóc và áo choàng còn đi tiếp một nhịp rồi mới ngược lại. Đây là thứ rẻ nhất mà làm animation trông đắt tiền nhất.'},
+ {ul:['Càng xa gốc thì càng trễ và càng đi xa: ngọn roi trễ hơn đốt gần tay.',
+      'Sau khi thân đã đứng im, cho phần phụ đi thêm 1–2 khung rồi mới về vị trí.',
+      'Áp dụng được cho tóc, khăn, áo choàng, đuôi, vũ khí dài, túi đeo.']},
+ {note:'Ba luật này không cần vẽ đẹp, chỉ cần đặt đúng chỗ. Chúng cũng là ba thứ dễ kiểm nhất: bật <b>Bóng khung trước</b> rồi nhìn dãy vệt — thưa dày có rõ không, đường đi có cong không.'}
+]},
+
+{tr:'stick', t:'Nhịp: khung nào giữ lâu, khung nào chớp qua', b:[
+ {p:'Số khung quyết định độ mượt, nhưng <b>thời lượng từng khung</b> mới quyết định cảm giác. Hai bộ tám khung giống hệt nhau, đổi thời lượng thôi là một bộ thành nhẹ nhàng còn bộ kia thành nặng nề.'},
+ {demo:'sticknang'},
+ {p:'Cân nặng nằm trong nhịp chứ không nằm trong hình. Cùng một bộ người que: cho nó lấy đà lâu, bật thấp, tiếp đất khuỵu sâu và đứng dậy chậm thì nó nặng. Cho nó bật ngay, bay cao, chạm đất rồi đi luôn thì nó nhẹ. Không hề đổi một pixel nào của hình vẽ.'},
+ {p:'Với đòn tấn công, quy tắc là <b>đà chậm · bung chớp nhoáng · chạm đọng lại</b>. Giai đoạn lấy đà cho người xem biết sắp có chuyện; khung bung chỉ tồn tại một nhịp duy nhất; khung chạm giữ lâu gấp ba để người chơi kịp thấy mình đã trúng đòn.'},
+ {demo:'stickdam'},
+ {ul:['Đấm: đà 80ms · bung 40ms · chạm 120ms · thu 80ms.',
+      'Nhảy: nhún 80ms · bật 60ms · đỉnh 200ms · rơi 80ms · tiếp đất 140ms.',
+      'Đi và chạy thì ngược lại — mọi khung <b>bằng nhau</b>, vì đó là vòng lặp đều.']},
+ {p:'Trong Lò Pixel, ô thời lượng nằm ngay dưới dải khung: chọn một khung rồi gõ số mili-giây. Bảng thời lượng thất thường là công cụ, không phải lỗi.'},
+ {demo:'sticknhay'},
+ {note:'Quy tắc chung: mỗi động tác cần đúng <b>một</b> khung được giữ lâu hơn hẳn phần còn lại — khung đỉnh của cú nhảy, khung chạm của cú đấm, khung khuỵu của cú tiếp đất. Không có khung nào nổi bật thì cả động tác trôi tuồn tuột.'}
+]},
 ];
 
 export function buildTheory(){
