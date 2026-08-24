@@ -28,6 +28,8 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 - **Soi bài**: máy đếm số màu, màu ngoài bảng màu, pixel lạc, viền dày 2px và mốc chân lệch giữa các khung.
 
 **Lưu**
+- **Thư viện bản vẽ**: giữ nhiều bức cùng lúc, xem dạng lưới ảnh nhỏ, mở lại bất cứ lúc nào.
+  Bấm *Dựng khung* ở một bài tập thì bức đang làm dở tự được cất vào đây thay vì bị xoá.
 - Tự lưu vào trình duyệt (localStorage, nén RLE) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập. Tiến độ lưu theo tên bài nên chèn bài mới không làm lệch.
 - Xuất PNG / PNG spritesheet / PNG bảng màu, lưu & mở dự án `.json` (nén RLE).
 
@@ -68,6 +70,7 @@ js/
   layers.js           danh sách lớp
   storage.js          xuất/nhập, lưu tự động
   lint.js             soi bài: đếm lỗi mà giáo trình dạy bằng lời
+  library.js          thư viện bản vẽ: cất, mở lại, đổi tên, xoá
   ui.js               đồng bộ giao diện + nối mọi sự kiện
   main.js             khởi động
   content/

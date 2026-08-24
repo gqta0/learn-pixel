@@ -45,7 +45,7 @@ function unrle(o,len){
   for(let k=0;k<o.length && i<len;k+=2){ const end=Math.min(len,i+o[k+1]); a.fill(o[k],i,end); i=end; }
   return a;
 }
-function serialize(){
+export function serialize(){
   return {
     app:'lo-pixel', version:2, w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers:doc.layers, palette:palette,
@@ -53,7 +53,7 @@ function serialize(){
     done: Array.from(doneSet)
   };
 }
-function applyData(d){
+export function applyData(d){
   if(!d || !d.frames || !d.layers) throw new Error('thiếu dữ liệu tranh');
   doc.w=d.w; doc.h=d.h;
   doc.layers=d.layers.map(l=>({name:l.name,vis:l.vis!==false}));

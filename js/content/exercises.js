@@ -6,6 +6,7 @@ import { invalidateBuf } from './../raster.js';
 import { fitZoom } from './../render.js';
 import { autosave } from './../storage.js';
 import { syncAll } from './../ui.js';
+import { keepBeforeReplace } from './../library.js';
 import { DEMOS, renderDemo, demoToCanvas } from './demos.js';
 
 export const PHASES = [
@@ -728,7 +729,8 @@ export function setupExercise(ex){
   const nf = ex.frames||1;
   const W=ex.size, H=ex.h||ex.size;
   if(!confirm('Dựng khung '+W+'×'+H+(nf>1?' • '+nf+' khung hình':'')+
-              '\n\nTranh hiện tại sẽ bị xoá. Lưu .json trước nếu cần giữ.')) return;
+              '\n\nBản đang vẽ sẽ được cất vào thư viện trước, không mất đi đâu.')) return;
+  if(!keepBeforeReplace()) return;
   pushUndo();
   doc.w=W; doc.h=H;
   const names = ex.layers || ['Phác thảo','Nét chính'];

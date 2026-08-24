@@ -18,6 +18,7 @@ import { updateProgress, TRACKS, setTrack, buildExercises } from './content/exer
 import { buildTheory } from './content/lessons.js';
 import { runLint } from './lint.js';
 import { closePopup } from './popup.js';
+import { openLibrary, closeLibrary, saveCurrent, isBlank } from './library.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
 /* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ */
@@ -163,6 +164,16 @@ export function applyTrack(t){
   try{ localStorage.setItem('lo-pixel-track', t); }catch(_){}
 }
 $('#trackSel').addEventListener('change', e=>applyTrack(e.target.value));
+/* ---------------- thư viện bản vẽ ---------------- */
+$('#libBtn').addEventListener('click', openLibrary);
+$('#libClose').addEventListener('click', closeLibrary);
+$('#libSave').addEventListener('click', ()=>{
+  if(isBlank()){ alert('Bản vẽ đang trống, chưa có gì để cất.'); return; }
+  const n=(prompt('Tên bản vẽ:', 'Bản vẽ '+doc.w+'×'+doc.h)||'').trim();
+  if(!n) return;
+  if(!saveCurrent(n, true)){ alert('Trình duyệt hết chỗ lưu. Hãy xoá bớt bản vẽ cũ rồi thử lại.'); return; }
+  openLibrary();
+});
 $('#lintBtn').addEventListener('click', runLint);
 $('#lockA').addEventListener('click', e=>{
   view.lockAlpha=!view.lockAlpha;

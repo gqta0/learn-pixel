@@ -14,6 +14,7 @@
     <div class="prog">Tiến độ: <b id="progText">0/0</b></div>
     <button class="btn tiny" id="btnUndo" title="Hoàn tác (Ctrl+Z)">↶</button>
     <button class="btn tiny" id="btnRedo" title="Làm lại (Ctrl+Y)">↷</button>
+    <button class="btn tiny" id="libBtn" title="Bản vẽ của bạn">📁</button>
     <button class="btn tiny" id="themeBtn" title="Đổi nền sáng/tối">☀</button>
   </div>
 
@@ -275,6 +276,15 @@
       </div>
     </div>
 
+  </div>
+
+  <div class="libwrap" id="libWrap" hidden>
+    <div class="libbar">
+      <p class="eyebrow" style="margin:0;flex:1">Bản vẽ của bạn <span class="kbd" id="libCount"></span></p>
+      <button class="btn tiny primary" id="libSave">Cất bản đang vẽ</button>
+      <button class="btn tiny" id="libClose">✕ Đóng</button>
+    </div>
+    <div class="libgrid" id="libGrid"></div>
   </div>
 
   <nav class="mnav" id="mnav">
