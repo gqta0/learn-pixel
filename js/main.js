@@ -5,8 +5,8 @@ import { fitZoom } from './render.js';
 import { fillPalSelect } from './palette.js';
 import { buildTools, setView, syncFingerBtn } from './tools.js';
 import { loadSave } from './storage.js';
-import { syncAll } from './ui.js';
-import { buildExercises } from './content/exercises.js';
+import { syncAll, applyTrack } from './ui.js';
+import { buildExercises, TRACKS } from './content/exercises.js';
 import { buildTheory } from './content/lessons.js';
 import './input.js';                 // gắn sự kiện chuột / cảm ứng / S-Pen
 
@@ -21,8 +21,14 @@ function boot(){
   syncFingerBtn();
   fillPalSelect();
   buildTools();
-  buildExercises();
-  buildTheory();
+  const sel=$('#trackSel');
+  Object.entries(TRACKS).forEach(([k,v])=>{
+    const o=document.createElement('option'); o.value=k; o.textContent=v; sel.appendChild(o);
+  });
+  let t='core';
+  try{ t=localStorage.getItem('lo-pixel-track')||'core'; }catch(_){}
+  sel.value = TRACKS[t] ? t : 'core';
+  applyTrack(sel.value);
   fitZoom();
   syncAll();
   loadSave();                       // có bản lưu thì mở lại, không thì giữ canvas trắng

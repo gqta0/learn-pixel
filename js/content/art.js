@@ -564,3 +564,95 @@ export function drawSideProp(g,w,h,guides){
   if(guides) for(const y of [3,8,12,16]) for(let x=0;x<w;x+=2) px(g,x,y,TH.mid);
   drawRig(g,1,3,{sword:[10,7]});
 }
+
+/* =======================================================================
+   PHONG CÁCH TERRARIA — khối, tường, quặng, vật phẩm
+   Đặc điểm nhận dạng: khối KHÔNG có viền đen bao quanh (vì khối nào cũng
+   kề khối khác), sạn nhiễu dày, sáng ở mép trên tối dần xuống đáy.
+   Vật phẩm thì ngược lại: viền đen kín, vì nó nằm trên nền bất kỳ.
+   ======================================================================= */
+export const TERRA={
+  stone:['#33333d','#454551','#5a5a68','#74747f'],
+  dirt: ['#33200f','#4a2f18','#63401f','#7d5329'],
+  grass:['#245018','#356f22','#4a9130'],
+  wood: ['#33220f','#4d3418','#6b4a24','#8a6231'],
+  gold: ['#6b4a12','#a8791f','#dcae35','#ffe07a'],
+  copper:['#5c2e14','#8f4a20','#c26e33','#e59c5e']
+};
+/* flat=true là kiểu SAI hay gặp: viền đen kín quanh khối, ruột phẳng lì */
+export function terraBlock(g,ox,oy,s,kind,flat){
+  const r=TERRA[kind]||TERRA.stone, K='#14101a';
+  for(let y=0;y<s;y++) for(let x=0;x<s;x++){
+    let c;
+    if(flat){
+      c = (x===0||y===0||x===s-1||y===s-1) ? K : r[2];
+    }else{
+      const t=y/s;
+      let i = t<0.12 ? 3 : t<0.42 ? 2 : t<0.78 ? 1 : 0;
+      const n=hash01(ox+x*3, oy+y*5);
+      if(n>0.85) i=Math.min(r.length-1,i+1);
+      else if(n<0.13) i=Math.max(0,i-1);
+      c=r[i];
+    }
+    px(g,ox+x,oy+y,c);
+  }
+}
+/* khối đất có cỏ phủ mép trên, viền cỏ nhấp nhô ngẫu nhiên */
+export function terraGrass(g,ox,oy,s){
+  terraBlock(g,ox,oy,s,'dirt');
+  for(let x=0;x<s;x++){
+    const h=2+Math.round(hash01(ox+x,3)*2);
+    for(let y=0;y<h;y++) px(g,ox+x,oy+y, y===0?TERRA.grass[2]:TERRA.grass[1]);
+    if(hash01(x,9)>0.7) px(g,ox+x,oy+h,TERRA.grass[0]);
+  }
+}
+/* tường lát phía sau: cùng vật liệu nhưng lùi ra sau — tối hơn, tương phản thấp */
+export function terraWall(g,ox,oy,s){
+  for(let y=0;y<s;y++) for(let x=0;x<s;x++){
+    const n=hash01(ox+x*2,y*3);
+    px(g,ox+x,oy+y, n>0.68?'#2b2b34' : n>0.32?'#24242c' : '#1e1e25');
+  }
+  const m=Math.floor(s/2);
+  for(let x=0;x<s;x++) px(g,ox+x,oy+m,'#191920');
+  for(let y=0;y<s;y++) px(g,ox+(y<m?m:0),oy+y,'#191920');
+}
+/* quặng nhúng trong đá: cụm 3–4 pixel, có một chấm sáng nhất */
+export function terraOre(g,ox,oy,s,kind){
+  const c=TERRA[kind]||TERRA.gold;
+  terraBlock(g,ox,oy,s,'stone');
+  [[7,9],[8,8],[9,10],[8,11],[18,17],[19,16],[20,18],[17,19],[22,7],[23,8],[12,22],[13,23]]
+    .forEach(([x,y],i)=>{
+      if(x>=s-1||y>=s-1) return;
+      px(g,ox+x,oy+y,c[2]); px(g,ox+x+1,oy+y,c[1]); px(g,ox+x,oy+y+1,c[1]);
+      if(i%3===0) px(g,ox+x,oy+y-1,c[3]);
+    });
+}
+/* vật phẩm nằm chéo 45° — dáng chuẩn của kiếm/cuốc trong Terraria */
+export function terraSword(g,ox,oy,s,noOutline){
+  const K='#14101a', BL=['#5a5a68','#8f8f9c','#c2c3c7','#eef0f5'];
+  const put=(x,y,c)=>{ if(x>=0&&y>=0&&x<s&&y<s) px(g,ox+x,oy+y,c); };
+  const n=s-10;
+  for(let i=0;i<n;i++){                       // lưỡi đi chéo lên-phải
+    const x=5+i, y=s-6-i;
+    put(x,y,BL[2]); put(x+1,y,BL[1]); put(x,y-1,BL[3]);
+    if(!noOutline){ put(x+1,y-1,K); put(x-1,y,K); put(x,y+1,K); }
+  }
+  put(5+n,s-6-n,BL[3]); put(6+n,s-7-n,BL[3]);  // mũi kiếm
+  for(let i=-2;i<=2;i++){                      // chắn tay
+    put(4+i,s-5+i,'#a8791f'); put(5+i,s-4+i,'#6b4a12');
+  }
+  for(let i=0;i<4;i++) put(3-i,s-4+i,'#4d3418'); // cán
+  if(!noOutline) for(let i=0;i<5;i++) put(2-i,s-3+i,K);
+}
+/* thanh kim loại (bar) — vật phẩm chế tạo cơ bản nhất của Terraria */
+export function terraBar(g,ox,oy,kind){
+  const c=TERRA[kind]||TERRA.copper, K='#14101a';
+  for(let y=0;y<7;y++) for(let x=0;x<14;x++){
+    const inTop = y<3 && x>=y && x<14-y;
+    const inBody= y>=3 && x>=1 && x<13;
+    if(!inTop && !inBody) continue;
+    px(g,ox+x,oy+y, y<2 ? c[3] : y<4 ? c[2] : y<6 ? c[1] : c[0]);
+  }
+  for(let x=0;x<14;x++){ px(g,ox+x,oy+7,K); }
+  for(let y=0;y<7;y++){ px(g,ox+0,oy+y,K); px(g,ox+13,oy+y,K); }
+}

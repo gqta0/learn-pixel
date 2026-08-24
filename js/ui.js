@@ -13,7 +13,8 @@ import { PALETTES, palette, setPalette, paintSwatches, paintRamp, syncColors, ra
 import { setTool, setTheme, setView, syncFingerBtn, attachMods } from './tools.js';
 import { SAVE_KEY, exportPng, exportSheet, exportPalettePng, exportJson, importJson,
          loadRef, refToPixels, refToPalette } from './storage.js';
-import { updateProgress } from './content/exercises.js';
+import { updateProgress, TRACKS, setTrack, buildExercises } from './content/exercises.js';
+import { buildTheory } from './content/lessons.js';
 import { runLint } from './lint.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
@@ -127,6 +128,18 @@ $('#selCut').addEventListener('click',  ()=>selAct(d=>{ copySel(d); return clear
 $('#selDel').addEventListener('click',  ()=>selAct(d=>clearSel(d), true));
 $('#selPaste').addEventListener('click',()=>selAct(d=>pasteClip(d), 'paste'));
 $('#selNone').addEventListener('click', ()=>{ view.sel=null; render(); });
+/* ---------------- chuyển lộ trình ---------------- */
+const TRACK_NOTE={
+  core:'Làm tuần tự. Mỗi bài bấm <b>Dựng khung</b> để đặt đúng khổ canvas, vẽ xong thì tích ô hoàn thành.',
+  terraria:'Bộ tách biệt, đích đến là asset cắm được vào game kiểu Terraria. Thẻ <b>Lý thuyết</b> cũng đổi theo lộ trình này.'
+};
+export function applyTrack(t){
+  setTrack(t);
+  $('#trackNote').innerHTML = TRACK_NOTE[t] || TRACK_NOTE.core;
+  buildExercises(); buildTheory(); updateProgress();
+  try{ localStorage.setItem('lo-pixel-track', t); }catch(_){}
+}
+$('#trackSel').addEventListener('change', e=>applyTrack(e.target.value));
 $('#lintBtn').addEventListener('click', runLint);
 $('#lockA').addEventListener('click', e=>{
   view.lockAlpha=!view.lockAlpha;

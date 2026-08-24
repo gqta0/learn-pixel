@@ -6,12 +6,12 @@ import { PALETTES } from './../palette.js';
 import {
   AA_SOFT, A_ARROW, A_BAG, A_CHEST, A_CHEST_OPEN, A_CHIBI, A_CHIBI_BACK, A_CHIBI_SIDE, A_COIN,
   A_KEY, A_PLUS, A_STAFF, A_STAR, A_SWORD, A_TREE, CURVE_BAD, CURVE_GOOD, FAR, JUMP_POSES,
-  P_ARM, P_HEAD, P_LEG, P_TORSO, RUN_POSES, art, artFlip, drawApple, drawBands, drawBoom,
+  P_ARM, P_HEAD, P_LEG, P_TORSO, RUN_POSES, TERRA, art, artFlip, drawApple, drawBands, drawBoom,
   drawBox, drawBread, drawCleanup, drawCrop, drawCyl, drawFace, drawFrame, drawGradient,
   drawHairLag, drawHouse, drawMap, drawMaterial, drawParallax, drawPotion, drawRig, drawShadow,
   drawSideProp, drawSlash, drawSmear, drawSoft, drawSpacing, drawSphere, drawTile, drawTile9,
   drawTiming, drawWalk, handPath, heartShape, onBg, platformEdge, px, ringShape, runsLine,
-  sideGround, sideScene
+  sideGround, sideScene, terraBar, terraBlock, terraGrass, terraOre, terraSword, terraWall
 } from './art.js';
 
 const RAMP_FLAT = ['#4a1414','#7a2020','#a82c2c','#d63a3a','#f26a6a'];
@@ -266,6 +266,36 @@ Object.assign(DEMOS, {
   ],
   sidescene:[{cap:'Đất · bệ · dốc bậc · đồi xa — chân nhân vật đúng mốc', cls:'good',
     w:64,h:48, fn:g=>sideScene(g,64,48)}],
+  /* --- phong cách Terraria --- */
+  terrablock:[
+    {cap:'Viền đen kín, ruột phẳng', cls:'bad',  w:32,h:32, fn:g=>terraBlock(g,0,0,32,'stone',true)},
+    {cap:'Không viền, sạn dày, sáng trên tối dưới', cls:'good', w:32,h:32, fn:g=>terraBlock(g,0,0,32,'stone')}
+  ],
+  terraghep:[{cap:'Bốn khối kề nhau — mối nối phải biến mất', cls:'good', w:64,h:64, fn:g=>{
+    terraGrass(g,0,0,32); terraGrass(g,32,0,32);
+    terraBlock(g,0,32,32,'dirt'); terraBlock(g,32,32,32,'dirt');
+  }}],
+  terrawall:[
+    {cap:'Khối đặc — người chơi đứng lên được', cls:'', w:32,h:32, fn:g=>terraBlock(g,0,0,32,'stone')},
+    {cap:'Tường lát sau lưng — tối và êm hơn hẳn', cls:'good', w:32,h:32, fn:g=>terraWall(g,0,0,32)}
+  ],
+  terraore:[
+    {cap:'Đá thường', cls:'', w:32,h:32, fn:g=>terraBlock(g,0,0,32,'stone')},
+    {cap:'Quặng đồng', cls:'', w:32,h:32, fn:g=>terraOre(g,0,0,32,'copper')},
+    {cap:'Quặng vàng — chấm sáng nhất chỉ 1 pixel', cls:'good', w:32,h:32, fn:g=>terraOre(g,0,0,32,'gold')}
+  ],
+  terraitem:[
+    {cap:'Không viền → chìm vào ô túi đồ', cls:'bad',  w:32,h:32, fn:g=>terraSword(g,0,0,32,true)},
+    {cap:'Viền đen kín, nằm chéo 45°', cls:'good', w:32,h:32, fn:g=>terraSword(g,0,0,32)}
+  ],
+  terrabar:[{cap:'Thanh kim loại: đồng · vàng · gỗ', cls:'good', w:46,h:26, fn:g=>{
+    terraBar(g,0,0,'copper'); terraBar(g,16,9,'gold'); terraBar(g,32,17,'wood');
+  }}],
+  terrapal:[{cap:'Dải hang động: đá · đất · cỏ · gỗ · vàng', cls:'good', w:40,h:10, fn:g=>{
+    ['stone','dirt','grass','wood','gold'].forEach((k,r)=>{
+      TERRA[k].forEach((c,i)=>{ for(let y=0;y<10;y++) for(let x=0;x<2;x++) px(g,r*8+i*2+x,y,c); });
+    });
+  }}],
   sizes3:[
     {cap:'8×8 — chỉ còn hình dáng', cls:'', w:8,h:8,   fn:g=>heartShape(g,0,0,8,['#c94f4f','#e88a5a','#8c2f39'])},
     {cap:'16×16 — đủ 3 bậc màu', cls:'', w:16,h:16, fn:g=>heartShape(g,0,0,16,['#c94f4f','#e88a5a','#8c2f39'])},

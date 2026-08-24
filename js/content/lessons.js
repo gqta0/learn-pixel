@@ -1,6 +1,7 @@
-/* Nội dung: 22 bài lý thuyết, mỗi bài gọi hình minh hoạ theo tên trong DEMOS. */
+/* Nội dung: 25 bài lý thuyết (22 lộ trình chung + 3 bộ Terraria), mỗi bài gọi hình minh hoạ theo tên trong DEMOS. */
 import { $ } from './../dom.js';
 import { renderDemo } from './demos.js';
+import { inTrack } from './exercises.js';
 
 export const LESSONS=[
 {t:'Pixel art là gì — và luật số 1', b:[
@@ -256,12 +257,46 @@ export const LESSONS=[
       '<b>Vẽ lại bài cũ</b> sau mỗi chặng. Sự khác biệt chính là bằng chứng bạn tiến bộ.',
       '<b>Xem ở kích thước thật</b> và trong game càng sớm càng tốt.']},
  {note:'Khi đã qua Chặng 4, nên chuyển sang Aseprite (~15$) hoặc LibreSprite (miễn phí) cho các dự án thật: có timeline, tile mode, palette gốc. Tool này để học, hiểu và luyện; công cụ chuyên dụng để sản xuất. Bảng màu tham khảo: Lospec.'}
-]}
+]},
+/* ---------- lý thuyết riêng cho bộ Terraria ---------- */
+{tr:'terraria', t:'Terraria đòi hỏi những gì', b:[
+ {p:'Trước khi vẽ một pixel nào, chốt mấy con số. Terraria bản gốc dùng khối <b>16×16 pixel</b>. Tilesheet xếp các ô cách nhau <b>2 pixel</b> (bước 18px) để lúc phóng to màu không bị rỉ từ ô này sang ô kia.'},
+ {ul:['<b>Khối</b> 16×16 — thứ chiếm phần lớn màn hình.',
+      '<b>Tường lát</b> nằm sau lưng người chơi, cùng vật liệu nhưng tối và êm hơn hẳn.',
+      '<b>Vật phẩm</b> không cố định cỡ; 32×32 là vùng thoải mái cho kiếm, cuốc, thuốc.',
+      '<b>Nhân vật</b> cao khoảng 3 khối và phải lọt qua khe cao 2 khối.']},
+ {p:'Lộ trình này luyện ở <b>32×32</b> cho dễ nhìn và dễ sửa tay. Nếu đích của bạn là mod cho Terraria thật, làm hết ở đây rồi vẽ lại bản 16×16 — bài cuối Phần 0 tập đúng việc đó. Nếu là game riêng kiểu Terraria thì 32×32 dùng thẳng được, miễn là mọi asset cùng mật độ.'},
+ {note:'Đây là lộ trình tách biệt. Nếu bạn chưa qua lộ trình chung thì nên học ít nhất Chặng 0–2 trước: nét sạch, silhouette và dải màu là thứ dùng chung cho mọi phong cách.'}
+]},
+
+{tr:'terraria', t:'Luật viền: khối thì không, vật phẩm thì có', b:[
+ {p:'Đây là điều phân biệt người vẽ được asset Terraria với người chỉ vẽ pixel art nói chung.'},
+ {demo:'terrablock'},
+ {p:'<b>Khối không có viền bao quanh.</b> Lý do rất cơ học: trong game, khối nào cũng kề khối khác. Vẽ viền quanh từng khối thì cả màn hình hiện lên một lưới ca-rô đen. Thay vào đó, khối tự tách nhau bằng <b>sạn và độ sáng</b>: mép trên sáng, đáy tối.'},
+ {demo:'terraghep'},
+ {p:'<b>Vật phẩm thì viền đen kín.</b> Vì nó xuất hiện trên nền bất kỳ — ô túi đồ, mặt đất, dưới nước, trên tay nhân vật. Không viền là chìm.'},
+ {demo:'terraitem'},
+ {ul:['Ngoại lệ duy nhất: vật phát sáng được bỏ viền ở phía sáng nhất.',
+      'Vũ khí cầm tay nằm chéo <b>45°</b>, chuôi ở góc dưới-trái.',
+      'Tường lát cũng không viền, và còn phải mờ hơn khối một bậc nữa.']}
+]},
+
+{tr:'terraria', t:'Đọc được trong hang tối', b:[
+ {p:'Người chơi Terraria dành phần lớn thời gian dưới lòng đất, dưới ánh đuốc. Asset đẹp trên nền xám của trình vẽ mà chìm nghỉm trong hang thì coi như hỏng.'},
+ {demo:'terrawall'},
+ {ul:['Ba tầng độ sáng phải tách bạch: <b>tường lát</b> tối nhất, <b>khối</b> ở giữa, <b>vật phẩm và quái</b> sáng nhất.',
+      'Quặng là thứ tươi nhất bảng màu — nó là phần thưởng, phải bắt mắt từ xa.',
+      'Trong hang, mắt chỉ còn đọc được <b>độ sáng</b>. Hai vật liệu khác tông mà cùng độ sáng sẽ dính vào nhau.']},
+ {demo:'terraore'},
+ {p:'Cách thử: đổi nền canvas sang màu hang tối rồi nheo mắt nhìn cả bộ. Cái nào biến mất thì cái đó cần sửa — thường là tăng độ sáng chứ không phải tăng độ tươi.'},
+ {demo:'terrapal'},
+ {note:'Dùng <b>Soi bài</b> ở thẻ Lớp &amp; xuất để đếm số màu và bắt màu lạc ngoài bảng màu chung. Một bộ asset Terraria gọn gàng hiếm khi cần quá 24 màu cho toàn bộ.'}
+]},
 ];
 
 export function buildTheory(){
   const box=$('#thList'); box.innerHTML='';
-  LESSONS.forEach((L,i)=>{
+  LESSONS.filter(inTrack).forEach((L,i)=>{
     const det=document.createElement('details'); det.className='lesson'; if(i===0) det.open=true;
     const sum=document.createElement('summary');
     sum.innerHTML='<span class="ln">'+String(i+1).padStart(2,'0')+'</span><span class="lt">'+L.t+'</span>';

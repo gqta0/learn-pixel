@@ -1,4 +1,4 @@
-/* Nội dung: lộ trình 11 chặng bài tập, và phần dựng giao diện cho chúng. */
+/* Nội dung: hai lộ trình bài tập tách biệt — 11 chặng chung và 5 phần Terraria. */
 import { $ } from './../dom.js';
 import { doc } from './../state.js';
 import { pushUndo } from './../history.js';
@@ -19,7 +19,14 @@ export const PHASES = [
   {n:'Chặng 7', t:'Chuyển động', d:'Idle, đi, đánh, hiệu ứng — và cách làm cho mượt.'},
   {n:'Chặng 8', t:'Nhìn ngang: nhân vật hành động', d:'Bộ động tác platformer: đứng, chạy 8 khung, nhảy, combo chém có vệt, ngã.'},
   {n:'Chặng 9', t:'Nhìn ngang: tile & cảnh nền', d:'Mặt đất có mặt trên và thân, bệ, dốc, vách, nền lùi xa.'},
-  {n:'Chặng 10', t:'Hero — bộ asset hoàn chỉnh', d:'Một tay làm ra cả bộ asset đồng nhất.'}
+  {n:'Chặng 10', t:'Hero — bộ asset hoàn chỉnh', d:'Một tay làm ra cả bộ asset đồng nhất.'},
+
+  /* --- lộ trình riêng: asset kiểu Terraria --- */
+  {tr:'terraria', n:'Phần 0', t:'Luật chơi của Terraria', d:'Vì sao khối thì không viền mà vật phẩm thì viền kín, và palette hang động.'},
+  {tr:'terraria', n:'Phần 1', t:'Khối và tường', d:'Đá, đất, cỏ, quặng, gỗ — thứ chiếm 90% màn hình.'},
+  {tr:'terraria', n:'Phần 2', t:'Vật phẩm', d:'Thanh kim loại, kiếm, cuốc, thuốc — đọc được trong ô túi đồ.'},
+  {tr:'terraria', n:'Phần 3', t:'Nhân vật và quái', d:'Sprite nhìn ngang đúng tỉ lệ, khung đi, slime.'},
+  {tr:'terraria', n:'Phần 4', t:'Xuất và cắm vào game', d:'Tilesheet đúng lưới, và soi cả bộ trên nền hang tối.'}
 ];
 
 export const EXERCISES = [
@@ -482,6 +489,192 @@ export const EXERCISES = [
        'Bóng đổ dưới bệ giúp người chơi biết bệ đang lơ lửng chứ không dán vào nền.'],
  trap:'Nhân vật và tile vẽ ở hai mức chi tiết khác nhau — lỗi lộ ra ngay khi ghép cảnh.'},
 
+
+/* ===================== LỘ TRÌNH RIÊNG: ASSET KIỂU TERRARIA =====================
+   Số thật của Terraria: khối là 16×16 pixel, xếp trong tilesheet cách nhau 2px
+   (bước 18px). Ở đây luyện tại 32×32 cho dễ nhìn và dễ sửa tay; bài cuối Phần 0
+   cho vẽ lại đúng 16×16 để quen con số thật. Vật phẩm và quái thì 32×32 là cỡ
+   dùng được luôn. ============================================================= */
+
+/* --- Phần 0 --- */
+{tr:'terraria',p:11,size:32,t:'Đọc vị phong cách Terraria',time:'30 phút', art:'terrablock',
+ goal:'Hiểu luật số 1: khối thì KHÔNG viền, vật phẩm thì viền đen kín.',
+ steps:['Mở Terraria (hoặc ảnh chụp trên wiki), phóng to một khối đá và một cây kiếm trong túi đồ.',
+        'Với mỗi cái, tự trả lời: có viền đen không? đếm được mấy màu? sáng đến từ đâu?',
+        'Vẽ lại một khối đá 32×32 theo đúng nhận xét vừa rút ra: không viền, sạn dày, mép trên sáng.',
+        'Đặt bốn bản sao khối đó cạnh nhau và nhìn: có thấy lưới ô vuông không?'],
+ tips:['Khối nào trong game cũng kề khối khác — vẽ viền đen quanh khối là cả màn hình thành lưới ca-rô.',
+       'Vật phẩm thì ngược lại: nó nằm trên nền bất kỳ (túi đồ, đất, nước) nên cần viền để bật ra.',
+       'Nền hang rất tối, nên khối phải sáng hơn cảm giác ban đầu của bạn.'],
+ trap:'Bê nguyên thói quen viền đen kín từ vẽ vật phẩm sang vẽ khối — lỗi số một của người mới làm mod.'},
+
+{tr:'terraria',p:11,size:32,t:'Dải màu hang động dùng chung',time:'40 phút', art:'terrapal',
+ goal:'Năm dải bốn bậc cho đá, đất, cỏ, gỗ, quặng — xương sống màu của cả bộ.',
+ steps:['Dùng panel Dải màu theo chất liệu: Đá cho đá, Gỗ cho gỗ và đất, Lá cho cỏ, Vàng cho quặng.',
+        'Mỗi dải để 4 bậc, lệch tông 20–25°. Đưa từng dải vào bảng màu.',
+        'Bấm PNG bảng màu để lưu lại — mọi bài sau đều lấy màu từ đúng file này.',
+        'Vẽ thử năm ô vuông cạnh nhau, mỗi ô một vật liệu, để so tương quan sáng tối.'],
+ tips:['Đá và đất phải khác nhau rõ ở độ sáng, không chỉ khác tông — trong hang tối chỉ độ sáng còn đọc được.',
+       'Bốn bậc là đủ cho một khối. Năm bậc trở lên bắt đầu rối và khó lặp.',
+       'Quặng phải là thứ tươi nhất bảng, vì nó là phần thưởng người chơi đi tìm.'],
+ trap:'Mỗi khối chọn màu riêng theo cảm hứng → cả hang trông như ghép từ ba game khác nhau.'},
+
+{tr:'terraria',p:11,size:16,t:'Con số thật: vẽ lại khối ở 16×16',time:'30 phút',frames:2,
+ goal:'Quen khổ thật của Terraria trước khi làm cả bộ.',
+ steps:['Khung 1: vẽ lại khối đá của bài 1 nhưng ở khổ 16×16.',
+        'Khung 2: vẽ khối đất có cỏ, cũng 16×16.',
+        'Bật Lặp 3×3 để soi mối nối ở cỡ thật.',
+        'So với bản 32×32: chi tiết nào buộc phải bỏ? Ghi lại — đó là danh sách những thứ không đáng vẽ.'],
+ tips:['Ở 16×16 một viên sạn chỉ còn 1 pixel; đừng vẽ sạn ba màu.',
+       'Mod Terraria thật (tModLoader) cần đúng 16×16, và tilesheet chừa 2px giữa các ô.',
+       'Nếu làm game riêng kiểu Terraria thì 32×32 hoàn toàn hợp lệ — chỉ cần nhất quán.'],
+ trap:'Vẽ ở 32 rồi thu nhỏ xuống 16 bằng máy — pixel nhoè hết, phải vẽ tay lại từ đầu.'},
+
+/* --- Phần 1 --- */
+{tr:'terraria',p:12,size:32,t:'Khối đá và ba biến thể',time:'60 phút',frames:4, art:'terrablock',
+ goal:'Khối nền tảng, lặp kín màn hình mà mắt không thấy hoa văn lặp.',
+ steps:['Khung 1: khối đá gốc. Sáng ở 3–4 hàng trên, tối dần xuống đáy.',
+        'Rắc sạn: vài pixel sáng hơn và tối hơn một bậc, rải ngẫu nhiên, tránh dồn cụm ở giữa.',
+        'Khung 2–4: ba biến thể — đổi chỗ đám sạn, thêm một vết nứt, một hõm tối. Giữ nguyên bố cục sáng-tối.',
+        'Bật Lặp 3×3 ở từng khung để chắc không lộ mối.'],
+ tips:['Trong game engine sẽ rải ngẫu nhiên 3–4 biến thể — đó là cách phá cảm giác lặp mà không tốn công.',
+       'Đừng để chi tiết nào chạm sát mép trừ khi bạn cố ý cho nó nối sang khối bên.',
+       'Vết nứt nên đi chéo, không đi thẳng đứng.'],
+ trap:'Ba biến thể khác nhau quá nhiều về độ sáng → nhìn thành ba loại đá chứ không phải một.'},
+
+{tr:'terraria',p:12,size:32,t:'Khối đất có cỏ phủ',time:'60 phút',frames:3, art:'terraghep',
+ goal:'Khối hai vật liệu — chỗ người mới hay để lộ mối nối nhất.',
+ steps:['Khung 1: khối đất trơn. Khung 2: khối đất có cỏ phủ mép trên.',
+        'Viền cỏ phải nhấp nhô ngẫu nhiên (dày 2–4 pixel tuỳ cột), không được là một đường thẳng.',
+        'Cho vài sợi cỏ rủ xuống thân đất, và vài hạt đất nhô lên trên.',
+        'Khung 3: khối cỏ ở mép trái — cỏ phủ cả cạnh trên lẫn cạnh trái.',
+        'Ghép hai khối cỏ cạnh nhau và kiểm tra: đường cỏ có chạy liền không?'],
+ tips:['Chỗ giao cỏ–đất là nơi kể chuyện: cho nó lởm chởm thì cả hang trông tự nhiên hơn.',
+       'Cỏ tối hơn ở chỗ giáp đất, sáng nhất ở đỉnh.'],
+ trap:'Đường cỏ thẳng băng ngang khối → nhìn như dán băng dính xanh lên viên gạch.'},
+
+{tr:'terraria',p:12,size:32,t:'Tường lát phía sau',time:'45 phút',frames:2, art:'terrawall',
+ goal:'Cùng vật liệu nhưng phải lùi hẳn ra sau lưng người chơi.',
+ steps:['Khung 1: khối đá đặc. Khung 2: tường đá — cùng tông nhưng tối hơn 2 bậc và tương phản thấp hẳn.',
+        'Bỏ hết chi tiết sắc; giữ lại một đường lát mờ chia ô.',
+        'Đặt cạnh nhau và nheo mắt: tường phải chìm, khối phải nổi.'],
+ tips:['Tường chiếm diện tích lớn nhất màn hình nên nó phải là thứ ít gây chú ý nhất.',
+       'Quy tắc nhanh: tường = khối đó giảm sáng 40% và giảm tương phản một nửa.'],
+ trap:'Tường vẽ đẹp và rõ ngang khối → người chơi không phân biệt được chỗ nào đứng được, chỗ nào rơi.'},
+
+{tr:'terraria',p:12,size:32,t:'Quặng nhúng trong đá',time:'50 phút',frames:3, art:'terraore',
+ goal:'Phần thưởng của người chơi — bắt mắt từ xa mà vẫn thuộc về khối đá.',
+ steps:['Nhân bản khối đá gốc ra 3 khung.',
+        'Mỗi khung rắc 3–4 cụm quặng, mỗi cụm 3–5 pixel, có đúng một pixel sáng nhất làm ánh kim.',
+        'Ba loại: đồng (cam), bạc (xám sáng), vàng (vàng tươi). Chỉ đổi dải màu, giữ nguyên vị trí cụm.',
+        'Nhìn ở ×2: còn nhận ra loại quặng không?'],
+ tips:['Cụm quặng nên bám vào chỗ tối của đá để tương phản mạnh hơn.',
+       'Dùng Thay màu phụ → chính để đổi loại quặng trong một nốt nhạc.'],
+ trap:'Rắc quặng kín mặt khối → mất cảm giác đá có lẫn quặng, thành khối kim loại đặc.'},
+
+{tr:'terraria',p:12,size:32,t:'Gỗ, thân cây và lá',time:'60 phút',frames:3,
+ goal:'Vật liệu xây nhà và cây trong rừng.',
+ steps:['Khung 1: khối gỗ ván — vân dọc, hai đường ghép ngang, đầu ván sáng hơn.',
+        'Khung 2: thân cây — vân dọc, mép trái sáng mép phải tối.',
+        'Khung 3: tán lá — cụm lá 2 bậc xanh, mép lởm chởm, có vài lỗ hở thấy nền.',
+        'Ghép thân và tán rồi soi silhouette.'],
+ tips:['Ván gỗ trong game xếp so le, nên đừng để mối ghép nằm chính giữa khối.',
+       'Tán lá phải có lỗ hở, nếu không nó thành một cục xanh đặc.'],
+ trap:'Vân gỗ vẽ đều tăm tắp như kẻ dòng → trông như tôn sóng chứ không phải gỗ.'},
+
+/* --- Phần 2 --- */
+{tr:'terraria',p:13,size:32,t:'Thanh kim loại bốn loại',time:'50 phút',frames:4, art:'terrabar',
+ goal:'Vật phẩm chế tạo cơ bản nhất — và bài palette swap hoàn hảo.',
+ steps:['Khung 1: một thanh kim loại nhìn chéo — mặt trên sáng, mặt bên tối, viền đen kín.',
+        'Khung 2–4: đồng, bạc, vàng. Chỉ đổi dải màu, giữ nguyên từng pixel hình dáng.',
+        'Kiểm tra trên nền tối và nền sáng: viền có giữ được hình không?'],
+ tips:['Mặt trên của thanh là chỗ sáng nhất; cạnh dưới cùng gần như đen.',
+       'Bốn màu là đủ cho một thanh: viền, tối, thân, sáng.'],
+ trap:'Đổi cả màu viền theo kim loại → bộ vật phẩm mất tính đồng bộ.'},
+
+{tr:'terraria',p:13,size:32,t:'Kiếm nằm chéo 45°',time:'70 phút', art:'terraitem',
+ goal:'Dáng chuẩn của mọi vũ khí cầm tay trong Terraria.',
+ steps:['Vẽ kiếm chạy chéo từ góc dưới-trái lên góc trên-phải, đúng 45° (mỗi bước 1 ngang 1 dọc).',
+        'Lưỡi rộng 2–3 pixel, có một dải sáng chạy dọc sống kiếm.',
+        'Chắn tay và cán bằng vật liệu khác (vàng, gỗ) để tách khối.',
+        'Viền đen kín toàn bộ. Đặt lên nền đá vừa vẽ để kiểm tra độ nổi.'],
+ tips:['45° cho nét sắc nhất; góc khác sẽ ra bậc thang lởm chởm.',
+       'Chuôi chiếm khoảng 1/3 chiều dài — cán ngắn quá thì trông như dao găm.',
+       'Một đốm sáng duy nhất gần mũi kiếm là đủ để nó ánh thép.'],
+ trap:'Lưỡi kiếm dày 1 pixel → trong túi đồ nhìn như que tăm.'},
+
+{tr:'terraria',p:13,size:32,t:'Cuốc và rìu',time:'60 phút',frames:2,
+ goal:'Công cụ hai vật liệu — kim loại gắn vào cán gỗ.',
+ steps:['Khung 1: cuốc — đầu kim loại nhọn hai bên, cán gỗ chéo 45°.',
+        'Khung 2: rìu — lưỡi bản rộng một bên, đối trọng nhỏ bên kia.',
+        'Chỗ kim loại ôm cán phải thấy được đai buộc (2–3 pixel tối).',
+        'Dùng lại đúng dải kim loại và dải gỗ của bài trước.'],
+ tips:['Cán gỗ và lưỡi kim loại phải khác hẳn độ sáng, không chỉ khác tông.',
+       'Đầu công cụ nên chiếm nửa trên khung, cán chạy xuống góc dưới-trái.'],
+ trap:'Vẽ cuốc và rìu ở hai cỡ khác nhau → xếp trong túi đồ thấy ngay cái lệch.'},
+
+{tr:'terraria',p:13,size:32,t:'Lọ thuốc và vật phẩm phát sáng',time:'50 phút',frames:3, art:'potions3',
+ goal:'Vật phẩm trong suốt và vật phẩm tự phát sáng.',
+ steps:['Khung 1–2: hai lọ thuốc khác màu nước, giữ nguyên thuỷ tinh và nút bần.',
+        'Khung 3: một vật phẩm phát sáng (đuốc hoặc tinh thể) — sáng nhất ở lõi, toả ra 2 bậc.',
+        'Vật phát sáng thì bỏ viền đen ở phía sáng nhất, để nó như đang rọi ra.'],
+ tips:['Thuỷ tinh: sáng ở viền, trong ở giữa, một vệt chéo trắng.',
+       'Vật phát sáng là ngoại lệ duy nhất được phá luật viền kín.'],
+ trap:'Cho vật phát sáng một quầng mờ nhiều bậc → hết là pixel art, thành ảnh blur.'},
+
+/* --- Phần 3 --- */
+{tr:'terraria',p:14,size:32,h:48,t:'Nhân vật nhìn ngang',time:'90 phút',
+ layers:['Phác khối','Nét chính','Tô khối'],
+ goal:'Nhân vật cao khoảng 3 khối, đứng lọt hành lang 2 khối.',
+ steps:['Kẻ mốc: nhân vật cao 40–44 pixel trong khung 32×48, tức khoảng 2,5–3 ô khối 16px.',
+        'Đầu to hơn tỉ lệ thật một chút, thân gọn, chân ngắn — dáng đọc được ở cỡ nhỏ.',
+        'Nhìn ngang: một mắt, tóc che nửa mặt, tay gần vẽ đè lên thân.',
+        'Viền tối chọn lọc quanh người, đen kín ở chỗ giáp nền sáng.'],
+ tips:['Nhân vật phải lọt qua khe cao 2 khối — đó là ràng buộc thiết kế của Terraria.',
+       'Quần áo là chỗ kể tính cách; mặt ở cỡ này gần như không nói được gì.'],
+ trap:'Vẽ cao 4–5 khối cho oai → không chui lọt hang do chính mình đào.'},
+
+{tr:'terraria',p:14,size:32,h:48,t:'Bảng khung đi bốn khung',time:'90 phút',frames:4,
+ goal:'Vòng đi tối thiểu, chân không trượt.',
+ steps:['4 khung: chạm đất, hạ thấp, lướt qua, vươn lên.',
+        'Thân nhấp nhô đúng 1–2 pixel. Bàn chân giữ nguyên hàng pixel dưới cùng.',
+        'Tay ngược pha với chân.',
+        'Chạy 10 fps, bật Bóng khung trước để canh.'],
+ tips:['Dùng Soi bài để kiểm mốc chân — nó báo ngay khung nào lệch.',
+       'Nhân vật Terraria đi khá nhanh nên biên độ chân phải rộng.'],
+ trap:'Đầu nhấp nhô cùng pha với chân → trông như đang nhún nhảy chứ không phải đi.'},
+
+{tr:'terraria',p:14,size:32,t:'Quái slime',time:'60 phút',frames:3,
+ goal:'Quái đầu tiên của mọi người chơi — thân trong suốt, có vật thể bên trong.',
+ steps:['Khung 1: slime đứng yên — khối tròn hơi bẹt, đáy rộng.',
+        'Khung 2: nén xuống trước khi nhảy. Khung 3: kéo dài lên khi bật.',
+        'Thân trong suốt: đáy tối hơn, viền sáng, một đốm sáng lệch trên-trái.',
+        'Thả một vật thể nhỏ bên trong (đồng xu, hạt gel) cho vui mắt.'],
+ tips:['Giữ nguyên khối lượng: bẹt ngang thì phải thấp xuống tương ứng.',
+       'Trong suốt nghĩa là thấy được nền phía sau ở phần thân, chỉ viền là đặc.'],
+ trap:'Vẽ slime đặc như quả bóng cao su → mất hẳn đặc trưng của nó.'},
+
+/* --- Phần 4 --- */
+{tr:'terraria',p:15,size:32,t:'Dựng tilesheet đúng lưới',time:'60 phút',frames:6,
+ goal:'File xuất ra cắm được vào engine mà không phải cắt tay.',
+ steps:['Đưa 6 khối đã vẽ vào 6 khung theo đúng thứ tự bạn muốn trong sheet.',
+        'Xuất PNG spritesheet ở nhân 1.',
+        'Mở file và kiểm: mỗi ô có đúng bằng nhau không? có ô nào lệch 1 pixel không?',
+        'Ghi chú quy ước đặt tên: dat_giua, dat_trai, dat_goc_tren_trai…'],
+ tips:['Terraria chừa 2px giữa các ô trong tilesheet để tránh rỉ màu khi phóng to; sheet ở đây xuất khít nhau, nên khi đưa vào tModLoader phải chèn khoảng đệm đó.',
+       'Luôn giữ file .json gốc; PNG chỉ là bản dùng.'],
+ trap:'Xuất ở nhân 4 rồi đưa thẳng vào game — engine sẽ hiểu sai kích thước ô.'},
+
+{tr:'terraria',p:15,size:32,t:'Bộ 12 asset và phép thử hang tối',time:'3 giờ',frames:12,
+ goal:'Sản phẩm cuối: một bộ dùng được, đồng nhất, đã thử ở đúng bối cảnh.',
+ steps:['12 khung: 3 khối nền, 1 tường, 2 quặng, 3 vật phẩm, 1 nhân vật, 2 quái.',
+        'Chốt: cùng bảng màu, cùng hướng sáng từ trên, khối không viền, vật phẩm viền kín.',
+        'Đổi nền canvas sang màu hang tối rồi soi lại từng cái: có cái nào biến mất không?',
+        'Chạy Soi bài trên vài khung để bắt màu lạc và pixel lạc.'],
+ tips:['Cái nào lệch thì sửa cái đó, đừng đổi palette chung.',
+       'Nhìn cả 12 cạnh nhau ở ×2 mới thấy được cái nào lạc điệu.'],
+ trap:'Chỉ soi asset trên nền xám của trình vẽ — vào game nền tối thì nửa số asset chìm nghỉm.'},
+
 /* --- Chặng 10 --- */
 {p:10,size:48,t:'Kẻ địch và trùm',time:'90 phút',frames:2, art:'enemy',
  goal:'Thiết kế hình để người chơi đọc được mức nguy hiểm.',
@@ -510,6 +703,13 @@ export const EXERCISES = [
 
 /* Tiến độ lưu theo TÊN BÀI, không theo số thứ tự: chèn bài mới vào giữa lộ trình
    là số thứ tự lệch hết, còn tên thì không. */
+/* Hai lộ trình tách biệt: lộ trình chung, và bộ asset kiểu Terraria.
+   Bộ chọn ở đầu thẻ Bài tập lọc cả danh sách bài lẫn danh sách lý thuyết. */
+export const TRACKS={core:'Lộ trình chung', terraria:'Bộ Terraria'};
+export let track='core';
+export function setTrack(t){ track = TRACKS[t] ? t : 'core'; }
+export const inTrack = o => (o.tr||'core')===track;
+
 export const doneSet = new Set();
 export const exKey = ex => ex.t;
 /* bản lưu cũ ghi số thứ tự — chỉ bài thuộc Chặng 0–5 mới còn đúng vị trí,
@@ -567,6 +767,7 @@ export function loadDemoLayer(name){
 export function buildExercises(){
   const box=$('#exList'); box.innerHTML='';
   PHASES.forEach((ph,pi)=>{
+    if(!inTrack(ph)) return;
     const list = EXERCISES.filter(e=>e.p===pi);
     const det=document.createElement('details'); det.className='phase'; if(pi===0) det.open=true;
     const sum=document.createElement('summary');
@@ -623,6 +824,8 @@ export function buildExercises(){
   });
 }
 export function updateProgress(){
-  $('#progText').textContent = doneSet.size+'/'+EXERCISES.length;
+  const list=EXERCISES.filter(inTrack);
+  const xong=list.filter(e=>doneSet.has(exKey(e))).length;
+  $('#progText').textContent = xong+'/'+list.length;
   autosave();
 }
