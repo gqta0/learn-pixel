@@ -272,7 +272,7 @@ export const LESSONS=[
       '<b>Tường lát</b> nằm sau lưng người chơi, cùng vật liệu nhưng tối và êm hơn hẳn.',
       '<b>Vật phẩm</b> không cố định cỡ; 32×32 là vùng thoải mái cho kiếm, cuốc, thuốc.',
       '<b>Nhân vật</b> cao khoảng 3 khối và phải lọt qua khe cao 2 khối.']},
- {p:'Lộ trình này luyện ở <b>32×32</b> cho dễ nhìn và dễ sửa tay. Nếu đích của bạn là mod cho Terraria thật, làm hết ở đây rồi vẽ lại bản 16×16 — bài cuối Phần 0 tập đúng việc đó. Nếu là game riêng kiểu Terraria thì 32×32 dùng thẳng được, miễn là mọi asset cùng mật độ.'},
+ {p:'Lộ trình này vẽ khối và tường thẳng ở <b>16×16</b> — đúng khổ Terraria dùng, để cái bạn vẽ ra cắm được vào game mà không phải làm lại. Vật phẩm và quái thì 32×32, vì Terraria không cố định cỡ vật phẩm. Bài thứ ba của Phần 0 cho phác thử ở 32 rồi rút về 16, để thấy rõ chi tiết nào không đáng vẽ ở khổ thật.'},
  {note:'Đây là lộ trình tách biệt. Nếu bạn chưa qua lộ trình chung thì nên học ít nhất Chặng 0–2 trước: nét sạch, silhouette và dải màu là thứ dùng chung cho mọi phong cách.'}
 ]},
 

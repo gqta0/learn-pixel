@@ -11,7 +11,8 @@ import {
   drawHairLag, drawHouse, drawMap, drawMaterial, drawParallax, drawPotion, drawRig, drawShadow,
   drawSideProp, drawSlash, drawSmear, drawSoft, drawSpacing, drawSphere, drawTile, drawTile9,
   drawTiming, drawWalk, handPath, heartShape, onBg, platformEdge, px, ringShape, runsLine,
-  sideGround, sideScene, terraBar, terraBlock, terraGrass, terraOre, terraSword, terraWall
+  sideGround, sideScene, terraBar, terraBlock, terraChar, terraGrass, terraOre, terraSet,
+  terraSheet, terraSlime, terraSword, terraTool, terraWalk, terraWall, terraWood
 } from './art.js';
 
 const RAMP_FLAT = ['#4a1414','#7a2020','#a82c2c','#d63a3a','#f26a6a'];
@@ -268,21 +269,21 @@ Object.assign(DEMOS, {
     w:64,h:48, fn:g=>sideScene(g,64,48)}],
   /* --- phong cách Terraria --- */
   terrablock:[
-    {cap:'Viền đen kín, ruột phẳng', cls:'bad',  w:32,h:32, fn:g=>terraBlock(g,0,0,32,'stone',true)},
-    {cap:'Không viền, sạn dày, sáng trên tối dưới', cls:'good', w:32,h:32, fn:g=>terraBlock(g,0,0,32,'stone')}
+    {cap:'Viền đen kín, ruột phẳng', cls:'bad',  w:16,h:16, fn:g=>terraBlock(g,0,0,16,'stone',true)},
+    {cap:'Không viền, sạn dày, sáng trên tối dưới', cls:'good', w:16,h:16, fn:g=>terraBlock(g,0,0,16,'stone')}
   ],
-  terraghep:[{cap:'Bốn khối kề nhau — mối nối phải biến mất', cls:'good', w:64,h:64, fn:g=>{
-    terraGrass(g,0,0,32); terraGrass(g,32,0,32);
-    terraBlock(g,0,32,32,'dirt'); terraBlock(g,32,32,32,'dirt');
+  terraghep:[{cap:'Bốn khối 16×16 kề nhau — mối nối phải biến mất', cls:'good', w:32,h:32, fn:g=>{
+    terraGrass(g,0,0,16); terraGrass(g,16,0,16);
+    terraBlock(g,0,16,16,'dirt'); terraBlock(g,16,16,16,'dirt');
   }}],
   terrawall:[
-    {cap:'Khối đặc — người chơi đứng lên được', cls:'', w:32,h:32, fn:g=>terraBlock(g,0,0,32,'stone')},
-    {cap:'Tường lát sau lưng — tối và êm hơn hẳn', cls:'good', w:32,h:32, fn:g=>terraWall(g,0,0,32)}
+    {cap:'Khối đặc — người chơi đứng lên được', cls:'', w:16,h:16, fn:g=>terraBlock(g,0,0,16,'stone')},
+    {cap:'Tường lát sau lưng — tối và êm hơn hẳn', cls:'good', w:16,h:16, fn:g=>terraWall(g,0,0,16)}
   ],
   terraore:[
-    {cap:'Đá thường', cls:'', w:32,h:32, fn:g=>terraBlock(g,0,0,32,'stone')},
-    {cap:'Quặng đồng', cls:'', w:32,h:32, fn:g=>terraOre(g,0,0,32,'copper')},
-    {cap:'Quặng vàng — chấm sáng nhất chỉ 1 pixel', cls:'good', w:32,h:32, fn:g=>terraOre(g,0,0,32,'gold')}
+    {cap:'Đá thường', cls:'', w:16,h:16, fn:g=>terraBlock(g,0,0,16,'stone')},
+    {cap:'Quặng đồng', cls:'', w:16,h:16, fn:g=>terraOre(g,0,0,16,'copper')},
+    {cap:'Quặng vàng — chấm sáng nhất chỉ 1 pixel', cls:'good', w:16,h:16, fn:g=>terraOre(g,0,0,16,'gold')}
   ],
   terraitem:[
     {cap:'Không viền → chìm vào ô túi đồ', cls:'bad',  w:32,h:32, fn:g=>terraSword(g,0,0,32,true)},
@@ -296,6 +297,28 @@ Object.assign(DEMOS, {
       TERRA[k].forEach((c,i)=>{ for(let y=0;y<10;y++) for(let x=0;x<2;x++) px(g,r*8+i*2+x,y,c); });
     });
   }}],
+  terra16:[
+    {cap:'32×32 — phác thoải mái, nhiều sạn', cls:'', w:32,h:32, fn:g=>terraBlock(g,0,0,32,'stone')},
+    {cap:'16×16 — khổ thật, mỗi viên sạn 1 pixel', cls:'good', w:16,h:16, fn:g=>terraBlock(g,0,0,16,'stone')}
+  ],
+  terrawood:[
+    {cap:'Ván gỗ — mối ghép so le', cls:'good', w:16,h:16, fn:g=>terraWood(g,0,0,'van',16)},
+    {cap:'Thân cây — khối tròn nhìn ngang', cls:'', w:16,h:16, fn:g=>terraWood(g,0,0,'than',16)},
+    {cap:'Tán lá — phải có lỗ hở', cls:'good', w:16,h:16, fn:g=>terraWood(g,0,0,'la',16)}
+  ],
+  terratool:[
+    {cap:'Cuốc', cls:'', w:32,h:32, fn:g=>terraTool(g,0,0,32,false)},
+    {cap:'Rìu — cùng cán, cùng cỡ', cls:'good', w:32,h:32, fn:g=>terraTool(g,0,0,32,true)}
+  ],
+  terrachar:[{cap:'Cao khoảng 3 khối, lọt khe 2 khối', cls:'good', w:48,h:48, fn:g=>terraChar(g,48,48)}],
+  terrawalk:[0,1,2,3].map(i=>({cap:'Khung '+(i+1), cls:i===0?'good':'', w:48,h:48, fn:g=>terraWalk(g,48,48,i)})),
+  terraslime:[
+    {cap:'Đứng yên', cls:'', w:24,h:20, fn:g=>terraSlime(g,0,0,24,0)},
+    {cap:'Nén trước khi nhảy', cls:'good', w:24,h:20, fn:g=>terraSlime(g,0,0,24,1)},
+    {cap:'Kéo dài khi bật', cls:'good', w:24,h:20, fn:g=>terraSlime(g,0,0,24,2)}
+  ],
+  terrasheet:[{cap:'Sáu ô 16×16, cách nhau đúng 2px', cls:'good', w:56,h:38, fn:g=>terraSheet(g,56,38)}],
+  terraset:[{cap:'Cả bộ trên nền hang tối — cái nào chìm thì sửa cái đó', cls:'good', w:78,h:40, fn:g=>terraSet(g,78,40)}],
   sizes3:[
     {cap:'8×8 — chỉ còn hình dáng', cls:'', w:8,h:8,   fn:g=>heartShape(g,0,0,8,['#c94f4f','#e88a5a','#8c2f39'])},
     {cap:'16×16 — đủ 3 bậc màu', cls:'', w:16,h:16, fn:g=>heartShape(g,0,0,16,['#c94f4f','#e88a5a','#8c2f39'])},

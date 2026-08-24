@@ -620,12 +620,13 @@ export function terraWall(g,ox,oy,s){
 export function terraOre(g,ox,oy,s,kind){
   const c=TERRA[kind]||TERRA.gold;
   terraBlock(g,ox,oy,s,'stone');
-  [[7,9],[8,8],[9,10],[8,11],[18,17],[19,16],[20,18],[17,19],[22,7],[23,8],[12,22],[13,23]]
-    .forEach(([x,y],i)=>{
-      if(x>=s-1||y>=s-1) return;
-      px(g,ox+x,oy+y,c[2]); px(g,ox+x+1,oy+y,c[1]); px(g,ox+x,oy+y+1,c[1]);
-      if(i%3===0) px(g,ox+x,oy+y-1,c[3]);
-    });
+  // vị trí cụm theo tỉ lệ khổ, nên ở 16×16 vẫn đủ ba cụm chứ không rơi hết ra ngoài
+  const cum=[[0.22,0.30],[0.28,0.25],[0.56,0.54],[0.62,0.50],[0.70,0.22],[0.38,0.72]];
+  cum.forEach(([u,v],i)=>{
+    const x=Math.round(u*(s-3)), y=Math.round(v*(s-3));
+    px(g,ox+x,oy+y,c[2]); px(g,ox+x+1,oy+y,c[1]); px(g,ox+x,oy+y+1,c[1]);
+    if(i%2===0 && y>0) px(g,ox+x,oy+y-1,c[3]);
+  });
 }
 /* vật phẩm nằm chéo 45° — dáng chuẩn của kiếm/cuốc trong Terraria */
 export function terraSword(g,ox,oy,s,noOutline){
@@ -655,4 +656,114 @@ export function terraBar(g,ox,oy,kind){
   }
   for(let x=0;x<14;x++){ px(g,ox+x,oy+7,K); }
   for(let y=0;y<7;y++){ px(g,ox+0,oy+y,K); px(g,ox+13,oy+y,K); }
+}
+
+/* --- hình mẫu bù cho các bài Terraria còn thiếu --- */
+export function terraWood(g,ox,oy,kind,s){
+  const w=TERRA.wood, S=s||32, m=S/32;
+  const r=v=>Math.max(1,Math.round(v*m));
+  if(kind==='van'){                                   // ván gỗ: vân dọc, mối ghép so le
+    for(let y=0;y<S;y++) for(let x=0;x<S;x++){
+      let i = y<r(2) ? 3 : y>S-r(3) ? 0 : 2;
+      if(Math.sin(x*1.7/m)>0.55) i=Math.max(0,i-1);
+      px(g,ox+x,oy+y,w[i]);
+    }
+    const h1=r(10), h2=r(21);
+    for(let x=0;x<S;x++){ px(g,ox+x,oy+h1,w[0]); px(g,ox+x,oy+h2,w[0]); }
+    for(let y=0;y<h1;y++)    px(g,ox+r(11),oy+y,w[0]);
+    for(let y=h1+1;y<h2;y++) px(g,ox+r(22),oy+y,w[0]);
+    for(let y=h2+1;y<S;y++)  px(g,ox+r(7), oy+y,w[0]);
+  }else if(kind==='than'){                            // thân cây: khối tròn nhìn ngang
+    for(let y=0;y<S;y++) for(let x=0;x<S;x++){
+      const t=1-Math.abs((x-S*0.34)/(S*0.53));
+      let i=Math.max(0,Math.min(3,Math.round(t*3)));
+      if(hash01(x*3,y*7)>0.88) i=Math.max(0,i-1);
+      px(g,ox+x,oy+y,w[i]);
+    }
+  }else{                                              // tán lá: có lỗ hở thấy nền
+    const L=TERRA.grass;
+    for(let y=0;y<S;y++) for(let x=0;x<S;x++){
+      const n=hash01(x*2.3,y*1.9);
+      if(n<0.12) continue;                            // lỗ hở
+      px(g,ox+x,oy+y, n>0.72 ? L[2] : n>0.35 ? L[1] : L[0]);
+    }
+  }
+}
+/* cuốc và rìu: đầu kim loại gắn vào cán gỗ chéo 45° */
+export function terraTool(g,ox,oy,s,axe){
+  const K='#14101a', M=['#5a5a68','#8f8f9c','#c2c3c7'], W=TERRA.wood;
+  const put=(x,y,c)=>{ if(x>=0&&y>=0&&x<s&&y<s) px(g,ox+x,oy+y,c); };
+  for(let i=0;i<s-10;i++){                            // cán gỗ
+    const x=4+i, y=s-5-i;
+    put(x,y,W[2]); put(x+1,y,W[1]);
+    put(x,y-1,K); put(x+1,y+1,K);
+  }
+  const hx=s-7, hy=6;
+  if(axe){
+    for(let y=0;y<9;y++) for(let x=0;x<7;x++){
+      const t=(x+y*0.4)/9;
+      if(x>4 && y>2 && y<6) continue;
+      put(hx-4+x, hy+y, t<0.35?M[0]:t<0.7?M[1]:M[2]);
+    }
+  }else{
+    for(let x=-6;x<=6;x++){
+      const y=hy+Math.round(Math.abs(x)*0.55);
+      put(hx+x,y,M[2]); put(hx+x,y+1,M[1]); put(hx+x,y+2,M[0]);
+    }
+  }
+  for(let x=-1;x<=2;x++) for(let y=0;y<3;y++) put(hx+x-1,hy+7+y,K);   // đai buộc
+}
+/* nhân vật đứng cạnh lưới khối 16px, cho thấy cao đúng mấy khối */
+export function terraChar(g,w,h){
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++)
+    px(g,x,y, (x%16<1||y%16<1) ? '#242430' : '#1a1a22');
+  drawRig(g, Math.floor(w/2)-7, h-14-2);
+}
+/* bốn khung đi, vẽ trên nền lưới khối */
+export function terraWalk(g,w,h,i){
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++)
+    px(g,x,y, (x%16<1||y%16<1) ? '#242430' : '#1a1a22');
+  drawRig(g, Math.floor(w/2)-7, h-14-2, RUN_POSES[i*2]);
+}
+/* slime: nén rồi bật, thân trong suốt thấy nền */
+export function terraSlime(g,ox,oy,s,phase){
+  const body=['#2b5a2e','#3f8a44','#5cb862','#8fe08f'];
+  const kx=[1.0,1.22,0.86][phase], ky=[1.0,0.72,1.24][phase];
+  const rw=Math.round(9*kx), rh=Math.round(8*ky);
+  const cx=s/2, cy=s-2-rh;
+  for(let y=0;y<s;y++) for(let x=0;x<s;x++){
+    const u=(x-cx)/rw, v=(y-cy)/rh;
+    const d=u*u+v*v;
+    if(d>1) continue;
+    const rim = d>0.72;
+    let i = rim ? 2 : (y-cy)/rh < -0.25 ? 1 : 0;
+    px(g,ox+x,oy+y, body[i]);
+  }
+  px(g,ox+Math.round(cx-rw*0.45),oy+Math.round(cy-rh*0.45),body[3]);   // đốm sáng
+  px(g,ox+Math.round(cx-rw*0.3), oy+Math.round(cy-rh*0.45),body[3]);
+  px(g,ox+Math.round(cx+1),oy+Math.round(cy+rh*0.3),'#dcae35');        // đồng xu bên trong
+  px(g,ox+Math.round(cx+2),oy+Math.round(cy+rh*0.3),'#a8791f');
+}
+/* tilesheet: các ô cách nhau đúng 2px như Terraria yêu cầu */
+export function terraSheet(g,w,h){
+  g.fillStyle='#0f0f16'; g.fillRect(0,0,w,h);
+  const T=16, gap=2;
+  for(let r=0;r<2;r++) for(let c=0;c<3;c++){
+    const ox=1+c*(T+gap), oy=1+r*(T+gap);
+    if(r===0&&c===0) terraGrass(g,ox,oy,T);
+    else if(r===0&&c===1) terraBlock(g,ox,oy,T,'dirt');
+    else if(r===0&&c===2) terraOre(g,ox,oy,T,'gold');
+    else if(r===1&&c===0) terraBlock(g,ox,oy,T,'stone');
+    else if(r===1&&c===1) terraWall(g,ox,oy,T);
+    else terraBlock(g,ox,oy,T,'wood');
+  }
+}
+/* cả bộ đặt trên nền hang tối — phép thử cuối của lộ trình */
+export function terraSet(g,w,h){
+  g.fillStyle='#0d0d13'; g.fillRect(0,0,w,h);
+  terraGrass(g,2,2,16); terraBlock(g,20,2,16,'stone'); terraOre(g,38,2,16,'copper');
+  terraWall(g,56,2,16);
+  terraBar(g,3,22,'gold'); terraBar(g,21,22,'copper');
+  terraSword(g,38,20,20); 
+  drawRig(g,60,20);
 }

@@ -182,6 +182,24 @@ $('#realBtn').addEventListener('click', e=>{
   paintPreview();
 });
 $('#gridStep').addEventListener('change', e=>{ view.gridStep=parseInt(e.target.value,10)||8; render(); });
+/* đặt hộp "⋯ Thêm" ngay dưới nút, tự lùi vào cho vừa màn hình */
+const moreEl=document.querySelector('.more');
+function placeMore(){
+  const box=moreEl.querySelector('.morebox'), sum=moreEl.querySelector('summary');
+  box.style.left='0px'; box.style.top='0px';
+  const r=sum.getBoundingClientRect(), b=box.getBoundingClientRect();
+  let x=r.left, y=r.bottom+6;
+  if(x+b.width  > innerWidth-8)  x = innerWidth-8-b.width;
+  if(y+b.height > innerHeight-8) y = Math.max(8, r.top-6-b.height);
+  box.style.left=Math.max(8,x)+'px';
+  box.style.top=y+'px';
+}
+moreEl.addEventListener('toggle', ()=>{ if(moreEl.open) placeMore(); });
+document.addEventListener('pointerdown', e=>{
+  if(moreEl.open && !moreEl.contains(e.target)) moreEl.open=false;
+}, true);
+window.addEventListener('resize', ()=>{ if(moreEl.open) placeMore(); });
+
 $('#libBtn').addEventListener('click', openLibrary);
 $('#libClose').addEventListener('click', closeLibrary);
 $('#libSave').addEventListener('click', ()=>{

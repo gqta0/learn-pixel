@@ -22,7 +22,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 **Học**
 - **Hai lộ trình tách biệt**, chọn ở đầu thẻ Bài tập — bộ chọn lọc cả bài tập lẫn lý thuyết:
   - **Lộ trình chung**: 53 bài / 11 chặng + 22 bài lý thuyết, từ điều khiển từng pixel tới bộ asset hoàn chỉnh.
-  - **Bộ Terraria**: 17 bài / 5 phần + 3 bài lý thuyết — khối, tường, quặng, vật phẩm, nhân vật, tilesheet.
+  - **Bộ Terraria**: 17 bài / 5 phần + 3 bài lý thuyết — khối và tường vẽ thẳng ở **16×16** đúng khổ game dùng, vật phẩm 32×32, kèm bài dựng tilesheet.
 - Mỗi bài có đích đến, các bước, mẹo, bẫy thường gặp, nút dựng sẵn đúng khổ / số khung / số lớp, và nút nạp mẫu để vẽ đè.
 - Nút **Nạp mẫu để vẽ đè**: đổ hình mẫu của bài thành pixel mờ vào một lớp riêng.
 - **Soi bài**: máy đếm số màu, màu ngoài bảng màu, pixel lạc, viền dày 2px và mốc chân lệch giữa các khung.
