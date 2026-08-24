@@ -168,6 +168,12 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
 }
 .swatch[aria-current=true]{box-shadow:inset 0 0 0 2px var(--text), 0 0 0 1px var(--text)}
+/* màu chưa dùng ở khung này thì mờ đi — nhìn ra ngay bảng màu đang thừa chỗ nào */
+.swatch.unused{opacity:.38}
+.swatch.unused:hover{opacity:1}
+/* dấu góc báo đây là màu phụ */
+.swatch.issec{box-shadow:inset 0 0 0 1px rgba(255,255,255,.10), inset -6px -6px 0 -3px var(--cyan)}
+.swatches .swatch{position:relative}
 .ramp{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-top:7px}
 
 /* ---------- sân khấu vẽ ---------- */

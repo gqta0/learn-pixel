@@ -3,7 +3,7 @@ import { $ } from './dom.js';
 import { doc, view, activeData } from './state.js';
 import { board, render, setZoom } from './render.js';
 import { pushUndo, undo } from './history.js';
-import { syncColors, shadeStep } from './palette.js';
+import { syncColors, paintSwatches, shadeStep } from './palette.js';
 import { paintThumbs } from './frames.js';
 import { syncFingerBtn } from './tools.js';
 import { inside, normSel, stamp, lineStamp, rectStamp, ellipseStamp, floodFill,
@@ -166,6 +166,7 @@ function endStroke(e){
   if(preview){ activeData().set(preview.data); setPreview(null); }
   moveBase=null; view.brushEff=view.brush;
   render(); paintThumbs();
+  paintSwatches();          // nét vừa xong có thể thêm/bớt màu đang dùng — cập nhật dấu trên bảng màu
 }
 board.addEventListener('pointerup', endStroke);
 board.addEventListener('pointercancel', endStroke);

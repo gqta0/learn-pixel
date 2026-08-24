@@ -9,7 +9,8 @@ import { render, fitZoom, setZoom } from './render.js';
 import { paintThumbs, paintPreview, togglePlay } from './frames.js';
 import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.js';
 import { PALETTES, palette, setPalette, paintSwatches, paintRamp, syncColors, rampCols,
-         attachPalettePopup } from './palette.js';
+         attachPalettePopup, palByName, isUserPal, savePaletteAs, deleteUserPal,
+         fillPalSelect, addCurrentColor, sortPalette, prunePalette, paletteFromArt } from './palette.js';
 import { setTool, setTheme, setView, syncFingerBtn, attachMods } from './tools.js';
 import { SAVE_KEY, exportPng, exportSheet, exportPalettePng, exportJson, importJson,
          loadRef, refToPixels, refToPalette } from './storage.js';
@@ -80,10 +81,31 @@ $$('#mnav button').forEach(b=>b.addEventListener('click', ()=>setView(b.dataset.
 $('#colPick').addEventListener('input', e=>{ view.pri=hexToInt(e.target.value); syncColors(); });
 $('#swapCol').addEventListener('click', ()=>{ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); });
 $('#addSwatch').addEventListener('click', ()=>{
-  const hex=intToHex(view.pri);
-  if(!palette.includes(hex)){ palette.push(hex); paintSwatches(); }
+  if(!addCurrentColor()) $('#palInfo').textContent='Màu này đã có trong bảng rồi.';
 });
-$('#palSel').addEventListener('change', e=>{ setPalette(PALETTES[e.target.value]); paintSwatches(); });
+$('#palSort').addEventListener('click', sortPalette);
+$('#palPrune').addEventListener('click', prunePalette);
+$('#palFromArt').addEventListener('click', ()=>{
+  const n=paletteFromArt();
+  if(n===0) return;
+  $('#palInfo').textContent='Đã thêm '+n+' màu từ tranh vào bảng.';
+});
+$('#palSave').addEventListener('click', ()=>{
+  const n=savePaletteAs();
+  if(n) $('#palInfo').textContent='Đã lưu bảng màu "'+n+'" vào máy.';
+});
+$('#palDel').addEventListener('click', ()=>{
+  const n=$('#palSel').value;
+  if(!isUserPal(n)) return;
+  if(!confirm('Xoá bảng màu đã lưu "'+n+'" khỏi máy? Bảng màu đang dùng trong tranh vẫn giữ nguyên.')) return;
+  deleteUserPal(n);
+});
+$('#palSel').addEventListener('change', e=>{
+  const p=palByName(e.target.value);
+  if(p) setPalette(p);
+  $('#palDel').style.display = isUserPal(e.target.value) ? '' : 'none';
+  syncColors();
+});
 $('#rampSteps').addEventListener('change', paintRamp);
 $('#hueShift').addEventListener('input', paintRamp);
 $('#rampAdd').addEventListener('click', ()=>{

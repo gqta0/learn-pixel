@@ -55,10 +55,20 @@
         </div>
         <div class="row" style="margin-top:8px">
           <select id="palSel" class="grow"></select>
+          <button class="btn tiny" id="palDel" title="Xoá bảng màu đã lưu này" style="display:none">✕</button>
         </div>
         <div class="swatches" id="swatches"></div>
+        <p class="kbd" id="palInfo" style="margin:7px 0 0"></p>
         <div class="row">
-          <button class="btn tiny grow" id="addSwatch">+ Thêm màu chính</button>
+          <button class="btn tiny grow" id="addSwatch" title="Thêm màu chính vào bảng">+ Thêm màu</button>
+          <button class="btn tiny grow" id="palSort" title="Xếp theo tông rồi theo độ sáng">↕ Sắp xếp</button>
+        </div>
+        <div class="row">
+          <button class="btn tiny grow" id="palFromArt" title="Gom mọi màu đang có trong tranh vào bảng">Rút từ tranh</button>
+          <button class="btn tiny grow" id="palPrune" title="Bỏ những màu không xuất hiện ở khung nào">⌫ Bỏ màu thừa</button>
+        </div>
+        <div class="row">
+          <button class="btn tiny grow primary" id="palSave" title="Lưu bảng màu này vào máy để dùng cho dự án sau">💾 Lưu bảng màu…</button>
         </div>
         <div class="row">
           <button class="btn tiny grow" id="replaceCol" title="Đổi mọi pixel màu phụ thành màu chính, trên lớp hiện tại, ở tất cả khung">Thay màu phụ → chính</button>

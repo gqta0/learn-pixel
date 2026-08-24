@@ -14,7 +14,12 @@ export function onLongPress(el, fn, ms=400){
   el.addEventListener('pointerdown', e=>{
     if(e.button) return;                       // chỉ nút trái / đầu ngón
     swallow=false; clear();
-    t=setTimeout(()=>{ t=null; swallow=true; fn(el); }, ms);
+    t=setTimeout(()=>{
+      t=null;
+      swallow=true;
+      setTimeout(()=>{ swallow=false; }, 600);   // chỉ nuốt đúng cú click do chính lần giữ này sinh ra
+      fn(el);
+    }, ms);
   });
   ['pointerup','pointerleave','pointercancel','pointermove'].forEach(k=>el.addEventListener(k, clear));
   el.addEventListener('contextmenu', e=>{ e.preventDefault(); clear(); fn(el); });

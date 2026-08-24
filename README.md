@@ -14,7 +14,10 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 **Màu**
 - Panel sinh dải màu lệch tông theo **chất liệu** (kim loại, gỗ, đá, da người, lá, vải, thuỷ tinh, vàng, lửa).
-- Bảng màu dựng sẵn (PICO-8, DawnBringer 16, Sweetie 16…), rút bảng màu từ ảnh, thay màu hàng loạt (palette swap).
+- 6 bảng màu dựng sẵn (PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động, Xám 8 bậc).
+- **Thư viện bảng màu của bạn**: lưu bảng màu vào máy và dùng lại cho dự án sau, tách khỏi file tranh.
+- Sửa / bỏ / sắp xếp từng ô màu, bỏ màu thừa, rút bảng màu từ chính bức tranh hoặc từ một ảnh mẫu, thay màu hàng loạt (palette swap).
+- Ô màu chưa dùng ở khung hiện tại thì mờ đi, nên nhìn ra ngay bảng màu đang thừa chỗ nào.
 
 **Học**
 - **Hai lộ trình tách biệt**, chọn ở đầu thẻ Bài tập — bộ chọn lọc cả bài tập lẫn lý thuyết:
