@@ -1,6 +1,6 @@
 /* Nội dung: hai lộ trình bài tập tách biệt — 11 chặng chung và 5 phần Terraria. */
 import { $ } from './../dom.js';
-import { doc } from './../state.js';
+import { doc, view } from './../state.js';
 import { pushUndo } from './../history.js';
 import { invalidateBuf } from './../raster.js';
 import { fitZoom } from './../render.js';
@@ -734,6 +734,7 @@ export function setupExercise(ex){
   const names = ex.layers || ['Phác thảo','Nét chính'];
   doc.layers=names.map(n=>({name:n,vis:true}));
   doc.frames=[]; doc.dur=[];
+  view.sel=null;                       // bài mới thì bắt đầu sạch, không nhốt nét vẽ trong vùng chọn cũ
   for(let i=0;i<nf;i++) doc.frames.push(doc.layers.map(()=>new Uint32Array(W*H)));
   doc.af=0; doc.al = ex.layers ? doc.layers.length-1 : Math.min(1, doc.layers.length-1);
   invalidateBuf(); fitZoom(); syncAll();

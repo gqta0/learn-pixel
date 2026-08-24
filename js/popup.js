@@ -26,10 +26,12 @@ export function onLongPress(el, fn, ms=400){
 }
 
 let pop=null;
+/* trả về true nếu vừa đóng một bảng — để phím Esc biết đã có việc để làm */
 export function closePopup(){
-  if(!pop) return;
+  if(!pop) return false;
   pop.remove(); pop=null;
   document.removeEventListener('pointerdown', outside, true);
+  return true;
 }
 function outside(e){ if(pop && !pop.contains(e.target)) closePopup(); }
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closePopup(); });

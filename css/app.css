@@ -462,6 +462,20 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 /* nằm ngang: chiều cao quý, thu gọn dải khung hình chứ không giấu đi —
    không có nó thì không đổi được khung khi vẽ animation */
 @media (max-width:1000px) and (orientation:landscape){
+  /* Ngang thì chiều cao là thứ hiếm còn bề ngang thừa mứa (915px mà tranh chỉ
+     chiếm 160). Dựng lại sân khấu thành lưới: dải khung hình thành cột bên trái,
+     trả 55px chiều cao về cho tranh. */
+  .stage{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .stagebar{grid-column:1/3;grid-row:1}
+  .filmstrip{
+    grid-column:1;grid-row:2;flex-direction:column;width:72px;gap:6px;
+    border-top:0;border-right:1px solid var(--line);overflow-y:auto;
+  }
+  .filmstrip > div:first-child{flex:0 0 auto;width:100%}
+  .filmstrip .frames{flex-direction:column;overflow-x:visible;overflow-y:auto;gap:5px}
+  .filmstrip .playbox{flex-direction:row;justify-content:center;width:100%}
+  .canvasarea{grid-column:2;grid-row:2}
+
   /* dồn chỗ cho canvas: bỏ dòng toạ độ, thu đệm, thu nhãn thanh dưới */
   .canvaswrap{padding:8px}
   .hud{display:none}

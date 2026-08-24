@@ -17,6 +17,7 @@ import { SAVE_KEY, exportPng, exportSheet, exportPalettePng, exportJson, importJ
 import { updateProgress, TRACKS, setTrack, buildExercises } from './content/exercises.js';
 import { buildTheory } from './content/lessons.js';
 import { runLint } from './lint.js';
+import { closePopup } from './popup.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
 /* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ */
@@ -235,7 +236,7 @@ window.addEventListener('keydown', e=>{
     return;
   }
   if(e.ctrlKey||e.metaKey) return;
-  if(k==='escape'){ view.sel=null; render(); return; }
+  if(k==='escape'){ if(closePopup()) return; view.sel=null; render(); return; }   // đóng bảng chọn trước, bỏ vùng chọn sau
   if(k==='delete'||k==='backspace'){ e.preventDefault(); $('#selDel').click(); return; }
   const map={b:'pencil',e:'eraser',g:'fill',i:'picker',l:'line',u:'rect',o:'ellipse',m:'move',s:'shade',a:'select'};
   if(map[k]){ setTool(map[k]); return; }

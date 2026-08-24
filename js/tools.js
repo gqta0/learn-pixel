@@ -4,6 +4,7 @@ import { view, setTH } from './state.js';
 import { render } from './render.js';
 import { paintThumbs } from './frames.js';
 import { buildTheory } from './content/lessons.js';
+import { buildExercises } from './content/exercises.js';
 import { onLongPress, popover } from './popup.js';
 
 export const TOOLS=[
@@ -99,16 +100,21 @@ export function syncFingerBtn(){
   const b2=$('#fingerBtn2');
   if(b2){ b2.textContent = pan?'Ngón tay: kéo & phóng':'Ngón tay: vẽ'; b2.classList.toggle('on', pan); }
 }
+/* dựng lại một danh sách mà vẫn giữ nguyên mục nào đang mở */
+function rebuild(sel, box, build){
+  if(!$(box) || !$(box).children.length) return;
+  const open=$$(sel).map(d=>d.open);
+  build();
+  $$(sel).forEach((d,i)=>{ if(open[i]!==undefined) d.open=open[i]; });
+}
 export function setTheme(name){
   document.body.dataset.theme=name;
   setTH(name);
   const b=$('#themeBtn'); if(b) b.textContent = name==='light' ? '☾' : '☀';
   try{ localStorage.setItem('lo-pixel-theme', name); }catch(_){}
-  if($('#thList') && $('#thList').children.length){
-    const open=$$('.lesson').map(d=>d.open);
-    buildTheory();
-    $$('.lesson').forEach((d,i)=>{ if(open[i]!==undefined) d.open=open[i]; });
-  }
+  // hình minh hoạ vẽ bằng màu của chủ đề, nên phải dựng lại CẢ hai danh sách
+  rebuild('.lesson', '#thList', buildTheory);
+  rebuild('.phase',  '#exList', buildExercises);
   render(); paintThumbs();
 }
 export function setView(v){

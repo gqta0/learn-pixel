@@ -148,6 +148,15 @@ export function inSel(x,y){
   const s=view.sel;
   return !s || (x>=s.x && y>=s.y && x<s.x+s.w && y<s.y+s.h);
 }
+/* Khổ canvas đổi thì vùng chọn cũ có thể nằm ngoài tranh. Để nguyên là mọi nét
+   vẽ bị chặn hết mà người dùng không thấy vùng chọn đâu để mà bỏ. */
+export function clampSel(){
+  const s=view.sel;
+  if(!s) return;
+  const x=Math.max(0,s.x), y=Math.max(0,s.y);
+  const w=Math.min(doc.w,s.x+s.w)-x, h=Math.min(doc.h,s.y+s.h)-y;
+  view.sel = (w>0 && h>0) ? {x,y,w,h} : null;
+}
 export function normSel(x0,y0,x1,y1){
   const x=Math.max(0,Math.min(x0,x1)), y=Math.max(0,Math.min(y0,y1));
   const w=Math.min(doc.w,Math.max(x0,x1)+1)-x, h=Math.min(doc.h,Math.max(y0,y1)+1)-y;
