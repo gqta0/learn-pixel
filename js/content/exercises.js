@@ -35,7 +35,12 @@ export const PHASES = [
   {tr:'stick', n:'Phần 1', t:'Bốn luật nền', d:'Bóng nảy, quả lắc, trễ pha, trọng lượng — học một lần dùng cả đời.'},
   {tr:'stick', n:'Phần 2', t:'Vòng lặp cơ bản', d:'Đi, chạy, nhảy — ba thứ mọi game đều cần.'},
   {tr:'stick', n:'Phần 3', t:'Hành động', d:'Đấm, đá, ngã, và cách nối các động tác lại với nhau.'},
-  {tr:'stick', n:'Phần 4', t:'Từ que sang nhân vật', d:'Đắp khối lên bộ xương đã chạy đúng nhịp.'}
+  {tr:'stick', n:'Phần 4', t:'Từ que sang nhân vật', d:'Đắp khối lên bộ xương đã chạy đúng nhịp.'},
+  {tr:'mc', n:'Phần 0', t:'Luật chơi của Minecraft', d:'16×16, không viền, và điều lạ nhất: texture không mang nguồn sáng.'},
+  {tr:'mc', n:'Phần 1', t:'Khối', d:'Đá, đất cỏ, gỗ, quặng — thứ chiếm cả màn hình và phải lát vô tận.'},
+  {tr:'mc', n:'Phần 2', t:'Vật phẩm và giao diện', d:'Nằm chéo, có nét ôm ngoài, và cả bộ dùng chung một khuôn.'},
+  {tr:'mc', n:'Phần 3', t:'Sinh vật', d:'Lưới UV của khối hộp, file da 64×32, và một con quái tự nghĩ.'},
+  {tr:'mc', n:'Phần 4', t:'Đóng gói resource pack', d:'Texture động, và soi cả bộ trước khi cắm vào game.'}
 ];
 
 export const EXERCISES = [
@@ -889,13 +894,197 @@ export const EXERCISES = [
        'Chạy Soi bài để bắt lỗi lệch chân giữa các khung.'],
  trap:'Mỗi động tác vẽ nhân vật cao thấp khác nhau — lúc ghép vào game sẽ thấy nhấp nhô.'},
 
+
+/* ===================== LỘ TRÌNH RIÊNG: MINECRAFT =====================
+   Texture 16×16 lát vô tận. Điều khác Terraria nhiều nhất: texture KHÔNG
+   mang nguồn sáng — engine tự làm tối mặt bên và mặt dưới. Ai vẽ sẵn bóng
+   đổ vào texture thì lúc dựng khối sẽ tối hai lần.
+   ==================================================================== */
+
+/* --- Phần 0 --- */
+{tr:'mc',p:21,size:16,t:'Đọc vị phong cách Minecraft',time:'30 phút', art:'mcsang',
+ goal:'Hiểu ba luật trước khi vẽ pixel đầu tiên, đỡ phải vẽ lại cả bộ.',
+ steps:['Chép lại khối đá mẫu ở khổ 16×16, một lớp, đúng bốn màu.',
+        'Không vẽ viền quanh khối. Khối Minecraft nằm sát nhau, có viền là thành lưới ca-rô.',
+        'Không vẽ bóng đổ, không vẽ nguồn sáng. Texture phải phẳng đều từ trên xuống dưới.',
+        'So bức của bạn với hình <b>sai</b>: chỗ nào bạn lỡ làm tối phía dưới thì sửa lại.'],
+ tips:['Engine làm tối mặt bên 20%, mặt dưới 50%. Bạn nướng sẵn bóng vào là tối chồng tối.',
+       'Đây là điểm khác Terraria: bên đó khối nằm trong không gian 2D nên có hướng sáng thật.',
+       'Chỉ vật phẩm cầm tay mới có nét sẫm ôm ngoài, khối thì không.'],
+ trap:'Vẽ khối như vẽ một viên gạch đứng riêng — có sáng trên tối dưới. Ghép vào game thành sọc ngang.'},
+
+{tr:'mc',p:21,size:16,t:'Lát liền mạch: phép thử duy nhất đáng tin',time:'45 phút', art:'mclat',
+ goal:'Một texture chỉ đúng khi lát ra không thấy mối nối.',
+ steps:['Vẽ một texture đá 16×16 tuỳ ý.',
+        'Bật <b>▩ Lặp 3×3</b> trong ⋯ Thêm. Đây là lúc mọi lỗi lộ ra.',
+        'Tìm hai thứ: <b>đường kẻ</b> ở mối nối, và <b>vệt nổi bật</b> lặp lại đều đặn thành hoa văn.',
+        'Sửa: pixel ở mép trái phải nối được với mép phải, mép trên nối với mép dưới.',
+        'Vẽ lại tới khi nhìn tấm 3×3 không đoán được ranh giới ô nằm đâu.'],
+ tips:['Đừng vẽ đậm ở viền ô. Viền là chỗ duy nhất người ta nhìn ra mối nối.',
+       'Một pixel quá sáng giữa ô sẽ thành lưới chấm đều khi lát — mắt bắt hoa văn rất nhanh.',
+       'Vẽ ở giữa trước, mép sau cùng, và luôn kiểm ở chế độ lặp.'],
+ trap:'Chỉ ngắm một ô rồi tuyên bố xong. Một ô lúc nào cũng đẹp; tấm 3×3 mới là sự thật.'},
+
+{tr:'mc',p:21,size:16,t:'Bốn sắc độ sát nhau',time:'40 phút',frames:2, art:'mcdai',
+ goal:'Biên độ sáng tối của một vật liệu hẹp hơn bạn tưởng rất nhiều.',
+ steps:['Khung 1: vẽ đá bằng dải rộng — tối gần đen, sáng gần trắng.',
+        'Khung 2: vẽ lại đúng texture đó bằng bốn sắc độ sát nhau, chênh nhau chừng 6–10% độ sáng.',
+        'Lát cả hai ở 3×3 rồi so.',
+        'Dùng <b>Dải màu</b> ở thẻ Màu, lệch tông 10–15° thôi, đừng nhiều.'],
+ tips:['Dải hẹp làm khối trông là một vật liệu; dải rộng làm nó trông như đá vụn trộn xi măng.',
+       'Chênh lệch để dành cho việc phân biệt vật liệu với nhau, không phải trong lòng một vật liệu.',
+       'Kiểm nhanh: nheo mắt nhìn tấm 3×3 — phải thấy một mảng phẳng, không thấy đốm.'],
+ trap:'Tăng tương phản cho “rõ chi tiết”. Trong game khối nằm kín màn hình, tương phản cao là nhức mắt.'},
+
+/* --- Phần 1 --- */
+{tr:'mc',p:22,size:16,t:'Đá, đá cuội, gạch',time:'60 phút',frames:3, art:'mcda',
+ goal:'Ba vật liệu cùng gốc, khác nhau ở kích cỡ hạt chứ không ở màu.',
+ steps:['Khung 1 <b>đá</b>: hạt nhiễu mịn, gần như đều, không có chỗ nào nổi bật.',
+        'Khung 2 <b>đá cuội</b>: cùng bảng màu, nhưng gom pixel thành cụm 2–3 ô.',
+        'Khung 3 <b>gạch</b>: hàng gạch so le, mạch vữa tối hơn nền một bậc, không tối hẳn.',
+        'Lát cả ba ở 3×3.'],
+ tips:['Đá cuội khác đá ở <b>cỡ hạt</b>, không phải ở độ sáng. Đổi màu là sai hướng.',
+       'Mạch vữa của gạch chỉ nên tối hơn một bậc — tối hơn nữa là thành lưới đen.',
+       'Hàng gạch so le nửa viên, và hàng trên cùng phải nối được với hàng dưới cùng.'],
+ trap:'Vẽ đá cuội bằng cách tăng tương phản của đá. Kết quả là cùng một khối nhìn bẩn hơn.'},
+
+{tr:'mc',p:22,size:16,t:'Đất và cỏ: ba mặt của một khối',time:'70 phút',frames:3, art:'mcco',
+ goal:'Khối đầu tiên cần nhiều hơn một texture.',
+ steps:['Khung 1 <b>mặt trên</b>: cỏ, nhiễu mịn, không có hướng.',
+        'Khung 2 <b>mặt bên</b>: đất, và ở đỉnh có mép cỏ rủ xuống 3–5 pixel, <b>răng cưa</b> chứ không kẻ thẳng.',
+        'Khung 3 <b>mặt dưới</b>: đất trơn.',
+        'Kiểm mặt bên: hai mép trái/phải phải nối được với nhau, kể cả phần cỏ.'],
+ tips:['Mép cỏ kẻ thẳng băng là dấu hiệu rõ nhất của người mới.',
+       'Mặt trên và mặt bên phải cùng một tông xanh, nếu không khối nhìn như hai vật ghép lại.',
+       'Mặt dưới dùng lại đúng texture đất, không vẽ riêng — game thật cũng vậy.'],
+ trap:'Vẽ mép cỏ dày quá nửa ô. Nhìn từ xa khối thành xanh hết, mất luôn cảm giác đất.'},
+
+{tr:'mc',p:22,size:16,t:'Gỗ: vỏ, mặt cắt, ván',time:'70 phút',frames:3, art:'mcgo',
+ goal:'Vật liệu duy nhất có hướng — và hướng ấy phải nhất quán.',
+ steps:['Khung 1 <b>vỏ thân cây</b>: thớ chạy dọc, đứt quãng, không phải kẻ sọc đều.',
+        'Khung 2 <b>mặt cắt</b>: vòng năm quanh tâm, viền ngoài là vỏ.',
+        'Khung 3 <b>ván</b>: hai hàng ván ngang, mối nối dọc so le, mạch chỉ tối một bậc.',
+        'Lát ván ở 3×3 — mối nối so le phải tiếp tục đúng nhịp qua ô bên cạnh.'],
+ tips:['Thớ gỗ đứt quãng mới ra gỗ; kẻ sọc liền mạch ra vải kẻ.',
+       'Vòng năm không cần tròn đều, lệch tâm một chút nhìn thật hơn.',
+       'Ván là texture khó lát nhất trong bộ vì mắt bắt ngay nhịp mối nối.'],
+ trap:'Vẽ mối nối ván ngay giữa ô ở cả hai hàng — lát ra thành cột dọc chạy suốt màn hình.'},
+
+{tr:'mc',p:22,size:16,t:'Quặng nhúng trong đá',time:'60 phút',frames:3, art:'mcquang',
+ goal:'Thứ người chơi tìm cả buổi — phải đọc được từ xa.',
+ steps:['Nền là đúng texture đá bài trước, <b>không sửa gì</b>.',
+        'Đắp lên 3–4 cụm quặng, mỗi cụm 4–8 pixel, hình tròn méo chứ không vuông.',
+        'Mỗi cụm: lõi sáng, rìa tối một bậc để tách khỏi đá.',
+        'Ba khung: sắt (nhạt, ngả hồng), vàng (ấm), kim cương (lơ xanh).',
+        'Nheo mắt nhìn: còn thấy cụm quặng không? Không thấy thì làm cụm to lên, đừng làm sáng lên.'],
+ tips:['Ít cụm mà to thì đọc tốt hơn nhiều cụm nhỏ rải đều.',
+       'Giữ nguyên nền đá để khối quặng ghép liền với đá xung quanh.',
+       'Kim cương là thứ tươi nhất bảng màu — nó là phần thưởng.'],
+ trap:'Rải quặng khắp ô cho “nhiều”. Từ xa thành một khối lốm đốm, chẳng đọc ra gì.'},
+
+
+/* --- Phần 2 --- */
+{tr:'mc',p:23,size:16,t:'Vật phẩm nằm chéo',time:'60 phút', art:'mcvatpham',
+ goal:'Luật bố cục của mọi vật phẩm cầm tay trong Minecraft.',
+ steps:['Vẽ một cây cuốc 16×16: cán chạy từ góc <b>dưới-trái</b> lên góc <b>trên-phải</b>.',
+        'Cán dày 2 pixel, có một vệt sáng dọc theo một bên.',
+        'Đầu cuốc gọn, đọc được ở cỡ ô túi đồ.',
+        'Ôm một nét sẫm quanh toàn bộ hình — đây là chỗ vật phẩm khác khối.',
+        'Chừa một pixel trống ở mọi mép để lúc rơi ra đất không bị cắt.'],
+ tips:['Đường chéo 45° giữ được nét sạch nhất ở khổ 16.',
+       'Nét ôm ngoài không phải màu đen tuyền, dùng màu sẫm ngả tông của vật.',
+       'Bật <b>👁 Cỡ thật</b> để soi ở ×1 — trong game nó nhỏ đúng bằng vậy.'],
+ trap:'Vẽ vật phẩm nằm ngang hay đứng thẳng. Lệch hẳn khỏi cả bộ vật phẩm của game.'},
+
+{tr:'mc',p:23,size:16,t:'Bộ công cụ chung một khuôn',time:'90 phút',frames:4, art:'mccongcu',
+ goal:'Bốn món khác nhau mà vẫn là một bộ — làm được cái này là hiểu asset theo bộ.',
+ steps:['Vẽ cán gậy một lần, rồi nhân bản sang cả bốn khung. Cán phải <b>giống hệt từng pixel</b>.',
+        'Bốn đầu: cuốc (ngang, có ngạnh), rìu (khối lệch một bên), xẻng (bản nhỏ vuông), kiếm (lưỡi dài theo chéo).',
+        'Kiếm là ngoại lệ: chuôi ngắn hơn, có chắn tay.',
+        'Xếp bốn khung cạnh nhau soi — cán có nhích pixel nào không?'],
+ tips:['Dùng ⧉ Nhân bản khung rồi chỉ sửa phần đầu, đừng vẽ lại từ đầu.',
+       'Cùng một khuôn thì lúc thêm bậc vật liệu (gỗ/đá/sắt/vàng/kim cương) chỉ cần thay màu đầu.',
+       'Sau khi xong bốn cái, thử đổi màu đầu sang vàng — nếu ra bộ vàng ngay thì khuôn của bạn chuẩn.'],
+ trap:'Vẽ từng món một cách độc lập. Cầm lên tay thấy cán nhảy chỗ giữa các món.'},
+
+{tr:'mc',p:23,size:16,t:'Biểu tượng giao diện',time:'60 phút',frames:3, art:'uiicons16',
+ goal:'Icon HUD sống ở khổ nhỏ hơn và có luật riêng.',
+ steps:['Ba khung: tim máu, đùi gà (thức ăn), giáp che.',
+        'Icon HUD thường 9×9. Vẽ trong khổ 16 nhưng chỉ dùng phần giữa 9×9.',
+        'Mỗi icon cần một bản <b>đầy</b>, một bản <b>rỗng</b> (chỉ còn nét ngoài sẫm).',
+        'Bật Cỡ thật để soi — HUD hiện ở ×2, phải đọc được ngay.'],
+ tips:['Icon HUD có nét ôm ngoài đen đậm hơn vật phẩm, vì nó nằm đè lên cảnh nền bất kỳ.',
+       'Chỉ 3–4 màu mỗi icon. Nhiều hơn là nhoè ở cỡ thật.',
+       'Bản rỗng phải cùng đúng bóng với bản đầy, không được nhỏ hơn.'],
+ trap:'Vẽ icon đẹp ở cỡ phóng to. Về ×2 thì mọi chi tiết nhập lại thành một cục.'},
+
+/* --- Phần 3 --- */
+{tr:'mc',p:24,size:64,h:48,t:'Lưới UV: mặt nào dán đi đâu',time:'60 phút', art:'mcuv',
+ goal:'Hiểu tại sao một khối lại cần một tấm ảnh trải phẳng.',
+ steps:['Dựng khung 64×48 rồi vẽ lưới UV của khối cỏ: mặt trên ở giữa hàng đầu, bốn mặt bên hàng giữa, mặt dưới hàng cuối.',
+        'Mỗi ô 16×16, dùng lại đúng ba texture bài trước.',
+        'Bốn mặt bên phải nối được với nhau theo vòng — mép phải mặt 1 nối mép trái mặt 2.',
+        'Kẻ một lớp riêng làm đường phân ô, xong thì tắt lớp đó đi.'],
+ tips:['Vẽ trên lưới trải phẳng khó hình dung, nên luôn để một lớp kẻ ô làm mốc.',
+       'Mặt bên xoay vòng: nếu texture lát được thì bốn mặt tự khớp.',
+       'Khối trong Minecraft dùng chung texture cho bốn mặt bên; đây là bài tập để hiểu khái niệm.'],
+ trap:'Vẽ mỗi mặt một kiểu cho phong phú. Xoay khối một vòng là thấy nó đổi vật liệu.'},
+
+{tr:'mc',p:24,size:64,h:32,t:'File da nhân vật 64×32',time:'2 giờ', art:'mcskin',
+ goal:'Nhân vật trong Minecraft chỉ là mấy cái hộp dán ảnh.',
+ steps:['Dựng khung 64×32. Đây đúng là khổ file da đời đầu.',
+        'Bốn cụm: đầu (hộp 8×8×8), thân (8×12×4), tay (4×12×4), chân (4×12×4).',
+        'Mỗi cụm là sáu mặt trải phẳng: trên, dưới, và bốn mặt quanh.',
+        'Vẽ mặt trước của đầu trước — đó là thứ người ta nhìn nhiều nhất.',
+        'Mặt trái và mặt phải phải là ảnh gương của nhau, không phải bản sao.'],
+ tips:['Chỉ mặt trước đầu mới có mắt mũi. Mặt sau là tóc.',
+       'Tay và chân dùng chung một mảng ở file đời đầu — sửa một bên là bên kia đổi theo.',
+       'Không vẽ bóng đổ lên da: engine đã tối mặt bên rồi.'],
+ trap:'Vẽ mắt to như nhân vật chibi. Mặt đầu chỉ có 8×8 pixel, mắt 1×2 là vừa.'},
+
+{tr:'mc',p:24,size:64,h:32,t:'Quái đơn giản',time:'90 phút', art:'mcskin',
+ goal:'Tự dựng một sinh vật trên đúng bộ hộp đã học.',
+ steps:['Nghĩ ra một con quái chỉ gồm 2–3 hộp. Càng ít hộp càng đúng tinh thần Minecraft.',
+        'Trải phẳng ra lưới UV rồi vẽ.',
+        'Cả con chỉ dùng 5–6 màu, và phải nhận ra được chỉ qua bóng của nó.',
+        'Đặt cạnh file da nhân vật ở bài trước để so mức chi tiết.'],
+ tips:['Mặt là thứ duy nhất được phép chi tiết, phần còn lại để texture đều.',
+       'Một đặc điểm nhận dạng thôi — một cái sừng, một cái miệng, một màu lạ.',
+       'Nếu phải thêm hộp thứ tư mới nhận ra con gì thì thiết kế chưa gọn.'],
+ trap:'Đắp chi tiết lên khắp các mặt. Trong game người chơi chỉ thấy nó ở xa và đang di chuyển.'},
+
+/* --- Phần 4 --- */
+{tr:'mc',p:25,size:16,h:64,t:'Texture động',time:'70 phút', art:'mcdong',
+ goal:'Nước, dung nham, cổng — tất cả đều là một dải dọc.',
+ steps:['Dựng khung 16×64: bốn khung hình 16×16 xếp dọc, khung đầu ở trên cùng.',
+        'Vẽ dung nham: mỗi khung là một bước dịch chuyển nhỏ của cùng một mảng nhiễu.',
+        'Khung cuối phải nối được với khung đầu, y như lát ngang vậy.',
+        'Xuất PNG, rồi viết file cùng tên đuôi <b>.mcmeta</b> khai báo số nhịp mỗi khung.',
+        'Kiểm bằng cách chép dải xuống dưới lần nữa và cuộn mắt qua.'],
+ tips:['Ba tới bốn khung là đủ. Nhiều hơn thì mắt không phân biệt được mà file nặng thêm.',
+       'Đừng dịch cả tấm sang một bên — thành băng chuyền. Hãy để từng cụm sáng tự đổi chỗ.',
+       'Cùng một dải màu ở cả bốn khung, chỉ đổi vị trí, không đổi độ sáng chung.'],
+ trap:'Làm khung cuối khác hẳn khung đầu. Vòng lặp giật một cái mỗi lần quay lại.'},
+
+{tr:'mc',p:25,size:64,h:48,t:'Cả bộ 12 texture và phép thử trong game',time:'3 giờ',frames:2, art:'mcbo',
+ goal:'Bài tốt nghiệp: một gói texture cắm được vào game thật.',
+ steps:['Khung 1: xếp 12 texture đã vẽ thành lưới 4×3 để soi cả bộ cạnh nhau.',
+        'Soát: cùng mức nhiễu? cùng biên độ sáng tối? cái nào chi tiết hơn hẳn phần còn lại?',
+        'Khung 2: dựng một cảnh giả — vài hàng đá, một mảng đất cỏ, một khối quặng, một sàn ván.',
+        'Xuất từng texture ra PNG riêng ở ×1, đặt đúng tên: <b>stone.png</b>, <b>dirt.png</b>, <b>grass_block_side.png</b>…',
+        'Cây thư mục: <code>assets/minecraft/textures/block/</code>, cùng một file <b>pack.mcmeta</b> ở gốc.'],
+ tips:['Xuất luôn ở ×1. Phóng to là hỏng — engine tự phóng.',
+       'Cái nào lệch tông thì sửa cái đó, đừng đổi bảng màu chung.',
+       'Chạy <b>Soi bài</b> trên từng texture: quá 8 màu một khối là dấu hiệu vẽ quá tay.'],
+ trap:'Vẽ đủ 12 texture trong nhiều ngày mà không lần nào xếp chúng cạnh nhau. Cuối cùng không cái nào hợp cái nào.'},
+
 ];
 
 /* Tiến độ lưu theo TÊN BÀI, không theo số thứ tự: chèn bài mới vào giữa lộ trình
    là số thứ tự lệch hết, còn tên thì không. */
 /* Hai lộ trình tách biệt: lộ trình chung, và bộ asset kiểu Terraria.
    Bộ chọn ở đầu thẻ Bài tập lọc cả danh sách bài lẫn danh sách lý thuyết. */
-export const TRACKS={core:'Lộ trình chung', terraria:'Bộ Terraria', stick:'Người que · chuyển động'};
+export const TRACKS={core:'Lộ trình chung', terraria:'Bộ Terraria', stick:'Người que · chuyển động', mc:'Bộ Minecraft'};
 export let track='core';
 export function setTrack(t){ track = TRACKS[t] ? t : 'core'; }
 export const inTrack = o => (o.tr||'core')===track;

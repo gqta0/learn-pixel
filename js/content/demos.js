@@ -5,16 +5,17 @@ import { buildRamp } from './../color.js';
 import { PALETTES } from './../palette.js';
 import {
   AA_SOFT, A_ARROW, A_BAG, A_CHEST, A_CHEST_OPEN, A_CHIBI, A_CHIBI_BACK, A_CHIBI_SIDE, A_COIN,
-  A_KEY, A_PLUS, A_STAFF, A_STAR, A_SWORD, A_TREE, CURVE_BAD, CURVE_GOOD, FAR, JUMP_POSES,
+  A_KEY, A_PLUS, A_STAFF, A_STAR, A_SWORD, A_TREE, CURVE_BAD, CURVE_GOOD, FAR, JUMP_POSES, MC,
   P_ARM, P_HEAD, P_LEG, P_TORSO, RUN_POSES, STICK_COL, STICK_JUMP, STICK_PUNCH, STICK_RUN,
   STICK_WALK, TERRA, art, artFlip, drawApple, drawBands, drawBoom, drawBox, drawBread,
   drawCleanup, drawCrop, drawCyl, drawFace, drawFrame, drawGradient, drawHairLag, drawHouse,
   drawMap, drawMaterial, drawParallax, drawPotion, drawRig, drawShadow, drawSideProp,
   drawSlash, drawSmear, drawSoft, drawSpacing, drawSphere, drawTile, drawTile9, drawTiming,
-  drawWalk, handPath, heartShape, onBg, platformEdge, px, ringShape, runsLine, sideGround,
-  sideScene, stickBall, stickPendulum, stickPose, stickWeight, stickman, terraBar, terraBlock,
-  terraChar, terraGrass, terraOre, terraSet, terraSheet, terraSlime, terraSword, terraTool,
-  terraWalk, terraWall, terraWood
+  drawWalk, handPath, heartShape, mcAnim, mcGrassSide, mcGrassTop, mcItem, mcLit, mcLogSide,
+  mcLogTop, mcOre, mcPlank, mcRamp, mcSet, mcSkin, mcTex, mcTile3, mcTools, mcUV, onBg,
+  platformEdge, px, ringShape, runsLine, sideGround, sideScene, stickBall, stickPendulum,
+  stickPose, stickWeight, stickman, terraBar, terraBlock, terraChar, terraGrass, terraOre,
+  terraSet, terraSheet, terraSlime, terraSword, terraTool, terraWalk, terraWall, terraWood
 } from './art.js';
 
 const RAMP_FLAT = ['#4a1414','#7a2020','#a82c2c','#d63a3a','#f26a6a'];
@@ -372,6 +373,57 @@ Object.assign(DEMOS, {
       stickman(g,0,0,{col:STICK_COL.mo});
       drawRig(g,6,17);
     }}
+  ],
+  /* --- Minecraft --- */
+  mcsang:[
+    {cap:'Nướng sẵn bóng đổ → dựng khối là tối hai lần', cls:'bad',  w:16,h:16, fn:g=>mcLit(g,16,true)},
+    {cap:'Phẳng đều — để engine lo mặt tối', cls:'good', w:16,h:16, fn:g=>mcLit(g,16,false)}
+  ],
+  mclat:[
+    {cap:'Mép vẽ tay → lát ra thành lưới ca-rô', cls:'bad',  w:48,h:48, fn:g=>mcTile3(g,16,MC.da,2,false)},
+    {cap:'Nhiễu cộng vòng → không thấy mối nối', cls:'good', w:48,h:48, fn:g=>mcTile3(g,16,MC.da,2,true)}
+  ],
+  mcdai:[
+    {cap:'Dải quá rộng → texture bẩn, lấn át mọi thứ', cls:'bad',  w:48,h:40, fn:g=>mcRamp(g,48,40,true)},
+    {cap:'Bốn sắc độ sát nhau → khối nào ra khối đó', cls:'good', w:48,h:40, fn:g=>mcRamp(g,48,40,false)}
+  ],
+  mcda:[
+    {cap:'Đá', cls:'', w:16,h:16, fn:g=>mcTex(g,0,0,16,MC.da,2,{})},
+    {cap:'Đá cuội — cùng vật liệu, nhiễu thô hơn', cls:'good', w:16,h:16, fn:g=>mcTex(g,0,0,16,MC.cuoi,4,{phan:[0.3,0.28,0.26,0.16]})},
+    {cap:'Gạch', cls:'', w:16,h:16, fn:g=>mcTex(g,0,0,16,MC.gach,8,{phan:[0.26,0.34,0.26,0.14]})}
+  ],
+  mcgo:[
+    {cap:'Vỏ thân cây — thớ chạy dọc', cls:'good', w:16,h:16, fn:g=>mcLogSide(g,0,0,16,11)},
+    {cap:'Mặt cắt — vòng năm', cls:'good', w:16,h:16, fn:g=>mcLogTop(g,0,0,16,1)},
+    {cap:'Ván — mối nối so le', cls:'', w:16,h:16, fn:g=>mcPlank(g,0,0,16,7)}
+  ],
+  mcco:[
+    {cap:'Mặt trên', cls:'', w:16,h:16, fn:g=>mcGrassTop(g,0,0,16,3)},
+    {cap:'Mặt bên — mép cỏ răng cưa, không kẻ thẳng', cls:'good', w:16,h:16, fn:g=>mcGrassSide(g,0,0,16,5)},
+    {cap:'Mặt dưới', cls:'', w:16,h:16, fn:g=>mcTex(g,0,0,16,MC.dat,5,{})}
+  ],
+  mcquang:[
+    {cap:'Sắt', cls:'', w:16,h:16, fn:g=>mcOre(g,0,0,16,'sat',2)},
+    {cap:'Vàng', cls:'', w:16,h:16, fn:g=>mcOre(g,0,0,16,'vang',6)},
+    {cap:'Kim cương — cụm to, ít, đọc được từ xa', cls:'good', w:16,h:16, fn:g=>mcOre(g,0,0,16,'kimcuong',9)}
+  ],
+  mcvatpham:[
+    {cap:'Nằm chéo, cán ở góc dưới-trái', cls:'good', w:16,h:16, fn:g=>mcItem(g,0,0,'cuoc')}
+  ],
+  mccongcu:[
+    {cap:'Bốn món, một khuôn: đổi đầu, giữ nguyên cán', cls:'good', w:67,h:16, fn:g=>mcTools(g)}
+  ],
+  mcuv:[
+    {cap:'Lưới UV một khối: trên · bốn mặt bên · dưới', cls:'good', w:64,h:48, fn:g=>mcUV(g,16)}
+  ],
+  mcskin:[
+    {cap:'File da 64×32 — mỗi cụm sáu mặt của một hộp', cls:'good', w:64,h:32, fn:g=>mcSkin(g)}
+  ],
+  mcdong:[
+    {cap:'Texture động = dải dọc, mỗi 16px một khung', cls:'good', w:16,h:64, fn:g=>mcAnim(g,16,4)}
+  ],
+  mcbo:[
+    {cap:'Cả bộ cạnh nhau — soi cùng mức nhiễu, cùng biên độ', cls:'good', w:64,h:48, fn:g=>mcSet(g,16)}
   ],
   sizes3:[
     {cap:'8×8 — chỉ còn hình dáng', cls:'', w:8,h:8,   fn:g=>heartShape(g,0,0,8,['#c94f4f','#e88a5a','#8c2f39'])},

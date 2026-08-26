@@ -339,6 +339,42 @@ export const LESSONS=[
  {demo:'sticknhay'},
  {note:'Quy tắc chung: mỗi động tác cần đúng <b>một</b> khung được giữ lâu hơn hẳn phần còn lại — khung đỉnh của cú nhảy, khung chạm của cú đấm, khung khuỵu của cú tiếp đất. Không có khung nào nổi bật thì cả động tác trôi tuồn tuột.'}
 ]},
+
+{tr:'mc', t:'Vì sao texture Minecraft phải phẳng', b:[
+ {p:'Đây là chỗ người từ Terraria sang hay vấp nhất. Trong Terraria, khối nằm trong một thế giới 2D và ánh sáng là do bạn vẽ ra: bạn quyết định mặt trên sáng, mặt dưới tối. Trong Minecraft thì không. Khối là hộp ba chiều, và engine tự làm tối từng mặt tuỳ hướng nó quay.'},
+ {demo:'mcsang'},
+ {p:'Mặt trên giữ nguyên độ sáng, mặt bên bị nhân xuống chừng 80%, mặt trước-sau chừng 60%, mặt dưới còn một nửa. Nếu bạn đã vẽ sẵn bóng đổ vào texture, phần tối ấy sẽ bị nhân thêm lần nữa — khối thành có sọc ngang, và càng nhiều khối xếp cạnh nhau thì càng lộ.'},
+ {ul:['Texture khối phải <b>phẳng đều</b> từ trên xuống dưới. Không nguồn sáng, không bóng đổ.',
+      'Không viền quanh khối. Khối nằm sát nhau, ai cũng có viền thì cả bức tường thành lưới ca-rô.',
+      'Chỉ <b>vật phẩm cầm tay</b> mới có nét sẫm ôm ngoài — vì nó nằm đè lên cảnh nền bất kỳ, cần tách khỏi nền.']},
+ {demo:'mcvatpham'},
+ {p:'Nói cách khác: khối là <i>vật liệu</i>, vật phẩm là <i>hình vẽ</i>. Vật liệu thì không có hướng, không có tâm, không có mép. Hình vẽ thì có đủ cả ba.'},
+ {note:'Phép thử nhanh: lật ngược texture khối của bạn theo chiều dọc. Nếu nhìn khác đi thì nó đang mang nguồn sáng, và đấy là lỗi.'}
+]},
+
+{tr:'mc', t:'Lát vô tận: nhiễu, mối nối, và hoa văn', b:[
+ {p:'Một texture khối không bao giờ được nhìn một mình. Nó sẽ được lát ra hàng trăm lần, kín cả màn hình. Cho nên phép thử duy nhất đáng tin là lát nó ra rồi nhìn — trong Lò Pixel là nút <b>▩ Lặp 3×3</b>.'},
+ {demo:'mclat'},
+ {p:'Có <b>hai</b> lỗi khác nhau lộ ra ở tấm 3×3, và người mới thường chỉ biết lỗi thứ nhất.'},
+ {ul:['<b>Mối nối</b> — mép trái không nối được với mép phải, thành đường kẻ dọc. Dễ thấy, dễ sửa.',
+      '<b>Hoa văn</b> — không có đường kẻ nào, nhưng một pixel nổi bật ở giữa ô lặp lại đều đặn thành lưới chấm. Khó thấy hơn nhiều, và làm hỏng cảm giác "đá tự nhiên" nhanh nhất.']},
+ {p:'Cách chữa hoa văn không phải là thêm chi tiết, mà là <b>bớt</b>: hạ độ chênh của cái pixel đang nổi bật xuống một bậc, hoặc bỏ hẳn nó. Nhiễu tốt là nhiễu không có ngôi sao nào.'},
+ {demo:'mcda'},
+ {p:'Ba khối trên cùng một bảng màu, khác nhau ở <b>cỡ hạt</b> chứ không ở độ sáng: đá hạt mịn, đá cuội gom thành cụm 2–3 pixel, gạch có nhịp hình học. Đây là cách phân biệt vật liệu mà không cần tăng tương phản.'},
+ {note:'Mẹo vẽ: làm phần giữa ô trước, chừa mép lại sau cùng, và bật Lặp 3×3 ngay từ nét thứ mười chứ đừng đợi vẽ xong.'}
+]},
+
+{tr:'mc', t:'Biên độ hẹp, và cả bộ phải hợp nhau', b:[
+ {p:'Bảng màu của một khối Minecraft hẹp đến mức người mới thấy khó tin: bốn sắc độ chênh nhau chừng 6–10% độ sáng là đủ cho cả một vật liệu.'},
+ {demo:'mcdai'},
+ {p:'Lý do rất thực dụng. Khối chiếm gần hết màn hình, và người chơi nhìn nó hàng giờ. Tương phản cao trong lòng một khối làm mắt mỏi, và tệ hơn: nó lấn át những thứ <i>đáng</i> được nổi bật — quặng, vật phẩm rơi, quái. Độ chênh nên để dành cho việc <b>phân biệt vật liệu với nhau</b>, chứ không phải trong lòng một vật liệu.'},
+ {demo:'mcquang'},
+ {p:'Quặng là ngoại lệ có chủ đích: nó là phần thưởng, phải đọc được từ xa. Nhưng cách làm nó nổi không phải là tăng độ sáng, mà là <b>làm cụm to hơn và ít hơn</b>. Ba cụm 6 pixel đọc tốt hơn hai chục chấm rời.'},
+ {demo:'mcbo'},
+ {p:'Cuối cùng là phép soát cả bộ: xếp mọi texture cạnh nhau và tìm cái lệch. Thường lệch ở hai chỗ — <b>mức nhiễu</b> (một cái mịn hơn hẳn) và <b>biên độ sáng tối</b> (một cái tương phản mạnh hơn hẳn). Cái nào lệch thì sửa cái đó, đừng đổi bảng màu chung.'},
+ {note:'Xuất luôn ở ×1 vào <code>assets/minecraft/textures/block/</code>. Phóng to trước khi xuất là hỏng — engine tự phóng, và phóng bằng thuật toán khác của bạn.'}
+]},
+
 ];
 
 export function buildTheory(){

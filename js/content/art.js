@@ -909,3 +909,222 @@ export function stickPose(g,ox,oy,kieu){
     stickman(g,ox,oy,{spine:-72, tayA:[36,-14], tayB:[140,172], chanA:[65,95], chanB:[115,90], y:20});
   }
 }
+
+/* =======================================================================
+   MINECRAFT — texture 16×16 lát vô tận, và điều làm nó khác hẳn Terraria:
+   texture KHÔNG mang nguồn sáng. Engine tự làm tối mặt bên và mặt dưới,
+   nên ai vẽ sẵn bóng đổ vào texture thì lúc dựng khối sẽ tối hai lần.
+   Mọi hàm dưới đây dựng texture bằng nhiễu có cộng vòng, nên lát ra là
+   liền mạch chứ không phải vẽ tay rồi chắp lại.
+   ======================================================================= */
+export const MC={
+  da:      ['#6e6e6e','#787878','#828282','#8c8c8c'],
+  cuoi:    ['#616161','#7a7a7a','#8f8f8f','#a3a3a3'],
+  dat:     ['#5f4229','#6f4c33','#79553a','#866141'],
+  co:      ['#4d8235','#5d9b3e','#6aad46','#77b74f'],
+  van:     ['#7d6540','#8a7044','#9c7f4e','#af8f58'],
+  vo:      ['#4f3b26','#5c452c','#6b5133','#7a5c3b'],
+  loi:     ['#8a6f43','#9c7f4e','#b09062','#c0a070'],
+  than:    ['#2b2b2b','#343434','#3d3d3d','#141414'],
+  sat:     ['#b8a998','#cbb9a4','#d8c8b0','#9d8d7c'],
+  vang:    ['#c7a11e','#e0be3a','#f2d55c','#a8871a'],
+  kimcuong:['#2fa8a0','#43c8c0','#63e0d8','#218a84'],
+  gach:    ['#7a3d33','#8c493c','#9c5546','#6a342b']
+};
+/* hash số nguyên: hash01 kiểu sin() mất chính xác khi đối số lớn và đẻ ra
+   nguyên hàng đồng màu — thứ lát ra thành sọc ngang. */
+export function mcRand(x,y,seed){
+  let n = Math.imul(x|0, 374761393) + Math.imul(y|0, 668265263) + Math.imul(seed|0, 1442695041);
+  n = Math.imul(n ^ (n>>>13), 1274126177);
+  return ((n ^ (n>>>16)) >>> 0) / 4294967296;
+}
+/* nhiễu lát được: làm mờ có cộng vòng nên mép trái nối liền mép phải */
+function mcField(s,seed,mem){
+  const a=new Float32Array(s*s);
+  for(let i=0;i<s*s;i++) a[i]=mcRand(i%s, (i/s)|0, seed);
+  if(!mem) return a;
+  const b=new Float32Array(s*s);
+  for(let y=0;y<s;y++) for(let x=0;x<s;x++){
+    let t=0;
+    for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++)
+      t += a[((y+dy+s)%s)*s + ((x+dx+s)%s)];      // cộng vòng: đây là chỗ giữ lát liền mạch
+    b[y*s+x]=t/9;
+  }
+  return b;
+}
+/* chia pixel vào các sắc độ theo đúng tỉ lệ đặt trước, không theo ngưỡng cứng —
+   nhờ vậy đổi hạt nhiễu thì bố cục sáng tối vẫn giữ nguyên */
+function mcShade(f, phan){
+  const thu=Array.from(f.keys()).sort((a,b)=>f[a]-f[b]);
+  const out=new Uint8Array(f.length);
+  let k=0;
+  phan.forEach((p,ci)=>{ const n=Math.round(p*f.length); for(let i=0;i<n && k<thu.length;i++,k++) out[thu[k]]=ci; });
+  while(k<thu.length){ out[thu[k]]=phan.length-1; k++; }
+  return out;
+}
+/* một ô texture 16×16; sang=true thì cố tình nướng sẵn nguồn sáng vào (kiểu sai) */
+export function mcTex(g,ox,oy,s,cols,seed,opt){
+  const o=Object.assign({phan:[0.28,0.34,0.26,0.12], mem:true, sang:false}, opt||{});
+  const m=mcShade(mcField(s,seed,o.mem), o.phan);
+  for(let y=0;y<s;y++) for(let x=0;x<s;x++){
+    let i=m[y*s+x];
+    if(o.sang) i = Math.max(0, Math.min(cols.length-1, i + (y<s*0.3 ? 1 : y>s*0.72 ? -1 : 0)));
+    px(g,ox+x,oy+y,cols[i]);
+  }
+}
+/* lát 3×3 để soi mối nối — đúng cái nút "Lặp 3×3" trong app làm */
+export function mcTile3(g,s,cols,seed,lien){
+  for(let ty=0;ty<3;ty++) for(let tx=0;tx<3;tx++){
+    mcTex(g,tx*s,ty*s,s,cols,seed,{mem:lien});
+    if(!lien){                                   // mép bị vẽ tay đậm lên → lát ra thành lưới ca-rô
+      for(let i=0;i<s;i++){ px(g,tx*s+i,ty*s,cols[0]); px(g,tx*s,ty*s+i,cols[0]); }
+    }
+  }
+}
+/* cỏ: mặt trên, mặt bên có viền cỏ rủ xuống, mặt dưới là đất trơn */
+export function mcGrassTop(g,ox,oy,s,seed){ mcTex(g,ox,oy,s,MC.co,seed||3,{phan:[0.22,0.36,0.28,0.14]}); }
+export function mcGrassSide(g,ox,oy,s,seed){
+  mcTex(g,ox,oy,s,MC.dat,seed||5,{});
+  for(let x=0;x<s;x++){
+    const r=mcRand(x,0,(seed||5)+9);
+    const sau = r<0.18 ? 2 : r<0.72 ? 3 : r<0.94 ? 4 : 5;   // mép cỏ răng cưa, không phải một đường thẳng
+    for(let y=0;y<sau;y++){
+      const t=mcRand(x,y,(seed||5)+21);
+      px(g,ox+x,oy+y, MC.co[t<0.24?0:t<0.6?1:t<0.88?2:3]);
+    }
+  }
+}
+export function mcLogSide(g,ox,oy,s,seed){
+  for(let y=0;y<s;y++) for(let x=0;x<s;x++){
+    const nen=mcRand(x,0,seed||11);                 // mỗi cột một tông → thớ chạy dọc theo thân
+    const j=mcRand(x,y,(seed||11)+5);
+    const i=Math.min(3, Math.max(0, Math.floor(nen*4) + (j<0.20?1:j>0.86?-1:0)));
+    px(g,ox+x,oy+y,MC.vo[i]);
+  }
+}
+export function mcLogTop(g,ox,oy,s,seed){
+  const c=(s-1)/2;
+  for(let y=0;y<s;y++) for(let x=0;x<s;x++){
+    const d=Math.hypot(x-c,y-c);
+    const v=d + hash01(x*2.7,y*3.3+(seed||0))*0.9;
+    px(g,ox+x,oy+y, d>c-0.4 ? MC.vo[1] : MC.loi[Math.min(3, Math.round(v)%3 + (v>c*0.72?1:0))]);
+  }
+}
+export function mcPlank(g,ox,oy,s,seed){
+  for(let y=0;y<s;y++){
+    const nen=mcRand(0,y,seed||7);                  // mỗi hàng một tông → thớ chạy ngang mặt ván
+    for(let x=0;x<s;x++){
+      // trộn thêm một thành phần đổi chậm theo x, nếu không mỗi hàng thành một sọc trơn
+      const doan=mcRand((x/5)|0, y, (seed||7)+3);
+      const j=mcRand(x,y,(seed||7)+7);
+      const i=Math.min(3, Math.max(0, Math.floor((nen*0.7+doan*0.3)*4) + (j<0.16?1:j>0.88?-1:0)));
+      px(g,ox+x,oy+y,MC.van[i]);
+    }
+  }
+  for(let x=0;x<s;x++){ px(g,ox+x,oy+Math.floor(s/2)-1,MC.van[0]); px(g,ox+x,oy+s-1,MC.van[0]); }
+  for(let y=0;y<s;y++){                             // mối nối so le giữa hai hàng ván
+    if(y<s/2-1) px(g,ox+Math.floor(s*0.62),oy+y,MC.van[0]);
+    else if(y>s/2-1 && y<s-1) px(g,ox+Math.floor(s*0.28),oy+y,MC.van[0]);
+  }
+}
+/* quặng: nền đá nguyên vẹn + vài cụm khoáng, phải đọc được từ xa nên cụm to và ít */
+export function mcOre(g,ox,oy,s,loai,seed){
+  mcTex(g,ox,oy,s,MC.da,seed||2,{});
+  const r=MC[loai]||MC.sat, k=s/16;
+  const cum=[[3,3],[10,5],[5,10],[11,11]];
+  cum.forEach(([cx,cy],i)=>{
+    if(hash01(cx+(seed||0), cy)<0.18) return;    // bỏ bớt một cụm cho các khối không giống hệt nhau
+    const R=(i%2?1.6:2.2)*k;
+    for(let y=-3;y<=3;y++) for(let x=-3;x<=3;x++){
+      const d=Math.hypot(x,y);
+      if(d>R) continue;
+      const gx=Math.round(cx*k+x), gy=Math.round(cy*k+y);
+      if(gx<0||gy<0||gx>=s||gy>=s) continue;
+      px(g,ox+gx,oy+gy, r[d>R-1 ? 0 : (hash01(gx*3,gy*3)<0.4 ? 3 : 2)]);
+    }
+  });
+}
+/* Sai / đúng của bài nguồn sáng: cùng một texture, một cái nướng sẵn bóng đổ */
+export function mcLit(g,s,sang){ mcTex(g,0,0,s,MC.da,2,{sang}); }
+/* Sai / đúng của bài dải màu: dải quá rộng thì texture nhìn bẩn và lấn át vật khác */
+export function mcRamp(g,w,h,rong){
+  const r = rong ? ['#3a3a3a','#6e6e6e','#a5a5a5','#dcdcdc'] : MC.da;
+  const o=Math.floor(h/2);
+  r.forEach((c,i)=>{ for(let y=0;y<o;y++) for(let x=0;x<Math.floor(w/4);x++) px(g,i*Math.floor(w/4)+x,y,c); });
+  for(let ty=0;ty<Math.ceil((h-o)/16);ty++) for(let tx=0;tx<Math.ceil(w/16);tx++) mcTex(g,tx*16,o+ty*16,16,r,2,{});
+}
+/* vật phẩm: nằm chéo góc dưới-trái lên góc trên-phải, có nét sẫm ôm ngoài */
+export function mcItem(g,ox,oy,kind){
+  const K='#2b2118', S=['#6b4a2a','#8a6238','#a67a46'];
+  const dat=(x,y,c)=>{ if(x>=0&&y>=0&&x<16&&y<16) px(g,ox+x,oy+y,c); };
+  for(let i=0;i<10;i++){                          // cán: luôn cùng một cây gậy cho cả bộ
+    const x=3+i, y=12-i;
+    dat(x,y,S[1]); dat(x+1,y,S[0]); dat(x,y-1,S[2]);
+  }
+  const dau = kind==='kiem' ? MC.sat : kind==='vang' ? MC.vang : kind==='kimcuong' ? MC.kimcuong : MC.sat;
+  const hinh={
+    cuoc:  [[9,1],[10,1],[11,1],[12,1],[13,1],[9,2],[10,2],[13,2],[12,2],[9,3],[10,3]],
+    riu:   [[10,1],[11,1],[12,1],[10,2],[11,2],[12,2],[13,2],[10,3],[11,3],[12,3],[10,4],[11,4]],
+    xeng:  [[10,1],[11,1],[12,1],[10,2],[11,2],[12,2],[10,3],[11,3],[12,3]],
+    kiem:  [[9,1],[10,1],[11,1],[12,1],[8,2],[9,2],[10,2],[11,2],[7,3],[8,3],[9,3],[10,3]]
+  }[kind]||[];
+  hinh.forEach(([x,y],i)=>dat(x,y,dau[1+(i%2)]));
+  hinh.forEach(([x,y])=>{                         // nét sẫm ôm ngoài — chỗ này MC khác Terraria: chỉ vật phẩm mới có
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{
+      if(!hinh.some(([a,b])=>a===x+dx&&b===y+dy)) dat(x+dx,y+dy,K);
+    });
+  });
+  if(kind==='kiem'){ for(let i=0;i<3;i++) dat(5+i,10-i,K); dat(4,12,S[0]); }
+}
+/* bốn món cùng một khuôn: đổi phần đầu, giữ nguyên cán */
+export function mcTools(g){
+  ['cuoc','riu','xeng','kiem'].forEach((k,i)=>mcItem(g,i*17,0,k));
+}
+/* lưới UV của khối hộp: mặt nào dán đi đâu */
+export function mcUV(g,s){
+  const put=(cx,cy,fn)=>fn(cx*s,cy*s);
+  put(1,0,(x,y)=>mcGrassTop(g,x,y,s,3));                     // trên
+  [0,1,2,3].forEach(i=>put(i,1,(x,y)=>mcGrassSide(g,x,y,s,5+i)));   // bốn mặt bên
+  put(1,2,(x,y)=>mcTex(g,x,y,s,MC.dat,5,{}));                // dưới
+  g.fillStyle='rgba(255,255,255,0.5)';
+  for(let i=0;i<=4;i++) g.fillRect(i*s,0,1,3*s);
+  for(let i=0;i<=3;i++) g.fillRect(0,i*s,4*s,1);
+}
+/* bố cục file da nhân vật 64×32: mỗi khối hộp một cụm sáu mặt */
+export function mcSkin(g){
+  const o=[['#8a6b4f',0,8,8,8,'đầu'],['#6a9bd8',20,20,8,12,'thân'],
+           ['#8a6b4f',44,20,4,12,'tay'],['#3b4a8a',4,20,4,12,'chân']];
+  for(let y=0;y<32;y++) for(let x=0;x<64;x++) px(g,x,y,'#1b1b24');
+  o.forEach(([c,ox,oy,w,h])=>{
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+      const t=hash01(ox+x,oy+y)<0.22;
+      px(g,ox+x,oy+y, t ? shadeOf(c,-14) : c);
+    }
+    for(let x=0;x<w;x++){ px(g,ox+x,oy,shadeOf(c,12)); }
+  });
+}
+function shadeOf(hex,d){
+  const n=parseInt(hex.slice(1),16);
+  const c=[(n>>16)&255,(n>>8)&255,n&255].map(v=>Math.max(0,Math.min(255,v+d)));
+  return '#'+c.map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+/* texture động = một dải dọc, mỗi 16px là một khung, engine chạy theo file .mcmeta */
+export function mcAnim(g,s,n){
+  for(let k=0;k<n;k++){
+    mcTex(g,0,k*s,s,['#8a2b06','#c04a08','#e8760f','#ffb02a'],k*3+1,{phan:[0.3,0.3,0.26,0.14]});
+    g.fillStyle='rgba(255,255,255,0.45)'; g.fillRect(0,k*s,s,1);
+  }
+}
+/* cả bộ xếp lưới: kiểm cùng một mức nhiễu, cùng biên độ sáng tối */
+export function mcSet(g,s){
+  const o=[g=>mcTex(g,0,0,s,MC.da,2,{}), g=>mcTex(g,0,0,s,MC.cuoi,4,{phan:[0.3,0.28,0.26,0.16]}),
+           g=>mcTex(g,0,0,s,MC.dat,5,{}), g=>mcGrassTop(g,0,0,s,3),
+           g=>mcGrassSide(g,0,0,s,5), g=>mcPlank(g,0,0,s,7),
+           g=>mcLogSide(g,0,0,s,11), g=>mcLogTop(g,0,0,s,1),
+           g=>mcOre(g,0,0,s,'sat',2), g=>mcOre(g,0,0,s,'vang',6),
+           g=>mcOre(g,0,0,s,'kimcuong',9), g=>mcTex(g,0,0,s,MC.gach,8,{phan:[0.26,0.34,0.26,0.14]})];
+  o.forEach((fn,i)=>{
+    const ox=(i%4)*s, oy=((i/4)|0)*s;
+    g.save(); g.translate(ox,oy); fn(g); g.restore();
+  });
+}
