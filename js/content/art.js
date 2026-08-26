@@ -1128,3 +1128,128 @@ export function mcSet(g,s){
     g.save(); g.translate(ox,oy); fn(g); g.restore();
   });
 }
+
+/* =======================================================================
+   TỪNG BƯỚC DỰNG MỘT Ô TILE
+   Mỗi hàm dưới đây vẽ đúng một giai đoạn của cùng một ô, cộng dồn: bước n
+   là bước n-1 cộng thêm một việc. Nhờ vậy dải hình trong bài tập chính là
+   thứ tự thao tác thật, không phải mấy bức đẹp xếp cạnh nhau.
+   ======================================================================= */
+
+/* bước 1 của mọi bài: dải màu đã chọn, mỗi ô một sắc độ */
+export function buocMau(g,w,h,cols,ten){
+  const o=Math.floor(w/cols.length);
+  cols.forEach((c,i)=>{ for(let y=0;y<h;y++) for(let x=0;x<o;x++) px(g,i*o+x,y,c); });
+  for(let x=cols.length*o;x<w;x++) for(let y=0;y<h;y++) px(g,x,y,cols[cols.length-1]);
+  if(ten!==false){                                  // gạch chân bậc nền để biết đổ nền bằng màu nào
+    for(let x=o;x<o*2;x++){ px(g,x,h-1,'#ffb43f'); px(g,x,h-2,'#ffb43f'); }
+  }
+}
+/* Khối kiểu Minecraft: nền → bậc tối → bậc sáng → điểm sáng nhất.
+   Thứ tự này quan trọng: rắc tối trước thì mới thấy chỗ nào còn trống để rắc sáng. */
+export function mcBuoc(g,ox,oy,s,cols,seed,n,phan){
+  const m=mcShade(mcField(s,seed,true), phan||[0.28,0.34,0.26,0.12]);
+  const hien=[[1],[1],[1,0],[1,0,2],[1,0,2,3]][Math.min(n,4)];
+  for(let y=0;y<s;y++) for(let x=0;x<s;x++){
+    const i=m[y*s+x];
+    px(g,ox+x,oy+y, hien.indexOf(i)>=0 ? cols[i] : cols[1]);
+  }
+}
+/* Quặng: bước 1–2 là khối đá đã xong, rồi mới đắp cụm lên.
+   Nền đá không được sửa — đó là chỗ khối quặng ghép liền với đá xung quanh. */
+export function mcBuocQuang(g,ox,oy,s,loai,seed,n){
+  mcBuoc(g,ox,oy,s,MC.da,seed,4);
+  if(n<2) return;
+  const r=MC[loai]||MC.sat, k=s/16;
+  const cum=[[4,4],[11,6],[6,11]];
+  cum.forEach(([cx,cy],ci)=>{
+    const R=(ci===1?1.7:2.3)*k;
+    for(let y=-3;y<=3;y++) for(let x=-3;x<=3;x++){
+      const d=Math.hypot(x,y);
+      if(d>R) continue;
+      const gx=Math.round(cx*k+x), gy=Math.round(cy*k+y);
+      if(gx<0||gy<0||gx>=s||gy>=s) continue;
+      if(n===2){ if(d<=0.6) px(g,ox+gx,oy+gy,'#ffb43f'); continue; }   // mới đánh dấu tâm cụm
+      const ria = d>R-1;
+      if(n===3 && ria) continue;                                       // chưa viền: chỉ lõi
+      px(g,ox+gx,oy+gy, r[ria ? 0 : (mcRand(gx,gy,7)<0.4 ? 3 : 2)]);
+    }
+  });
+}
+/* Mặt bên khối cỏ: đất trước, mép cỏ phẳng, rồi mới bẻ răng cưa, rồi mới rám màu */
+export function mcBuocCo(g,ox,oy,s,seed,n){
+  mcBuoc(g,ox,oy,s,MC.dat,seed,4);
+  if(n<2) return;
+  for(let x=0;x<s;x++){
+    const r=mcRand(x,0,(seed||5)+9);
+    const sau = n<3 ? 3 : (r<0.18 ? 2 : r<0.72 ? 3 : r<0.94 ? 4 : 5);
+    for(let y=0;y<sau;y++){
+      if(n<4){ px(g,ox+x,oy+y,MC.co[2]); continue; }
+      const t=mcRand(x,y,(seed||5)+21);
+      px(g,ox+x,oy+y, MC.co[t<0.24?0:t<0.6?1:t<0.88?2:3]);
+    }
+  }
+}
+/* Gỗ: nền → chia cột theo tông → rắc nhiễu dọc thớ → xong */
+export function mcBuocGo(g,ox,oy,s,seed,n){
+  for(let y=0;y<s;y++) for(let x=0;x<s;x++){
+    const nen=mcRand(x,0,seed||11);
+    let i = n<2 ? 1 : Math.floor(nen*4);
+    if(n>=3){ const j=mcRand(x,y,(seed||11)+5); i += (j<0.20?1:j>0.86?-1:0); }
+    px(g,ox+x,oy+y, MC.vo[Math.min(3,Math.max(0,i))]);
+  }
+}
+/* Khối kiểu Terraria thì NGƯỢC LẠI: có hướng sáng thật, nên dựng bậc trước
+   rồi mới rắc nhiễu, và bước cuối là hạ tối mép đáy. */
+export function terraBuoc(g,ox,oy,s,kind,n){
+  const r=TERRA[kind]||TERRA.stone;
+  for(let y=0;y<s;y++) for(let x=0;x<s;x++){
+    let i=1;
+    if(n>=2){ const t=y/s; i = t<0.12 ? 3 : t<0.42 ? 2 : t<0.78 ? 1 : 0; }   // bậc theo chiều cao
+    if(n>=3){
+      const nz=hash01(x*3,y*5);
+      if(nz>0.85) i=Math.min(r.length-1,i+1); else if(nz<0.13) i=Math.max(0,i-1);
+    }
+    px(g,ox+x,oy+y,r[i]);
+  }
+  if(n>=4) for(let x=0;x<s;x++){ px(g,ox+x,oy+s-1,r[0]); if(hash01(x*7,3)<0.5) px(g,ox+x,oy+s-2,r[0]); }
+}
+/* Quặng Terraria: cùng ba bước như quặng Minecraft, chỉ khác nền có hướng sáng */
+export function terraBuocQuang(g,ox,oy,s,kind,n){
+  const c=TERRA[kind]||TERRA.gold;
+  terraBuoc(g,ox,oy,s,'stone',4);
+  if(n<2) return;
+  const cum=[[0.22,0.30],[0.56,0.54],[0.70,0.22],[0.38,0.72]];
+  cum.forEach(([u,v],i)=>{
+    const x=Math.round(u*(s-3)), y=Math.round(v*(s-3));
+    if(n===2){ px(g,ox+x,oy+y,'#ffb43f'); return; }
+    px(g,ox+x,oy+y,c[2]); px(g,ox+x+1,oy+y,c[1]); px(g,ox+x,oy+y+1,c[1]);
+    if(n>=4 && i%2===0 && y>0) px(g,ox+x,oy+y-1,c[3]);
+  });
+}
+/* Cỏ phủ kiểu Terraria: khối đất xong → viền cỏ phẳng → bẻ răng cưa → rám màu */
+export function terraBuocCo(g,ox,oy,s,n){
+  terraBuoc(g,ox,oy,s,'dirt',4);
+  if(n<2) return;
+  const G=TERRA.grass;
+  for(let x=0;x<s;x++){
+    const sau = n<3 ? 2 : (hash01(x*5.3,2)<0.35 ? 2 : hash01(x*5.3,2)<0.8 ? 3 : 4);
+    for(let y=0;y<sau;y++) px(g,ox+x,oy+y, n<4 ? G[1] : G[hash01(x*3.7,y*2.9)<0.35?0:hash01(x*3.7,y*2.9)<0.8?1:2]);
+  }
+}
+/* Gạch: mạch ngang trước, mạch dọc so le sau, rám nhiễu cuối.
+   16 chia hết cho cả bề cao viên (4) lẫn bề ngang (8) nên lát ra khớp nhịp. */
+export function mcBrick(g,ox,oy,s,seed,n){
+  const bw=Math.round(s/2), bh=Math.round(s/4);
+  for(let y=0;y<s;y++) for(let x=0;x<s;x++){
+    const hang=Math.floor(y/bh), lech=(hang%2)*(bw/2);
+    let i=2;
+    if((n||4)>=2 && y%bh===0) i=0;                       // mạch ngang
+    else if((n||4)>=3 && (x+lech)%bw===0) i=0;           // mạch dọc, so le nửa viên
+    if((n||4)>=4 && i!==0){
+      const j=mcRand(x,y,seed||8);
+      i = 2 + (j<0.22?1:j>0.80?-1:0);
+    }
+    px(g,ox+x,oy+y,MC.gach[Math.min(3,Math.max(0,i))]);
+  }
+}

@@ -7,15 +7,17 @@ import {
   AA_SOFT, A_ARROW, A_BAG, A_CHEST, A_CHEST_OPEN, A_CHIBI, A_CHIBI_BACK, A_CHIBI_SIDE, A_COIN,
   A_KEY, A_PLUS, A_STAFF, A_STAR, A_SWORD, A_TREE, CURVE_BAD, CURVE_GOOD, FAR, JUMP_POSES, MC,
   P_ARM, P_HEAD, P_LEG, P_TORSO, RUN_POSES, STICK_COL, STICK_JUMP, STICK_PUNCH, STICK_RUN,
-  STICK_WALK, TERRA, art, artFlip, drawApple, drawBands, drawBoom, drawBox, drawBread,
-  drawCleanup, drawCrop, drawCyl, drawFace, drawFrame, drawGradient, drawHairLag, drawHouse,
-  drawMap, drawMaterial, drawParallax, drawPotion, drawRig, drawShadow, drawSideProp,
-  drawSlash, drawSmear, drawSoft, drawSpacing, drawSphere, drawTile, drawTile9, drawTiming,
-  drawWalk, handPath, heartShape, mcAnim, mcGrassSide, mcGrassTop, mcItem, mcLit, mcLogSide,
-  mcLogTop, mcOre, mcPlank, mcRamp, mcSet, mcSkin, mcTex, mcTile3, mcTools, mcUV, onBg,
-  platformEdge, px, ringShape, runsLine, sideGround, sideScene, stickBall, stickPendulum,
-  stickPose, stickWeight, stickman, terraBar, terraBlock, terraChar, terraGrass, terraOre,
-  terraSet, terraSheet, terraSlime, terraSword, terraTool, terraWalk, terraWall, terraWood
+  STICK_WALK, TERRA, art, artFlip, buocMau, drawApple, drawBands, drawBoom, drawBox,
+  drawBread, drawCleanup, drawCrop, drawCyl, drawFace, drawFrame, drawGradient, drawHairLag,
+  drawHouse, drawMap, drawMaterial, drawParallax, drawPotion, drawRig, drawShadow,
+  drawSideProp, drawSlash, drawSmear, drawSoft, drawSpacing, drawSphere, drawTile, drawTile9,
+  drawTiming, drawWalk, handPath, heartShape, mcAnim, mcBrick, mcBuoc, mcBuocCo, mcBuocGo,
+  mcBuocQuang, mcGrassSide, mcGrassTop, mcItem, mcLit, mcLogSide, mcLogTop, mcOre, mcPlank,
+  mcRamp, mcSet, mcSkin, mcTex, mcTile3, mcTools, mcUV, onBg, platformEdge, px, ringShape,
+  runsLine, sideGround, sideScene, stickBall, stickPendulum, stickPose, stickWeight, stickman,
+  terraBar, terraBlock, terraBuoc, terraBuocCo, terraBuocQuang, terraChar, terraGrass,
+  terraOre, terraSet, terraSheet, terraSlime, terraSword, terraTool, terraWalk, terraWall,
+  terraWood
 } from './art.js';
 
 const RAMP_FLAT = ['#4a1414','#7a2020','#a82c2c','#d63a3a','#f26a6a'];
@@ -390,7 +392,7 @@ Object.assign(DEMOS, {
   mcda:[
     {cap:'Đá', cls:'', w:16,h:16, fn:g=>mcTex(g,0,0,16,MC.da,2,{})},
     {cap:'Đá cuội — cùng vật liệu, nhiễu thô hơn', cls:'good', w:16,h:16, fn:g=>mcTex(g,0,0,16,MC.cuoi,4,{phan:[0.3,0.28,0.26,0.16]})},
-    {cap:'Gạch', cls:'', w:16,h:16, fn:g=>mcTex(g,0,0,16,MC.gach,8,{phan:[0.26,0.34,0.26,0.14]})}
+    {cap:'Gạch', cls:'', w:16,h:16, fn:g=>mcBrick(g,0,0,16,8,4)}
   ],
   mcgo:[
     {cap:'Vỏ thân cây — thớ chạy dọc', cls:'good', w:16,h:16, fn:g=>mcLogSide(g,0,0,16,11)},
@@ -424,6 +426,71 @@ Object.assign(DEMOS, {
   ],
   mcbo:[
     {cap:'Cả bộ cạnh nhau — soi cùng mức nhiễu, cùng biên độ', cls:'good', w:64,h:48, fn:g=>mcSet(g,16)}
+  ],
+  /* --- dải từng bước: mỗi khung là một thao tác, cộng dồn --- */
+  buocda:[
+    {cap:'1 · Bốn sắc độ, bậc có vạch là màu nền', cls:'', w:32,h:12, fn:g=>buocMau(g,32,12,MC.da)},
+    {cap:'2 · Tô loang cả ô bằng màu nền', cls:'', w:16,h:16, fn:g=>mcBuoc(g,0,0,16,MC.da,2,1)},
+    {cap:'3 · Rắc bậc tối, cụm 2–3 ô', cls:'', w:16,h:16, fn:g=>mcBuoc(g,0,0,16,MC.da,2,2)},
+    {cap:'4 · Rắc bậc sáng vào chỗ trống', cls:'', w:16,h:16, fn:g=>mcBuoc(g,0,0,16,MC.da,2,3)},
+    {cap:'5 · Điểm sáng nhất, thật thưa', cls:'good', w:16,h:16, fn:g=>mcBuoc(g,0,0,16,MC.da,2,4)},
+    {cap:'6 · Lặp 3×3 — không được thấy mối nối', cls:'good', w:48,h:48, fn:g=>mcTile3(g,16,MC.da,2,true)}
+  ],
+  buoccuoi:[
+    {cap:'Cùng bốn màu, chỉ gom hạt to hơn', cls:'', w:16,h:16, fn:g=>mcBuoc(g,0,0,16,MC.cuoi,4,4,[0.30,0.28,0.26,0.16])},
+    {cap:'Lặp 3×3', cls:'good', w:48,h:48, fn:g=>mcTile3(g,16,MC.cuoi,4,true)}
+  ],
+  buocquang:[
+    {cap:'1 · Khối đá đã xong — không sửa gì nữa', cls:'', w:16,h:16, fn:g=>mcBuocQuang(g,0,0,16,'kimcuong',9,1)},
+    {cap:'2 · Chấm tâm 3 cụm, đừng chấm sát mép', cls:'', w:16,h:16, fn:g=>mcBuocQuang(g,0,0,16,'kimcuong',9,2)},
+    {cap:'3 · Lõi cụm, tròn méo chứ không vuông', cls:'', w:16,h:16, fn:g=>mcBuocQuang(g,0,0,16,'kimcuong',9,3)},
+    {cap:'4 · Rìa tối một bậc để tách khỏi đá', cls:'good', w:16,h:16, fn:g=>mcBuocQuang(g,0,0,16,'kimcuong',9,4)},
+    {cap:'Sắt — cùng ba bước đó', cls:'', w:16,h:16, fn:g=>mcBuocQuang(g,0,0,16,'sat',2,4)},
+    {cap:'Vàng', cls:'', w:16,h:16, fn:g=>mcBuocQuang(g,0,0,16,'vang',6,4)}
+  ],
+  buocco:[
+    {cap:'1 · Mặt bên là khối đất đã xong', cls:'', w:16,h:16, fn:g=>mcBuocCo(g,0,0,16,5,1)},
+    {cap:'2 · Phủ dải cỏ 3 pixel, tạm để phẳng', cls:'', w:16,h:16, fn:g=>mcBuocCo(g,0,0,16,5,2)},
+    {cap:'3 · Bẻ mép thành răng cưa 2–5 pixel', cls:'', w:16,h:16, fn:g=>mcBuocCo(g,0,0,16,5,3)},
+    {cap:'4 · Rám bốn sắc cỏ vào dải', cls:'good', w:16,h:16, fn:g=>mcBuocCo(g,0,0,16,5,4)},
+    {cap:'Mặt trên — nhiễu mịn, không hướng', cls:'', w:16,h:16, fn:g=>mcGrassTop(g,0,0,16,3)}
+  ],
+  buocgo:[
+    {cap:'1 · Bốn sắc vỏ cây', cls:'', w:32,h:12, fn:g=>buocMau(g,32,12,MC.vo)},
+    {cap:'2 · Tô loang màu nền', cls:'', w:16,h:16, fn:g=>mcBuocGo(g,0,0,16,11,1)},
+    {cap:'3 · Chia CỘT theo tông — thớ chạy dọc', cls:'', w:16,h:16, fn:g=>mcBuocGo(g,0,0,16,11,2)},
+    {cap:'4 · Rắc nhiễu đứt quãng dọc thớ', cls:'good', w:16,h:16, fn:g=>mcBuocGo(g,0,0,16,11,3)},
+    {cap:'Ván: cùng cách nhưng chia HÀNG', cls:'good', w:16,h:16, fn:g=>mcPlank(g,0,0,16,7)}
+  ],
+  buocterra:[
+    {cap:'1 · Dải 4 màu của vật liệu', cls:'', w:32,h:12, fn:g=>buocMau(g,32,12,TERRA.stone)},
+    {cap:'2 · Dựng bậc theo chiều cao — Terraria CÓ hướng sáng', cls:'', w:16,h:16, fn:g=>terraBuoc(g,0,0,16,'stone',2)},
+    {cap:'3 · Rắc nhiễu phá bậc cho đỡ giả', cls:'', w:16,h:16, fn:g=>terraBuoc(g,0,0,16,'stone',3)},
+    {cap:'4 · Hạ tối mép đáy để khối dính nhau', cls:'good', w:16,h:16, fn:g=>terraBuoc(g,0,0,16,'stone',4)},
+    {cap:'Đất — cùng bốn bước', cls:'', w:16,h:16, fn:g=>terraBuoc(g,0,0,16,'dirt',4)}
+  ],
+  buocquangterra:[
+    {cap:'1 · Khối đá Terraria đã xong', cls:'', w:16,h:16, fn:g=>terraBuocQuang(g,0,0,16,'gold',1)},
+    {cap:'2 · Chấm tâm cụm, tránh sát mép', cls:'', w:16,h:16, fn:g=>terraBuocQuang(g,0,0,16,'gold',2)},
+    {cap:'3 · Đắp cụm 3 pixel hình chữ L', cls:'', w:16,h:16, fn:g=>terraBuocQuang(g,0,0,16,'gold',3)},
+    {cap:'4 · Chấm sáng nhất ở đỉnh cụm', cls:'good', w:16,h:16, fn:g=>terraBuocQuang(g,0,0,16,'gold',4)},
+    {cap:'Đồng — cùng bốn bước', cls:'', w:16,h:16, fn:g=>terraBuocQuang(g,0,0,16,'copper',4)}
+  ],
+  buoccoterra:[
+    {cap:'1 · Khối đất đã xong', cls:'', w:16,h:16, fn:g=>terraBuocCo(g,0,0,16,1)},
+    {cap:'2 · Viền cỏ 2 pixel, tạm để phẳng', cls:'', w:16,h:16, fn:g=>terraBuocCo(g,0,0,16,2)},
+    {cap:'3 · Bẻ răng cưa 2–4 pixel', cls:'', w:16,h:16, fn:g=>terraBuocCo(g,0,0,16,3)},
+    {cap:'4 · Rám ba sắc cỏ', cls:'good', w:16,h:16, fn:g=>terraBuocCo(g,0,0,16,4)}
+  ],
+  buocgach:[
+    {cap:'1 · Tô loang màu nền của gạch', cls:'', w:16,h:16, fn:g=>mcBrick(g,0,0,16,8,1)},
+    {cap:'2 · Kẻ mạch ngang, tối đúng MỘT bậc', cls:'', w:16,h:16, fn:g=>mcBrick(g,0,0,16,8,2)},
+    {cap:'3 · Mạch dọc, so le nửa viên mỗi hàng', cls:'', w:16,h:16, fn:g=>mcBrick(g,0,0,16,8,3)},
+    {cap:'4 · Rám nhiễu vào lòng viên', cls:'good', w:16,h:16, fn:g=>mcBrick(g,0,0,16,8,4)},
+    {cap:'5 · Lặp 3×3 — nhịp so le phải chạy tiếp', cls:'good', w:48,h:48,
+     fn:g=>{ for(let ty=0;ty<3;ty++) for(let tx=0;tx<3;tx++) mcBrick(g,tx*16,ty*16,16,8,4); }},
+    {cap:'Đá cuội — cùng bốn bước, chỉ gom hạt to hơn', cls:'', w:16,h:16,
+     fn:g=>mcBuoc(g,0,0,16,MC.cuoi,4,4,[0.30,0.28,0.26,0.16])}
   ],
   sizes3:[
     {cap:'8×8 — chỉ còn hình dáng', cls:'', w:8,h:8,   fn:g=>heartShape(g,0,0,8,['#c94f4f','#e88a5a','#8c2f39'])},
