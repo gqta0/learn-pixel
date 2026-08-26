@@ -20,6 +20,7 @@ import { runLint } from './lint.js';
 import { closePopup } from './popup.js';
 import { openLibrary, closeLibrary, saveCurrent, isBlank, exportContactSheet } from './library.js';
 import { paintDaily, goToNext } from './daily.js';
+import { bindAtlas, importAtlas, syncBar as syncAtlasBar } from './atlas.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
 /* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ */
@@ -262,6 +263,17 @@ $('#expSheet').addEventListener('click', exportSheet);
 $('#expPal').addEventListener('click', exportPalettePng);
 $('#expJson').addEventListener('click', exportJson);
 $('#impJson').addEventListener('change', e=>{ if(e.target.files[0]) importJson(e.target.files[0]); });
+
+bindAtlas();
+/* Kéo thả thẳng vào trang: .json là dự án, ảnh là tấm atlas. */
+['dragover','drop'].forEach(t=>window.addEventListener(t, e=>{
+  e.preventDefault();
+  if(t!=='drop') return;
+  const f=e.dataTransfer && e.dataTransfer.files[0];
+  if(!f) return;
+  if(/\.json$/i.test(f.name)) importJson(f);
+  else if(/^image\//.test(f.type)) importAtlas(f);
+}));
 
 $$('.tab').forEach(t=>t.addEventListener('click', ()=>{
   $$('.tab').forEach(x=>x.setAttribute('aria-selected', x===t?'true':'false'));

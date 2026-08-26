@@ -9,6 +9,7 @@ import { syncAll, applyTrack } from './ui.js';
 import { paintDaily } from './daily.js';
 import { buildExercises, TRACKS } from './content/exercises.js';
 import { buildTheory } from './content/lessons.js';
+import { loadAtlas } from './atlas.js';
 import './input.js';                 // gắn sự kiện chuột / cảm ứng / S-Pen
 
 function boot(){
@@ -36,7 +37,8 @@ function boot(){
   try{ seen=localStorage.getItem('lo-pixel-seen')||'0'; }catch(_){}
   $('#onboard').hidden = seen==='1';
   paintDaily();
-  loadSave();                       // có bản lưu thì mở lại, không thì giữ canvas trắng
+  loadSave();
+  loadAtlas();                      // tấm atlas lần trước, nếu trình duyệt còn giữ được                       // có bản lưu thì mở lại, không thì giữ canvas trắng
   $('#hud').textContent = doc.w+'×'+doc.h;
 }
 boot();

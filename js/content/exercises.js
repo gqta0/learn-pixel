@@ -7,6 +7,7 @@ import { fitZoom } from './../render.js';
 import { autosave } from './../storage.js';
 import { syncAll } from './../ui.js';
 import { keepBeforeReplace } from './../library.js';
+import { stopEditing } from './../atlas.js';
 import { runLint } from './../lint.js';
 import { paintDaily } from './../daily.js';
 import { DEMOS, renderDemo, demoToCanvas } from './demos.js';
@@ -919,6 +920,7 @@ export function setupExercise(ex){
   if(!confirm('Dựng khung '+W+'×'+H+(nf>1?' • '+nf+' khung hình':'')+
               '\n\nBản đang vẽ sẽ được cất vào thư viện trước, không mất đi đâu.')) return;
   if(!keepBeforeReplace()) return;
+  stopEditing();                       // dựng bài mới thì rời ô atlas đang mượn
   pushUndo();
   doc.w=W; doc.h=H;
   const names = ex.layers || ['Phác thảo','Nét chính'];

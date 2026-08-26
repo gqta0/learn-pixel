@@ -8,6 +8,7 @@ import { paintThumbs } from './frames.js';
 import { palette, setPalette, paintSwatches } from './palette.js';
 import { doneSet, buildExercises, migrateDone } from './content/exercises.js';
 import { syncAll } from './ui.js';
+import { stopEditing } from './atlas.js';
 
 export function download(name, url){
   const a=document.createElement('a'); a.href=url; a.download=name;
@@ -55,6 +56,7 @@ export function serialize(){
 }
 export function applyData(d){
   if(!d || !d.frames || !d.layers) throw new Error('thiếu dữ liệu tranh');
+  stopEditing();                       // tranh khác rồi thì không còn gắn với ô atlas nào
   doc.w=d.w; doc.h=d.h;
   doc.layers=d.layers.map(l=>({name:l.name,vis:l.vis!==false}));
   const len=d.w*d.h;

@@ -134,6 +134,13 @@
         <button class="btn tiny" id="clearBtn">Xoá lớp</button>
       </div>
 
+        <div class="ctxbar" id="atlasBar" hidden>
+          <span class="kbd">Atlas <b id="atlasWhere"></b></span>
+          <button class="btn tiny primary" id="atlasSave" title="Ghi khung đang vẽ đè lên đúng ô cũ trong atlas">⤴ Ghi lại</button>
+          <button class="btn tiny" id="atlasNext" title="Ghi lại rồi mở atlas để chọn ô khác">⤴ Ghi &amp; ô sau</button>
+          <button class="btn tiny" id="atlasStop" title="Thôi không gắn với atlas nữa">✕ Rời</button>
+        </div>
+
       <div class="canvasarea">
       <div class="quickbar" id="quickbar">
         <button class="qb" data-q="pencil" aria-pressed="true" title="Bút">✏️</button>
@@ -247,6 +254,12 @@
         </div>
 
         <div class="block">
+          <p class="eyebrow">Atlas / tilesheet của dự án</p>
+          <p class="kbd" style="margin:0 0 7px">Nạp nguyên tấm tilesheet vào, cắt theo lưới ô, lôi từng ô ra sửa rồi ghi lại đúng chỗ. Kéo thả file .png hoặc .json vào trang cũng được.</p>
+          <button class="btn tiny wide" id="atOpen">🧩 Mở atlas…</button>
+        </div>
+
+        <div class="block">
           <p class="eyebrow">Xuất</p>
           <div class="row">
             <label class="mini grow">Nhân khổ</label>
@@ -300,6 +313,35 @@
       <button class="btn tiny" id="libClose">✕ Đóng</button>
     </div>
     <div class="libgrid" id="libGrid"></div>
+  </div>
+
+  <div class="libwrap" id="atlasWrap" hidden>
+    <div class="libbar">
+      <p class="eyebrow" style="margin:0;flex:1">Atlas của dự án</p>
+      <label class="btn tiny filelabel">Nạp ảnh…<input type="file" id="atFile" accept="image/*"></label>
+      <button class="btn tiny" id="atForget" title="Bỏ tấm này khỏi trình duyệt">✕ Bỏ tấm</button>
+      <button class="btn tiny" id="atPng" title="Xuất lại tấm atlas 1:1 để cắm vào engine">⬇ PNG</button>
+      <button class="btn tiny primary" id="atEdit" disabled>✎ Sửa ô đã chọn</button>
+      <button class="btn tiny" id="atClose">✕ Đóng</button>
+    </div>
+    <div class="atbar">
+      <label class="mini">Ô</label>
+      <input type="number" id="atTW" value="16" min="1" max="256" title="Chiều ngang một ô">
+      <span class="kbd">×</span>
+      <input type="number" id="atTH" value="16" min="1" max="256" title="Chiều dọc một ô">
+      <label class="mini">Khe</label>
+      <input type="number" id="atPad" value="0" min="0" max="32" title="Khoảng đệm giữa hai ô — tilesheet kiểu Terraria thường là 2">
+      <label class="mini">Lề</label>
+      <input type="number" id="atOff" value="0" min="0" max="64" title="Lề chừa ở mép trên-trái">
+      <span class="sep"></span>
+      <button class="btn tiny" id="atMulti" aria-pressed="false" title="Bật rồi bấm ô thứ hai để quét cả cụm">⤢ Chọn cụm</button>
+      <button class="btn tiny" id="atZoomOut">−</button>
+      <span class="kbd" id="atZoom" style="min-width:32px;text-align:center">×2</span>
+      <button class="btn tiny" id="atZoomIn">+</button>
+      <span class="kbd" id="atInfo" style="flex:1;min-width:0"></span>
+    </div>
+    <div class="atview"><canvas id="atCv"></canvas></div>
+    <p class="kbd" id="atNote" style="margin:0;padding:8px 14px;border-top:1px solid var(--line)"></p>
   </div>
 
   <nav class="mnav" id="mnav">
