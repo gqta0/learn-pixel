@@ -59,7 +59,8 @@ export function render(){
     ctx.strokeStyle=TH.hover; ctx.lineWidth=lw;
     ctx.strokeRect((view.hover.x-o)*z+lw/2,(view.hover.y-o)*z+lw/2, bs*z-lw, bs*z-lw);
   }
-  $('#selBar').style.display = view.sel ? 'inline-flex' : 'none';
+  $('#selBar').hidden = !view.sel;
+  if(view.sel) $('#selSize').textContent = view.sel.w+'×'+view.sel.h;
   if(view.sel){
     const s=view.sel;
     ctx.setLineDash([3*lw,3*lw]);

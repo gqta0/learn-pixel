@@ -122,24 +122,26 @@
             <select id="gridStep"><option>4</option><option selected>8</option><option>16</option><option>32</option></select>
           </div>
         </details>
-        <span id="selBar" style="display:none;gap:5px;align-items:center">
-          <div class="sep"></div>
+        <div class="sep"></div>
+        <button class="btn tiny" id="clearBtn">Xoá lớp</button>
+      </div>
+
+      <div class="ctxwrap">
+        <div class="ctxbar" id="selBar" hidden>
+          <span class="kbd">Vùng chọn <b id="selSize"></b></span>
           <button class="btn tiny" id="selCut" title="Cắt vùng chọn (Ctrl+X)">✂ Cắt</button>
           <button class="btn tiny" id="selCopy" title="Chép vùng chọn (Ctrl+C)">⧉ Chép</button>
           <button class="btn tiny" id="selPaste" title="Dán vào góc trên-trái vùng chọn (Ctrl+V)">📋 Dán</button>
           <button class="btn tiny" id="selDel" title="Xoá sạch vùng chọn (Delete)">⌫ Xoá vùng</button>
           <button class="btn tiny" id="selNone" title="Bỏ chọn (Esc)">✕ Bỏ chọn</button>
-        </span>
-        <div class="sep"></div>
-        <button class="btn tiny" id="clearBtn">Xoá lớp</button>
-      </div>
-
+        </div>
         <div class="ctxbar" id="atlasBar" hidden>
           <span class="kbd">Atlas <b id="atlasWhere"></b></span>
           <button class="btn tiny primary" id="atlasSave" title="Ghi khung đang vẽ đè lên đúng ô cũ trong atlas">⤴ Ghi lại</button>
           <button class="btn tiny" id="atlasNext" title="Ghi lại rồi mở atlas để chọn ô khác">⤴ Ghi &amp; ô sau</button>
           <button class="btn tiny" id="atlasStop" title="Thôi không gắn với atlas nữa">✕ Rời</button>
         </div>
+      </div>
 
       <div class="canvasarea">
       <div class="quickbar" id="quickbar">
