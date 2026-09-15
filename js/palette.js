@@ -6,6 +6,21 @@ import { autosave } from './storage.js';
 import { onLongPress, popover } from './popup.js';
 
 export const PALETTES = {
+  'Master Palette v1 (47 màu)': [
+    '#162331','#223344',                                      /* Outline: ink-900, ink-800 */
+    '#3a4b5b','#62717c','#9aa4a8','#d6d7c9',                  /* Rock: slate-700, slate-500, stone-300, stone-100 */
+    '#3e7ba7','#6db7e8','#f3e5d3',                            /* Sky: sky-700, sky-500, cloud */
+    '#4e392f','#765640','#a67b54',                            /* Soil: soil-700, soil-500, soil-300 */
+    '#3a2a24','#694635','#9a6744','#c18a58',                  /* Wood: wood-900, wood-700, wood-500, wood-300 */
+    '#56616a','#87919a','#c1944e',                            /* Metal: metal-700, metal-500, brass */
+    '#224d3a','#3d7840','#69a84a','#a5d45d','#5d3b2c',        /* Nature: leaf-900, leaf-700, leaf-500, leaf-300, bark */
+    '#16445f','#1e789c','#2db7cf','#79e2ed',                  /* Water: water-900, water-700, water-500, water-300 */
+    '#1ea6c5','#6cf2ff','#5e419e','#a57eff',                  /* Qi: qi-cyan-deep, qi-cyan, qi-violet-deep, qi-violet */
+    '#d5543f','#f39a3c','#ffd56a',                            /* Fire: fire-red, fire-orange, fire-yellow */
+    '#e8ad83','#a85b4a','#e6dfd0','#a6a89e','#202b33',        /* Character: skin-light, skin-shadow, cloth-light, cloth-shadow, hair */
+    '#101b2a','#203246','#586d7a','#f3cf5e',                  /* UI: ui-panel, ui-panel-2, ui-border, ui-selected */
+    '#d8474f','#74c77a','#e8bf57'                             /* Status: health, success, warning */
+  ],
   'PICO-8 (16 màu)': ['#000000','#1d2b53','#7e2553','#008751','#ab5236','#5f574f','#c2c3c7','#fff1e8',
                       '#ff004d','#ffa300','#ffec27','#00e436','#29adff','#83769c','#ff77a8','#ffccaa'],
   'DawnBringer 16': ['#140c1c','#442434','#30346d','#4e4a4e','#854c30','#346524','#d04648','#757161',
