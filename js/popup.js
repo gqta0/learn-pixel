@@ -9,19 +9,30 @@ document.addEventListener('click', e=>{
 }, true);
 
 export function onLongPress(el, fn, ms=400){
-  let t=null;
-  const clear=()=>{ clearTimeout(t); t=null; };
+  let t=null, startX=0, startY=0;
+  const clear=()=>{
+    clearTimeout(t); t=null;
+    el.classList.remove('pressing');
+  };
   el.addEventListener('pointerdown', e=>{
     if(e.button) return;                       // chỉ nút trái / đầu ngón
     swallow=false; clear();
+    startX = e.clientX; startY = e.clientY;
+    el.classList.add('pressing');
     t=setTimeout(()=>{
       t=null;
+      el.classList.remove('pressing');
       swallow=true;
       setTimeout(()=>{ swallow=false; }, 600);   // chỉ nuốt đúng cú click do chính lần giữ này sinh ra
       fn(el);
     }, ms);
   });
-  ['pointerup','pointerleave','pointercancel','pointermove'].forEach(k=>el.addEventListener(k, clear));
+  el.addEventListener('pointermove', e=>{
+    if(t && Math.hypot(e.clientX - startX, e.clientY - startY) > 8){
+      clear();
+    }
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(k=>el.addEventListener(k, clear));
   el.addEventListener('contextmenu', e=>{ e.preventDefault(); clear(); fn(el); });
 }
 

@@ -11,7 +11,7 @@ import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.
 import { PALETTES, palette, setPalette, paintSwatches, paintRamp, syncColors, rampCols,
          attachPalettePopup, palByName, isUserPal, savePaletteAs, deleteUserPal,
          fillPalSelect, addCurrentColor, sortPalette, prunePalette, paletteFromArt } from './palette.js';
-import { setTool, setTheme, setView, syncFingerBtn, attachMods } from './tools.js';
+import { setTool, setTheme, setView, syncFingerBtn, syncPixelPerfectBtn, attachMods } from './tools.js';
 import { SAVE_KEY, exportPng, exportSheet, exportPalettePng, exportJson, importJson,
          loadRef, refToPixels, refToPalette } from './storage.js';
 import { updateProgress, TRACKS, setTrack, buildExercises } from './content/exercises.js';
@@ -62,9 +62,16 @@ export function syncAll(){
 }
 
 /* ---------------- nối sự kiện ---------------- */
-$('#brush').addEventListener('input', e=>{ view.brush=+e.target.value; $('#brushLbl').textContent=view.brush; });
+$('#brush').addEventListener('input', e=>{ view.brush=+e.target.value; $('#brushLbl').textContent=view.brush; render(); });
 $('#mirX').addEventListener('click', e=>{ view.mirX=!view.mirX; e.currentTarget.setAttribute('aria-pressed',view.mirX); e.currentTarget.classList.toggle('on',view.mirX); });
 $('#mirY').addEventListener('click', e=>{ view.mirY=!view.mirY; e.currentTarget.setAttribute('aria-pressed',view.mirY); e.currentTarget.classList.toggle('on',view.mirY); });
+const pfBtn = $('#pixPerfBtn');
+if(pfBtn){
+  pfBtn.addEventListener('click', ()=>{
+    view.pixelPerfect = !view.pixelPerfect;
+    syncPixelPerfectBtn();
+  });
+}
 
 $('#themeBtn').addEventListener('click', ()=> setTheme(document.body.dataset.theme==='light'?'dark':'light'));
 $('#pressBtn').addEventListener('click', e=>{
@@ -81,6 +88,16 @@ $$('.quickbar .qb[data-q]').forEach(b=>{ b.addEventListener('click', ()=>setTool
 attachPalettePopup($('#qbColor'));
 attachPalettePopup($('#chipPri'));
 $$('#mnav button').forEach(b=>b.addEventListener('click', ()=>setView(b.dataset.view)));
+
+const palGrp = $('#palGroup');
+if(palGrp){
+  palGrp.checked = !!view.groupPalette;
+  palGrp.addEventListener('change', e=>{
+    view.groupPalette = e.target.checked;
+    try{ localStorage.setItem('lo-pixel-pal-group', String(view.groupPalette)); }catch(_){}
+    paintSwatches();
+  });
+}
 
 $('#colPick').addEventListener('input', e=>{ view.pri=hexToInt(e.target.value); syncColors(); });
 $('#swapCol').addEventListener('click', ()=>{ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); });
@@ -244,6 +261,15 @@ $('#frDur').addEventListener('change', e=>{
   paintThumbs();
 });
 $('#playBtn').addEventListener('click', togglePlay);
+const ppBtn = $('#pingPongBtn');
+if(ppBtn){
+  ppBtn.addEventListener('click', ()=>{
+    view.pingPong = !view.pingPong;
+    ppBtn.classList.toggle('on', view.pingPong);
+    ppBtn.setAttribute('aria-pressed', view.pingPong ? 'true' : 'false');
+    ppBtn.title = 'Lặp Ping-Pong (xuôi-ngược) đang ' + (view.pingPong ? 'BẬT' : 'TẮT');
+  });
+}
 $('#fps').addEventListener('change', e=>{ view.fps=Math.max(1,+e.target.value||8); if(view.playing){ togglePlay(); togglePlay(); } });
 
 $('#lyUp').addEventListener('click', ()=>moveLayer(1));
@@ -296,11 +322,12 @@ window.addEventListener('keydown', e=>{
   if(e.ctrlKey||e.metaKey) return;
   if(k==='escape'){ if(closePopup()) return; view.sel=null; render(); return; }   // đóng bảng chọn trước, bỏ vùng chọn sau
   if(k==='delete'||k==='backspace'){ e.preventDefault(); $('#selDel').click(); return; }
-  const map={b:'pencil',e:'eraser',g:'fill',i:'picker',l:'line',u:'rect',o:'ellipse',m:'move',s:'shade',a:'select'};
+  const map={b:'pencil',d:'dither',e:'eraser',g:'fill',i:'picker',l:'line',u:'rect',o:'ellipse',m:'move',s:'shade',a:'select'};
   if(map[k]){ setTool(map[k]); return; }
+  if(k==='p'){ view.pixelPerfect = !view.pixelPerfect; syncPixelPerfectBtn(); return; }
   if(k==='x'){ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); }
-  if(k==='['){ view.brush=Math.max(1,view.brush-1); $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; }
-  if(k===']'){ view.brush=Math.min(6,view.brush+1); $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; }
+  if(k==='['){ view.brush=Math.max(1,view.brush-1); $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }
+  if(k===']'){ view.brush=Math.min(6,view.brush+1); $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }
   if(k===','){ doc.af=Math.max(0,doc.af-1); paintThumbs(); render(); }
   if(k==='.'){ doc.af=Math.min(doc.frames.length-1,doc.af+1); paintThumbs(); render(); }
 });

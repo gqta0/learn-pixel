@@ -9,6 +9,7 @@ import { onLongPress, popover } from './popup.js';
 
 export const TOOLS=[
   {id:'pencil', ic:'✏️', key:'B', name:'Bút (B)'},
+  {id:'dither', ic:'░', key:'D', name:'Chấm hạt dither (D)'},
   {id:'eraser', ic:'🧽', key:'E', name:'Xoá (E)'},
   {id:'fill',   ic:'🪣', key:'G', name:'Tô loang (G)'},
   {id:'picker', ic:'💧', key:'I', name:'Hút màu (I)'},
@@ -26,24 +27,52 @@ export const TOOLS=[
 function setBrush(n){
   view.brush=n;
   $('#brush').value=n; $('#brushLbl').textContent=n;
+  render();
 }
 const brushItems = ()=> [1,2,3,4,5,6].map(n=>({
   label:String(n), title:'Cỡ '+n+' pixel', on:view.brush===n, fn:()=>setBrush(n)
 }));
+export function syncPixelPerfectBtn(){
+  const b=$('#pixPerfBtn');
+  if(b){
+    b.classList.toggle('on', !!view.pixelPerfect);
+    b.setAttribute('aria-pressed', view.pixelPerfect ? 'true' : 'false');
+    b.title = 'Nét sạch (Pixel-Perfect) đang ' + (view.pixelPerfect ? 'BẬT' : 'TẮT');
+  }
+}
 const MODS={
-  pencil:{t:'Cỡ bút', items:brushItems},
+  pencil:{t:'Bút vẽ', items:()=>[
+    ...brushItems(),
+    {
+      label: (view.pixelPerfect ? '✨ Nét sạch: BẬT' : '✨ Nét sạch: TẮT'),
+      on: view.pixelPerfect,
+      title: 'Tự động khử góc L / nét đôi khi vẽ 1px',
+      fn: ()=>{ view.pixelPerfect = !view.pixelPerfect; syncPixelPerfectBtn(); }
+    }
+  ]},
+  dither:{t:'Kiểu hạt dither', items:()=>[
+    {label:'░ 50% Bàn cờ', on:view.ditherPattern==='50', fn:()=>{ view.ditherPattern='50'; }},
+    {label:'░ 25% Thưa',  on:view.ditherPattern==='25', fn:()=>{ view.ditherPattern='25'; }},
+    {label:'▓ 75% Dày',   on:view.ditherPattern==='75', fn:()=>{ view.ditherPattern='75'; }},
+    {label: view.ditherMode==='sec'?'Màu: Đan màu phụ':'Màu: Giữ nền cũ', on:true,
+     title: 'Bấm để đổi giữa đan màu phụ (sec) và giữ nền trong suốt',
+     fn:()=>{ view.ditherMode = view.ditherMode==='sec'?'alpha':'sec'; }}
+  ]},
   eraser:{t:'Cỡ tẩy', items:brushItems},
+  line:{t:'Cỡ nét đường thẳng', items:brushItems},
   shade:{t:'Tô khối đi về phía', items:()=>[
     {label:'◐ Sáng lên', on:view.shadeDir>0, fn:()=>{ view.shadeDir=1;  syncShadeBtn(); }},
     {label:'◑ Tối đi',   on:view.shadeDir<0, fn:()=>{ view.shadeDir=-1; syncShadeBtn(); }}
   ]},
   rect:{t:'Chữ nhật', items:()=>[
     {label:'▭ Rỗng', on:view.tool==='rect',  fn:()=>setTool('rect')},
-    {label:'▬ Đầy',  on:view.tool==='rectf', fn:()=>setTool('rectf')}
+    {label:'▬ Đầy',  on:view.tool==='rectf', fn:()=>setTool('rectf')},
+    ...brushItems()
   ]},
   ellipse:{t:'Ê-líp', items:()=>[
     {label:'◯ Rỗng', on:view.tool==='ellipse',  fn:()=>setTool('ellipse')},
-    {label:'⬤ Đầy',  on:view.tool==='ellipsef', fn:()=>setTool('ellipsef')}
+    {label:'⬤ Đầy',  on:view.tool==='ellipsef', fn:()=>setTool('ellipsef')},
+    ...brushItems()
   ]},
   select:{t:'Vùng chọn', items:()=>[
     {label:'✂ Cắt',      fn:()=>$('#selCut').click()},

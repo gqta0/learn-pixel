@@ -3,6 +3,8 @@ import { $ } from './dom.js';
 import { doc, view } from './state.js';
 import { buf, compositeToBuf, frameToCanvas } from './raster.js';
 import { render } from './render.js';
+import { pushUndo } from './history.js';
+import { onLongPress, popover } from './popup.js';
 
 export function paintThumbs(){
   const box=$('#frames'); box.innerHTML='';
@@ -14,13 +16,60 @@ export function paintThumbs(){
     const tag=document.createElement('b'); tag.textContent=i+1;
     b.appendChild(cv); b.appendChild(tag);
     b.addEventListener('click', ()=>{ doc.af=i; paintThumbs(); render(); });
+    onLongPress(b, ()=>{
+      const items = [
+        {label:'⧉ Nhân bản khung này', fn:()=>{
+          pushUndo();
+          doc.frames.splice(i+1, 0, doc.frames[i].map(d=>d.slice()));
+          doc.dur.splice(i+1, 0, doc.dur[i]||0);
+          doc.af = i+1;
+          paintThumbs(); render();
+        }},
+        {label:'⏱ Đặt thời lượng ms…', fn:()=>{
+          const v = prompt('Thời lượng hiển thị khung '+ (i+1) +' (mili-giây, bỏ trống = theo fps):', doc.dur[i] || '');
+          if(v !== null){
+            const n = parseInt(v.trim(), 10);
+            doc.dur[i] = (isNaN(n) || n <= 0) ? 0 : n;
+            paintThumbs();
+          }
+        }}
+      ];
+      if(doc.frames.length > 1){
+        items.push({label:'✕ Xoá khung này', fn:()=>{
+          pushUndo();
+          doc.frames.splice(i, 1);
+          doc.dur.splice(i, 1);
+          doc.af = Math.max(0, Math.min(doc.af, doc.frames.length - 1));
+          paintThumbs(); render();
+        }});
+      }
+      if(i > 0){
+        items.push({label:'← Đẩy sang trái', fn:()=>{
+          pushUndo();
+          const [fr] = doc.frames.splice(i, 1); doc.frames.splice(i-1, 0, fr);
+          const [dr] = doc.dur.splice(i, 1); doc.dur.splice(i-1, 0, dr||0);
+          doc.af = i-1;
+          paintThumbs(); render();
+        }});
+      }
+      if(i < doc.frames.length - 1){
+        items.push({label:'→ Đẩy sang phải', fn:()=>{
+          pushUndo();
+          const [fr] = doc.frames.splice(i, 1); doc.frames.splice(i+1, 0, fr);
+          const [dr] = doc.dur.splice(i, 1); doc.dur.splice(i+1, 0, dr||0);
+          doc.af = i+1;
+          paintThumbs(); render();
+        }});
+      }
+      popover(b, 'Khung ' + (i+1), items);
+    });
     box.appendChild(b);
   });
   $('#frDur').value = doc.dur[doc.af] || '';
   paintPreview();
 }
 const pvCv=$('#preview'), pvCtx=pvCv.getContext('2d');
-let pvFrame=0, pvTimer=null;
+let pvFrame=0, pvDir=1, pvTimer=null;
 export function paintPreview(){
   const f = view.playing ? (pvFrame % doc.frames.length) : doc.af;
   compositeToBuf(f);
@@ -45,7 +94,19 @@ export function paintPreview(){
    mà bài Giãn cách dạy: khung lấy đà giữ lâu, khung bung chỉ một nhịp chớp */
 function frameMs(i){ return doc.dur[i] || 1000/Math.max(1,view.fps); }
 function stepFrame(){
-  pvFrame=(pvFrame+1)%doc.frames.length;
+  if(view.pingPong && doc.frames.length > 2){
+    pvFrame += pvDir;
+    if(pvFrame >= doc.frames.length - 1){
+      pvFrame = doc.frames.length - 1;
+      pvDir = -1;
+    } else if(pvFrame <= 0){
+      pvFrame = 0;
+      pvDir = 1;
+    }
+  } else {
+    pvFrame = (pvFrame + 1) % doc.frames.length;
+    pvDir = 1;
+  }
   paintPreview();
   pvTimer=setTimeout(stepFrame, frameMs(pvFrame));
 }
@@ -55,7 +116,7 @@ export function togglePlay(){
   $('#playBtn').classList.toggle('on', view.playing);
   clearTimeout(pvTimer);
   if(view.playing){
-    pvFrame=0; paintPreview();
+    pvFrame=0; pvDir=1; paintPreview();
     pvTimer=setTimeout(stepFrame, frameMs(0));
   } else paintPreview();
 }

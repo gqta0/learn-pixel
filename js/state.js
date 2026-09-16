@@ -17,15 +17,20 @@ doc.frames.push(newFrame());
 /* lớp đang chọn của khung đang mở */
 export function activeData(){ return doc.frames[doc.af][doc.al]; }
 
+let savedGroup = true;
+try { savedGroup = localStorage.getItem('lo-pixel-pal-group') !== 'false'; } catch(_) {}
+
 export const view = {
   zoom:12, grid:true, onion:false, symLine:false,
   mirX:false, mirY:false,
   tool:'pencil', brush:1,
   pri: hexToInt('#ffb43f'), sec: hexToInt('#2e2e42'),
-  playing:false, fps:8, tile3:false,
+  playing:false, fps:8, tile3:false, pingPong:false,
   lockAlpha:false, sel:null, shadeDir:1, gridStep:8, realSize:false,   // tô khối đi lên (+1) hay đi xuống (-1) trên dải
   ref:null, refOp:0.5,
-  pressure:true, fingerMode:'draw', brushEff:1, hover:null
+  pressure:true, fingerMode:'draw', brushEff:1, hover:null,
+  pixelPerfect:false, ditherPattern:'50', ditherMode:'sec',
+  groupPalette: savedGroup
 };
 
 /* ---------------- chủ đề sáng / tối ---------------- */

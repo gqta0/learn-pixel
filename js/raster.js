@@ -73,6 +73,13 @@ export function inside(x,y){ return x>=0&&y>=0&&x<doc.w&&y<doc.h; }
 let strokeSeen=null;   // các ô đã đổi trong nét hiện tại — để tô khối không nhảy 2 bậc một lần
 export function setStrokeSeen(s){ strokeSeen=s; }
 
+export function isDitherHit(x, y, pat){
+  const p = pat || view.ditherPattern || '50';
+  if(p === '25') return (x & 1) === 0 && (y & 1) === 0;
+  if(p === '75') return !((x & 1) === 1 && (y & 1) === 1);
+  return ((x & 1) ^ (y & 1)) === 0;   // 50% bàn cờ
+}
+
 export function put(data,x,y,col){
   if(!inside(x,y)) return;
   const i=idx(x,y);
@@ -80,7 +87,7 @@ export function put(data,x,y,col){
   if(view.sel && !inSel(x,y)) return;            // có vùng chọn thì chỉ vẽ trong vùng
   if(typeof col!=='function'){ data[i]=col; return; }
   if(strokeSeen){ if(strokeSeen.has(i)) return; strokeSeen.add(i); }
-  data[i]=col(data[i]);
+  data[i]=col(data[i], x, y);
 }
 export function stamp(data,x,y,col){
   const b=view.brushEff||view.brush, o=Math.floor((b-1)/2);

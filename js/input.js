@@ -7,13 +7,14 @@ import { syncColors, paintSwatches, shadeStep } from './palette.js';
 import { markToday } from './daily.js';
 import { paintThumbs } from './frames.js';
 import { syncFingerBtn } from './tools.js';
-import { inside, normSel, stamp, lineStamp, rectStamp, ellipseStamp, floodFill,
-         shiftLayer, pixelAt, preview, setPreview, setStrokeSeen } from './raster.js';
+import { inside, idx, put, normSel, stamp, lineStamp, rectStamp, ellipseStamp, floodFill,
+         shiftLayer, pixelAt, preview, setPreview, setStrokeSeen, isDitherHit } from './raster.js';
 
 /* ---------------- chuột / cảm ứng ---------------- */
 let drawing=false, start=null, last=null, moveBase=null, strokeTool='pencil';
 const pointers=new Map();
 let penSeen=false, gesture=null, panning=null;
+let pixelPerfectHistory=[];
 
 function posFrom(e){
   const r=board.getBoundingClientRect();
@@ -23,6 +24,49 @@ function posFrom(e){
     x: clamp(Math.floor((e.clientX-r.left)/(cw/doc.w)), doc.w),
     y: clamp(Math.floor((e.clientY-r.top)/(ch/doc.h)), doc.h)
   };
+}
+
+/* --- Pixel-Perfect Line (khử góc L / nét đôi 2px) --- */
+function stepPixelPerfect(x, y, col, data){
+  if(!inside(x, y)) return;
+  const i = idx(x, y);
+  const n = pixelPerfectHistory.length;
+  if(n >= 1 && pixelPerfectHistory[n-1].x === x && pixelPerfectHistory[n-1].y === y) return;
+
+  if(n >= 2){
+    const A = pixelPerfectHistory[n-2];
+    const B = pixelPerfectHistory[n-1];
+    const C = {x, y};
+    if(Math.abs(C.x - A.x) === 1 && Math.abs(C.y - A.y) === 1){
+      if((A.x === B.x && B.y === C.y) || (A.y === B.y && B.x === C.x)){
+        data[idx(B.x, B.y)] = B.prev;
+        if(view.mirX) data[idx(doc.w - 1 - B.x, B.y)] = B.prevMirX;
+        if(view.mirY) data[idx(B.x, doc.h - 1 - B.y)] = B.prevMirY;
+        if(view.mirX && view.mirY) data[idx(doc.w - 1 - B.x, doc.h - 1 - B.y)] = B.prevMirXY;
+        pixelPerfectHistory.pop();
+      }
+    }
+  }
+
+  const prev = data[i];
+  const prevMirX = view.mirX ? data[idx(doc.w - 1 - x, y)] : 0;
+  const prevMirY = view.mirY ? data[idx(x, doc.h - 1 - y)] : 0;
+  const prevMirXY = (view.mirX && view.mirY) ? data[idx(doc.w - 1 - x, doc.h - 1 - y)] : 0;
+
+  stamp(data, x, y, col);
+  pixelPerfectHistory.push({x, y, prev, prevMirX, prevMirY, prevMirXY});
+}
+
+function linePixelPerfect(data, x0, y0, x1, y1, col){
+  let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+  let sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx - dy;
+  for(;;){
+    stepPixelPerfect(x0, y0, col, data);
+    if(x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if(e2 > -dy){ err -= dy; x0 += sx; }
+    if(e2 < dx){ err += dx; y0 += sy; }
+  }
 }
 
 /* --- S-Pen --- */
@@ -51,7 +95,7 @@ function hudText(p){
 }
 function cancelStroke(){
   if(!drawing) return;
-  drawing=false; setPreview(null); moveBase=null; setStrokeSeen(null);
+  drawing=false; setPreview(null); moveBase=null; setStrokeSeen(null); pixelPerfectHistory=[];
   undo();                                // huỷ nét lỡ tay khi chuyển sang thao tác 2 ngón
 }
 
@@ -81,7 +125,12 @@ board.addEventListener('pointerdown', e=>{
   if(strokeTool==='picker'){ pick(p); drawing=false; return; }
   if(strokeTool==='select'){ view.sel=null; render(); return; }   // kéo tiếp mới thành vùng
   pushUndo();
-  if(strokeTool==='pencil' || strokeTool==='shade'){ stamp(activeData(),p.x,p.y,col); }
+
+  if(strokeTool==='pencil' && view.pixelPerfect && (view.brushEff||view.brush)===1){
+    pixelPerfectHistory = [];
+    stepPixelPerfect(p.x, p.y, col, activeData());
+  }
+  else if(strokeTool==='pencil' || strokeTool==='shade' || strokeTool==='dither'){ stamp(activeData(),p.x,p.y,col); }
   else if(strokeTool==='eraser'){ stamp(activeData(),p.x,p.y,0); }
   else if(strokeTool==='fill'){ floodFill(activeData(),p.x,p.y,col); drawing=false; }
   else if(strokeTool==='move'){ moveBase = activeData().slice(); }
@@ -90,23 +139,81 @@ board.addEventListener('pointerdown', e=>{
 });
 
 function strokeColor(e){
-  // chiều mặc định đặt ở nút Tô khối (chạm giữ để đổi); nút bên S-Pen / chuột phải thì lật ngược lại
   if(strokeTool==='shade'){ const d = penAlt(e) ? -view.shadeDir : view.shadeDir; return v=>shadeStep(v, d); }
+  if(strokeTool==='dither'){
+    const cPri = penAlt(e) ? view.sec : view.pri;
+    const cSec = penAlt(e) ? view.pri : view.sec;
+    const pat = view.ditherPattern;
+    const mode = view.ditherMode;
+    return (prev, x, y) => isDitherHit(x, y, pat) ? cPri : (mode === 'alpha' ? prev : cSec);
+  }
   return penAlt(e) ? view.sec : view.pri;
 }
-function applyStroke(p, col){
+
+function constrainPoint(start, p, e, t){
+  if(!e || !e.shiftKey) return p;
+  const dx = p.x - start.x, dy = p.y - start.y;
+  if(t === 'rect' || t === 'rectf' || t === 'ellipse' || t === 'ellipsef'){
+    const s = Math.max(Math.abs(dx), Math.abs(dy));
+    return {
+      x: start.x + (dx >= 0 ? s : -s),
+      y: start.y + (dy >= 0 ? s : -s)
+    };
+  }
+  if(t === 'line'){
+    const adx = Math.abs(dx), ady = Math.abs(dy);
+    if(adx > 2 * ady) return { x: p.x, y: start.y };
+    if(ady > 2 * adx) return { x: start.x, y: p.y };
+    const s = Math.round((adx + ady) / 2);
+    return {
+      x: start.x + (dx >= 0 ? s : -s),
+      y: start.y + (dy >= 0 ? s : -s)
+    };
+  }
+  return p;
+}
+
+function applyStroke(rawP, col, e){
   const t=strokeTool;
-  if(t==='select'){ view.sel=normSel(start.x,start.y,p.x,p.y); return; }
-  if(t==='pencil' || t==='shade'){ lineStamp(activeData(),last.x,last.y,p.x,p.y,col); last=p; }
+  const p = constrainPoint(start, rawP, e, t);
+
+  if(t==='select'){
+    view.sel=normSel(start.x,start.y,p.x,p.y);
+    const w = Math.abs(p.x - start.x) + 1, h = Math.abs(p.y - start.y) + 1;
+    $('#hud').textContent = `⬚ ${w}×${h} px   •   ${p.x}, ${p.y}`;
+    return;
+  }
+  if(t==='pencil' && view.pixelPerfect && (view.brushEff||view.brush)===1){
+    linePixelPerfect(activeData(),last.x,last.y,p.x,p.y,col);
+    last=p;
+  }
+  else if(t==='pencil' || t==='shade' || t==='dither'){ lineStamp(activeData(),last.x,last.y,p.x,p.y,col); last=p; }
   else if(t==='eraser'){ lineStamp(activeData(),last.x,last.y,p.x,p.y,0); last=p; }
   else if(t==='move'){ const d=activeData(); d.set(moveBase); shiftLayer(d,p.x-start.x,p.y-start.y); }
   else if(preview){
     preview.data.set(activeData());
-    if(t==='line') lineStamp(preview.data,start.x,start.y,p.x,p.y,col);
-    if(t==='rect') rectStamp(preview.data,start.x,start.y,p.x,p.y,col,false);
-    if(t==='rectf') rectStamp(preview.data,start.x,start.y,p.x,p.y,col,true);
-    if(t==='ellipse') ellipseStamp(preview.data,start.x,start.y,p.x,p.y,col,false);
-    if(t==='ellipsef') ellipseStamp(preview.data,start.x,start.y,p.x,p.y,col,true);
+    const w = Math.abs(p.x - start.x) + 1, h = Math.abs(p.y - start.y) + 1;
+    if(t==='line'){
+      lineStamp(preview.data,start.x,start.y,p.x,p.y,col);
+      const len = Math.round(Math.hypot(p.x - start.x, p.y - start.y));
+      $('#hud').textContent = `／ ${len} px   •   ${p.x}, ${p.y}`;
+    }
+    if(t==='rect'){
+      rectStamp(preview.data,start.x,start.y,p.x,p.y,col,false);
+      $('#hud').textContent = `▭ ${w}×${h} px   •   ${p.x}, ${p.y}`;
+    }
+    if(t==='rectf'){
+      rectStamp(preview.data,start.x,start.y,p.x,p.y,col,true);
+      $('#hud').textContent = `▬ ${w}×${h} px   •   ${p.x}, ${p.y}`;
+    }
+    if(t==='ellipse'){
+      ellipseStamp(preview.data,start.x,start.y,p.x,p.y,col,false);
+      $('#hud').textContent = `◯ ${w}×${h} px   •   ${p.x}, ${p.y}`;
+    }
+    if(t==='ellipsef'){
+      ellipseStamp(preview.data,start.x,start.y,p.x,p.y,col,true);
+      $('#hud').textContent = `⬤ ${w}×${h} px   •   ${p.x}, ${p.y}`;
+    }
   }
 }
 
@@ -136,7 +243,7 @@ board.addEventListener('pointermove', e=>{
   const p=posFrom(e);
   hudText(p);
   if(!drawing){
-    if(e.pointerType==='pen' && !e.buttons){        // S-Pen rê trên mặt kính
+    if((e.pointerType==='pen' && !e.buttons) || e.pointerType==='mouse'){
       view.brushEff=view.brush; view.hover=p; render();
     }
     return;
@@ -144,11 +251,11 @@ board.addEventListener('pointermove', e=>{
   const col = strokeColor(e);
   const list = (e.getCoalescedEvents ? e.getCoalescedEvents() : null);
   const evs = (list && list.length) ? list : [e];
-  if(strokeTool==='pencil' || strokeTool==='eraser' || strokeTool==='shade'){
-    evs.forEach(ev=>{ view.brushEff=effBrush(ev); applyStroke(posFrom(ev), col); });
+  if(strokeTool==='pencil' || strokeTool==='eraser' || strokeTool==='shade' || strokeTool==='dither'){
+    evs.forEach(ev=>{ view.brushEff=effBrush(ev); applyStroke(posFrom(ev), col, ev); });
   }else{
     view.brushEff=effBrush(e);
-    applyStroke(p, col);
+    applyStroke(p, col, e);
   }
   render();
 });
@@ -161,7 +268,7 @@ function endStroke(e){
     else panning=null;
   }
   if(!drawing) return;
-  drawing=false; setStrokeSeen(null);
+  drawing=false; setStrokeSeen(null); pixelPerfectHistory=[];
   // chạm một cái bằng dụng cụ chọn = bỏ chọn
   if(strokeTool==='select' && view.sel && view.sel.w===1 && view.sel.h===1) view.sel=null;
   if(preview){ activeData().set(preview.data); setPreview(null); }
