@@ -582,8 +582,39 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   display:grid;place-items:center;touch-action:pan-x pan-y;
 }
 #mapCv{
-  image-rendering:pixelated;display:block;cursor:pointer;
+  image-rendering:pixelated;display:block;cursor:crosshair;
   box-shadow:0 8px 30px rgba(0,0,0,.5);
+}
+/* ---------- thanh khay chọn tile (map tilebar) ---------- */
+.maptilebar{
+  display:flex;align-items:center;gap:8px;flex:0 0 auto;
+  padding:6px 14px;background:var(--panel-2);border-bottom:1px solid var(--line);
+  overflow-x:auto;overflow-y:hidden;
+}
+.maptile-tools{display:flex;align-items:center;gap:4px;flex:0 0 auto}
+.maptile-scroll{
+  display:flex;align-items:center;gap:6px;flex:1 1 auto;overflow-x:auto;overflow-y:hidden;
+  padding:2px 0;scrollbar-width:thin;
+}
+.maptile-item{
+  flex:0 0 auto;width:32px;height:32px;border:1px solid var(--line);border-radius:2px;
+  background:var(--demo-bg);display:grid;place-items:center;cursor:pointer;
+  position:relative;padding:1px;transition:border-color .15s, transform .1s;
+}
+.maptile-item:hover{border-color:var(--dim);transform:translateY(-1px)}
+.maptile-item.active{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber);background:var(--panel)}
+.maptile-item canvas{image-rendering:pixelated;display:block;max-width:100%;max-height:100%}
+.maptile-item .badge{
+  position:absolute;right:1px;bottom:1px;font-family:var(--mono);font-size:8px;line-height:1;
+  color:#fff;background:rgba(0,0,0,.7);padding:1px 2px;border-radius:2px;pointer-events:none;
+}
+.mappinned-box{
+  display:flex;align-items:center;gap:5px;flex:0 0 auto;
+  padding:3px 6px;border:1px solid var(--amber);border-radius:2px;background:var(--panel);
+}
+.mappinned-box canvas{
+  image-rendering:pixelated;display:block;width:24px;height:24px;
+  background:var(--demo-bg);border:1px solid var(--line);
 }
 @media (max-width:1000px){
   .atbar{padding:8px 12px}
@@ -591,6 +622,8 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   .atbar input[type=number]{min-height:38px;font-size:16px}
   .atview{padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
   .mapview{padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  .maptilebar{padding:6px 10px}
+  .maptile-item{width:36px;height:36px}
 }
 /* Thanh nhắc ngữ cảnh: nằm riêng một hàng, không nhét vào stagebar cuộn ngang
    — trên điện thoại nút quan trọng mà phải kéo mới thấy thì coi như không có. */

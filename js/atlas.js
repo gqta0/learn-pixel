@@ -23,6 +23,7 @@ let editing=null;    // {x,y,w,h} vùng pixel đang được mượn ra doc
 let zoom=2, extend=false;
 
 export function hasAtlas(){ return !!atlas; }
+export function getAtlas(){ return atlas; }
 export function editingRect(){ return editing; }
 
 /* ---------------- lưới ---------------- */

@@ -9,7 +9,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 **Trình vẽ**
 - Khổ chữ nhật tuỳ ý tới 128×128, 12 dụng cụ (bút, xoá, tô loang, hút màu, đường, chữ nhật, ê-líp, dịch lớp, **tô khối theo dải**, **chọn vùng**), gương X/Y, lật ngang/dọc, **khoá alpha**.
 - Nhiều lớp (đổi được thứ tự chồng), nhiều khung hình, **thời lượng riêng cho từng khung**, bóng khung trước và sau (onion skin), xem trước lặp 3×3 cho tile.
-- **Soi bản đồ hang động (Map Preview 24×16)**: cửa sổ xem trước lắp ghép tile thành lát cắt hang động chuẩn theo đặc tả genesis.tileset.preview.v1, hỗ trợ autotile blob 47 ô & biến thể lòng hang, đục/đắp khối trực tiếp bằng chuột, kiểm tra khớp nối (seams) và tính lặp lại.
+- **Soi bản đồ hang động (Map Preview 24×16)**: cửa sổ xem trước và thử nghiệm bản đồ chuẩn theo đặc tả `genesis.tileset.preview.v1`, hỗ trợ autotile blob 47 ô & biến thể lòng hang, **khay chọn & vẽ trực tiếp các tile đang có** (Atlas, Thư viện bản vẽ, Canvas) bằng thao tác kéo rê chuột (Bresenham drag), **tạm giữ mẫu (Snapshot)**, **so sánh nhấp nháy A/B (Flicker compare - phím Space)**, **bóng ma đối chiếu (Ghost overlay)** và ghim tile đối chiếu.
 - Cắt / chép / dán vùng chọn giữa mọi lớp và khung.
 - Hoàn tác 80 bước. Hỗ trợ S-Pen: áp lực → cỡ bút, nút bên = màu phụ, hai ngón để kéo/phóng.
 

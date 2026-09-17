@@ -193,3 +193,6 @@ export function exportContactSheet(){
   download('bang-lien-hoan_'+ids.length+'-buc.png', sheet.toDataURL('image/png'));
   return ids.length;
 }
+
+export function getLibraryItems(){ read(); return items; }
+export function renderLibraryProject(p){ return renderProject(p); }

@@ -362,6 +362,7 @@
     <div class="libbar">
       <p class="eyebrow" style="margin:0;flex:1">Soi bản đồ hang động (Map Preview 24×16)</p>
       <button class="btn tiny" id="mapReset" title="Khôi phục lát cắt hang động chuẩn">↺ Đặt lại hang</button>
+      <button class="btn tiny" id="mapClearAll" title="Xoá sạch toàn bộ bản đồ về rỗng">🗑 Xoá trắng</button>
       <button class="btn tiny" id="mapPng" title="Xuất ảnh bản đồ thành file PNG">⬇ PNG</button>
       <button class="btn tiny" id="mapClose">✕ Đóng</button>
     </div>
@@ -383,13 +384,34 @@
       <button class="btn tiny" id="mapZoomOut">−</button>
       <span class="kbd" id="mapZoomLbl" style="min-width:32px;text-align:center">×2</span>
       <button class="btn tiny" id="mapZoomIn">+</button>
-      <span class="kbd" id="mapInfo" style="flex:1;min-width:0"></span>
+      <span class="sep"></span>
+      <button class="btn tiny" id="mapSnapBtn" title="Chụp lưu ảnh bản đồ hiện tại để đối chiếu (Snapshot)">📸 Giữ mẫu</button>
+      <button class="btn tiny" id="mapDiffBtn" title="Nhấp hoặc giữ để chớp mắt soi giữa bản hiện tại và mẫu đã chụp (Flicker compare)">👁 Soi mẫu cũ</button>
+      <button class="btn tiny" id="mapGhostBtn" title="Bật / tắt bóng ma mẫu cũ chồng mờ lên bản hiện tại">◍ Bóng ma</button>
+      <input type="range" id="mapGhostRange" min="10" max="90" value="40" style="width:54px" title="Độ mờ bóng ma đối chiếu">
+      <span class="kbd" id="mapGhostLbl" style="min-width:28px">40%</span>
+      <span class="kbd" id="mapSnapBadge" style="color:var(--amber);margin-left:4px" hidden>● Đã ghim mẫu</span>
+      <span class="kbd" id="mapInfo" style="margin-left:auto;min-width:0;text-align:right"></span>
+    </div>
+    <div class="maptilebar" id="mapTileBar">
+      <div class="maptile-tools">
+        <button class="btn tiny on" id="mapBrushAuto" title="Cọ Autotile: đặt khối địa hình tự khớp viền 47 ô">🏔️ Auto</button>
+        <button class="btn tiny" id="mapBrushErase" title="Cọ Tẩy: xoá ô về rỗng (nhấp chuột phải cũng xoá được)">🧹 Tẩy</button>
+      </div>
+      <span class="sep"></span>
+      <span class="kbd" style="font-size:10.5px;flex:0 0 auto">Khay Tile:</span>
+      <div class="maptile-scroll" id="mapTileList" title="Chọn một tile để vẽ tay lên bản đồ"></div>
+      <div class="mappinned-box" id="mapPinnedBox" title="Tile đối chiếu đang ghim" hidden>
+        <span class="kbd" style="font-size:9.5px">Mẫu:</span>
+        <canvas id="mapPinnedCv" width="16" height="16"></canvas>
+      </div>
     </div>
     <div class="mapview" id="mapViewArea">
       <canvas id="mapCv"></canvas>
     </div>
-    <p class="kbd" style="margin:0;padding:8px 14px;border-top:1px solid var(--line)">
-      Bấm chuột lên bản đồ để đục hang hoặc đặt thêm khối đất/đá. Hỗ trợ autotile 47 ô & biến thể lòng hang khi nạp atlas.
+    <p class="kbd" id="mapFootHint" style="margin:0;padding:8px 14px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span>Kéo rê chuột để vẽ liên tục · Chuột phải để xoá ô · Giữ phím Space để chớp mắt soi mẫu cũ.</span>
+      <span id="mapStatusNote" style="color:var(--dim)"></span>
     </p>
   </div>
 
