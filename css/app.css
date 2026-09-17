@@ -577,11 +577,20 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 }
 #atCv{image-rendering:pixelated;display:block;cursor:crosshair;
       background:repeating-conic-gradient(var(--line) 0 25%, transparent 0 50%) 0 0/16px 16px}
+.mapview{
+  flex:1 1 auto;overflow:auto;padding:14px;background:var(--demo-bg);
+  display:grid;place-items:center;touch-action:pan-x pan-y;
+}
+#mapCv{
+  image-rendering:pixelated;display:block;cursor:pointer;
+  box-shadow:0 8px 30px rgba(0,0,0,.5);
+}
 @media (max-width:1000px){
   .atbar{padding:8px 12px}
   .atbar .btn{min-height:38px}
   .atbar input[type=number]{min-height:38px;font-size:16px}
   .atview{padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  .mapview{padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
 }
 /* Thanh nhắc ngữ cảnh: nằm riêng một hàng, không nhét vào stagebar cuộn ngang
    — trên điện thoại nút quan trọng mà phải kéo mới thấy thì coi như không có. */

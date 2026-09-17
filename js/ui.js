@@ -21,6 +21,7 @@ import { closePopup } from './popup.js';
 import { openLibrary, closeLibrary, saveCurrent, isBlank, exportContactSheet } from './library.js';
 import { paintDaily, goToNext } from './daily.js';
 import { bindAtlas, importAtlas, syncBar as syncAtlasBar } from './atlas.js';
+import { openMapView, bindMapView } from './mapview.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
 /* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ */
@@ -291,6 +292,12 @@ $('#expJson').addEventListener('click', exportJson);
 $('#impJson').addEventListener('change', e=>{ if(e.target.files[0]) importJson(e.target.files[0]); });
 
 bindAtlas();
+bindMapView();
+const mapPrevBtn = $('#mapPrevBtn');
+if(mapPrevBtn) mapPrevBtn.addEventListener('click', () => openMapView());
+const atMapPrev = $('#atMapPrev');
+if(atMapPrev) atMapPrev.addEventListener('click', () => openMapView('atlas'));
+
 /* Kéo thả thẳng vào trang: .json là dự án, ảnh là tấm atlas. */
 ['dragover','drop'].forEach(t=>window.addEventListener(t, e=>{
   e.preventDefault();
@@ -320,7 +327,13 @@ window.addEventListener('keydown', e=>{
     return;
   }
   if(e.ctrlKey||e.metaKey) return;
-  if(k==='escape'){ if(closePopup()) return; view.sel=null; render(); return; }   // đóng bảng chọn trước, bỏ vùng chọn sau
+  if(k==='escape'){
+    if(closePopup()) return;
+    const mw=$('#mapWrap'); if(mw && !mw.hidden){ mw.hidden=true; return; }
+    const aw=$('#atlasWrap'); if(aw && !aw.hidden){ aw.hidden=true; return; }
+    const lw=$('#libWrap'); if(lw && !lw.hidden){ lw.hidden=true; return; }
+    view.sel=null; render(); return;
+  }   // đóng bảng chọn trước, bỏ vùng chọn sau
   if(k==='delete'||k==='backspace'){ e.preventDefault(); $('#selDel').click(); return; }
   const map={b:'pencil',d:'dither',e:'eraser',g:'fill',i:'picker',l:'line',u:'rect',o:'ellipse',m:'move',s:'shade',a:'select'};
   if(map[k]){ setTool(map[k]); return; }

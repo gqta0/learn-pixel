@@ -118,6 +118,7 @@
         <div class="sep"></div>
         <button class="btn tiny" id="gridBtn" aria-pressed="true">▦ Lưới</button>
         <button class="btn tiny" id="onionBtn" aria-pressed="false">◍ Bóng khung trước</button>
+        <button class="btn tiny" id="mapPrevBtn" title="Xem thử tile lắp ghép thành bản đồ hang động 24×16">🗺 Soi map</button>
         <details class="more"><summary class="btn tiny">⋯ Thêm</summary>
           <div class="morebox">
             <button class="btn tiny" id="symLine" aria-pressed="false">┊ Trục giữa</button>
@@ -333,6 +334,7 @@
       <label class="btn tiny filelabel">Nạp ảnh…<input type="file" id="atFile" accept="image/*"></label>
       <button class="btn tiny" id="atForget" title="Bỏ tấm này khỏi trình duyệt">✕ Bỏ tấm</button>
       <button class="btn tiny" id="atPng" title="Xuất lại tấm atlas 1:1 để cắm vào engine">⬇ PNG</button>
+      <button class="btn tiny" id="atMapPrev" title="Soi tilesheet trên bản đồ hang động 24×16">🗺 Xem map</button>
       <button class="btn tiny primary" id="atEdit" disabled>✎ Sửa ô đã chọn</button>
       <button class="btn tiny" id="atClose">✕ Đóng</button>
     </div>
@@ -354,6 +356,41 @@
     </div>
     <div class="atview"><canvas id="atCv"></canvas></div>
     <p class="kbd" id="atNote" style="margin:0;padding:8px 14px;border-top:1px solid var(--line)"></p>
+  </div>
+
+  <div class="libwrap" id="mapWrap" hidden>
+    <div class="libbar">
+      <p class="eyebrow" style="margin:0;flex:1">Soi bản đồ hang động (Map Preview 24×16)</p>
+      <button class="btn tiny" id="mapReset" title="Khôi phục lát cắt hang động chuẩn">↺ Đặt lại hang</button>
+      <button class="btn tiny" id="mapPng" title="Xuất ảnh bản đồ thành file PNG">⬇ PNG</button>
+      <button class="btn tiny" id="mapClose">✕ Đóng</button>
+    </div>
+    <div class="atbar">
+      <label class="mini">Nguồn</label>
+      <select id="mapSrcSel">
+        <option value="auto" selected>Tự động (Atlas hoặc bản vẽ)</option>
+        <option value="canvas">Bản vẽ hiện tại</option>
+        <option value="atlas">Atlas / Tilesheet</option>
+      </select>
+      <label class="mini">Nền</label>
+      <select id="mapBgSel">
+        <option value="cave" selected>Hang tối (#0d171f)</option>
+        <option value="sky">Bầu trời</option>
+        <option value="checker">Trong suốt</option>
+      </select>
+      <span class="sep"></span>
+      <button class="btn tiny on" id="mapGridBtn" title="Bật / tắt lưới ô tile">▦ Lưới</button>
+      <button class="btn tiny" id="mapZoomOut">−</button>
+      <span class="kbd" id="mapZoomLbl" style="min-width:32px;text-align:center">×2</span>
+      <button class="btn tiny" id="mapZoomIn">+</button>
+      <span class="kbd" id="mapInfo" style="flex:1;min-width:0"></span>
+    </div>
+    <div class="mapview" id="mapViewArea">
+      <canvas id="mapCv"></canvas>
+    </div>
+    <p class="kbd" style="margin:0;padding:8px 14px;border-top:1px solid var(--line)">
+      Bấm chuột lên bản đồ để đục hang hoặc đặt thêm khối đất/đá. Hỗ trợ autotile 47 ô & biến thể lòng hang khi nạp atlas.
+    </p>
   </div>
 
   <nav class="mnav" id="mnav">
