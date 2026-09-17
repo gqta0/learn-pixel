@@ -11,7 +11,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 - Nhiều lớp (đổi được thứ tự chồng), nhiều khung hình, **thời lượng riêng cho từng khung**, bóng khung trước và sau (onion skin), xem trước lặp 3×3 cho tile.
 - **Soi bản đồ hang động (Map Preview 24×16)**: cửa sổ xem trước và thử nghiệm bản đồ chuẩn theo đặc tả `genesis.tileset.preview.v1`, hỗ trợ autotile blob 47 ô & biến thể lòng hang, **khay chọn & vẽ trực tiếp các tile đang có** (Atlas, Thư viện bản vẽ, Canvas) bằng thao tác kéo rê chuột (Bresenham drag), **tạm giữ mẫu (Snapshot)**, **so sánh nhấp nháy A/B (Flicker compare - phím Space)**, **bóng ma đối chiếu (Ghost overlay)** và ghim tile đối chiếu.
 - Cắt / chép / dán vùng chọn giữa mọi lớp và khung.
-- Hoàn tác 80 bước. Hỗ trợ S-Pen: áp lực → cỡ bút, nút bên = màu phụ, hai ngón để kéo/phóng.
+- Hoàn tác 80 bước. Tối ưu trải nghiệm S-Pen & cảm ứng cho Galaxy S22 Ultra & Galaxy Tab S10 FE: tuỳ chọn chức năng nút bấm S-Pen (Màu phụ / Cục tẩy tức thì / Hút màu tức thì), tự động chống chạm nhầm tay (Palm Rejection) không bị khoá cứng khi bật vẽ ngón, cử chỉ 2 ngón phóng/kéo mượt mà với bộ đệm chống nét vẽ lạc (140ms cooldown), thanh màu nhanh (Quick Palette Popover) ngay trên canvas, và bố cục 3 cột chuyên nghiệp chuẩn Workstation cho Tablet landscape (1001px-1280px) cùng ngăn kéo trượt thông minh cho Tablet portrait.
 
 **Màu**
 - Panel sinh dải màu lệch tông theo **chất liệu** (kim loại, gỗ, đá, da người, lá, vải, thuỷ tinh, vàng, lửa).

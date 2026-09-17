@@ -9,7 +9,7 @@ import { render, fitZoom, setZoom } from './render.js';
 import { paintThumbs, paintPreview, togglePlay } from './frames.js';
 import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.js';
 import { PALETTES, palette, setPalette, paintSwatches, paintRamp, syncColors, rampCols,
-         attachPalettePopup, palByName, isUserPal, savePaletteAs, deleteUserPal,
+         attachPalettePopup, openQuickPalette, palByName, isUserPal, savePaletteAs, deleteUserPal,
          fillPalSelect, addCurrentColor, sortPalette, prunePalette, paletteFromArt } from './palette.js';
 import { setTool, setTheme, setView, syncFingerBtn, syncPixelPerfectBtn, attachMods } from './tools.js';
 import { SAVE_KEY, exportPng, exportSheet, exportPalettePng, exportJson, importJson,
@@ -83,11 +83,21 @@ $('#pressBtn').addEventListener('click', e=>{
 function toggleFinger(){ view.fingerMode = view.fingerMode==='pan' ? 'draw' : 'pan'; syncFingerBtn(); }
 $('#fingerBtn').addEventListener('click', toggleFinger);
 $('#fingerBtn2').addEventListener('click', toggleFinger);
+
+const penActionEl = $('#penBtnAction');
+if(penActionEl){
+  penActionEl.value = view.penButton || 'sec';
+  penActionEl.addEventListener('change', e=>{
+    view.penButton = e.target.value;
+    try{ localStorage.setItem('lo-pixel-pen-btn', view.penButton); }catch(_){}
+  });
+}
+
 $('#qbUndo').addEventListener('click', undo);
-$('#qbColor').addEventListener('click', ()=>setView('tools'));
+$('#qbColor').addEventListener('click', ()=>openQuickPalette($('#qbColor'), ()=>setView('tools')));
 $$('.quickbar .qb[data-q]').forEach(b=>{ b.addEventListener('click', ()=>setTool(b.dataset.q)); attachMods(b, b.dataset.q); });
-attachPalettePopup($('#qbColor'));
-attachPalettePopup($('#chipPri'));
+attachPalettePopup($('#qbColor'), ()=>setView('tools'));
+attachPalettePopup($('#chipPri'), ()=>setView('tools'));
 $$('#mnav button').forEach(b=>b.addEventListener('click', ()=>setView(b.dataset.view)));
 
 const palGrp = $('#palGroup');

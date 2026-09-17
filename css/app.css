@@ -198,13 +198,19 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   position:fixed;z-index:60;padding:8px;border-radius:4px;
   background:var(--panel);border:1px solid var(--line-hi);
   box-shadow:0 10px 28px rgba(0,0,0,.45);
+  max-height:calc(100vh - 24px);overflow-y:auto;
+  -webkit-overflow-scrolling:touch;scrollbar-width:thin;
 }
 .poptitle{
   margin:0 0 7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
   text-transform:uppercase;color:var(--dim);
 }
-.popitems{display:flex;flex-wrap:wrap;gap:5px;max-width:236px}
+.popitems{display:flex;flex-wrap:wrap;gap:5px;max-width:250px}
 .popitems .btn{min-width:40px;justify-content:center}
+.popitems .btn:not(.popcol){
+  width:100%;min-height:36px;text-align:left;padding:6px 10px;
+  font-size:12px;justify-content:flex-start;margin-bottom:2px;
+}
 .popcol{
   width:32px;height:32px;padding:0;border:1px solid rgba(0,0,0,.4);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
@@ -313,17 +319,17 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 .extrap{color:var(--rose);font-size:12.5px}
 .exbtns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 
-
-/* thẻ chỉ đường lần đầu mở app */
-.onboard{background:var(--note-bg);border-bottom:1px solid var(--accent-bd)}
-.onboard li{margin:4px 0;font-size:13px}
-/* kết quả soi nhanh ngay dưới bài vừa tích xong */
-.exlint{margin:6px 0 0;font-size:12.5px;color:var(--rose)}
-.exlint:first-letter{font-size:14px}
-.ex.done .exlint{color:var(--leaf)}
-/* nháy nhẹ khi nhảy tới bài tiếp theo, để mắt bắt được chỗ vừa cuộn đến */
-@keyframes flash{0%{background:var(--accent-bg)}100%{background:transparent}}
-.ex.flash{animation:flash 1.2s ease-out}
+
+/* thẻ chỉ đường lần đầu mở app */
+.onboard{background:var(--note-bg);border-bottom:1px solid var(--accent-bd)}
+.onboard li{margin:4px 0;font-size:13px}
+/* kết quả soi nhanh ngay dưới bài vừa tích xong */
+.exlint{margin:6px 0 0;font-size:12.5px;color:var(--rose)}
+.exlint:first-letter{font-size:14px}
+.ex.done .exlint{color:var(--leaf)}
+/* nháy nhẹ khi nhảy tới bài tiếp theo, để mắt bắt được chỗ vừa cuộn đến */
+@keyframes flash{0%{background:var(--accent-bg)}100%{background:transparent}}
+.ex.flash{animation:flash 1.2s ease-out}
 @media (prefers-reduced-motion:reduce){ .ex.flash{animation:none;background:var(--accent-bg)} }
 
 /* ---------- lý thuyết ---------- */
@@ -363,40 +369,40 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 .demo.sm figcaption{font-size:9px;letter-spacing:.04em;text-transform:none;line-height:1.3}
 .exart{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:8px 0 0}
 
-
-/* ---------- thư viện bản vẽ ---------- */
-.libwrap{
-  position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;
-  background:var(--ink);
-}
-.libwrap[hidden]{display:none}
-.libbar{
-  display:flex;align-items:center;gap:8px;flex:0 0 auto;
-  padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line);
-}
-.libgrid{
-  flex:1 1 auto;overflow-y:auto;padding:14px;display:grid;gap:14px;
-  grid-template-columns:repeat(auto-fill,minmax(132px,1fr));align-content:start;
-}
-.libitem{
-  background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:8px;
-  display:flex;flex-direction:column;gap:5px;
-}
-.libitem.on{border-color:var(--amber)}
-.libthumb{
-  background:var(--demo-bg);border:1px solid var(--line);border-radius:2px;
-  padding:6px;display:grid;place-items:center;min-height:104px;
-}
-.libthumb canvas{image-rendering:pixelated;display:block;max-width:100%;height:auto}
-.libname{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.libmeta{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.05em}
-.librow{display:flex;gap:5px;margin-top:2px}
-.librow .btn{flex:1;justify-content:center}
-@media (max-width:1000px){
-  .libgrid{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));padding:12px;gap:12px;
-           padding-bottom:calc(12px + env(safe-area-inset-bottom))}
-  .libbar{padding-top:calc(10px + env(safe-area-inset-top))}
-  .librow .btn{min-height:44px}
+
+/* ---------- thư viện bản vẽ ---------- */
+.libwrap{
+  position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;
+  background:var(--ink);
+}
+.libwrap[hidden]{display:none}
+.libbar{
+  display:flex;align-items:center;gap:8px;flex:0 0 auto;
+  padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line);
+}
+.libgrid{
+  flex:1 1 auto;overflow-y:auto;padding:14px;display:grid;gap:14px;
+  grid-template-columns:repeat(auto-fill,minmax(132px,1fr));align-content:start;
+}
+.libitem{
+  background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:8px;
+  display:flex;flex-direction:column;gap:5px;
+}
+.libitem.on{border-color:var(--amber)}
+.libthumb{
+  background:var(--demo-bg);border:1px solid var(--line);border-radius:2px;
+  padding:6px;display:grid;place-items:center;min-height:104px;
+}
+.libthumb canvas{image-rendering:pixelated;display:block;max-width:100%;height:auto}
+.libname{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.libmeta{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.05em}
+.librow{display:flex;gap:5px;margin-top:2px}
+.librow .btn{flex:1;justify-content:center}
+@media (max-width:1000px){
+  .libgrid{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));padding:12px;gap:12px;
+           padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  .libbar{padding-top:calc(10px + env(safe-area-inset-top))}
+  .librow .btn{min-height:44px}
 }
 
 /* ---------- lớp + xuất ---------- */
@@ -415,12 +421,15 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 .filelabel{display:block}
 .filelabel input{display:none}
 
-@media (max-width:1180px) and (min-width:1001px){
-  body{overflow:auto}
-  .workspace{grid-template-columns:1fr;height:auto}
-  .col{max-height:none;border:0;border-top:1px solid var(--line)}
-  .canvaswrap{padding:14px}
-  .stage{order:-1}
+/* Tablet chế độ ngang (Galaxy Tab S10 FE, 1001px - 1280px): giữ nguyên không gian làm việc 3 cột chuyên nghiệp */
+@media (max-width:1280px) and (min-width:1001px){
+  body{overflow:hidden}
+  .workspace{grid-template-columns:190px minmax(0,1fr) 330px;height:100%}
+  .col{min-height:0;overflow-y:auto;border-top:0}
+  .canvaswrap{padding:12px}
+  .block{padding:10px}
+  .tools{grid-template-columns:repeat(3,1fr);gap:5px}
+  .swatches{grid-template-columns:repeat(7,1fr);gap:4px}
 }
 /* ---------- thanh nhanh cạnh canvas + nav dưới (chỉ mobile) ---------- */
 .quickbar{display:none;position:absolute;right:8px;top:8px;bottom:8px;z-index:15;
@@ -458,8 +467,12 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   .quickbar{display:flex}
   .brand span,.topbar .prog{display:none}
   .brand b{font-size:13px}
-  .topbar{padding:6px 10px;gap:8px}
-  .stagebar{padding:6px 8px;gap:5px;overflow-x:auto;flex-wrap:nowrap}
+  .topbar{padding:6px calc(10px + env(safe-area-inset-right)) 6px calc(10px + env(safe-area-inset-left));gap:8px}
+  .stagebar{
+    padding:6px 8px;gap:5px;overflow-x:auto;flex-wrap:nowrap;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .stagebar::-webkit-scrollbar{display:none}
   .stagebar > *{flex:0 0 auto}
   .canvaswrap{padding:10px 10px 28px}
   .tool{font-size:20px}
@@ -507,6 +520,18 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
    nằm hẳn trong bố cục (ăn chiều cao) thay vì nổi đè lên tranh (ăn bề ngang).
    Khổ ngang thì ngược lại: tranh bị bó theo chiều cao nên nhỏ và nằm giữa,
    thanh nhanh nổi ở mép phải không chạm vào tranh — giữ nguyên như cũ. */
+
+/* Tablet chế độ dọc (Galaxy Tab S10 FE dọc, 681px - 1000px): ngăn kéo trượt thông minh giữ canvas hiển thị trực quan */
+@media (min-width:681px) and (max-width:1000px){
+  .col.left{
+    width:260px;left:0;right:auto;border-right:1px solid var(--line-hi);
+    box-shadow:4px 0 20px rgba(0,0,0,.4);z-index:25;
+  }
+  .col.right{
+    width:350px;right:0;left:auto;border-left:1px solid var(--line-hi);
+    box-shadow:-4px 0 20px rgba(0,0,0,.4);z-index:25;
+  }
+}
 @media (max-width:1000px) and (orientation:portrait){
   .quickbar{
     position:static;display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;
@@ -594,8 +619,9 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 .maptile-tools{display:flex;align-items:center;gap:4px;flex:0 0 auto}
 .maptile-scroll{
   display:flex;align-items:center;gap:6px;flex:1 1 auto;overflow-x:auto;overflow-y:hidden;
-  padding:2px 0;scrollbar-width:thin;
+  padding:2px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;
 }
+.maptile-scroll::-webkit-scrollbar{display:none}
 .maptile-item{
   flex:0 0 auto;width:32px;height:32px;border:1px solid var(--line);border-radius:2px;
   background:var(--demo-bg);display:grid;place-items:center;cursor:pointer;
@@ -617,7 +643,12 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   background:var(--demo-bg);border:1px solid var(--line);
 }
 @media (max-width:1000px){
-  .atbar{padding:8px 12px}
+  .atbar{
+    padding:8px 12px;
+    padding-top:calc(8px + env(safe-area-inset-top));
+    padding-left:calc(12px + env(safe-area-inset-left));
+    padding-right:calc(12px + env(safe-area-inset-right));
+  }
   .atbar .btn{min-height:38px}
   .atbar input[type=number]{min-height:38px;font-size:16px}
   .atview{padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}

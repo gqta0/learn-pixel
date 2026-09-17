@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LÒ PIXEL — Xưởng luyện vẽ pixel art cho game 2D</title>
 <link rel="stylesheet" href="css/app.css">
 </head>
@@ -46,7 +46,15 @@
         <div class="row">
           <button class="btn tiny grow" id="fingerBtn2">Ngón tay: vẽ</button>
         </div>
-        <p class="kbd" style="margin-top:7px">Giữ <b>nút bên</b> của S-Pen khi vẽ để dùng màu phụ. Rê bút cách mặt kính (hover) để ngắm ô pixel trước khi chạm. Hai ngón để kéo và phóng canvas.</p>
+        <div class="row" style="margin-top:6px">
+          <label class="mini grow">Nút bấm trên bút</label>
+          <select id="penBtnAction" style="padding:4px 6px">
+            <option value="sec" selected>Màu phụ</option>
+            <option value="erase">Cục tẩy tức thì</option>
+            <option value="picker">Hút màu tức thì</option>
+          </select>
+        </div>
+        <p class="kbd" style="margin-top:7px">Tự động chống chạm nhầm tay (Palm rejection) khi dùng S-Pen. Rê bút cách mặt kính (hover) để ngắm ô pixel. Hai ngón để kéo và phóng canvas.</p>
       </div>
 
       <div class="block">

@@ -29,6 +29,7 @@ export const view = {
   lockAlpha:false, sel:null, shadeDir:1, gridStep:8, realSize:false,   // tô khối đi lên (+1) hay đi xuống (-1) trên dải
   ref:null, refOp:0.5,
   pressure:true, fingerMode:'draw', brushEff:1, hover:null,
+  penButton: localStorage.getItem('lo-pixel-pen-btn') || 'sec',
   pixelPerfect:false, ditherPattern:'50', ditherMode:'sec',
   groupPalette: savedGroup
 };

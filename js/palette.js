@@ -339,18 +339,41 @@ export function shadeStep(v, dir){
   return hexToInt(rampCols[Math.max(0,Math.min(rampCols.length-1, bi+dir))], (v>>>24)&255);
 }
 
+/* mở popover chọn màu nhanh ngay tại nút màu hoặc thanh công cụ nhanh */
+export function openQuickPalette(anchor, onOpenTools){
+  if(!anchor) return;
+  const cur = intToHex(view.pri).toLowerCase();
+  const items = [
+    { label: '⇄ Đổi màu phụ', title: 'Hoán đổi màu chính và phụ', fn: ()=>{ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); } }
+  ];
+  if(onOpenTools){
+    items.push({ label: '🎨 Thẻ Màu...', title: 'Mở chi tiết bảng điều khiển màu sắc', fn: onOpenTools });
+  }
+  palette.forEach(hex => {
+    const meta = COLOR_TOKENS[hex.toLowerCase()];
+    const title = meta ? `[${meta.group}] ${meta.token} (${hex}): ${meta.desc}` : hex;
+    items.push({
+      color: hex,
+      title,
+      on: hex.toLowerCase() === cur,
+      fn: () => { view.pri = hexToInt(hex); syncColors(); }
+    });
+  });
+  rampCols.forEach(hex => {
+    items.push({
+      color: hex,
+      title: 'Dải: ' + hex,
+      on: hex.toLowerCase() === cur,
+      fn: () => { view.pri = hexToInt(hex); syncColors(); }
+    });
+  });
+  popover(anchor, 'Bảng màu nhanh', items);
+}
+
 /* chạm giữ ô màu chính để lấy nhanh màu trong bảng và trong dải, khỏi phải mở thẻ Màu */
-export function attachPalettePopup(el){
+export function attachPalettePopup(el, onOpenTools){
   if(!el) return;
   el.classList.add('haspop');
-  onLongPress(el, ()=>{
-    const cur=intToHex(view.pri);
-    const items=palette.map(hex=>{
-      const meta = COLOR_TOKENS[hex.toLowerCase()];
-      const title = meta ? `[${meta.group}] ${meta.token} (${hex}): ${meta.desc}` : hex;
-      return {color:hex, title, on:hex===cur, fn:()=>{ view.pri=hexToInt(hex); syncColors(); }};
-    });
-    rampCols.forEach(hex=>items.push({color:hex, title:'Dải: '+hex, fn:()=>{ view.pri=hexToInt(hex); syncColors(); }}));
-    popover(el, 'Bảng màu · dải đang dùng', items);
-  });
+  onLongPress(el, ()=>openQuickPalette(el, onOpenTools));
 }
+

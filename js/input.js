@@ -70,20 +70,23 @@ function linePixelPerfect(data, x0, y0, x1, y1, col){
 }
 
 /* --- S-Pen --- */
+let gestureEndedTime = 0;
+
 function markPen(){
-  if(penSeen) return;
-  penSeen=true;
-  if(view.fingerMode==='draw'){ view.fingerMode='pan'; syncFingerBtn(); }   // tự chống chạm nhầm bằng tay
+  if(!penSeen){
+    penSeen=true;
+    if(view.fingerMode==='draw'){ view.fingerMode='pan'; syncFingerBtn(); }   // tự chống chạm nhầm bằng tay khi phát hiện S-Pen
+  }
 }
 function effBrush(e){
   if(view.pressure && e.pointerType==='pen' && e.pressure>0)
     return Math.max(1, Math.min(view.brush, Math.round(e.pressure*view.brush + 0.35)));
   return view.brush;
 }
-function penErase(e){ return ((e.buttons||0)&32)!==0 || e.button===5; }        // đầu tẩy
+function penErase(e){ return ((e.buttons||0)&32)!==0 || e.button===5; }        // đầu tẩy vật lý
 function penAlt(e){ return ((e.buttons||0)&2)!==0 || e.button===2; }           // nút bên S-Pen / chuột phải
 function canDraw(e){
-  if(e.pointerType==='touch') return !penSeen && view.fingerMode==='draw';
+  if(e.pointerType==='touch') return view.fingerMode==='draw';
   return true;
 }
 function touchPts(){ const a=[]; pointers.forEach(p=>{ if(p.type==='touch') a.push(p); }); return a; }
@@ -101,6 +104,15 @@ function cancelStroke(){
 
 board.addEventListener('contextmenu', e=>e.preventDefault());
 
+function getEffectiveTool(e){
+  if(penErase(e)) return 'eraser';
+  if(e.pointerType==='pen' && penAlt(e)){
+    const act = view.penButton || 'sec';
+    if(act === 'erase') return 'eraser';
+  }
+  return view.tool;
+}
+
 board.addEventListener('pointerdown', e=>{
   e.preventDefault();
   if(e.pointerType==='pen') markPen();
@@ -113,18 +125,22 @@ board.addEventListener('pointerdown', e=>{
     gesture={d:dist(tp[0],tp[1]), mx:(tp[0].x+tp[1].x)/2, my:(tp[0].y+tp[1].y)/2};
     return;
   }
+  if(Date.now() - gestureEndedTime < 140) return; // chống nét vẽ lạc khi vừa nhấc 2 ngón
   if(!canDraw(e)){ panning={x:e.clientX,y:e.clientY}; return; }
 
   view.hover=null;
   const p=posFrom(e); start=p; last=p; drawing=true;
   view.brushEff=effBrush(e);
-  strokeTool = penErase(e) ? 'eraser' : view.tool;
-  const col = strokeColor(e);
-  setStrokeSeen(strokeTool==='shade' ? new Set() : null);
+
+  const isPenPicker = (e.pointerType==='pen' && penAlt(e) && view.penButton==='picker');
+  strokeTool = isPenPicker ? 'picker' : getEffectiveTool(e);
 
   if(strokeTool==='picker'){ pick(p); drawing=false; return; }
   if(strokeTool==='select'){ view.sel=null; render(); return; }   // kéo tiếp mới thành vùng
   pushUndo();
+
+  const col = strokeColor(e);
+  setStrokeSeen(strokeTool==='shade' ? new Set() : null);
 
   if(strokeTool==='pencil' && view.pixelPerfect && (view.brushEff||view.brush)===1){
     pixelPerfectHistory = [];
@@ -139,15 +155,18 @@ board.addEventListener('pointerdown', e=>{
 });
 
 function strokeColor(e){
-  if(strokeTool==='shade'){ const d = penAlt(e) ? -view.shadeDir : view.shadeDir; return v=>shadeStep(v, d); }
+  const isAlt = penAlt(e);
+  const useSec = isAlt && (e.pointerType!=='pen' || (view.penButton||'sec')==='sec');
+
+  if(strokeTool==='shade'){ const d = useSec ? -view.shadeDir : view.shadeDir; return v=>shadeStep(v, d); }
   if(strokeTool==='dither'){
-    const cPri = penAlt(e) ? view.sec : view.pri;
-    const cSec = penAlt(e) ? view.pri : view.sec;
+    const cPri = useSec ? view.sec : view.pri;
+    const cSec = useSec ? view.pri : view.sec;
     const pat = view.ditherPattern;
     const mode = view.ditherMode;
     return (prev, x, y) => isDitherHit(x, y, pat) ? cPri : (mode === 'alpha' ? prev : cSec);
   }
-  return penAlt(e) ? view.sec : view.pri;
+  return useSec ? view.sec : view.pri;
 }
 
 function constrainPoint(start, p, e, t){
@@ -227,8 +246,8 @@ board.addEventListener('pointermove', e=>{
     wrap.scrollLeft -= (mx-gesture.mx);
     wrap.scrollTop  -= (my-gesture.my);
     const r=nd/gesture.d;
-    if(r>1.25){ setZoom(view.zoom+1); gesture.d=nd; }
-    else if(r<0.8){ setZoom(view.zoom-1); gesture.d=nd; }
+    if(r>1.12 && view.zoom<40){ setZoom(view.zoom+1); gesture.d=nd; }
+    else if(r<0.89 && view.zoom>1){ setZoom(view.zoom-1); gesture.d=nd; }
     gesture.mx=mx; gesture.my=my;
     return;
   }
@@ -263,9 +282,11 @@ board.addEventListener('pointermove', e=>{
 function endStroke(e){
   if(e){
     pointers.delete(e.pointerId);
-    if(touchPts().length<2) gesture=null;
-    if(e.pointerType==='touch') panning=null;
-    else panning=null;
+    if(touchPts().length<2 && gesture){
+      gesture=null;
+      gestureEndedTime = Date.now();
+    }
+    panning=null;
   }
   if(!drawing) return;
   drawing=false; setStrokeSeen(null); pixelPerfectHistory=[];
