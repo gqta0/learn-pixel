@@ -22,6 +22,7 @@ import { openLibrary, closeLibrary, saveCurrent, isBlank, exportContactSheet } f
 import { paintDaily, goToNext } from './daily.js';
 import { bindAtlas, importAtlas, syncBar as syncAtlasBar } from './atlas.js';
 import { openMapView, bindMapView } from './mapview.js';
+import { bindTerrain, syncTerrainBar } from './terrainview.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
 /* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ */
@@ -60,6 +61,7 @@ export function syncAll(){
   $('#sizeH').value = String(doc.h);
   $('#hud').textContent = doc.w+'×'+doc.h;
   paintLayers(); paintThumbs(); syncColors(); render(); updateProgress();
+  syncAtlasBar(); syncTerrainBar();
 }
 
 /* ---------------- nối sự kiện ---------------- */
@@ -319,6 +321,7 @@ $('#impJson').addEventListener('change', e=>{ if(e.target.files[0]) importJson(e
 
 bindAtlas();
 bindMapView();
+bindTerrain();
 const mapPrevBtn = $('#mapPrevBtn');
 if(mapPrevBtn) mapPrevBtn.addEventListener('click', () => openMapView());
 const atMapPrev = $('#atMapPrev');
@@ -342,7 +345,7 @@ $$('.tab').forEach(t=>t.addEventListener('click', ()=>{
 }));
 
 window.addEventListener('keydown', e=>{
-  if(e.defaultPrevented || view.drawing || resizeDialog.open) return;
+  if(e.defaultPrevented || view.drawing || document.querySelector('dialog[open]')) return;
   const tag=(e.target.tagName||'').toLowerCase();
   if(tag==='input'||tag==='select'||tag==='textarea') return;
   const k=e.key.toLowerCase();

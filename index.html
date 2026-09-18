@@ -129,6 +129,7 @@
         <button class="btn tiny" id="gridBtn" aria-pressed="true">▦ Lưới</button>
         <button class="btn tiny" id="onionBtn" aria-pressed="false">◍ Bóng khung trước</button>
         <button class="btn tiny" id="mapPrevBtn" title="Xem thử tile lắp ghép thành bản đồ hang động 24×16">🗺 Soi map</button>
+        <button class="btn tiny" id="terrainOpen" title="56 ô terrain có hướng dẫn pixel, góc, cạnh và kiểm tra nối">🧩 Terrain 56</button>
         <details class="more"><summary class="btn tiny">⋯ Thêm</summary>
           <div class="morebox">
             <button class="btn tiny" id="symLine" aria-pressed="false">┊ Trục giữa</button>
@@ -160,6 +161,10 @@
           <button class="btn tiny primary" id="atlasSave" title="Ghi khung đang vẽ đè lên đúng ô cũ trong atlas">⤴ Ghi lại</button>
           <button class="btn tiny" id="atlasNext" title="Ghi lại rồi mở atlas để chọn ô khác">⤴ Ghi &amp; ô sau</button>
           <button class="btn tiny" id="atlasStop" title="Thôi không gắn với atlas nữa">✕ Rời</button>
+          <span id="terrainDrawTools" hidden>
+            <button class="btn tiny" id="terrainGuideToggle" aria-pressed="true">Hướng dẫn pixel</button>
+            <button class="btn tiny" id="terrainInspect">56 ô / chú thích</button>
+          </span>
         </div>
       </div>
 
@@ -344,6 +349,7 @@
   <div class="libwrap" id="atlasWrap" hidden>
     <div class="libbar">
       <p class="eyebrow" style="margin:0;flex:1">Atlas của dự án</p>
+      <button class="btn tiny" id="atTerrain">Terrain 56</button>
       <label class="btn tiny filelabel">Nạp ảnh…<input type="file" id="atFile" accept="image/*"></label>
       <button class="btn tiny" id="atForget" title="Bỏ tấm này khỏi trình duyệt">✕ Bỏ tấm</button>
       <button class="btn tiny" id="atPng" title="Xuất lại tấm atlas 1:1 để cắm vào engine">⬇ PNG</button>
@@ -437,6 +443,52 @@
   </nav>
 </div>
 
+<dialog id="terrainDialog" aria-labelledby="terrainHeading">
+  <div class="terrain-toolbar">
+    <h2 id="terrainHeading">Terrain 56 · bản hướng dẫn vẽ</h2>
+    <button class="btn" id="terrainClose" autofocus>✕ Đóng</button>
+  </div>
+  <p class="kbd">47 topology + 9 biến thể · Chọn ô → đọc hướng dẫn → vẽ → soi nối.</p>
+  <div class="terrain-toolbar">
+    <label>Khổ mới <select id="terrainSize"><option value="16">16×16</option><option value="32">32×32</option></select></label>
+    <button class="btn primary" id="terrainCreate">Tạo bộ 56 ô</button>
+    <button class="btn" id="terrainEdit">Ghi ô cũ & sửa ô chọn</button>
+    <button class="btn" id="terrainCheck">Soi mối nối</button>
+    <button class="btn" id="terrainMap">Ghi & xem map</button>
+  </div>
+  <p class="kbd" id="terrainState" role="status"></p>
+  <div class="terrain-toolbar">
+    <label><input type="checkbox" id="terrainGuides" checked> Hiện hướng dẫn pixel</label>
+    <label>Lọc <select id="terrainFilter">
+      <option value="all">Tất cả 56 ô</option><option value="surface">Sàn / trần / tường</option>
+      <option value="inner">Góc trong</option><option value="outer">Góc ngoài</option><option value="variants">9 biến thể</option>
+    </select></label>
+  </div>
+  <details id="terrainHelp" open>
+    <summary>Chú giải màu · Xuất PNG / JSON</summary>
+    <div class="terrain-toolbar">
+      <button class="btn tiny" id="terrainPng">Ghi & PNG sạch</button>
+      <button class="btn tiny" id="terrainAnnotated">PNG chú thích</button>
+      <button class="btn tiny" id="terrainManifest">JSON mapping</button>
+    </div>
+    <div class="terrain-legend" id="terrainLegend"></div>
+    <p class="kbd">Cyan ở biên = nối liền sang ô bên cạnh. Hướng dẫn không đi vào PNG sạch. Nguồn sáng mẫu từ trên; màu hướng dẫn không bắt buộc dùng trong tranh.</p>
+    <p class="kbd">#00–#55 xếp 8 cột × 7 hàng: 47 blob + 5 ruột + 4 mép (sàn, trần, trái, phải). Layout riêng của Lò Pixel, không phải thứ tự tile mặc định của engine.</p>
+  </details>
+  <div class="terrain-layout">
+    <div class="terrain-grid" id="terrainGrid" aria-label="56 ô terrain"></div>
+    <section class="terrain-inspector" aria-labelledby="terrainTitle">
+      <h3 id="terrainTitle"></h3><p class="kbd" id="terrainMeta"></p>
+      <canvas id="terrainDetail" aria-label="Vai trò pixel của ô đang chọn"></canvas>
+      <p class="kbd" id="terrainPixel">Rê bút/chuột lên ô để xem pixel cần vẽ gì.</p>
+      <p id="terrainRecipe"></p>
+      <div id="terrainNeighbors"></div>
+      <p class="kbd" id="terrainPairLabel"></p>
+      <canvas id="terrainPair" aria-label="Hai ô ghép cạnh nhau"></canvas>
+    </section>
+  </div>
+  <section id="terrainSeams" role="status" aria-live="polite"></section>
+</dialog>
 <dialog id="resizeDialog" aria-labelledby="resizeTitle">
   <form method="dialog">
     <h2 id="resizeTitle">Đổi khổ canvas</h2>

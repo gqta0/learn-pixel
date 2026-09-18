@@ -8,10 +8,11 @@ import { $ } from './dom.js';
 import { doc, view } from './state.js';
 import { invalidateBuf, frameToCanvas } from './raster.js';
 import { pushUndo } from './history.js';
-import { fitZoom } from './render.js';
+import { fitZoom, render } from './render.js';
 import { download } from './storage.js';
 import { keepBeforeReplace } from './library.js';
 import { syncAll } from './ui.js';
+import { TERRAIN_SCHEMA } from './terrain.js';
 
 const KEY='lo-pixel-atlas';
 const MAXPX=128;                    // cụm ô lôi ra không được to hơn khổ canvas cho phép
@@ -19,12 +20,27 @@ const MAXPX=128;                    // cụm ô lôi ra không được to hơn 
 let atlas=null;      // {name, cv, tw, th, pad, off}
 let sel=null;        // {c,r,cw,ch} tính theo ô
 let anchor=null;     // ô bấm đầu tiên, để mở rộng vùng
-let editing=null;    // {x,y,w,h} vùng pixel đang được mượn ra doc
 let zoom=2, extend=false;
 
 export function hasAtlas(){ return !!atlas; }
 export function getAtlas(){ return atlas; }
-export function editingRect(){ return editing; }
+export function editingRect(){
+  const e=doc.atlasEdit;
+  return atlas && e && e.atlasId===atlas.id &&
+    ['x','y','w','h','c','r0'].every(k=>Number.isInteger(e[k])&&e[k]>=0) &&
+    e.w===doc.w && e.h===doc.h && e.x+e.w<=atlas.cv.width && e.y+e.h<=atlas.cv.height ? e : null;
+}
+export function createTerrainAtlas(cv,size){
+  if(atlas && !confirm('Thay atlas hiện tại bằng bộ Terrain 56? Hãy xuất PNG atlas cũ trước nếu cần giữ. Bản đang vẽ không bị xoá.')) return false;
+  atlas={id:crypto.randomUUID(),name:'terrain56-'+size,cv,tw:size,th:size,pad:0,off:0,terrain:TERRAIN_SCHEMA};
+  sel=anchor=null; doc.atlasEdit=null; zoom=2;
+  save(); syncBar(); return true;
+}
+export function editAtlasSlot(slot){
+  if(!atlas || slot<0 || slot>=cols()*rows()) return false;
+  sel={c:slot%cols(),r:Math.floor(slot/cols()),cw:1,ch:1};
+  return editSelection();
+}
 
 /* ---------------- lưới ---------------- */
 const stepX = () => atlas.tw + atlas.pad;
@@ -53,8 +69,8 @@ export function importAtlas(file){
     const im=new Image();
     im.onload=()=>{
       const keep = atlas ? {tw:atlas.tw,th:atlas.th,pad:atlas.pad,off:atlas.off} : {tw:16,th:16,pad:0,off:0};
-      atlas={ name:file.name.replace(/\.[^.]+$/,''), cv:imgToCanvas(im), ...keep };
-      sel=anchor=null; editing=null;
+      atlas={ id:crypto.randomUUID(), name:file.name.replace(/\.[^.]+$/,''), cv:imgToCanvas(im), ...keep };
+      sel=anchor=null; doc.atlasEdit=null;
       zoom = im.width>600 ? 1 : 2;
       save(); openAtlas(); syncBar();
     };
@@ -69,7 +85,7 @@ function save(){
   if(!atlas) return;
   try{
     localStorage.setItem(KEY, JSON.stringify({
-      name:atlas.name, tw:atlas.tw, th:atlas.th, pad:atlas.pad, off:atlas.off,
+      id:atlas.id, terrain:atlas.terrain, name:atlas.name, tw:atlas.tw, th:atlas.th, pad:atlas.pad, off:atlas.off,
       png:atlas.cv.toDataURL('image/png')
     }));
     note('Đã cất vào trình duyệt.');
@@ -85,14 +101,15 @@ export function loadAtlas(){
     const d=JSON.parse(raw);
     const im=new Image();
     im.onload=()=>{
-      atlas={name:d.name, cv:imgToCanvas(im), tw:d.tw, th:d.th, pad:d.pad, off:d.off};
-      syncBar();
+      if(atlas) return; // a user import/create wins over an older asynchronous restore
+      atlas={id:d.id||crypto.randomUUID(),terrain:d.terrain,name:d.name, cv:imgToCanvas(im), tw:d.tw, th:d.th, pad:d.pad, off:d.off};
+      syncAll();
     };
     im.src=d.png;
   }catch(_){}
 }
 export function forgetAtlas(){
-  atlas=null; sel=anchor=null; editing=null;
+  atlas=null; sel=anchor=null; doc.atlasEdit=null;
   try{ localStorage.removeItem(KEY); }catch(_){}
   syncBar(); closeAtlas();
 }
@@ -118,13 +135,16 @@ export function editSelection(){
   doc.frames=[[new Uint32Array(px.data.buffer.slice(0))]];
   doc.af=0; doc.al=0;
   view.sel=null;
-  editing={...r, c:sel.c, r0:sel.r};
+  doc.atlasEdit={...r,atlasId:atlas.id, c:sel.c, r0:sel.r,
+    terrainSlot:atlas.terrain===TERRAIN_SCHEMA && sel.cw===1 && sel.ch===1 ? sel.r*cols()+sel.c : null};
   invalidateBuf(); fitZoom(); syncAll();
   setExtend(false);            // lần mở atlas sau lại bắt đầu bằng chọn một ô
   closeAtlas(); syncBar();
+  return true;
 }
 /* Ghi lớp đã ghép của khung đang mở đè lên đúng vùng cũ — kể cả chỗ trong suốt. */
 export function writeBack(){
+  const editing=editingRect();
   if(!atlas || !editing) return false;
   const cv=document.createElement('canvas');
   frameToCanvas(doc.af, cv, 1);
@@ -136,7 +156,7 @@ export function writeBack(){
   if(!$('#atlasWrap').hidden) paint();
   return true;
 }
-export function stopEditing(){ editing=null; syncBar(); }
+export function stopEditing(){ doc.atlasEdit=null; syncBar(); render(); }
 
 /* ---------------- giao diện ---------------- */
 function note(t){ const e=$('#atNote'); if(e) e.textContent=t; }
@@ -158,6 +178,7 @@ export function closeAtlas(){ $('#atlasWrap').hidden=true; }
 
 /* Thanh nhắc nằm cạnh canvas: đang mượn ô nào, và ghi lại ở đâu. */
 export function syncBar(){
+  const editing=editingRect();
   const bar=$('#atlasBar');
   if(!bar) return;
   bar.hidden = !editing;
@@ -167,6 +188,7 @@ export function syncBar(){
 }
 
 function paint(){
+  const editing=editingRect();
   const cv=$('#atCv'), g=cv.getContext('2d');
   if(!atlas){
     cv.width=cv.height=1;
@@ -240,6 +262,7 @@ export function bindAtlas(){
     if(!atlas) return;
     const n=(q,min)=>Math.max(min, parseInt($(q).value,10)||0);
     atlas.tw=n('#atTW',1); atlas.th=n('#atTH',1); atlas.pad=n('#atPad',0); atlas.off=n('#atOff',0);
+    atlas.terrain=null; doc.atlasEdit=null;
     sel=anchor=null;
     save(); paint();
   }));

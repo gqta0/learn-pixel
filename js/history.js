@@ -18,7 +18,8 @@ export function captureUndo(){
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers: doc.layers.map(l=>({name:l.name, vis:l.vis})),
     frames: doc.frames.map(f=>f.map(d=>d.slice())),
-    dur: doc.dur.slice(), sel:view.sel ? {...view.sel} : null
+    dur: doc.dur.slice(), sel:view.sel ? {...view.sel} : null,
+    atlasEdit:doc.atlasEdit ? {...doc.atlasEdit} : null
   };
 }
 function restore(s){
@@ -27,6 +28,7 @@ function restore(s){
   doc.frames=s.frames.map(f=>f.map(d=>d.slice()));
   doc.dur=(s.dur||[]).slice();
   view.sel=s.sel ? {...s.sel} : null;
+  doc.atlasEdit=s.atlasEdit ? {...s.atlasEdit} : null;
 }
 export function pushUndo(s=captureUndo()){
   undoStack.push(s); bytes+=sizeOf(s);

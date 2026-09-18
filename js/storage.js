@@ -50,7 +50,7 @@ export function serialize(){
   return {
     app:'lo-pixel', version:2, w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers:doc.layers, palette:palette,
-    frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur,
+    frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur, atlasEdit:doc.atlasEdit,
     done: Array.from(doneSet)
   };
 }
@@ -63,6 +63,7 @@ export function applyData(d){
   doc.frames=d.frames.map(f=>f.map(a=> d.version>=2 ? unrle(a,len) : Uint32Array.from(a)));
   doc.dur=(d.dur||[]).slice();
   doc.af=Math.min(d.af||0, doc.frames.length-1); doc.al=Math.min(d.al||0, doc.layers.length-1);
+  doc.atlasEdit=d.atlasEdit && typeof d.atlasEdit==='object' ? {...d.atlasEdit} : null;
   if(d.palette){ setPalette(d.palette); }
   if(d.done) migrateDone(d.done);
   invalidateBuf(); fitZoom(); buildExercises(); syncAll();

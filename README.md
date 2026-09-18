@@ -38,6 +38,38 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 - Tự lưu vào trình duyệt (localStorage, nén RLE) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập. Tiến độ lưu theo tên bài nên chèn bài mới không làm lệch.
 - Xuất PNG / PNG spritesheet / PNG bảng màu, lưu & mở dự án `.json` (nén RLE).
 
+## Terrain 56 — template có hướng dẫn pixel
+
+Mở **🧩 Terrain 56** trên thanh canvas hoặc trong cửa sổ Atlas.
+
+1. Chọn 16×16 hoặc 32×32, bấm **Tạo bộ 56 ô**. App dựng khối nền đá để vẽ tiếp;
+   nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
+2. Chọn tile để đọc vai trò pixel, cạnh hở, góc lồi/lõm và các tile nối hợp lệ theo
+   N/E/S/W. Bấm mã tile hàng xóm để xem hai ô ghép cạnh nhau.
+3. **Ghi ô cũ & sửa ô chọn** mở tile trong editor đầy đủ. Có thể tắt lớp hướng dẫn,
+   vẽ bằng bút/S-Pen rồi **Ghi lại**. Mở workbench sẽ soi cả nét chưa ghi của ô đó.
+4. **Soi mối nối** đánh dấu tọa độ pixel có khe hở hoặc alpha không kín trên cạnh
+   nối. Đây không phải kiểm tra màu/vân: dùng **Ghi & xem map** để đánh giá bằng mắt.
+5. Xuất **PNG sạch** cho game, **PNG chú thích** cho artist, và **JSON mapping** cho
+   engine. Chú thích/overlay không được ghi vào tranh. Atlas được lưu riêng trong
+   trình duyệt; JSON dự án thông thường vẫn chỉ lưu bản vẽ đang mở, không cả atlas.
+
+Layout riêng, 8 cột × 7 hàng, đánh số từ 0:
+
+| Slot | Vai trò |
+| --- | --- |
+| 00–46 | 47 mask blob hợp lệ, sắp theo giá trị tăng dần; #46 là ruột gốc |
+| 47–51 | 5 biến thể ruột bổ sung; giữ nguyên pixel sát biên |
+| 52–55 | Mép sàn, trần, tường trái, tường phải; đổi đường viền giữa cạnh hở |
+
+Bit N=1, E=2, S=4, W=8, NE=16, SE=32, SW=64, NW=128. Góc chéo chỉ xét khi hai
+cạnh kề đều có đất. Đây là **47 topology + 9 biến thể hình ảnh**, không phải 56
+topology độc lập. Không giả định cùng thứ tự với tileset của engine khác; dùng
+mapping theo mask. Tham khảo thuật toán gốc:
+[Autotile-47](https://github.com/Game-Development-Resources/Autotile-47).
+
+Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs`.
+
 ## Đưa lên GitHub Pages
 
 ```bash

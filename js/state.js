@@ -8,7 +8,7 @@ export const doc = {
   layers:[{name:'Nét chính', vis:true}],
   frames:[],           // frames[i] = [Uint32Array,…] theo thứ tự lớp
   dur:[],              // dur[i] = mili-giây riêng của khung i; 0 hoặc thiếu = chạy theo fps chung
-  af:0, al:0
+  af:0, al:0, atlasEdit:null
 };
 export function blank(){ return new Uint32Array(doc.w*doc.h); }
 export function newFrame(){ return doc.layers.map(()=>blank()); }
@@ -21,7 +21,7 @@ let savedGroup = true;
 try { savedGroup = localStorage.getItem('lo-pixel-pal-group') !== 'false'; } catch(_) {}
 
 export const view = {
-  zoom:12, grid:true, onion:false, symLine:false, drawing:false,
+  zoom:12, grid:true, onion:false, symLine:false, drawing:false, terrainGuide:true,
   mirX:false, mirY:false,
   tool:'pencil', brush:1,
   pri: hexToInt('#ffb43f'), sec: hexToInt('#2e2e42'),

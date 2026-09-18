@@ -7,6 +7,7 @@ import { syncColors, paintSwatches, shadeStep } from './palette.js';
 import { markToday } from './daily.js';
 import { paintThumbs } from './frames.js';
 import { syncFingerBtn } from './tools.js';
+import { tileRoles, ROLE_NAMES } from './terrain.js';
 import { inside, idx, put, normSel, stamp, lineStamp, rectStamp, ellipseStamp, floodFill,
          shiftLayer, pixelAt, preview, setPreview, setStrokeSeen, isDitherHit } from './raster.js';
 
@@ -97,6 +98,9 @@ function hudText(p){
   $('#hud').textContent = inside(p.x,p.y)
     ? (p.x+', '+p.y+'   •   '+doc.w+'×'+doc.h+'   •   ×'+view.zoom)
     : (doc.w+'×'+doc.h+'   •   ×'+view.zoom);
+  const te=doc.atlasEdit;
+  if(te && Number.isInteger(te.terrainSlot) && te.terrainSlot>=0 && te.terrainSlot<56 && te.w===doc.w && te.h===doc.h && inside(p.x,p.y))
+    $('#hud').textContent+=' · '+ROLE_NAMES[tileRoles(te.terrainSlot,doc.w)[p.y*doc.w+p.x]];
 }
 function cancelStroke(){
   if(!drawing) return;

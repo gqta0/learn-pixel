@@ -124,3 +124,9 @@ test('palm contact on toolbar cannot change the active pen stroke',()=>{
   assert.equal(blocked,2);assert.equal(e.view.drawing,true);
   e.event('pointerup',1,2,2,'pen');assert.equal(e.marks(),1);
 });
+test('undo restores the atlas slot together with its pixels',()=>{
+  const e=editor();e.doc.atlasEdit={atlasId:'terrain-test',terrainSlot:46,x:96,y:80,w:16,h:16,c:6,r0:5};
+  e.run('pushUndo()');e.doc.atlasEdit={...e.doc.atlasEdit,terrainSlot:47};
+  e.run('undo()');assert.equal(e.doc.atlasEdit.terrainSlot,46);
+  e.run('redo()');assert.equal(e.doc.atlasEdit.terrainSlot,47);
+});

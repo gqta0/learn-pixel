@@ -691,3 +691,37 @@ dialog h2{font-size:18px;margin:0 0 10px}
 .resize-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
 .resize-actions .btn{min-height:44px}
 .canvaswrap{padding:0}
+
+/* Terrain workbench: artwork stays separate from annotations. */
+#terrainDialog{width:min(1200px,calc(100vw - 20px));max-height:calc(100dvh - 20px);padding:16px}
+.terrain-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.terrain-toolbar h2{flex:1;margin:0;min-width:190px}
+.terrain-toolbar label{display:flex;align-items:center;gap:6px;font-size:12px}
+.terrain-toolbar .btn,.terrain-toolbar select{min-height:40px}
+.terrain-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:18px;align-items:start}
+.terrain-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.terrain-tile{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;padding:6px 3px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);cursor:pointer}
+.terrain-tile[aria-pressed=true]{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
+.terrain-tile span{font-size:10px;line-height:1.4;min-height:28px}
+.terrain-tile canvas{width:64px;max-width:100%;height:auto;image-rendering:pixelated;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/8px 8px}
+.terrain-inspector{background:var(--panel-2);padding:12px;border:1px solid var(--line)}
+.terrain-inspector h3{margin:0 0 8px;font-size:16px}
+#terrainDetail,#terrainPair{display:block;max-width:100%;height:auto;image-rendering:pixelated;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/16px 16px}
+#terrainRecipe{font-size:12px;line-height:1.7;white-space:pre-line}
+.terrain-legend{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:11px}
+.terrain-legend span{display:flex;align-items:center;gap:6px}
+.terrain-legend i{width:12px;height:12px;border:1px solid var(--line-hi)}
+#terrainNeighbors summary{padding:8px 0;cursor:pointer;font-size:12px}
+.terrain-neighbor-list{display:flex;gap:4px;flex-wrap:wrap}
+.terrain-neighbor-list .btn{min-height:36px;min-width:40px}
+#terrainHelp{margin-bottom:12px}
+#terrainHelp summary{font-size:12px;cursor:pointer;padding:8px 0}
+#terrainSeams{margin-top:16px;font-size:12px;line-height:1.6}
+#terrainSeams .btn{margin:3px;min-height:38px}
+#terrainDrawTools:not([hidden]){display:inline-flex;gap:6px}
+@media(max-width:760px){
+  .terrain-layout{grid-template-columns:1fr}
+  .terrain-grid{grid-template-columns:repeat(4,minmax(0,1fr));max-height:270px;overflow-y:auto}
+  #terrainDialog{padding:10px}
+  .terrain-toolbar .btn{min-height:44px}
+}

@@ -9,6 +9,8 @@ import { frameToCanvas } from './raster.js';
 import { download } from './storage.js';
 import { getAtlas } from './atlas.js';
 import { getLibraryItems, renderLibraryProject } from './library.js';
+import { BLOB_47_MASKS, terrainSlot } from './terrain.js';
+export { BLOB_47_MASKS };
 
 // Cấu hình lát cắt hang động chuẩn theo đặc tả genesis.tileset.preview.v1
 export const MAP_PRESET = {
@@ -30,16 +32,6 @@ export const MAP_PRESET = {
 };
 
 // 47 canonical blob autotile bitmasks (N=1, E=2, S=4, W=8, NE=16, SE=32, SW=64, NW=128)
-export const BLOB_47_MASKS = [];
-for (let m = 0; m < 256; m++) {
-  const N = (m & 1) ? 1 : 0, E = (m & 2) ? 1 : 0, S = (m & 4) ? 1 : 0, W = (m & 8) ? 1 : 0;
-  const NE = (m & 16) ? 1 : 0, SE = (m & 32) ? 1 : 0, SW = (m & 64) ? 1 : 0, NW = (m & 128) ? 1 : 0;
-  if (NE && (!N || !E)) continue;
-  if (SE && (!S || !E)) continue;
-  if (SW && (!S || !W)) continue;
-  if (NW && (!N || !W)) continue;
-  BLOB_47_MASKS.push(m);
-}
 
 const TOTAL_CELLS = MAP_PRESET.w * MAP_PRESET.h;
 let terrainGrid = new Uint8Array(TOTAL_CELLS);
@@ -115,16 +107,6 @@ function cellMask(x, y) {
   return N * 1 + E * 2 + S * 4 + W_ * 8 + NE * 16 + SE * 32 + SW * 64 + NW * 128;
 }
 
-function getSlot(mask, x, y) {
-  let idx = BLOB_47_MASKS.indexOf(mask);
-  if (idx === -1) idx = 46;
-  if (mask === 255) {
-    // Center variants slot 47..51
-    const r = ((MAP_PRESET.seed + x * 374761393 + y * 668265263) >>> 0) % 5;
-    return 47 + r;
-  }
-  return idx;
-}
 
 function bresenham(x0, y0, x1, y1, callback) {
   const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
@@ -419,11 +401,12 @@ function renderToCanvas(targetCv, includeOverlays, atlasImage) {
       if (!terrainGrid[idx]) continue;
 
       const mask = cellMask(gx, gy);
-      const slot = getSlot(mask, gx, gy);
+      const slot = terrainSlot(mask, gx, gy, totalSlots, MAP_PRESET.seed);
       const dx = gx * tw * z, dy = gy * th * z;
 
       if (useAtlas && im && totalSlots > 1) {
-        const s = slot % totalSlots;
+        if(slot<0) continue; // thiếu topology: để hở, không lấy nhầm ô bằng modulo
+        const s = slot;
         const sc = s % cols, sr = Math.floor(s / cols);
         const sx = off + sc * (tw + pad);
         const sy = off + sr * (th + pad);
