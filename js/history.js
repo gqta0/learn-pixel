@@ -1,5 +1,5 @@
 /* Hoàn tác / làm lại: chụp lại toàn bộ tài liệu, giữ 80 bước gần nhất. */
-import { doc } from './state.js';
+import { doc, view } from './state.js';
 import { syncAll } from './ui.js';
 
 /* Mỗi bước hoàn tác là một bản chụp cả tài liệu, nên phải chặn theo DUNG LƯỢNG
@@ -13,12 +13,12 @@ function trim(){
   while(undoStack.length && (undoStack.length>MAX_STEPS || bytes>MAX_BYTES))
     bytes -= sizeOf(undoStack.shift());
 }
-function snap(){
+export function captureUndo(){
   return {
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers: doc.layers.map(l=>({name:l.name, vis:l.vis})),
     frames: doc.frames.map(f=>f.map(d=>d.slice())),
-    dur: doc.dur.slice()
+    dur: doc.dur.slice(), sel:view.sel ? {...view.sel} : null
   };
 }
 function restore(s){
@@ -26,23 +26,23 @@ function restore(s){
   doc.layers=s.layers.map(l=>({name:l.name,vis:l.vis}));
   doc.frames=s.frames.map(f=>f.map(d=>d.slice()));
   doc.dur=(s.dur||[]).slice();
+  view.sel=s.sel ? {...s.sel} : null;
 }
-export function pushUndo(){
-  const s=snap();
+export function pushUndo(s=captureUndo()){
   undoStack.push(s); bytes+=sizeOf(s);
   trim();
   redoStack.length=0;
 }
 export function undo(){
   if(!undoStack.length) return;
-  redoStack.push(snap());
+  redoStack.push(captureUndo());
   const s=undoStack.pop(); bytes-=sizeOf(s);
   restore(s);
   syncAll();
 }
 export function redo(){
   if(!redoStack.length) return;
-  const s=snap();
+  const s=captureUndo();
   undoStack.push(s); bytes+=sizeOf(s);
   restore(redoStack.pop());
   syncAll();

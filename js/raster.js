@@ -142,11 +142,13 @@ export function floodFill(data,x,y,col){
     st.push(cx+1,cy, cx-1,cy, cx,cy+1, cx,cy-1);
   }
 }
-export function shiftLayer(data,dx,dy){
-  const out=blank();
-  for(let y=0;y<doc.h;y++) for(let x=0;x<doc.w;x++){
-    const sx=x-dx, sy=y-dy;
-    if(inside(sx,sy)) out[idx(x,y)]=data[idx(sx,sy)];
+export function shiftLayer(data,dx,dy,selection=null){
+  const s=selection || {x:0,y:0,w:doc.w,h:doc.h};
+  const out=data.slice();
+  for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++) out[idx(x,y)]=0;
+  for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++){
+    const v=data[idx(x,y)];
+    if(v && inside(x+dx,y+dy)) out[idx(x+dx,y+dy)]=v;
   }
   data.set(out);
 }
@@ -195,8 +197,8 @@ export function pasteClip(data){
 }
 /* lật lớp theo chiều ngang hoặc dọc */
 export function flipData(data,horiz){
-  const out=blank();
-  for(let y=0;y<doc.h;y++) for(let x=0;x<doc.w;x++)
-    out[idx(x,y)] = data[idx(horiz? doc.w-1-x : x, horiz? y : doc.h-1-y)];
+  const out=data.slice(), s=view.sel || {x:0,y:0,w:doc.w,h:doc.h};
+  for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++)
+    out[idx(s.x+x,s.y+y)] = data[idx(s.x+(horiz?s.w-1-x:x),s.y+(horiz?y:s.h-1-y))];
   data.set(out);
 }

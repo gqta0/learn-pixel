@@ -301,21 +301,30 @@ export function paletteFromArt(){
   return them.length;
 }
 
+const recentColors=[];
 export function syncColors(){
+  const hex=intToHex(view.pri).toLowerCase();
+  const old=recentColors.indexOf(hex);
+  if(old>=0) recentColors.splice(old,1);
+  recentColors.unshift(hex); recentColors.length=Math.min(8,recentColors.length);
   $('#chipPri').style.background = intToCss(view.pri);
   $('#chipSec').style.background = intToCss(view.sec);
   $('#qbColor').firstElementChild.style.background = intToCss(view.pri);
   $('#colPick').value = intToHex(view.pri);
   paintSwatches();
-  paintRamp();
+  if(!rampCols.length) paintRamp();
 }
 
 /* ---------------- dải màu theo chất liệu ---------------- */
 export let rampCols=[];                       // dải màu đang hiện — dụng cụ Tô khối đi trên dải này
+let rampBase=null;
+export function rampFromCurrent(){ rampBase=intToHex(view.pri); paintRamp(); }
 export function paintRamp(){
   const steps=parseInt($('#rampSteps').value,10);
   const shift=parseInt($('#hueShift').value,10);
-  rampCols=buildRamp(intToHex(view.pri), steps, shift, $('#matSel').value);
+  if(!rampBase) rampBase=intToHex(view.pri);
+  rampCols=buildRamp(rampBase, steps, shift, $('#matSel').value);
+  $('#rampBase').textContent=rampBase;
   const box=$('#rampOut'); box.innerHTML='';
   box.style.gridTemplateColumns='repeat('+steps+',1fr)';
   rampCols.forEach(hex=>{
@@ -340,7 +349,7 @@ export function shadeStep(v, dir){
 }
 
 /* mở popover chọn màu nhanh ngay tại nút màu hoặc thanh công cụ nhanh */
-export function openQuickPalette(anchor, onOpenTools){
+export function openQuickPalette(anchor, onOpenTools, all=false){
   if(!anchor) return;
   const cur = intToHex(view.pri).toLowerCase();
   const items = [
@@ -349,7 +358,9 @@ export function openQuickPalette(anchor, onOpenTools){
   if(onOpenTools){
     items.push({ label: '🎨 Thẻ Màu...', title: 'Mở chi tiết bảng điều khiển màu sắc', fn: onOpenTools });
   }
-  palette.forEach(hex => {
+  items.push({heading:all?'Toàn bộ bảng màu':'Màu gần đây'});
+  const colors=all ? palette : [...new Set([...recentColors,...palette.slice(0,8)])].slice(0,8);
+  colors.forEach(hex => {
     const meta = COLOR_TOKENS[hex.toLowerCase()];
     const title = meta ? `[${meta.group}] ${meta.token} (${hex}): ${meta.desc}` : hex;
     items.push({
@@ -359,6 +370,7 @@ export function openQuickPalette(anchor, onOpenTools){
       fn: () => { view.pri = hexToInt(hex); syncColors(); }
     });
   });
+  items.push({heading:'Dải đang dùng'});
   rampCols.forEach(hex => {
     items.push({
       color: hex,
@@ -367,6 +379,7 @@ export function openQuickPalette(anchor, onOpenTools){
       fn: () => { view.pri = hexToInt(hex); syncColors(); }
     });
   });
+  items.push({label:all?'← Màu gần đây':'Toàn bộ bảng màu…',fn:()=>openQuickPalette(anchor,onOpenTools,!all)});
   popover(anchor, 'Bảng màu nhanh', items);
 }
 
@@ -376,4 +389,3 @@ export function attachPalettePopup(el, onOpenTools){
   el.classList.add('haspop');
   onLongPress(el, ()=>openQuickPalette(el, onOpenTools));
 }
-

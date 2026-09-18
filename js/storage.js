@@ -96,6 +96,7 @@ let saveT=null;
 export function autosave(){
   clearTimeout(saveT);
   saveT=setTimeout(()=>{
+    if(view.drawing) return; // chỉ lưu nét đã kết thúc, không lưu nét sắp bị huỷ bởi pinch
     try{
       localStorage.setItem(SAVE_KEY, JSON.stringify(serialize()));
       const t=new Date();

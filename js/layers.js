@@ -16,13 +16,13 @@ export function paintLayers(){
     vis.className='vis'+(L.vis?' on':''); vis.textContent=L.vis?'◉':'○'; vis.title='Ẩn/hiện';
     vis.addEventListener('click', e=>{ e.stopPropagation(); L.vis=!L.vis; paintLayers(); render(); paintThumbs(); });
     const nm=document.createElement('div'); nm.className='nm'; nm.textContent=L.name;
-    const rename=()=>{ const v=prompt('Tên lớp:', L.name); if(v){ L.name=v; paintLayers(); } };
+    const rename=()=>{ const v=prompt('Tên lớp:', L.name); if(v){ pushUndo(); L.name=v; paintLayers(); render(); } };
     nm.addEventListener('dblclick', rename);
     const ren=document.createElement('button');
     ren.className='vis'; ren.textContent='✎'; ren.title='Đổi tên lớp';
     ren.addEventListener('click', e=>{ e.stopPropagation(); rename(); });
     row.appendChild(vis); row.appendChild(nm); row.appendChild(ren);
-    row.addEventListener('click', ()=>{ doc.al=i; paintLayers(); });
+    row.addEventListener('click', ()=>{ doc.al=i; paintLayers(); render(); });
     box.appendChild(row);
   }
 }

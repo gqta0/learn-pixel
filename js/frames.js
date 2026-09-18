@@ -18,6 +18,12 @@ export function paintThumbs(){
     b.addEventListener('click', ()=>{ doc.af=i; paintThumbs(); render(); });
     onLongPress(b, ()=>{
       const items = [
+        {label:'+ Khung trống sau khung này', fn:()=>{
+          pushUndo();
+          doc.frames.splice(i+1,0,doc.layers.map(()=>new Uint32Array(doc.w*doc.h)));
+          doc.dur.splice(i+1,0,0); doc.af=i+1;
+          paintThumbs(); render();
+        }},
         {label:'⧉ Nhân bản khung này', fn:()=>{
           pushUndo();
           doc.frames.splice(i+1, 0, doc.frames[i].map(d=>d.slice()));
@@ -72,6 +78,7 @@ const pvCv=$('#preview'), pvCtx=pvCv.getContext('2d');
 let pvFrame=0, pvDir=1, pvTimer=null;
 export function paintPreview(){
   const f = view.playing ? (pvFrame % doc.frames.length) : doc.af;
+  pvCv.classList.toggle('real-size',view.realSize);
   compositeToBuf(f);
   if(view.realSize){                       // cỡ thật: đúng thứ bài học bắt phải nhìn
     const w=doc.w, h=doc.h, gap=6;

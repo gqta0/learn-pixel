@@ -21,7 +21,7 @@ let savedGroup = true;
 try { savedGroup = localStorage.getItem('lo-pixel-pal-group') !== 'false'; } catch(_) {}
 
 export const view = {
-  zoom:12, grid:true, onion:false, symLine:false,
+  zoom:12, grid:true, onion:false, symLine:false, drawing:false,
   mirX:false, mirY:false,
   tool:'pencil', brush:1,
   pri: hexToInt('#ffb43f'), sec: hexToInt('#2e2e42'),

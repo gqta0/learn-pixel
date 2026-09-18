@@ -10,7 +10,7 @@ import { paintThumbs, paintPreview, togglePlay } from './frames.js';
 import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.js';
 import { PALETTES, palette, setPalette, paintSwatches, paintRamp, syncColors, rampCols,
          attachPalettePopup, openQuickPalette, palByName, isUserPal, savePaletteAs, deleteUserPal,
-         fillPalSelect, addCurrentColor, sortPalette, prunePalette, paletteFromArt } from './palette.js';
+         fillPalSelect, addCurrentColor, sortPalette, prunePalette, paletteFromArt, rampFromCurrent } from './palette.js';
 import { setTool, setTheme, setView, syncFingerBtn, syncPixelPerfectBtn, attachMods } from './tools.js';
 import { SAVE_KEY, exportPng, exportSheet, exportPalettePng, exportJson, importJson,
          loadRef, refToPixels, refToPalette } from './storage.js';
@@ -63,9 +63,9 @@ export function syncAll(){
 }
 
 /* ---------------- nối sự kiện ---------------- */
-$('#brush').addEventListener('input', e=>{ view.brush=+e.target.value; $('#brushLbl').textContent=view.brush; render(); });
-$('#mirX').addEventListener('click', e=>{ view.mirX=!view.mirX; e.currentTarget.setAttribute('aria-pressed',view.mirX); e.currentTarget.classList.toggle('on',view.mirX); });
-$('#mirY').addEventListener('click', e=>{ view.mirY=!view.mirY; e.currentTarget.setAttribute('aria-pressed',view.mirY); e.currentTarget.classList.toggle('on',view.mirY); });
+$('#brush').addEventListener('input', e=>{ view.brush=+e.target.value; view.brushEff=view.brush; $('#brushLbl').textContent=view.brush; render(); });
+$('#mirX').addEventListener('click', e=>{ view.mirX=!view.mirX; e.currentTarget.setAttribute('aria-pressed',view.mirX); e.currentTarget.classList.toggle('on',view.mirX); render(); });
+$('#mirY').addEventListener('click', e=>{ view.mirY=!view.mirY; e.currentTarget.setAttribute('aria-pressed',view.mirY); e.currentTarget.classList.toggle('on',view.mirY); render(); });
 const pfBtn = $('#pixPerfBtn');
 if(pfBtn){
   pfBtn.addEventListener('click', ()=>{
@@ -98,6 +98,7 @@ $('#qbColor').addEventListener('click', ()=>openQuickPalette($('#qbColor'), ()=>
 $$('.quickbar .qb[data-q]').forEach(b=>{ b.addEventListener('click', ()=>setTool(b.dataset.q)); attachMods(b, b.dataset.q); });
 attachPalettePopup($('#qbColor'), ()=>setView('tools'));
 attachPalettePopup($('#chipPri'), ()=>setView('tools'));
+$('#chipPri').addEventListener('click', ()=>openQuickPalette($('#chipPri'), ()=>setView('tools')));
 $$('#mnav button').forEach(b=>b.addEventListener('click', ()=>setView(b.dataset.view)));
 
 const palGrp = $('#palGroup');
@@ -140,16 +141,27 @@ $('#palSel').addEventListener('change', e=>{
 });
 $('#rampSteps').addEventListener('change', paintRamp);
 $('#hueShift').addEventListener('input', paintRamp);
+$('#rampNew').addEventListener('click', rampFromCurrent);
 $('#rampAdd').addEventListener('click', ()=>{
   rampCols.forEach(c=>{ if(!palette.includes(c)) palette.push(c); });
   paintSwatches();
 });
 
+let pendingResize=null;
+const resizeDialog=$('#resizeDialog');
+resizeDialog.addEventListener('close', ()=>{
+  if(pendingResize && ['keep','blank'].includes(resizeDialog.returnValue))
+    resizeDoc(pendingResize.w,pendingResize.h,resizeDialog.returnValue==='keep');
+  else { $('#sizeW').value=doc.w; $('#sizeH').value=doc.h; }
+  pendingResize=null;
+});
 $('#applySize').addEventListener('click', ()=>{
   const num=(sel,cur)=>{ const v=parseInt($(sel).value,10); return isFinite(v) ? Math.max(4,Math.min(128,v)) : cur; };
   const w=num('#sizeW',doc.w), h=num('#sizeH',doc.h);
   if(w===doc.w && h===doc.h) return;
-  resizeDoc(w, h, confirm('Giữ lại phần tranh hiện có ở góc trên-trái?\nOK = giữ, Cancel = xoá sạch.'));
+  pendingResize={w,h}; resizeDialog.returnValue='cancel';
+  $('#resizeNote').textContent=doc.w+'×'+doc.h+' → '+w+'×'+h+' px';
+  resizeDialog.showModal();
 });
 $('#zoomIn').addEventListener('click', ()=>setZoom(view.zoom+2));
 $('#zoomOut').addEventListener('click', ()=>setZoom(view.zoom-2));
@@ -225,7 +237,10 @@ function placeMore(){
 }
 moreEl.addEventListener('toggle', ()=>{ if(moreEl.open) placeMore(); });
 document.addEventListener('pointerdown', e=>{
-  if(moreEl.open && !moreEl.contains(e.target)) moreEl.open=false;
+  if(moreEl.open && !moreEl.contains(e.target)){
+    moreEl.open=false;
+    if($('#wrap').contains(e.target)){ e.preventDefault(); e.stopImmediatePropagation(); }
+  }
 }, true);
 window.addEventListener('resize', ()=>{ if(moreEl.open) placeMore(); });
 
@@ -243,6 +258,7 @@ $('#lockA').addEventListener('click', e=>{
   view.lockAlpha=!view.lockAlpha;
   e.currentTarget.setAttribute('aria-pressed', view.lockAlpha);
   e.currentTarget.classList.toggle('on', view.lockAlpha);
+  render();
 });
 $('#flipH').addEventListener('click', ()=>flipLayer(true));
 $('#flipV').addEventListener('click', ()=>flipLayer(false));
@@ -326,6 +342,7 @@ $$('.tab').forEach(t=>t.addEventListener('click', ()=>{
 }));
 
 window.addEventListener('keydown', e=>{
+  if(e.defaultPrevented || view.drawing || resizeDialog.open) return;
   const tag=(e.target.tagName||'').toLowerCase();
   if(tag==='input'||tag==='select'||tag==='textarea') return;
   const k=e.key.toLowerCase();
@@ -339,6 +356,7 @@ window.addEventListener('keydown', e=>{
   if(e.ctrlKey||e.metaKey) return;
   if(k==='escape'){
     if(closePopup()) return;
+    if(moreEl.open){ moreEl.open=false; moreEl.querySelector('summary').focus(); return; }
     const mw=$('#mapWrap'); if(mw && !mw.hidden){ mw.hidden=true; return; }
     const aw=$('#atlasWrap'); if(aw && !aw.hidden){ aw.hidden=true; return; }
     const lw=$('#libWrap'); if(lw && !lw.hidden){ lw.hidden=true; return; }
@@ -349,10 +367,10 @@ window.addEventListener('keydown', e=>{
   if(map[k]){ setTool(map[k]); return; }
   if(k==='p'){ view.pixelPerfect = !view.pixelPerfect; syncPixelPerfectBtn(); return; }
   if(k==='x'){ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); }
-  if(k==='['){ view.brush=Math.max(1,view.brush-1); $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }
-  if(k===']'){ view.brush=Math.min(6,view.brush+1); $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }
+  if(k==='['){ view.brush=Math.max(1,view.brush-1); view.brushEff=view.brush; $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }
+  if(k===']'){ view.brush=Math.min(6,view.brush+1); view.brushEff=view.brush; $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }
   if(k===','){ doc.af=Math.max(0,doc.af-1); paintThumbs(); render(); }
   if(k==='.'){ doc.af=Math.min(doc.frames.length-1,doc.af+1); paintThumbs(); render(); }
 });
 let rzT=null;
-window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{ fitZoom(); render(); },150); });
+window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{ if(!view.drawing){ fitZoom(); render(); } },150); });

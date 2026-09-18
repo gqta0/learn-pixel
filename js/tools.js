@@ -25,7 +25,7 @@ export const TOOLS=[
 /* ---------------- chạm giữ để chọn nhanh ----------------
    Mỗi nút chỉ mở đúng thứ hay phải đổi khi đang dùng chính nó. */
 function setBrush(n){
-  view.brush=n;
+  view.brush=n; view.brushEff=n;
   $('#brush').value=n; $('#brushLbl').textContent=n;
   render();
 }
@@ -39,6 +39,7 @@ export function syncPixelPerfectBtn(){
     b.setAttribute('aria-pressed', view.pixelPerfect ? 'true' : 'false');
     b.title = 'Nét sạch (Pixel-Perfect) đang ' + (view.pixelPerfect ? 'BẬT' : 'TẮT');
   }
+  render();
 }
 const MODS={
   pencil:{t:'Bút vẽ', items:()=>[
@@ -81,7 +82,7 @@ const MODS={
     {label:'⌫ Xoá vùng', fn:()=>$('#selDel').click()},
     {label:'✕ Bỏ chọn',  fn:()=>$('#selNone').click()}
   ]},
-  move:{t:'Lớp hiện tại', items:()=>[
+  move:{t:'Di chuyển / lật vùng chọn hoặc lớp hiện tại', items:()=>[
     {label:'⇋ Lật ngang', fn:()=>$('#flipH').click()},
     {label:'⇵ Lật dọc',   fn:()=>$('#flipV').click()}
   ]}
@@ -120,6 +121,7 @@ export function setTool(id){
   view.tool=id;
   $$('#tools .tool').forEach(b=>b.setAttribute('aria-pressed', b.dataset.tool===id?'true':'false'));
   $$('.quickbar .qb[data-q]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.q===id?'true':'false'));
+  render();
 }
 export function syncFingerBtn(){
   const pan = view.fingerMode==='pan';

@@ -58,6 +58,17 @@ Rồi vào `http://localhost:8123`.
 
 ## Cấu trúc
 
+Kiểm thử hồi quy thao tác vẽ (Node.js, không cần cài thư viện):
+
+```bash
+node --test tests/editor.cjs
+```
+
+Giữ Space + kéo chuột hoặc kéo bằng chuột giữa để di chuyển canvas. Hai ngón
+phóng/kéo quanh điểm chạm; Esc huỷ nét đang kéo. Move và Lật chỉ tác động trong
+vùng chọn khi có vùng chọn. Đổi khổ có ba lựa chọn: giữ nội dung, khung trắng, huỷ.
+Dải sáng–tối giữ nguyên khi lấy màu; dùng **Tạo dải từ màu chính** để tạo lại.
+
 ```
 index.html            chỉ markup
 css/app.css           toàn bộ giao diện, khối mobile nằm cuối file

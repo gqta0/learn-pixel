@@ -38,8 +38,8 @@
         </div>
       </div>
 
-      <div class="block">
-        <p class="eyebrow">Bút S-Pen</p>
+      <details class="block pen-settings">
+        <summary class="eyebrow">Bút S-Pen &amp; cảm ứng</summary>
         <div class="row">
           <button class="btn tiny grow on" id="pressBtn" aria-pressed="true">Áp lực → cỡ bút</button>
         </div>
@@ -55,13 +55,13 @@
           </select>
         </div>
         <p class="kbd" style="margin-top:7px">Tự động chống chạm nhầm tay (Palm rejection) khi dùng S-Pen. Rê bút cách mặt kính (hover) để ngắm ô pixel. Hai ngón để kéo và phóng canvas.</p>
-      </div>
+      </details>
 
-      <div class="block">
+      <div class="block color-block">
         <p class="eyebrow">Màu</p>
         <div class="colors">
           <input type="color" id="colPick" value="#ffb43f">
-          <div class="chip" id="chipPri" title="Màu chính"></div>
+          <button class="chip" id="chipPri" title="Màu chính — mở bảng màu nhanh" aria-label="Màu chính — mở bảng màu nhanh"></button>
           <div class="chip sec" id="chipSec" title="Màu phụ (Shift+bấm ô màu)"></div>
           <button class="btn tiny" id="swapCol" title="Đổi chỗ (X)">⇆</button>
         </div>
@@ -105,6 +105,8 @@
         <div class="row"><label class="mini grow">Lệch tông <b id="hsLbl">28°</b></label></div>
         <input type="range" id="hueShift" min="0" max="60" value="28">
         <div class="ramp" id="rampOut"></div>
+        <p class="kbd">Màu gốc: <b id="rampBase"></b></p>
+        <div class="row"><button class="btn tiny grow" id="rampNew">Tạo dải từ màu chính</button></div>
         <div class="row"><button class="btn tiny grow" id="rampAdd">Đưa dải vào bảng màu</button></div>
         <p class="kbd" style="margin:7px 0 0">Dụng cụ <b>◐ Tô khối (S)</b> đi trên đúng dải này: bấm để sáng lên 1 bậc, chuột phải để tối đi.</p>
       </div>
@@ -144,8 +146,9 @@
       </div>
 
       <div class="ctxwrap">
+        <p class="draw-status" id="drawStatus" aria-live="polite"></p>
         <div class="ctxbar" id="selBar" hidden>
-          <span class="kbd">Vùng chọn <b id="selSize"></b></span>
+          <span class="kbd">Vùng chọn <b id="selSize"></b> · Move/Lật trong vùng</span>
           <button class="btn tiny" id="selCut" title="Cắt vùng chọn (Ctrl+X)">✂ Cắt</button>
           <button class="btn tiny" id="selCopy" title="Chép vùng chọn (Ctrl+C)">⧉ Chép</button>
           <button class="btn tiny" id="selPaste" title="Dán vào góc trên-trái vùng chọn (Ctrl+V)">📋 Dán</button>
@@ -175,9 +178,11 @@
       </div>
 
       <div class="canvaswrap" id="wrap">
+        <div class="canvasplane" id="canvasPlane">
         <div class="canvasholder">
-          <canvas id="board" width="384" height="384"></canvas>
+          <canvas id="board" width="384" height="384" tabindex="0" aria-label="Canvas vẽ pixel"></canvas>
           <div class="hud" id="hud">—</div>
+        </div>
         </div>
       </div>
       </div>
@@ -199,7 +204,7 @@
           </div>
         </div>
         <div class="playbox">
-          <canvas id="preview" width="96" height="96"></canvas>
+          <div class="preview-scroll"><canvas id="preview" width="96" height="96"></canvas></div>
           <div class="row">
             <button class="btn tiny" id="playBtn">▶</button>
             <button class="btn tiny" id="pingPongBtn" aria-pressed="false" title="Lặp Ping-Pong (xuôi-ngược)">⇄</button>
@@ -432,6 +437,18 @@
   </nav>
 </div>
 
+<dialog id="resizeDialog" aria-labelledby="resizeTitle">
+  <form method="dialog">
+    <h2 id="resizeTitle">Đổi khổ canvas</h2>
+    <p id="resizeNote"></p>
+    <p class="kbd">Giữ nội dung ở góc trên-trái; phần ngoài khổ mới sẽ bị cắt. Có thể hoàn tác bằng Ctrl+Z.</p>
+    <div class="resize-actions">
+      <button class="btn primary" value="keep">Giữ nội dung</button>
+      <button class="btn" value="blank">Tạo khung trắng</button>
+      <button class="btn" value="cancel" autofocus>Huỷ</button>
+    </div>
+  </form>
+</dialog>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
