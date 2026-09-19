@@ -1,6 +1,6 @@
 /* Keo dán giao diện: đồng bộ toàn bộ bảng điều khiển và nối mọi nút bấm.
    Chỉ ở đây mới được phép biết về cả tài liệu lẫn DOM. */
-import { $, $$ } from './dom.js';
+import { $, $$, syncNavHeight } from './dom.js';
 import { doc, view, blank, newFrame, activeData } from './state.js';
 import { hexToInt, intToHex } from './color.js';
 import { invalidateBuf, flipData, copySel, clearSel, pasteClip } from './raster.js';
@@ -22,7 +22,7 @@ import { openLibrary, closeLibrary, saveCurrent, isBlank, exportContactSheet } f
 import { paintDaily, goToNext } from './daily.js';
 import { bindAtlas, importAtlas, syncBar as syncAtlasBar } from './atlas.js';
 import { openMapView, bindMapView } from './mapview.js';
-import { bindTerrain, syncTerrainBar, openTerrain } from './terrainview.js';
+import { bindTerrain, syncTerrainBar, openTerrain, closeTerrain } from './terrainview.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
 /* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ */
@@ -63,6 +63,7 @@ export function syncAll(){
   const nameEl = $('#projName'); if(nameEl) nameEl.value = doc.name || 'Bản vẽ không tên';
   paintLayers(); paintThumbs(); syncColors(); render(); updateProgress();
   syncAtlasBar(); syncTerrainBar();
+  syncNavHeight();
 }
 
 /* ---------------- nối sự kiện ---------------- */
@@ -101,9 +102,14 @@ $('#qbColor').addEventListener('click', ()=>openQuickPalette($('#qbColor'), ()=>
 $$('.quickbar .qb[data-q]').forEach(b=>{ b.addEventListener('click', ()=>setTool(b.dataset.q)); attachMods(b, b.dataset.q); });
 attachPalettePopup($('#qbColor'), ()=>setView('tools'));
 attachPalettePopup($('#chipPri'), ()=>setView('tools'));
+$('#chipPri').addEventListener('click', ()=>openQuickPalette($('#chipPri'), ()=>setView('tools')));
 $$('#mnav button').forEach(b=>b.addEventListener('click', ()=>{
+  if(b.dataset.view==='terrain'){
+    openTerrain();
+    return;
+  }
+  closeTerrain();
   setView(b.dataset.view);
-  if(b.dataset.view==='terrain') { syncTerrainBar(); openTerrain(); }
 }));
 
 const palGrp = $('#palGroup');
@@ -343,9 +349,8 @@ if(atMapPrev) atMapPrev.addEventListener('click', () => openMapView('atlas'));
 $$('.tab').forEach(t=>t.addEventListener('click', ()=>{
   $$('.tab').forEach(x=>x.setAttribute('aria-selected', x===t?'true':'false'));
   $$('.pane').forEach(p=>p.classList.toggle('on', p.id===t.dataset.pane));
-  const back={pHoc:'learn', pTerrain:'terrain', pEx:'learn', pTh:'learn', pFile:'file'}[t.dataset.pane];
+  const back={pHoc:'learn', pEx:'learn', pTh:'learn', pFile:'file'}[t.dataset.pane];
   if(back && document.body.dataset.view && document.body.dataset.view!=='draw') setView(back);
-  if(t.dataset.pane==='pTerrain') { syncTerrainBar(); openTerrain(); }
 }));
 
 function setLearnFilter(mode){
@@ -384,6 +389,7 @@ window.addEventListener('keydown', e=>{
   if(k==='escape'){
     if(closePopup()) return;
     if(moreEl.open){ moreEl.open=false; moreEl.querySelector('summary').focus(); return; }
+    const tw=$('#terrainWrap'); if(tw && !tw.hidden){ tw.hidden=true; return; }
     const mw=$('#mapWrap'); if(mw && !mw.hidden){ mw.hidden=true; return; }
     const aw=$('#atlasWrap'); if(aw && !aw.hidden){ aw.hidden=true; return; }
     const lw=$('#libWrap'); if(lw && !lw.hidden){ lw.hidden=true; return; }
@@ -392,6 +398,16 @@ window.addEventListener('keydown', e=>{
   if(k==='delete'||k==='backspace'){ e.preventDefault(); $('#selDel').click(); return; }
   const map={b:'pencil',d:'dither',e:'eraser',g:'fill',i:'picker',l:'line',u:'rect',o:'ellipse',m:'move',s:'shade',a:'select'};
   if(map[k]){ setTool(map[k]); return; }
+  if(k==='h'){
+    if(!view.terrainGuide || view.terrainGuideMode==='off'){
+      view.terrainGuide=true; view.terrainGuideMode='wireframe';
+    } else if(view.terrainGuideMode==='wireframe'){
+      view.terrainGuideMode='tint';
+    } else {
+      view.terrainGuideMode='off';
+    }
+    syncTerrainBar(); render(); return;
+  }
   if(k==='p'){ view.pixelPerfect = !view.pixelPerfect; syncPixelPerfectBtn(); return; }
   if(k==='x'){ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); }
   if(k==='['){ view.brush=Math.max(1,view.brush-1); view.brushEff=view.brush; $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }
@@ -400,4 +416,8 @@ window.addEventListener('keydown', e=>{
   if(k==='.'){ doc.af=Math.min(doc.frames.length-1,doc.af+1); paintThumbs(); render(); }
 });
 let rzT=null;
-window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{ if(!view.drawing){ fitZoom(); render(); } },150); });
+window.addEventListener('resize', ()=>{
+  syncNavHeight();
+  clearTimeout(rzT);
+  rzT=setTimeout(()=>{ if(!view.drawing){ fitZoom(); render(); } },150);
+});

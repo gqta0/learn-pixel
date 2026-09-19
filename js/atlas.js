@@ -4,7 +4,7 @@
 
    Tấm ảnh gốc không nằm trong doc — doc chỉ mượn một mẩu. Nhờ vậy sửa một ô
    16×16 trên tấm 896×768 vẫn nhẹ như vẽ một sprite bình thường. */
-import { $ } from './dom.js';
+import { $, syncNavHeight } from './dom.js';
 import { doc, view } from './state.js';
 import { invalidateBuf, frameToCanvas } from './raster.js';
 import { pushUndo } from './history.js';
@@ -185,6 +185,7 @@ export function syncBar(){
   if(editing) $('#atlasWhere').textContent='ô ('+editing.c+','+editing.r0+') · '+editing.w+'×'+editing.h;
   const open=$('#atOpen');
   if(open) open.textContent = atlas ? '🧩 Atlas: '+atlas.name : '🧩 Mở atlas…';
+  syncNavHeight();
 }
 
 function paint(){

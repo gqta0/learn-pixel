@@ -33,7 +33,8 @@ export const view = {
   penButton: localStorage.getItem('lo-pixel-pen-btn') || 'sec',
   pixelPerfect:false, ditherPattern:'50', ditherMode:'sec',
   groupPalette: savedGroup,
-  palettePinned: false
+  palettePinned: false,
+  terrainGuideMode: 'wireframe'
 };
 
 /* ---------------- chủ đề sáng / tối ---------------- */

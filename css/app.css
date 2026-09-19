@@ -475,7 +475,7 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
 .quickbar .qb[aria-pressed=true]{background:var(--accent-bg);border-color:var(--amber);color:var(--amber)}
 .quickbar .qb.on{background:var(--cool-bg);border-color:var(--cool-bd);color:var(--cyan)}
-.mnav{display:none;position:relative;z-index:55;background:var(--panel);border-top:1px solid var(--line)}
+.mnav{display:none;position:relative;z-index:55;background:var(--panel);border-top:1px solid var(--line);flex:0 0 auto;flex-shrink:0}
 .mnav button{
   flex:1;background:none;border:0;border-top:2px solid transparent;padding:7px 2px 9px;
   display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--dim);font-size:17px;
@@ -485,17 +485,19 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 
 @media (max-width:1000px){
   body{overflow:hidden}
-  .app{height:100dvh}
-  .workspace{display:block;position:relative;flex:1 1 auto;min-height:0}
-  .stage{position:absolute;inset:0}
-  .col{position:absolute;inset:0;z-index:20;display:none;border:0;padding-bottom:8px}
+  .app{height:100dvh;max-height:100dvh;overflow:hidden}
+  .workspace{display:block;position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
+  .stage{position:absolute;inset:0;display:flex;flex-direction:column;z-index:1}
+  .stagebar{position:relative;z-index:35;background:var(--panel);flex:0 0 auto;border-bottom:1px solid var(--line)}
+  .ctxwrap{position:relative;z-index:35;background:var(--panel);flex:0 0 auto}
+  .canvasarea{flex:1 1 auto;min-height:0}
+  .col{position:absolute;top:var(--stage-head-h, 42px);left:0;right:0;bottom:0;z-index:25;display:none;border:0;padding-bottom:8px;overflow-y:auto}
   body[data-view="tools"] .col.left{display:block}
-  body[data-view="terrain"] .col.right,
   body[data-view="learn"] .col.right,
   body[data-view="ex"] .col.right,
   body[data-view="th"] .col.right,
   body[data-view="file"] .col.right{display:block}
-  .mnav{display:flex}
+  .mnav{display:flex;flex:0 0 auto;flex-shrink:0}
   .quickbar{display:flex}
   .brand span,.topbar .prog{display:none}
   .brand b{font-size:13px}
@@ -560,11 +562,11 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 /* Tablet chế độ dọc (Galaxy Tab S10 FE dọc, 681px - 1000px): ngăn kéo trượt thông minh giữ canvas hiển thị trực quan */
 @media (min-width:681px) and (max-width:1000px){
   .col.left{
-    width:260px;left:0;right:auto;border-right:1px solid var(--line-hi);
+    width:260px;left:0;right:auto;top:var(--stage-head-h, 42px);bottom:0;border-right:1px solid var(--line-hi);
     box-shadow:4px 0 20px rgba(0,0,0,.4);z-index:25;
   }
   .col.right{
-    width:350px;right:0;left:auto;border-left:1px solid var(--line-hi);
+    width:350px;right:0;left:auto;top:var(--stage-head-h, 42px);bottom:0;border-left:1px solid var(--line-hi);
     box-shadow:-4px 0 20px rgba(0,0,0,.4);z-index:25;
   }
 }
@@ -588,8 +590,8 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
      trả 55px chiều cao về cho tranh. */
   /* khổ ngang: hàng 1 thanh công cụ, hàng 2 thanh ngữ cảnh, hàng 3 khung vẽ */
   .stage{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr)}
-  .stagebar{grid-column:1/3;grid-row:1}
-  .ctxwrap{grid-column:1/3;grid-row:2}
+  .stagebar{grid-column:1/3;grid-row:1;z-index:35}
+  .ctxwrap{grid-column:1/3;grid-row:2;z-index:35}
   .filmstrip{
     grid-column:1;grid-row:3;flex-direction:column;gap:6px;
     border-top:0;border-right:1px solid var(--line);overflow-y:auto;width:144px;
@@ -739,10 +741,23 @@ dialog h2{font-size:18px;margin:0 0 10px}
 #terrainHelp summary{font-size:12px;cursor:pointer;padding:8px 0}
 #terrainSeams{margin-top:16px;font-size:12px;line-height:1.6}
 #terrainSeams .btn{margin:3px;min-height:38px}
-#terrainDrawTools:not([hidden]){display:inline-flex;gap:6px}
+#terrainDrawTools:not([hidden]){display:inline-flex;gap:6px;align-items:center}
+#terrainWrap .terrain-layout{
+  display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;
+  flex:1 1 auto;min-height:0;overflow:hidden;padding:12px;
+}
+#terrainWrap .terrain-grid{
+  display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;
+  overflow-y:auto;align-content:start;padding-right:4px;
+}
+#terrainWrap .terrain-inspector{
+  background:var(--panel-2);padding:12px;border:1px solid var(--line);
+  overflow-y:auto;border-radius:4px;
+}
 @media(max-width:760px){
-  .terrain-layout{grid-template-columns:1fr}
+  .terrain-layout,#terrainWrap .terrain-layout{grid-template-columns:1fr;overflow-y:auto}
   .terrain-grid{grid-template-columns:repeat(4,minmax(0,1fr));max-height:270px;overflow-y:auto}
+  #terrainWrap .terrain-grid{grid-template-columns:repeat(4,minmax(0,1fr));max-height:none}
   #terrainDialog{padding:10px}
   .terrain-toolbar .btn{min-height:44px}
 }

@@ -57,8 +57,8 @@ export function render(){
   ctx.drawImage(buf,0,0,W,H);
 
   const te=doc.atlasEdit;
-  if(view.terrainGuide && te && Number.isInteger(te.terrainSlot) && te.terrainSlot>=0 && te.terrainSlot<56 && te.w===doc.w && te.h===doc.h && doc.w===doc.h)
-    paintTerrainGuide(ctx,te.terrainSlot,doc.w,z);
+  if(view.terrainGuide && view.terrainGuideMode!=='off' && te && Number.isInteger(te.terrainSlot) && te.terrainSlot>=0 && te.terrainSlot<56 && te.w===doc.w && te.h===doc.h && doc.w===doc.h)
+    paintTerrainGuide(ctx,te.terrainSlot,doc.w,z,view.terrainGuideMode||'wireframe');
 
   if(view.grid && view.zoom>=6){
     ctx.lineWidth=lw;

@@ -140,17 +140,59 @@ export function terrainManifest(size){
     tiles:TERRAIN_TILES.map(t=>({...t,x:(t.slot%8)*size,y:Math.floor(t.slot/8)*size,
       connects:Object.fromEntries(DIRECTIONS.map(d=>[d.key,neighbors(t.slot,d.key)]))}))};
 }
-export function paintTerrainGuide(ctx,slot,size,scale){
+export function paintTerrainGuide(ctx,slot,size,scale,mode='wireframe'){
   const roles=tileRoles(slot,size);
   ctx.save();
-  for(let y=0;y<size;y++) for(let x=0;x<size;x++){
-    const role=roles[y*size+x];
-    ctx.fillStyle=role?ROLE_COLORS[role]:'#ff5c8a';
-    ctx.globalAlpha=role===1?.15:role?.6:.25;
-    ctx.fillRect(x*scale,y*scale,scale,scale);
-    if(role && (x===0||y===0||x===size-1||y===size-1)){
-      ctx.globalAlpha=.8;ctx.fillStyle='#58d5ff';
+  if(mode==='wireframe'){
+    const edgeW=Math.max(2, Math.min(4, Math.floor(scale*0.16)));
+    for(let y=0;y<size;y++) for(let x=0;x<size;x++){
+      const role=roles[y*size+x];
+      const px=x*scale, py=y*scale;
+      if(!role){
+        // Để trong suốt: gạch chéo mờ góc để nhận biết, không phủ màu đè tranh
+        ctx.strokeStyle='rgba(255,92,138,.35)'; ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.moveTo(px+3, py+scale-3); ctx.lineTo(px+scale-3, py+3);
+        ctx.stroke();
+      } else if(role===1){
+        // Ruột đá/đất: viền mảnh mờ
+        ctx.strokeStyle='rgba(101,126,140,.3)'; ctx.lineWidth=1;
+        ctx.strokeRect(px+.5, py+.5, scale-1, scale-1);
+      } else {
+        // Sàn / trần / tường / góc: viền màu sắc nét 1.5px, ruột mờ 8% để không át màu thật
+        ctx.fillStyle=ROLE_COLORS[role]; ctx.globalAlpha=.08;
+        ctx.fillRect(px, py, scale, scale);
+        ctx.strokeStyle=ROLE_COLORS[role]; ctx.globalAlpha=.85; ctx.lineWidth=1.5;
+        ctx.strokeRect(px+1, py+1, scale-2, scale-2);
+      }
+      // Dải cyan ở biên nối: vẽ vạch mép 2px ở cạnh ngoài cùng, không đè lấp ruột pixel
+      if(role && (x===0||y===0||x===size-1||y===size-1)){
+        ctx.strokeStyle='#58d5ff'; ctx.globalAlpha=.95; ctx.lineWidth=edgeW;
+        ctx.beginPath();
+        if(y===0){ ctx.moveTo(px, py+edgeW/2); ctx.lineTo(px+scale, py+edgeW/2); }
+        if(y===size-1){ ctx.moveTo(px, py+scale-edgeW/2); ctx.lineTo(px+scale, py+scale-edgeW/2); }
+        if(x===0){ ctx.moveTo(px+edgeW/2, py); ctx.lineTo(px+edgeW/2, py+scale); }
+        if(x===size-1){ ctx.moveTo(px+scale-edgeW/2, py); ctx.lineTo(px+scale-edgeW/2, py+scale); }
+        ctx.stroke();
+      }
+    }
+  } else {
+    // Chế độ phủ mờ (tint)
+    for(let y=0;y<size;y++) for(let x=0;x<size;x++){
+      const role=roles[y*size+x];
+      ctx.fillStyle=role?ROLE_COLORS[role]:'#ff5c8a';
+      ctx.globalAlpha=role===1?.12:role?.28:.15;
       ctx.fillRect(x*scale,y*scale,scale,scale);
+      if(role && (x===0||y===0||x===size-1||y===size-1)){
+        ctx.strokeStyle='#58d5ff'; ctx.globalAlpha=.85; ctx.lineWidth=Math.max(2, Math.floor(scale*0.14));
+        const px=x*scale, py=y*scale;
+        ctx.beginPath();
+        if(y===0){ ctx.moveTo(px, py+1); ctx.lineTo(px+scale, py+1); }
+        if(y===size-1){ ctx.moveTo(px, py+scale-1); ctx.lineTo(px+scale, py+scale-1); }
+        if(x===0){ ctx.moveTo(px+1, py); ctx.lineTo(px+1, py+scale); }
+        if(x===size-1){ ctx.moveTo(px+scale-1, py); ctx.lineTo(px+scale-1, py+scale); }
+        ctx.stroke();
+      }
     }
   }
   ctx.restore();
