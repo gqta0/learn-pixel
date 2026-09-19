@@ -4,7 +4,7 @@ import { doc, view } from './state.js';
 import { frameToCanvas } from './raster.js';
 import { render, fitZoom } from './render.js';
 import { download } from './storage.js';
-import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack } from './atlas.js';
+import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, closeAtlas } from './atlas.js';
 import { openMapView } from './mapview.js';
 import { setView } from './tools.js';
 import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
@@ -44,6 +44,7 @@ export function refreshTerrain(){
   paint();
 }
 export function openTerrain(){
+  closeAtlas();
   seamIssues=[];
   $('#terrainSeams').textContent='Bấm “Soi mối nối” để kiểm tra alpha ở tất cả cặp nối hợp lệ.';
   refreshTerrain();
