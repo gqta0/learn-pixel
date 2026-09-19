@@ -2,7 +2,7 @@
 import { $, $$, syncNavHeight } from './dom.js';
 import { doc, view } from './state.js';
 import { frameToCanvas } from './raster.js';
-import { render } from './render.js';
+import { render, fitZoom } from './render.js';
 import { download } from './storage.js';
 import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack } from './atlas.js';
 import { openMapView } from './mapview.js';
@@ -118,32 +118,87 @@ function drawPair(cvs){
     (pair.positions.length?' · khe hở tại pixel '+pair.positions.join(', '):' · cyan = đường ghép (chỉ hướng dẫn)');
 }
 function paint(){
-  const cvs=tiles(), filter=$('#terrainFilter').value;
-  $('#terrainState').textContent=terrainAtlas()?'Atlas Terrain đang mở · preview gồm nét chưa ghi của ô đang sửa.':'Đang xem mẫu tham khảo · bấm Tạo bộ 56 ô để bắt đầu vẽ.';
+  const cvs=tiles(), filter=$('#terrainFilter').value, a=terrainAtlas(), e=editingRect();
+  $('#terrainState').textContent=a?'Atlas Terrain đang mở · preview gồm nét chưa ghi của ô đang sửa.':'Đang xem mẫu tham khảo · bấm Vẽ ô này để bắt đầu vẽ.';
   const grid=$('#terrainGrid');grid.replaceChildren();
   TERRAIN_TILES.forEach(t=>{
     const desc=describeMask(t.mask);
     if(filter==='inner'&&!desc.inner.length || filter==='outer'&&!desc.outer.length ||
       filter==='variants'&&t.kind==='blob' || filter==='surface'&&!desc.exposed.length) return;
-    const b=document.createElement('button');b.className='terrain-tile';b.setAttribute('aria-pressed',t.slot===selected);
+    const isEditing = a && e?.terrainSlot === t.slot;
+    const b=document.createElement('button');b.className='terrain-tile'+(isEditing?' editing-active':'');
+    b.setAttribute('aria-pressed',t.slot===selected);
     b.setAttribute('aria-label',id(t.slot)+' '+t.title+' mask '+t.mask);b.dataset.slot=t.slot;
     const cv=document.createElement('canvas');cv.width=cv.height=64;
     const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(cvs[t.slot],0,0,64,64);
     if($('#terrainGuides').checked) paintTerrainGuide(g,t.slot,size(),64/size());
     const label=document.createElement('span');label.textContent=id(t.slot)+' · '+t.title;
-    b.append(cv,label);b.addEventListener('click',()=>select(t.slot));grid.append(b);
+    b.append(cv,label);
+    if(isEditing){
+      const badge=document.createElement('span');badge.className='terrain-edit-badge';badge.textContent='● ĐANG VẼ';
+      b.append(badge);
+    }
+    b.addEventListener('click',()=>select(t.slot));
+    b.addEventListener('dblclick',()=>{select(t.slot);startPaintingSelectedSlot(t.slot);});
+    grid.append(b);
   });
-  for(const key of ['terrainEdit','terrainMap','terrainPng']) $('#'+key).disabled=!terrainAtlas();
+  for(const key of ['terrainMap','terrainPng']) $('#'+key).disabled=!terrainAtlas();
   drawDetail(cvs);
 }
+
+export function startPaintingSelectedSlot(slot = selected){
+  if(!terrainAtlas()){
+    if(!create()) return;
+  }
+  if(terrainAtlas() && editingRect()) writeBack();
+  selected = slot;
+  // 1. Chuyển sang view 'draw' trước để .stage hiển thị với kích thước thật
+  setView('draw');
+  // 2. Nạp ô vào canvas
+  if(editAtlasSlot(selected)){
+    syncTerrainBar();
+    // 3. Phóng to và render mượt mà ngay trên khung hình thực tế
+    requestAnimationFrame(()=>{
+      fitZoom();
+      render();
+    });
+  }
+}
+
+export function prevTerrainTile(){
+  const e = editingRect();
+  if(!terrainAtlas() || !Number.isInteger(e?.terrainSlot)) return;
+  writeBack();
+  const nextSlot = (e.terrainSlot + 55) % 56;
+  selected = nextSlot;
+  if(editAtlasSlot(nextSlot)){
+    syncTerrainBar();
+    render();
+  }
+}
+
+export function nextTerrainTile(){
+  const e = editingRect();
+  if(!terrainAtlas() || !Number.isInteger(e?.terrainSlot)) return;
+  writeBack();
+  const nextSlot = (e.terrainSlot + 1) % 56;
+  selected = nextSlot;
+  if(editAtlasSlot(nextSlot)){
+    syncTerrainBar();
+    render();
+  }
+}
+
 function create(){
-  const n=+$('#terrainSize').value;if(![16,32].includes(n)) return;
+  const n=+$('#terrainSize').value || 16;
+  if(![16,32].includes(n)) return false;
   const cv=document.createElement('canvas');cv.width=n*8;cv.height=n*7;
   const g=cv.getContext('2d');
   TERRAIN_TILES.forEach(t=>g.drawImage(canvas(terrainPixels(t.slot,n),n),(t.slot%8)*n,Math.floor(t.slot/8)*n));
-  if(!createTerrainAtlas(cv,n)) return;
+  if(!createTerrainAtlas(cv,n)) return false;
   seamIssues=[];inspectedPair=null;$('#terrainSeams').textContent='Đã tạo khối nền. Tắt hướng dẫn để xem tranh thật.';
   syncTerrainBar();render();paint();
+  return true;
 }
 function inspectSeams(){
   const cvs=tiles();seamIssues=checkSeams(pixelsOf(cvs),size());
@@ -176,16 +231,16 @@ function exportAnnotations(){
   download('terrain56-annotated.png',cv.toDataURL('image/png'));
 }
 export function bindTerrain(){
-  ['terrainOpen','atTerrain','terrainInspect'].forEach(key=>$('#'+key)?.addEventListener('click',openTerrain));
+  ['atTerrain','terrainInspect'].forEach(key=>$('#'+key)?.addEventListener('click',openTerrain));
   $('#terrainClose')?.addEventListener('click',closeTerrain);
   window.addEventListener('viewchange', e=>{
     if(e.detail?.view === 'terrain') refreshTerrain();
   });
-  $('#terrainCreate')?.addEventListener('click',create);
-  $('#terrainEdit')?.addEventListener('click',()=>{
-    if(terrainAtlas() && editingRect()) writeBack();
-    if(editAtlasSlot(selected)){closeTerrain();syncTerrainBar();}
-  });
+  $('#terrainCreate')?.addEventListener('click',()=>create());
+  $('#terrainEdit')?.addEventListener('click',()=>startPaintingSelectedSlot(selected));
+  $('#terrainInspectEdit')?.addEventListener('click',()=>startPaintingSelectedSlot(selected));
+  $('#terrainPrevTile')?.addEventListener('click',prevTerrainTile);
+  $('#terrainNextTile')?.addEventListener('click',nextTerrainTile);
   $('#terrainMap')?.addEventListener('click',()=>{if(editingRect()) writeBack();openMapView('atlas');});
   $('#terrainPng')?.addEventListener('click',()=>{
     if(editingRect()) writeBack();const a=terrainAtlas();if(a) download(a.name+'.png',a.cv.toDataURL('image/png'));
@@ -218,4 +273,19 @@ export function bindTerrain(){
   if(legend && !legend.children.length){
     ROLE_NAMES.forEach((name,i)=>{const span=document.createElement('span'),sw=document.createElement('i');sw.style.background=i?ROLE_COLORS[i]:'#ff5c8a';span.append(sw,document.createTextNode(name));legend.append(span);});
   }
+
+  // Phím tắt điều hướng nhanh 56 ô trên Desktop & Galaxy Tab S10 FE
+  window.addEventListener('keydown', e=>{
+    if(document.body.dataset.view==='terrain'){
+      if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA') return;
+      if(e.key==='ArrowRight'){ e.preventDefault(); select((selected+1)%56); }
+      else if(e.key==='ArrowLeft'){ e.preventDefault(); select((selected+55)%56); }
+      else if(e.key==='ArrowDown'){ e.preventDefault(); select((selected+8)%56); }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); select((selected+48)%56); }
+      else if(e.key==='Enter'||e.key===' '){ e.preventDefault(); startPaintingSelectedSlot(selected); }
+    } else if(document.body.dataset.view==='draw' && editingRect()?.terrainSlot != null){
+      if(e.altKey && e.key==='ArrowRight'){ e.preventDefault(); nextTerrainTile(); }
+      else if(e.altKey && e.key==='ArrowLeft'){ e.preventDefault(); prevTerrainTile(); }
+    }
+  });
 }

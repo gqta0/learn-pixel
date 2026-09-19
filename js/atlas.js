@@ -79,20 +79,27 @@ export function importAtlas(file){
   };
   fr.readAsDataURL(file);
 }
-// ponytail: cất nguyên tấm PNG dưới dạng dataURL. Tấm to có thể vượt quota —
-// hết chỗ thì báo thẳng, phiên sau nạp lại file, chứ không tự cắt nhỏ.
-function save(){
+let saveTimer=null;
+function save(immediate=false){
   if(!atlas) return;
-  try{
-    localStorage.setItem(KEY, JSON.stringify({
-      id:atlas.id, terrain:atlas.terrain, name:atlas.name, tw:atlas.tw, th:atlas.th, pad:atlas.pad, off:atlas.off,
-      png:atlas.cv.toDataURL('image/png')
-    }));
-    note('Đã cất vào trình duyệt.');
-  }catch(_){
-    note('Tấm này quá nặng nên trình duyệt không cất được — nhớ bấm ⬇ PNG trước khi đóng trang.');
-  }
+  if(saveTimer) clearTimeout(saveTimer);
+  const doSave = () => {
+    saveTimer=null;
+    if(!atlas) return;
+    try{
+      localStorage.setItem(KEY, JSON.stringify({
+        id:atlas.id, terrain:atlas.terrain, name:atlas.name, tw:atlas.tw, th:atlas.th, pad:atlas.pad, off:atlas.off,
+        png:atlas.cv.toDataURL('image/png')
+      }));
+      note('Đã cất vào trình duyệt.');
+    }catch(_){
+      note('Tấm này quá nặng nên trình duyệt không cất được — nhớ bấm ⬇ PNG trước khi đóng trang.');
+    }
+  };
+  if(immediate){ doSave(); }
+  else { saveTimer=setTimeout(doSave, 300); }
 }
+window.addEventListener('beforeunload', ()=>{ if(saveTimer) save(true); });
 export function loadAtlas(){
   let raw=null;
   try{ raw=localStorage.getItem(KEY); }catch(_){}

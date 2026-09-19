@@ -129,7 +129,6 @@
         <button class="btn tiny" id="gridBtn" aria-pressed="true">▦ Lưới</button>
         <button class="btn tiny" id="onionBtn" aria-pressed="false">◍ Bóng khung trước</button>
         <button class="btn tiny" id="mapPrevBtn" title="Xem thử tile lắp ghép thành bản đồ hang động 24×16">🗺 Soi map</button>
-        <button class="btn tiny" id="terrainOpen" title="56 ô terrain có hướng dẫn pixel, góc, cạnh và kiểm tra nối">🧩 Terrain 56</button>
         <details class="more"><summary class="btn tiny">⋯ Thêm</summary>
           <div class="morebox">
             <button class="btn tiny" id="symLine" aria-pressed="false">┊ Trục giữa</button>
@@ -162,6 +161,8 @@
           <button class="btn tiny" id="atlasNext" title="Ghi lại rồi mở atlas để chọn ô khác">⤴ Ghi &amp; ô sau</button>
           <button class="btn tiny" id="atlasStop" title="Thôi không gắn với atlas nữa">✕ Rời</button>
           <span id="terrainDrawTools" hidden>
+            <button class="btn tiny" id="terrainPrevTile" title="Ghi lại &amp; chuyển sang vẽ ô liền trước (Alt+←)">◀ Ô trước</button>
+            <button class="btn tiny" id="terrainNextTile" title="Ghi lại &amp; chuyển sang vẽ ô kế tiếp (Alt+→)">Ô sau ▶</button>
             <button class="btn tiny" id="terrainGuideToggle" aria-pressed="true" title="Chuyển chế độ: Viền nét (thấy 100% màu thật) → Phủ mờ → Tắt (Phím H)">👁 Gợi ý: Viền nét</button>
             <button class="btn tiny" id="terrainInspect" title="Mở xưởng 56 ô để kiểm tra hoặc chọn ô khác">56 ô / chú thích</button>
           </span>
@@ -374,7 +375,13 @@
       <div class="terrain-layout" style="flex:1 1 auto;min-height:0;overflow:hidden">
         <div class="terrain-grid" id="terrainGrid" aria-label="56 ô terrain" style="overflow-y:auto"></div>
         <section class="terrain-inspector" aria-labelledby="terrainTitle" style="overflow-y:auto">
-          <h3 id="terrainTitle"></h3><p class="kbd" id="terrainMeta"></p>
+          <div class="terrain-inspector-head">
+            <div>
+              <h3 id="terrainTitle" style="margin:0"></h3>
+              <p class="kbd" id="terrainMeta" style="margin:2px 0 6px"></p>
+            </div>
+            <button class="btn primary wide" id="terrainInspectEdit" title="Nạp ô này lên khung vẽ để vẽ (hoặc nhấp đúp lên ô)">✎ Vẽ ô này ngay (Nhấp đúp)</button>
+          </div>
           <canvas id="terrainDetail" aria-label="Vai trò pixel của ô đang chọn"></canvas>
           <p class="kbd" id="terrainPixel">Rê bút/chuột lên ô để xem pixel cần vẽ gì.</p>
           <p id="terrainRecipe"></p>
