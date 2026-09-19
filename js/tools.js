@@ -156,4 +156,5 @@ export function setView(v){
     $$('.tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.pane===map[v]?'true':'false'));
     $$('.pane').forEach(p=>p.classList.toggle('on', p.id===map[v]));
   }
+  window.dispatchEvent(new CustomEvent('viewchange', {detail: {view: v}}));
 }

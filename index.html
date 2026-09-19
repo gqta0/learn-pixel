@@ -346,6 +346,46 @@
       </div>
     </div>
 
+    <!-- ================= XƯỞNG TERRAIN 56 (VIEW CHÍNH QUY) ================= -->
+    <div class="terrain-view" id="terrainWrap">
+      <div class="libbar">
+        <p class="eyebrow" style="margin:0;flex:1">🧩 Terrain 56 · Tileset Workbench</p>
+        <button class="btn tiny" id="terrainCheck" title="Soi lỗi viền nối giữa các ô">Soi mối nối</button>
+        <button class="btn tiny" id="terrainMap" title="Xem thử trên bản đồ hang động">🗺 Xem map</button>
+        <button class="btn tiny" id="terrainPng" title="Xuất toàn bộ 56 ô thành ảnh PNG sạch">⬇ PNG sạch</button>
+        <button class="btn tiny" id="terrainAnnotated" title="Xuất ảnh PNG có chú thích từng ô">⬇ PNG chú thích</button>
+        <button class="btn tiny" id="terrainManifest" title="Xuất file JSON mapping autotile">⬇ JSON layout</button>
+        <button class="btn tiny primary" id="terrainEdit" title="Nạp ô đang chọn lên canvas chính để vẽ">✎ Vẽ ô này</button>
+        <button class="btn tiny" id="terrainClose" title="Quay lại khung vẽ (hoặc bấm tab Vẽ ở thanh dưới)">← Quay lại vẽ</button>
+      </div>
+      <div class="atbar">
+        <label class="mini">Khổ</label>
+        <select id="terrainSize"><option value="16">16×16</option><option value="32">32×32</option></select>
+        <button class="btn tiny primary" id="terrainCreate">Tạo bộ 56 ô</button>
+        <span class="sep"></span>
+        <label><input type="checkbox" id="terrainGuides" checked> Hướng dẫn pixel</label>
+        <label class="mini">Lọc</label>
+        <select id="terrainFilter">
+          <option value="all">Tất cả 56 ô</option><option value="surface">Sàn / trần / tường</option>
+          <option value="inner">Góc trong</option><option value="outer">Góc ngoài</option><option value="variants">9 biến thể</option>
+        </select>
+        <span class="kbd" id="terrainState" style="margin-left:auto"></span>
+      </div>
+      <div class="terrain-layout" style="flex:1 1 auto;min-height:0;overflow:hidden">
+        <div class="terrain-grid" id="terrainGrid" aria-label="56 ô terrain" style="overflow-y:auto"></div>
+        <section class="terrain-inspector" aria-labelledby="terrainTitle" style="overflow-y:auto">
+          <h3 id="terrainTitle"></h3><p class="kbd" id="terrainMeta"></p>
+          <canvas id="terrainDetail" aria-label="Vai trò pixel của ô đang chọn"></canvas>
+          <p class="kbd" id="terrainPixel">Rê bút/chuột lên ô để xem pixel cần vẽ gì.</p>
+          <p id="terrainRecipe"></p>
+          <div id="terrainNeighbors"></div>
+          <p class="kbd" id="terrainPairLabel"></p>
+          <canvas id="terrainPair" aria-label="Hai ô ghép cạnh nhau"></canvas>
+        </section>
+      </div>
+      <section id="terrainSeams" role="status" aria-live="polite" style="padding:6px 14px;border-top:1px solid var(--line)"></section>
+    </div>
+
   </div>
 
   <div class="libwrap" id="libWrap" hidden>
@@ -444,45 +484,6 @@
       <span>Kéo rê chuột để vẽ liên tục · Chuột phải để xoá ô · Giữ phím Space để chớp mắt soi mẫu cũ.</span>
       <span id="mapStatusNote" style="color:var(--dim)"></span>
     </p>
-  </div>
-
-  <div class="libwrap" id="terrainWrap" hidden>
-    <div class="libbar">
-      <p class="eyebrow" style="margin:0;flex:1">🧩 Terrain 56 · Tileset Workbench</p>
-      <button class="btn tiny" id="terrainCheck" title="Soi lỗi viền nối giữa các ô">Soi mối nối</button>
-      <button class="btn tiny" id="terrainMap" title="Xem thử trên bản đồ hang động">🗺 Xem map</button>
-      <button class="btn tiny" id="terrainPng" title="Xuất toàn bộ 56 ô thành ảnh PNG sạch">⬇ PNG sạch</button>
-      <button class="btn tiny" id="terrainAnnotated" title="Xuất ảnh PNG có chú thích từng ô">⬇ PNG chú thích</button>
-      <button class="btn tiny" id="terrainManifest" title="Xuất file JSON mapping autotile">⬇ JSON layout</button>
-      <button class="btn tiny primary" id="terrainEdit" title="Nạp ô đang chọn lên canvas chính để vẽ">✎ Vẽ ô này</button>
-      <button class="btn tiny" id="terrainClose">✕ Đóng</button>
-    </div>
-    <div class="atbar">
-      <label class="mini">Khổ</label>
-      <select id="terrainSize"><option value="16">16×16</option><option value="32">32×32</option></select>
-      <button class="btn tiny primary" id="terrainCreate">Tạo bộ 56 ô</button>
-      <span class="sep"></span>
-      <label><input type="checkbox" id="terrainGuides" checked> Hướng dẫn pixel</label>
-      <label class="mini">Lọc</label>
-      <select id="terrainFilter">
-        <option value="all">Tất cả 56 ô</option><option value="surface">Sàn / trần / tường</option>
-        <option value="inner">Góc trong</option><option value="outer">Góc ngoài</option><option value="variants">9 biến thể</option>
-      </select>
-      <span class="kbd" id="terrainState" style="margin-left:auto"></span>
-    </div>
-    <div class="terrain-layout" style="flex:1 1 auto;min-height:0;overflow:hidden">
-      <div class="terrain-grid" id="terrainGrid" aria-label="56 ô terrain" style="overflow-y:auto"></div>
-      <section class="terrain-inspector" aria-labelledby="terrainTitle" style="overflow-y:auto">
-        <h3 id="terrainTitle"></h3><p class="kbd" id="terrainMeta"></p>
-        <canvas id="terrainDetail" aria-label="Vai trò pixel của ô đang chọn"></canvas>
-        <p class="kbd" id="terrainPixel">Rê bút/chuột lên ô để xem pixel cần vẽ gì.</p>
-        <p id="terrainRecipe"></p>
-        <div id="terrainNeighbors"></div>
-        <p class="kbd" id="terrainPairLabel"></p>
-        <canvas id="terrainPair" aria-label="Hai ô ghép cạnh nhau"></canvas>
-      </section>
-    </div>
-    <section id="terrainSeams" role="status" aria-live="polite" style="padding:6px 14px;border-top:1px solid var(--line)"></section>
   </div>
 
   <nav class="mnav" id="mnav">

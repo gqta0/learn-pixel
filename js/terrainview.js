@@ -38,17 +38,19 @@ function select(slot){
   selected=slot;inspectedPair=null;paint();
   if(innerWidth<=760) $('#terrainTitle').scrollIntoView({block:'start'});
 }
-export function openTerrain(){
+export function refreshTerrain(){
   const e=editingRect();if(Number.isInteger(e?.terrainSlot) && e.terrainSlot>=0 && e.terrainSlot<56) selected=e.terrainSlot;
   if(terrainAtlas()) $('#terrainSize').value=terrainAtlas().tw;
-  seamIssues=[];$('#terrainSeams').textContent='Bấm “Soi mối nối” để kiểm tra alpha ở tất cả cặp nối hợp lệ.';
   paint();
-  const wrap = $('#terrainWrap');
-  if(wrap) wrap.hidden = false;
+}
+export function openTerrain(){
+  seamIssues=[];
+  $('#terrainSeams').textContent='Bấm “Soi mối nối” để kiểm tra alpha ở tất cả cặp nối hợp lệ.';
+  refreshTerrain();
+  setView('terrain');
 }
 export function closeTerrain(){
-  const wrap = $('#terrainWrap');
-  if(wrap) wrap.hidden = true;
+  setView('draw');
 }
 export function syncTerrainBar(){
   const e=editingRect(), enabled=Number.isInteger(e?.terrainSlot) && e.terrainSlot>=0 && e.terrainSlot<56 && !!terrainAtlas();
@@ -176,12 +178,15 @@ function exportAnnotations(){
 export function bindTerrain(){
   ['terrainOpen','atTerrain','terrainInspect'].forEach(key=>$('#'+key)?.addEventListener('click',openTerrain));
   $('#terrainClose')?.addEventListener('click',closeTerrain);
+  window.addEventListener('viewchange', e=>{
+    if(e.detail?.view === 'terrain') refreshTerrain();
+  });
   $('#terrainCreate')?.addEventListener('click',create);
   $('#terrainEdit')?.addEventListener('click',()=>{
     if(terrainAtlas() && editingRect()) writeBack();
-    if(editAtlasSlot(selected)){closeTerrain();setView('draw');syncTerrainBar();}
+    if(editAtlasSlot(selected)){closeTerrain();syncTerrainBar();}
   });
-  $('#terrainMap')?.addEventListener('click',()=>{if(editingRect()) writeBack();closeTerrain();openMapView('atlas');});
+  $('#terrainMap')?.addEventListener('click',()=>{if(editingRect()) writeBack();openMapView('atlas');});
   $('#terrainPng')?.addEventListener('click',()=>{
     if(editingRect()) writeBack();const a=terrainAtlas();if(a) download(a.name+'.png',a.cv.toDataURL('image/png'));
   });

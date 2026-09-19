@@ -104,11 +104,6 @@ attachPalettePopup($('#qbColor'), ()=>setView('tools'));
 attachPalettePopup($('#chipPri'), ()=>setView('tools'));
 $('#chipPri').addEventListener('click', ()=>openQuickPalette($('#chipPri'), ()=>setView('tools')));
 $$('#mnav button').forEach(b=>b.addEventListener('click', ()=>{
-  if(b.dataset.view==='terrain'){
-    openTerrain();
-    return;
-  }
-  closeTerrain();
   setView(b.dataset.view);
 }));
 
@@ -389,7 +384,7 @@ window.addEventListener('keydown', e=>{
   if(k==='escape'){
     if(closePopup()) return;
     if(moreEl.open){ moreEl.open=false; moreEl.querySelector('summary').focus(); return; }
-    const tw=$('#terrainWrap'); if(tw && !tw.hidden){ tw.hidden=true; return; }
+    if(document.body.dataset.view==='terrain'){ setView('draw'); return; }
     const mw=$('#mapWrap'); if(mw && !mw.hidden){ mw.hidden=true; return; }
     const aw=$('#atlasWrap'); if(aw && !aw.hidden){ aw.hidden=true; return; }
     const lw=$('#libWrap'); if(lw && !lw.hidden){ lw.hidden=true; return; }
