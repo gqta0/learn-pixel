@@ -727,6 +727,15 @@ body[data-view="terrain"] .col.right{display:none}
   display:flex;align-items:center;gap:8px;flex:0 0 auto;
   padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line);
 }
+.terrain-view .terrain-title{
+  margin:0;flex:1 1 auto;min-width:220px;white-space:nowrap;
+}
+.terrain-view .terrain-actions{
+  display:flex;align-items:center;gap:6px;flex:0 0 auto;
+}
+.terrain-view .terrain-actions + .terrain-actions{
+  padding-left:8px;border-left:1px solid var(--line);
+}
 .terrain-view .atbar{
   display:flex;align-items:center;gap:6px;flex:0 0 auto;
   padding:8px 14px;background:var(--panel-2);border-bottom:1px solid var(--line);flex-wrap:wrap;
@@ -788,6 +797,9 @@ body[data-view="terrain"] .col.right{display:none}
 #terrainDrawTools:not([hidden]){display:inline-flex;gap:5px;align-items:center}
 
 @media(max-width:760px){
+  .terrain-view .terrain-title{flex:0 0 auto;min-width:205px}
+  .terrain-view .terrain-actions{gap:5px}
+  .terrain-view .terrain-actions + .terrain-actions{padding-left:6px}
   .terrain-view .terrain-layout{grid-template-columns:1fr;overflow-y:auto;gap:10px;padding:8px}
   .terrain-view .terrain-grid{grid-template-columns:repeat(4,minmax(0,1fr));max-height:280px;overflow-y:auto}
   .terrain-view .terrain-inspector{overflow-y:visible}
@@ -811,7 +823,7 @@ body[data-view="terrain"] .col.right{display:none}
   .terrain-view .libbar > *, .terrain-view .atbar > *{flex:0 0 auto}
   .terrain-view .libbar{padding:8px 12px;gap:6px}
   .terrain-view .atbar{padding:7px 12px;gap:7px}
-  .terrain-view .libbar .eyebrow{min-width:205px;white-space:nowrap}
+  .terrain-view .terrain-title{min-width:205px}
   .terrain-view .libbar .btn,.terrain-view .libbar select{min-height:38px}
   #terrainCheckMode{min-height:38px}
   .terrain-view .terrain-layout{grid-template-columns:minmax(0,1fr) 310px;gap:12px;padding:10px}

@@ -129,7 +129,6 @@
         <button class="btn tiny" id="gridBtn" aria-pressed="true">▦ Lưới</button>
         <button class="btn tiny" id="onionBtn" aria-pressed="false">◍ Bóng khung trước</button>
         <button class="btn tiny" id="mapPrevBtn" title="Xem thử tile lắp ghép thành bản đồ hang động 24×16">🗺 Soi map</button>
-        <button class="btn tiny" id="terrainOpenMain" title="Mở xưởng 56 ô terrain / autotile">🧩 Terrain 56</button>
         <details class="more"><summary class="btn tiny">⋯ Thêm</summary>
           <div class="morebox">
             <button class="btn tiny" id="symLine" aria-pressed="false">┊ Trục giữa</button>
@@ -352,22 +351,26 @@
     <!-- ================= XƯỞNG TERRAIN 56 (VIEW CHÍNH QUY) ================= -->
     <div class="terrain-view" id="terrainWrap">
       <div class="libbar">
-        <p class="eyebrow" style="margin:0;flex:1">🧩 Terrain 56 · Tileset Workbench</p>
-        <button class="btn tiny" id="terrainCheck" title="Soi lỗi viền nối giữa các ô">Soi mối nối</button>
-        <select id="terrainCheckMode" title="Chọn mức kiểm tra mối nối">
-          <option value="all" selected>Alpha + màu/vân</option>
-          <option value="alpha">Chỉ alpha</option>
-          <option value="color">Chỉ màu/vân</option>
-        </select>
-        <button class="btn tiny" id="terrainMap" title="Xem thử trên bản đồ hang động">🗺 Xem map</button>
-        <button class="btn tiny" id="terrainPng" title="Xuất toàn bộ 56 ô thành ảnh PNG sạch">⬇ PNG sạch</button>
-        <button class="btn tiny" id="terrainAnnotated" title="Xuất ảnh PNG có chú thích từng ô">⬇ PNG chú thích</button>
-        <button class="btn tiny" id="terrainManifest" title="Xuất file JSON mapping autotile">⬇ JSON layout</button>
-        <button class="btn tiny" id="terrainGodot" title="Xuất mapping handoff cho Godot 4 TileSet Terrain">⬇ Godot</button>
-        <button class="btn tiny" id="terrainPack" title="Xuất một file pack gồm PNG, annotation và mapping">⬇ Xuất bộ</button>
-        <button class="btn tiny" id="terrainNextIssue" title="Chọn tile đầu tiên đang có lỗi sau lần soi gần nhất">◎ Ô cần sửa</button>
-        <button class="btn tiny primary" id="terrainEdit" title="Nạp ô đang chọn lên canvas chính để vẽ">✎ Vẽ ô này</button>
-        <button class="btn tiny" id="terrainClose" title="Quay lại khung vẽ (hoặc bấm tab Vẽ ở thanh dưới)">← Quay lại vẽ</button>
+        <p class="eyebrow terrain-title">🧩 Terrain 56 · Tileset Workbench</p>
+        <div class="terrain-actions terrain-primary-actions" aria-label="Thao tác terrain">
+          <button class="btn tiny" id="terrainCheck" title="Soi lỗi viền nối giữa các ô">Soi mối nối</button>
+          <select id="terrainCheckMode" title="Chọn mức kiểm tra mối nối">
+            <option value="all" selected>Alpha + màu/vân</option>
+            <option value="alpha">Chỉ alpha</option>
+            <option value="color">Chỉ màu/vân</option>
+          </select>
+          <button class="btn tiny" id="terrainMap" title="Xem thử trên bản đồ hang động">🗺 Xem map</button>
+          <button class="btn tiny" id="terrainNextIssue" title="Chọn tile đầu tiên đang có lỗi sau lần soi gần nhất">◎ Ô cần sửa</button>
+          <button class="btn tiny primary" id="terrainEdit" title="Nạp ô đang chọn lên canvas chính để vẽ">✎ Vẽ ô này</button>
+          <button class="btn tiny" id="terrainClose" title="Quay lại khung vẽ (hoặc bấm tab Vẽ ở thanh dưới)">← Quay lại vẽ</button>
+        </div>
+        <div class="terrain-actions terrain-export-actions" aria-label="Xuất terrain">
+          <button class="btn tiny" id="terrainPng" title="Xuất toàn bộ 56 ô thành ảnh PNG sạch">⬇ PNG sạch</button>
+          <button class="btn tiny" id="terrainAnnotated" title="Xuất ảnh PNG có chú thích từng ô">⬇ PNG chú thích</button>
+          <button class="btn tiny" id="terrainManifest" title="Xuất file JSON mapping autotile">⬇ JSON layout</button>
+          <button class="btn tiny" id="terrainGodot" title="Xuất mapping handoff cho Godot 4 TileSet Terrain">⬇ Godot</button>
+          <button class="btn tiny" id="terrainPack" title="Xuất một file pack gồm PNG, annotation và mapping">⬇ Xuất bộ</button>
+        </div>
       </div>
       <div class="atbar">
         <label class="mini">Khổ</label>

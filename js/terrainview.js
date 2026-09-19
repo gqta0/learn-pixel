@@ -277,7 +277,7 @@ function nextIssue(){
   $('#terrainTitle').scrollIntoView({block:'nearest'});
 }
 export function bindTerrain(){
-  ['atTerrain','terrainInspect','terrainOpenMain'].forEach(key=>$('#'+key)?.addEventListener('click',openTerrain));
+  ['atTerrain','terrainInspect'].forEach(key=>$('#'+key)?.addEventListener('click',openTerrain));
   $('#terrainClose')?.addEventListener('click',closeTerrain);
   window.addEventListener('viewchange', e=>{
     if(e.detail?.view === 'terrain') refreshTerrain();
