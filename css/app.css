@@ -770,6 +770,7 @@ body[data-view="terrain"] .col.right{display:none}
   overflow-y:auto;border-radius:4px;
 }
 .terrain-view .terrain-inspector h3{margin:0 0 4px;font-size:16px}
+#terrainCheckMode{min-height:28px;max-width:150px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);padding:3px 6px}
 #terrainDetail{display:block;margin:0 auto;max-width:100%;height:auto;image-rendering:pixelated;border-radius:4px;border:1px solid var(--line);box-shadow:0 4px 12px rgba(0,0,0,.25);background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/16px 16px}
 #terrainPair{display:block;margin:0 auto;max-width:100%;height:auto;image-rendering:pixelated;border-radius:4px;border:1px solid var(--line);background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/16px 16px}
 #terrainRecipe{font-size:12px;line-height:1.7;white-space:pre-line}
@@ -791,4 +792,31 @@ body[data-view="terrain"] .col.right{display:none}
   .terrain-view .terrain-grid{grid-template-columns:repeat(4,minmax(0,1fr));max-height:280px;overflow-y:auto}
   .terrain-view .terrain-inspector{overflow-y:visible}
   .terrain-tile canvas{width:56px}
+}
+
+/* Galaxy Tab / tablet portrait: keep the grid touchable, inspector below it. */
+@media (max-width:1000px) and (min-width:761px){
+  .terrain-view .terrain-layout{grid-template-columns:1fr;overflow-y:auto;gap:10px;padding:10px}
+  .terrain-view .terrain-grid{grid-template-columns:repeat(6,minmax(0,1fr));max-height:330px;overflow-y:auto;gap:7px}
+  .terrain-view .terrain-inspector{overflow-y:visible}
+  .terrain-view .libbar .btn,.terrain-view .libbar select{min-height:40px}
+  #terrainCheckMode{min-height:40px}
+  .terrain-tile{min-height:96px;padding:7px 4px}
+}
+
+/* Galaxy Tab S10 FE landscape: compact, horizontally scrollable toolbars and large hit targets. */
+@media (max-width:1280px) and (min-width:1001px){
+  .terrain-view .libbar,.terrain-view .atbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .terrain-view .libbar::-webkit-scrollbar,.terrain-view .atbar::-webkit-scrollbar{display:none}
+  .terrain-view .libbar > *, .terrain-view .atbar > *{flex:0 0 auto}
+  .terrain-view .libbar{padding:8px 12px;gap:6px}
+  .terrain-view .atbar{padding:7px 12px;gap:7px}
+  .terrain-view .libbar .eyebrow{min-width:205px;white-space:nowrap}
+  .terrain-view .libbar .btn,.terrain-view .libbar select{min-height:38px}
+  #terrainCheckMode{min-height:38px}
+  .terrain-view .terrain-layout{grid-template-columns:minmax(0,1fr) 310px;gap:12px;padding:10px}
+  .terrain-view .terrain-grid{gap:7px}
+  .terrain-tile{min-height:94px;padding:7px 4px}
+  .terrain-tile canvas{width:58px}
+  .terrain-view .terrain-inspector{padding:10px}
 }

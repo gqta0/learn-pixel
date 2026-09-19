@@ -17,11 +17,12 @@ function editor(){
   const nodes=new Map(), board=element(), win=element(), dom=element();
   const $=id=>{if(!nodes.has(id)) nodes.set(id,element()); return nodes.get(id);};
   const doc={w:32,h:32,af:0,al:0,layers:[{name:'Test',vis:true}],frames:[[new Uint32Array(1024)]],dur:[0]};
-  const view={tool:'pencil',fingerMode:'draw',brush:1,brushEff:1,pri:0xff112233,sec:0xff445566,sel:null,zoom:1};
+  const view={tool:'pencil',fingerMode:'draw',brush:1,brushEff:1,pri:0xff112233,sec:0xff445566,sel:null,zoom:1,terrainLock:true};
   let marks=0;
   dom.createElement=element; dom.querySelector=()=>null;
   const context=vm.createContext({doc,view,board,$,document:dom,window:win,Uint32Array,
     activeData:()=>doc.frames[doc.af][doc.al],blank:()=>new Uint32Array(doc.w*doc.h),
+    terrainConnectorIndices:()=>[2],tileRoles:()=>new Uint8Array(doc.w*doc.h),ROLE_NAMES:[],
     rgba:(r,g,b,a)=>(r|(g<<8)|(b<<16)|(a<<24))>>>0,
     render(){},syncAll(){},paintThumbs(){},paintSwatches(){},syncColors(){},syncFingerBtn(){},
     markToday(){marks++;},shadeStep:v=>v,setZoom:z=>{view.zoom=z;}
@@ -123,6 +124,14 @@ test('palm contact on toolbar cannot change the active pen stroke',()=>{
   e.dom.listeners.pointerdown[0](contact);e.dom.listeners.click[0](contact);
   assert.equal(blocked,2);assert.equal(e.view.drawing,true);
   e.event('pointerup',1,2,2,'pen');assert.equal(e.marks(),1);
+});
+test('terrain connector lock restores an existing border pixel after a stroke',()=>{
+  const e=editor();e.doc.atlasEdit={atlasId:'terrain-test',terrainSlot:46,w:32,h:32};
+  e.doc.frames[0][0][2]=0xff010203;
+  e.stroke(2,0);
+  assert.equal(e.pixel(2,0),0xff010203);
+  e.view.terrainLock=false;e.stroke(2,0);
+  assert.equal(e.pixel(2,0),e.view.pri);
 });
 test('undo restores the atlas slot together with its pixels',()=>{
   const e=editor();e.doc.atlasEdit={atlasId:'terrain-test',terrainSlot:46,x:96,y:80,w:16,h:16,c:6,r0:5};

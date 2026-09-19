@@ -8,10 +8,10 @@ import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, cl
 import { openMapView } from './mapview.js';
 import { setView } from './tools.js';
 import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
-  tileRoles, terrainPixels, describeMask, neighbors, checkSeams, terrainManifest, paintTerrainGuide } from './terrain.js';
+  tileRoles, terrainPixels, describeMask, neighbors, checkSeams, checkColorSeams,
+  terrainManifest, terrainGodotManifest, paintTerrainGuide } from './terrain.js';
 
 let selected=46, seamIssues=[], inspectedPair=null;
-const dialog=()=>$('#terrainDialog');
 function terrainAtlas(){
   const a=getAtlas();
   return a?.terrain===TERRAIN_SCHEMA && [16,32].includes(a.tw) && a.th===a.tw &&
@@ -46,7 +46,7 @@ export function refreshTerrain(){
 export function openTerrain(){
   closeAtlas();
   seamIssues=[];
-  $('#terrainSeams').textContent='Bấm “Soi mối nối” để kiểm tra alpha ở tất cả cặp nối hợp lệ.';
+  $('#terrainSeams').textContent='Bấm “Soi mối nối” để kiểm tra alpha và màu/vân ở các cặp nối hợp lệ.';
   refreshTerrain();
   setView('terrain');
 }
@@ -63,6 +63,12 @@ export function syncTerrainBar(){
     btn.textContent = label;
     btn.setAttribute('aria-pressed', mode !== 'off');
     btn.title = 'Bấm để đổi: Viền nét (thấy 100% màu thật) → Phủ mờ → Tắt (Phím H)';
+  }
+  const lock=$('#terrainLockToggle');
+  if(lock){
+    lock.textContent=view.terrainLock?'🔒 Điểm nối: khoá':'🔓 Điểm nối: mở';
+    lock.setAttribute('aria-pressed',view.terrainLock);
+    lock.title=view.terrainLock?'Giữ nguyên pixel connector ở biên tile':'Cho phép sửa pixel connector; hãy soi mối nối sau khi vẽ';
   }
   if(enabled) $('#atlasWhere').textContent='Terrain '+id(e.terrainSlot)+' · '+TERRAIN_TILES[e.terrainSlot].title;
   syncNavHeight();
@@ -93,7 +99,8 @@ function drawDetail(cvs){
     const row=document.createElement('div');row.className='terrain-neighbor-list';
     for(const slot of list){
       const b=document.createElement('button');b.className='btn tiny';b.textContent=id(slot);b.title=TERRAIN_TILES[slot].title;
-      b.addEventListener('click',()=>{inspectedPair={a:selected,b:slot,direction:d.key,positions:[]};drawPair(cvs);});row.append(b);
+      b.setAttribute('aria-label',id(slot)+' '+TERRAIN_TILES[slot].title+' · xem tile nối');
+      b.addEventListener('click',()=>{const from=selected;selected=slot;inspectedPair={a:from,b:slot,direction:d.key,positions:[]};paint();});row.append(b);
     }
     details.append(row);box.append(details);
   });
@@ -143,7 +150,8 @@ function paint(){
     b.addEventListener('dblclick',()=>{select(t.slot);startPaintingSelectedSlot(t.slot);});
     grid.append(b);
   });
-  for(const key of ['terrainMap','terrainPng']) $('#'+key).disabled=!terrainAtlas();
+  $('#terrainMap').disabled=!terrainAtlas();
+  $('#terrainNextIssue').disabled=!seamIssues.length;
   drawDetail(cvs);
 }
 
@@ -197,25 +205,40 @@ function create(){
   const g=cv.getContext('2d');
   TERRAIN_TILES.forEach(t=>g.drawImage(canvas(terrainPixels(t.slot,n),n),(t.slot%8)*n,Math.floor(t.slot/8)*n));
   if(!createTerrainAtlas(cv,n)) return false;
-  seamIssues=[];inspectedPair=null;$('#terrainSeams').textContent='Đã tạo khối nền. Tắt hướng dẫn để xem tranh thật.';
+  seamIssues=[];inspectedPair=null;$('#terrainSeams').textContent='Đã tạo khối nền. Tắt hướng dẫn để xem tranh thật, hoặc bật khoá điểm nối khi bắt đầu vẽ.';
   syncTerrainBar();render();paint();
   return true;
 }
 function inspectSeams(){
-  const cvs=tiles();seamIssues=checkSeams(pixelsOf(cvs),size());
+  const cvs=tiles(),pixels=pixelsOf(cvs),mode=$('#terrainCheckMode').value||'all';
+  const alpha=mode==='color'?[]:checkSeams(pixels,size());
+  const color=mode==='alpha'?[]:checkColorSeams(pixels,size());
+  seamIssues=[...alpha,...color];
   const box=$('#terrainSeams');box.replaceChildren();
-  const result=document.createElement('p');result.textContent=seamIssues.length?
-    seamIssues.length+' cặp có khe hở/alpha không kín. Bấm cặp để thấy đúng pixel lỗi.':
-    '✓ Không thấy khe hở alpha tại các cạnh nối hợp lệ của 56 ô.';box.append(result);
-  const note=document.createElement('p');note.className='kbd';note.textContent='Kiểm tra hình học/alpha, không đánh giá độ liền mạch của màu, vân hoặc phong cách. Hãy tắt hướng dẫn và soi map nữa.';box.append(note);
+  const result=document.createElement('p');
+  if(!seamIssues.length) result.textContent='✓ Không thấy lỗi ở các cạnh nối hợp lệ của 56 ô.';
+  else result.textContent=alpha.length+' lỗi alpha · '+color.length+' cảnh báo màu/vân. Bấm cặp để thấy đúng pixel.';
+  box.append(result);
+  const note=document.createElement('p');note.className='kbd';
+  note.textContent=mode==='alpha'?'Đang soi alpha: pixel nối phải kín hoặc cùng trong suốt.':
+    mode==='color'?'Đang soi màu/vân: chỉ so các pixel cùng vai trò; khác sáng/tối có chủ đích được bỏ qua.':
+    'Alpha là lỗi bắt buộc; màu/vân là cảnh báo mềm để artist tự quyết. Tắt hướng dẫn và soi map để kiểm tra cảm giác tổng thể.';
+  box.append(note);
   // ponytail: list only the first 80 failures; fix a connector then rescan instead of mounting thousands of buttons.
   seamIssues.slice(0,80).forEach(issue=>{
-    const b=document.createElement('button');b.className='btn tiny';b.textContent=id(issue.a)+' '+issue.direction+' '+id(issue.b)+' · '+issue.positions.length+' px';
+    const b=document.createElement('button');b.className='btn tiny';b.textContent=(issue.kind==='color'?'🎨 ':'◌ ')+id(issue.a)+' '+issue.direction+' '+id(issue.b)+' · '+issue.positions.length+' px';
     b.addEventListener('click',()=>{selected=issue.a;inspectedPair=issue;paint();$('#terrainTitle').scrollIntoView({block:'nearest'});});box.append(b);
   });
   if(seamIssues.length>80){const p=document.createElement('p');p.textContent='Hiện 80 cặp đầu; sửa biên rồi kiểm tra lại.';box.append(p);}
+  $('#terrainNextIssue').disabled=!seamIssues.length;
 }
-function exportAnnotations(){
+function templateAtlasCanvas(n){
+  const cv=document.createElement('canvas');cv.width=n*8;cv.height=n*7;
+  const g=cv.getContext('2d');
+  TERRAIN_TILES.forEach(t=>g.drawImage(canvas(terrainPixels(t.slot,n),n),(t.slot%8)*n,Math.floor(t.slot/8)*n));
+  return cv;
+}
+function annotationDataUrl(){
   const cvs=tiles(),cv=document.createElement('canvas');cv.width=1440;cv.height=1320;
   const g=cv.getContext('2d');g.fillStyle='#101018';g.fillRect(0,0,cv.width,cv.height);
   g.fillStyle='#e8e8f2';g.font='bold 24px sans-serif';g.fillText('TERRAIN 56 · 47 topology + 5 ruột + 4 mép',24,34);
@@ -229,10 +252,32 @@ function exportAnnotations(){
     g.font='12px sans-serif';g.fillText(t.title,x+10,y+127,157);
     g.fillText('Nối: '+(DIRECTIONS.filter(d=>t.mask&d.bit).map(d=>d.key).join(' ')||'không'),x+10,y+147,157);
   });
-  download('terrain56-annotated.png',cv.toDataURL('image/png'));
+  return cv.toDataURL('image/png');
+}
+function exportAnnotations(){ download('terrain56-annotated.png',annotationDataUrl()); }
+function exportGodot(){
+  const url=URL.createObjectURL(new Blob([JSON.stringify(terrainGodotManifest(size()),null,2)],{type:'application/json'}));
+  download('terrain56-godot-mapping.json',url);setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportPack(){
+  if(editingRect()) writeBack();
+  const n=size(),a=terrainAtlas()?.cv||templateAtlasCanvas(n),manifest=terrainManifest(n);
+  const pack={schema:TERRAIN_SCHEMA,format:'lo-pixel-terrain56-pack.v1',tileSize:n,manifest,
+    godot:terrainGodotManifest(n),files:{
+      'terrain56.png':a.toDataURL('image/png'),
+      'terrain56-annotated.png':annotationDataUrl()
+    }};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(pack)],{type:'application/json'}));
+  download('terrain56-pack.json',url);setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function nextIssue(){
+  if(!seamIssues.length){inspectSeams();return;}
+  const issue=seamIssues.find(i=>i.a!==selected)||seamIssues[0];
+  selected=issue.a;inspectedPair=issue;paint();
+  $('#terrainTitle').scrollIntoView({block:'nearest'});
 }
 export function bindTerrain(){
-  ['atTerrain','terrainInspect'].forEach(key=>$('#'+key)?.addEventListener('click',openTerrain));
+  ['atTerrain','terrainInspect','terrainOpenMain'].forEach(key=>$('#'+key)?.addEventListener('click',openTerrain));
   $('#terrainClose')?.addEventListener('click',closeTerrain);
   window.addEventListener('viewchange', e=>{
     if(e.detail?.view === 'terrain') refreshTerrain();
@@ -242,16 +287,22 @@ export function bindTerrain(){
   $('#terrainInspectEdit')?.addEventListener('click',()=>startPaintingSelectedSlot(selected));
   $('#terrainPrevTile')?.addEventListener('click',prevTerrainTile);
   $('#terrainNextTile')?.addEventListener('click',nextTerrainTile);
+  $('#terrainLockToggle')?.addEventListener('click',()=>{view.terrainLock=!view.terrainLock;syncTerrainBar();});
   $('#terrainMap')?.addEventListener('click',()=>{if(editingRect()) writeBack();openMapView('atlas');});
   $('#terrainPng')?.addEventListener('click',()=>{
-    if(editingRect()) writeBack();const a=terrainAtlas();if(a) download(a.name+'.png',a.cv.toDataURL('image/png'));
+    if(editingRect()) writeBack();const a=terrainAtlas()?.cv||templateAtlasCanvas(size());
+    download((terrainAtlas()?.name||'terrain56-'+size())+'.png',a.toDataURL('image/png'));
   });
   $('#terrainManifest')?.addEventListener('click',()=>{
     const url=URL.createObjectURL(new Blob([JSON.stringify(terrainManifest(size()),null,2)],{type:'application/json'}));
     download('terrain56-layout.json',url);setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
+  $('#terrainGodot')?.addEventListener('click',exportGodot);
+  $('#terrainPack')?.addEventListener('click',exportPack);
+  $('#terrainNextIssue')?.addEventListener('click',nextIssue);
   $('#terrainAnnotated')?.addEventListener('click',exportAnnotations);
   $('#terrainCheck')?.addEventListener('click',inspectSeams);
+  $('#terrainCheckMode')?.addEventListener('change',inspectSeams);
   ['terrainFilter','terrainGuides'].forEach(key=>$('#'+key)?.addEventListener('change',paint));
   $('#terrainSize')?.addEventListener('change',()=>{if(!terrainAtlas()) paint();});
   $('#terrainGuideToggle')?.addEventListener('click',()=>{

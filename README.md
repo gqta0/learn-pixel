@@ -40,19 +40,24 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 ## Terrain 56 — template có hướng dẫn pixel
 
-Mở **🧩 Terrain 56** trên thanh canvas hoặc trong cửa sổ Atlas.
+Mở **🧩 Terrain 56** trên thanh canvas, thanh Terrain của tablet, tab File/Atlas hoặc tab
+Terrain trên thanh dưới mobile.
 
 1. Chọn 16×16 hoặc 32×32, bấm **Tạo bộ 56 ô**. App dựng khối nền đá để vẽ tiếp;
    nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
 2. Chọn tile để đọc vai trò pixel, cạnh hở, góc lồi/lõm và các tile nối hợp lệ theo
-   N/E/S/W. Bấm mã tile hàng xóm để xem hai ô ghép cạnh nhau.
+   N/E/S/W. Bấm mã tile hàng xóm để chuyển thẳng sang tile đó và xem hai ô ghép cạnh nhau.
 3. **Ghi ô cũ & sửa ô chọn** mở tile trong editor đầy đủ. Có thể tắt lớp hướng dẫn,
    vẽ bằng bút/S-Pen rồi **Ghi lại**. Mở workbench sẽ soi cả nét chưa ghi của ô đó.
-4. **Soi mối nối** đánh dấu tọa độ pixel có khe hở hoặc alpha không kín trên cạnh
-   nối. Đây không phải kiểm tra màu/vân: dùng **Ghi & xem map** để đánh giá bằng mắt.
-5. Xuất **PNG sạch** cho game, **PNG chú thích** cho artist, và **JSON mapping** cho
-   engine. Chú thích/overlay không được ghi vào tranh. Atlas được lưu riêng trong
-   trình duyệt; JSON dự án thông thường vẫn chỉ lưu bản vẽ đang mở, không cả atlas.
+4. Khi sửa tile, **🔒 Điểm nối: khoá** giữ nguyên các pixel connector đã có để tránh
+   vô tình khoét thủng mép. Tắt khoá chỉ khi cần sửa connector rồi soi lại.
+5. **Soi mối nối** có 3 chế độ: alpha bắt buộc, màu/vân theo cùng vai trò, hoặc cả hai.
+   **◎ Ô cần sửa** nhảy thẳng đến cặp lỗi gần nhất; cảnh báo màu/vân là gợi ý mềm,
+   không ép style của artist.
+6. Xuất **PNG sạch**, **PNG chú thích**, **JSON layout**, **Godot mapping** và một
+   **terrain56-pack.json** chứa atlas PNG, annotation cùng mapping. Chú thích/overlay
+   không được ghi vào tranh. Atlas được lưu riêng trong trình duyệt; JSON dự án thông
+   thường vẫn chỉ lưu bản vẽ đang mở, không cả atlas.
 
 Layout riêng, 8 cột × 7 hàng, đánh số từ 0:
 

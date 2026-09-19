@@ -34,7 +34,7 @@ export const view = {
   pixelPerfect:false, ditherPattern:'50', ditherMode:'sec',
   groupPalette: savedGroup,
   palettePinned: false,
-  terrainGuideMode: 'wireframe'
+  terrainGuideMode: 'wireframe', terrainLock:true
 };
 
 /* ---------------- chủ đề sáng / tối ---------------- */

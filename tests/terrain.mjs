@@ -1,7 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {BLOB_47_MASKS, TERRAIN_TILES, normalizeMask, tileRoles, terrainPixels,
-  neighbors, canConnect, terrainSlot, checkSeams, edgeIndex, terrainManifest} from '../js/terrain.js';
+  neighbors, canConnect, terrainSlot, checkSeams, checkColorSeams, edgeIndex,
+  terrainConnectorIndices, terrainManifest, terrainGodotManifest} from '../js/terrain.js';
 
 test('256 neighborhoods reduce to exactly 47 unique canonical topologies',()=>{
   assert.equal(BLOB_47_MASKS.length,47);
@@ -56,6 +57,13 @@ test('seam checker locates an erased connector and accepts interior texture edit
   const issues=checkSeams(px,16);
   assert.ok(issues.some(i=>i.a===46&&i.direction==='E'&&i.positions.includes(8)));
 });
+test('color checker catches same-role border changes while connector lock targets the border',()=>{
+  const px=TERRAIN_TILES.map(t=>terrainPixels(t.slot,16));
+  assert.deepEqual(checkColorSeams(px,16),[]);
+  px[46][edgeIndex('E',8,16)]=0xff0000ff;
+  assert.ok(checkColorSeams(px,16).some(i=>i.a===46&&i.direction==='E'&&i.positions.includes(8)));
+  assert.ok(terrainConnectorIndices(46,16).includes(edgeIndex('E',8,16)));
+});
 test('mapping covers 8×7 unique slots and preserves every mask and variant',()=>{
   for(const n of [16,32]){
     const m=terrainManifest(n);assert.equal(m.columns*m.rows,56);
@@ -63,4 +71,8 @@ test('mapping covers 8×7 unique slots and preserves every mask and variant',()=
     assert.ok(m.tiles.every(t=>t.x+n<=8*n&&t.y+n<=7*n));
     assert.deepEqual(m.tiles.map(t=>t.mask),TERRAIN_TILES.map(t=>t.mask));
   }
+  const godot=terrainGodotManifest(16);
+  assert.equal(godot.format,'godot4-terrain-set-handoff');
+  assert.equal(godot.tiles.length,56);
+  assert.deepEqual(godot.tiles[46].atlasCoords,[6,5]);
 });

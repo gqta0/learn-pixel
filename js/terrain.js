@@ -100,6 +100,14 @@ export function tileRoles(slot,size){
   }
   return out;
 }
+export function terrainConnectorIndices(slot,size){
+  const roles=tileRoles(slot,size), out=[];
+  for(let y=0;y<size;y++) for(let x=0;x<size;x++){
+    const i=y*size+x;
+    if(roles[i] && (x===0||y===0||x===size-1||y===size-1)) out.push(i);
+  }
+  return out;
+}
 const rgba=hex=>(parseInt(hex.slice(1,3),16)|(parseInt(hex.slice(3,5),16)<<8)|(parseInt(hex.slice(5,7),16)<<16)|0xff000000)>>>0;
 export function terrainPixels(slot,size){
   const roles=tileRoles(slot,size), tile=TERRAIN_TILES[slot];
@@ -128,7 +136,24 @@ export function checkSeams(pixels,size){
         const aa=pixels[a.slot][ai]>>>24,ba=pixels[b][bi]>>>24;
         if(roles[ai] ? aa!==255 || ba!==255 : (aa===0)!==(ba===0)) positions.push(p);
       }
-      if(positions.length) issues.push({a:a.slot,b,direction:dir,positions});
+      if(positions.length) issues.push({a:a.slot,b,direction:dir,positions,kind:'alpha'});
+    }
+  }
+  return issues;
+}
+export function checkColorSeams(pixels,size){
+  const issues=[];
+  for(const a of TERRAIN_TILES) for(const dir of ['E','S']){
+    const opposite=dir==='E'?'W':'N', ar=tileRoles(a.slot,size);
+    for(const b of neighbors(a.slot,dir)){
+      const br=tileRoles(b,size), positions=[];
+      for(let p=0;p<size;p++){
+        const ai=edgeIndex(dir,p,size),bi=edgeIndex(opposite,p,size);
+        const aa=pixels[a.slot][ai]>>>24,ba=pixels[b][bi]>>>24;
+        // Compare only equal-role, opaque connector pixels. Light/dark role changes are intentional.
+        if(aa===255 && ba===255 && ar[ai]===br[bi] && pixels[a.slot][ai]!==pixels[b][bi]) positions.push(p);
+      }
+      if(positions.length) issues.push({a:a.slot,b,direction:dir,positions,kind:'color'});
     }
   }
   return issues;
@@ -139,6 +164,13 @@ export function terrainManifest(size){
     note:'Custom ascending-mask layout; map by mask, not by engine tile index. Guides are not artwork.',
     tiles:TERRAIN_TILES.map(t=>({...t,x:(t.slot%8)*size,y:Math.floor(t.slot/8)*size,
       connects:Object.fromEntries(DIRECTIONS.map(d=>[d.key,neighbors(t.slot,d.key)]))}))};
+}
+export function terrainGodotManifest(size){
+  return {schema:TERRAIN_SCHEMA,format:'godot4-terrain-set-handoff',terrainSet:0,terrain:0,
+    tileSize:[size,size],columns:8,rows:7,
+    note:'Tạo TileSet terrain set 0/terrain 0 trong Godot 4; peeringBits 0 = nối terrain, -1 = mép hở.',
+    tiles:TERRAIN_TILES.map(t=>({slot:t.slot,atlasCoords:[t.slot%8,Math.floor(t.slot/8)],mask:t.mask,kind:t.kind,title:t.title,
+      peeringBits:Object.fromEntries(DIRECTIONS.map(d=>[d.key,t.mask&d.bit?0:-1]))}))};
 }
 export function paintTerrainGuide(ctx,slot,size,scale,mode='wireframe'){
   const roles=tileRoles(slot,size);
