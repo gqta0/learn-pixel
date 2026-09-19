@@ -4,6 +4,7 @@ import { hexToInt } from './color.js';
 
 /* ---------------- tài liệu ---------------- */
 export const doc = {
+  name:'Bản vẽ không tên',
   w:32, h:32,
   layers:[{name:'Nét chính', vis:true}],
   frames:[],           // frames[i] = [Uint32Array,…] theo thứ tự lớp
@@ -31,7 +32,8 @@ export const view = {
   pressure:true, fingerMode:'draw', brushEff:1, hover:null,
   penButton: localStorage.getItem('lo-pixel-pen-btn') || 'sec',
   pixelPerfect:false, ditherPattern:'50', ditherMode:'sec',
-  groupPalette: savedGroup
+  groupPalette: savedGroup,
+  palettePinned: false
 };
 
 /* ---------------- chủ đề sáng / tối ---------------- */

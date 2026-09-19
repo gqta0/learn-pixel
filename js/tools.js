@@ -151,7 +151,7 @@ export function setTheme(name){
 export function setView(v){
   document.body.dataset.view=v;
   $$('#mnav button').forEach(b=>b.setAttribute('aria-current', b.dataset.view===v?'true':'false'));
-  const map={ex:'pEx', th:'pTh', file:'pFile'};
+  const map={learn:'pHoc', ex:'pHoc', th:'pHoc', terrain:'pTerrain', file:'pFile'};
   if(map[v]){
     $$('.tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.pane===map[v]?'true':'false'));
     $$('.pane').forEach(p=>p.classList.toggle('on', p.id===map[v]));

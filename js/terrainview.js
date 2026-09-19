@@ -1,5 +1,5 @@
 /* Artist-facing workbench; topology math lives in terrain.js. */
-import { $ } from './dom.js';
+import { $, $$ } from './dom.js';
 import { doc, view } from './state.js';
 import { frameToCanvas } from './raster.js';
 import { render } from './render.js';
@@ -43,7 +43,14 @@ export function openTerrain(){
   if(terrainAtlas()) $('#terrainSize').value=terrainAtlas().tw;
   $('#terrainHelp').open=innerWidth>760;
   seamIssues=[];$('#terrainSeams').textContent='Bấm “Soi mối nối” để kiểm tra alpha ở tất cả cặp nối hợp lệ.';
-  paint();dialog().showModal();
+  paint();
+  const tab = document.querySelector('.tab[data-pane="pTerrain"]');
+  if(tab && tab.getAttribute('aria-selected')!=='true'){
+    $$('.tab').forEach(x=>x.setAttribute('aria-selected', x===tab?'true':'false'));
+    $$('.pane').forEach(p=>p.classList.toggle('on', p.id==='pTerrain'));
+  }
+  if(document.body.dataset.view && document.body.dataset.view!=='draw') setView('terrain');
+  if(dialog()?.showModal) try{ dialog().showModal(); }catch(_){}
 }
 export function syncTerrainBar(){
   const e=editingRect(), enabled=Number.isInteger(e?.terrainSlot) && e.terrainSlot>=0 && e.terrainSlot<56 && !!terrainAtlas();
@@ -161,30 +168,32 @@ function exportAnnotations(){
   download('terrain56-annotated.png',cv.toDataURL('image/png'));
 }
 export function bindTerrain(){
-  ['terrainOpen','atTerrain','terrainInspect'].forEach(key=>$('#'+key).addEventListener('click',openTerrain));
-  $('#terrainClose').addEventListener('click',()=>dialog().close());
-  $('#terrainCreate').addEventListener('click',create);
-  $('#terrainEdit').addEventListener('click',()=>{
+  ['terrainOpen','atTerrain','terrainInspect'].forEach(key=>$('#'+key)?.addEventListener('click',openTerrain));
+  $('#terrainClose')?.addEventListener('click',()=>dialog()?.close?.());
+  $('#terrainCreate')?.addEventListener('click',create);
+  $('#terrainEdit')?.addEventListener('click',()=>{
     if(terrainAtlas() && editingRect()) writeBack();
-    if(editAtlasSlot(selected)){dialog().close();setView('draw');syncTerrainBar();}
+    if(editAtlasSlot(selected)){dialog()?.close?.();setView('draw');syncTerrainBar();}
   });
-  $('#terrainMap').addEventListener('click',()=>{if(editingRect()) writeBack();dialog().close();openMapView('atlas');});
-  $('#terrainPng').addEventListener('click',()=>{
+  $('#terrainMap')?.addEventListener('click',()=>{if(editingRect()) writeBack();dialog()?.close?.();openMapView('atlas');});
+  $('#terrainPng')?.addEventListener('click',()=>{
     if(editingRect()) writeBack();const a=terrainAtlas();if(a) download(a.name+'.png',a.cv.toDataURL('image/png'));
   });
-  $('#terrainManifest').addEventListener('click',()=>{
+  $('#terrainManifest')?.addEventListener('click',()=>{
     const url=URL.createObjectURL(new Blob([JSON.stringify(terrainManifest(size()),null,2)],{type:'application/json'}));
     download('terrain56-layout.json',url);setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
-  $('#terrainAnnotated').addEventListener('click',exportAnnotations);
-  $('#terrainCheck').addEventListener('click',inspectSeams);
-  ['terrainFilter','terrainGuides'].forEach(key=>$('#'+key).addEventListener('change',paint));
-  $('#terrainSize').addEventListener('change',()=>{if(!terrainAtlas()) paint();});
-  $('#terrainGuideToggle').addEventListener('click',()=>{view.terrainGuide=!view.terrainGuide;syncTerrainBar();render();});
-  $('#terrainDetail').addEventListener('pointermove',e=>{
+  $('#terrainAnnotated')?.addEventListener('click',exportAnnotations);
+  $('#terrainCheck')?.addEventListener('click',inspectSeams);
+  ['terrainFilter','terrainGuides'].forEach(key=>$('#'+key)?.addEventListener('change',paint));
+  $('#terrainSize')?.addEventListener('change',()=>{if(!terrainAtlas()) paint();});
+  $('#terrainGuideToggle')?.addEventListener('click',()=>{view.terrainGuide=!view.terrainGuide;syncTerrainBar();render();});
+  $('#terrainDetail')?.addEventListener('pointermove',e=>{
     const r=e.currentTarget.getBoundingClientRect(),n=size(),x=Math.floor((e.clientX-r.left)/r.width*n),y=Math.floor((e.clientY-r.top)/r.height*n);
     if(x>=0&&y>=0&&x<n&&y<n) $('#terrainPixel').textContent='Pixel ('+x+','+y+'): '+ROLE_NAMES[tileRoles(selected,n)[y*n+x]];
   });
   const legend=$('#terrainLegend');
-  ROLE_NAMES.forEach((name,i)=>{const span=document.createElement('span'),sw=document.createElement('i');sw.style.background=i?ROLE_COLORS[i]:'#ff5c8a';span.append(sw,document.createTextNode(name));legend.append(span);});
+  if(legend && !legend.children.length){
+    ROLE_NAMES.forEach((name,i)=>{const span=document.createElement('span'),sw=document.createElement('i');sw.style.background=i?ROLE_COLORS[i]:'#ff5c8a';span.append(sw,document.createTextNode(name));legend.append(span);});
+  }
 }

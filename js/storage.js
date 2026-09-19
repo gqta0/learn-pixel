@@ -14,11 +14,20 @@ export function download(name, url){
   const a=document.createElement('a'); a.href=url; a.download=name;
   document.body.appendChild(a); a.click(); a.remove();
 }
+export function sanitizeFilename(name, fallback='ban-ve'){
+  const clean = (name || '').trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .replace(/[^a-zA-Z0-9_\-]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return clean || fallback;
+}
 export function exportPng(){
   const s=parseInt($('#expScale').value,10);
   const cv=document.createElement('canvas');
   frameToCanvas(doc.af, cv, s);
-  download('sprite_'+doc.w+'x'+doc.h+'_f'+(doc.af+1)+'.png', cv.toDataURL('image/png'));
+  const base = sanitizeFilename(doc.name, 'sprite');
+  download(base+'_'+doc.w+'x'+doc.h+'_f'+(doc.af+1)+'.png', cv.toDataURL('image/png'));
 }
 export function exportSheet(){
   const s=parseInt($('#expScale').value,10);
@@ -30,7 +39,8 @@ export function exportSheet(){
     frameToCanvas(i,tmp,s);
     c.drawImage(tmp, i*doc.w*s, 0);
   });
-  download('spritesheet_'+doc.w+'x'+doc.h+'_'+doc.frames.length+'f.png', cv.toDataURL('image/png'));
+  const base = sanitizeFilename(doc.name, 'spritesheet');
+  download(base+'_'+doc.w+'x'+doc.h+'_'+doc.frames.length+'f.png', cv.toDataURL('image/png'));
 }
 /* Nén RLE từng lớp: pixel art toàn mảng màu liền nhau nên một lớp 128×128
    trống rỗng còn 2 số thay vì 16384. Đây là thứ giữ bản lưu không vượt quota. */
@@ -48,7 +58,8 @@ function unrle(o,len){
 }
 export function serialize(){
   return {
-    app:'lo-pixel', version:2, w:doc.w, h:doc.h, af:doc.af, al:doc.al,
+    app:'lo-pixel', version:2, name:doc.name||'Bản vẽ không tên',
+    w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers:doc.layers, palette:palette,
     frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur, atlasEdit:doc.atlasEdit,
     done: Array.from(doneSet)
@@ -57,6 +68,8 @@ export function serialize(){
 export function applyData(d){
   if(!d || !d.frames || !d.layers) throw new Error('thiếu dữ liệu tranh');
   stopEditing();                       // tranh khác rồi thì không còn gắn với ô atlas nào
+  doc.name = d.name || 'Bản vẽ không tên';
+  const nameEl = $('#projName'); if(nameEl) nameEl.value = doc.name;
   doc.w=d.w; doc.h=d.h;
   doc.layers=d.layers.map(l=>({name:l.name,vis:l.vis!==false}));
   const len=d.w*d.h;
@@ -78,8 +91,9 @@ export function exportPalettePng(){
   download('palette_'+palette.length+'mau.png', cv.toDataURL('image/png'));
 }
 export function exportJson(){
+  const base = sanitizeFilename(doc.name, 'du-an-pixel');
   const blob=new Blob([JSON.stringify(serialize())],{type:'application/json'});
-  download('du-an-pixel.json', URL.createObjectURL(blob));
+  download(base+'.json', URL.createObjectURL(blob));
 }
 export function importJson(file){
   const fr=new FileReader();

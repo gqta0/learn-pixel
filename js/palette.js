@@ -380,7 +380,11 @@ export function openQuickPalette(anchor, onOpenTools, all=false){
     });
   });
   items.push({label:all?'← Màu gần đây':'Toàn bộ bảng màu…',fn:()=>openQuickPalette(anchor,onOpenTools,!all)});
-  popover(anchor, 'Bảng màu nhanh', items);
+  popover(anchor, 'Bảng màu nhanh', items, {
+    pinnable: true,
+    isPinned: !!view.palettePinned,
+    onPinChange: (p)=>{ view.palettePinned = p; }
+  });
 }
 
 /* chạm giữ ô màu chính để lấy nhanh màu trong bảng và trong dải, khỏi phải mở thẻ Màu */

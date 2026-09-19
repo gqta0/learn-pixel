@@ -200,17 +200,24 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 }
 /* ---------- bảng chọn nhanh khi chạm giữ ---------- */
 .popup{
-  position:fixed;z-index:80;padding:8px;border-radius:4px;
+  position:fixed;z-index:45;padding:8px;border-radius:4px;
   background:var(--panel);border:1px solid var(--line-hi);
   box-shadow:0 10px 28px rgba(0,0,0,.45);
-  max-height:min(440px,calc(100dvh - 24px));max-width:calc(100vw - 16px);overflow-y:auto;overscroll-behavior:contain;
+  max-height:min(440px,calc(100dvh - 72px - env(safe-area-inset-bottom)));max-width:calc(100vw - 16px);
+  overflow-y:auto;overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;scrollbar-width:thin;
 }
+.popup.is-pinned{
+  position:fixed;z-index:25;border-color:var(--amber);
+  box-shadow:0 6px 20px rgba(0,0,0,.35);
+}
 .poptitle{
-  margin:0 42px 12px 0;min-height:28px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  margin:0 75px 10px 0;min-height:26px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
   text-transform:uppercase;color:var(--dim);
 }
-.popclose{position:absolute;right:6px;top:6px;min-width:36px;min-height:32px}
+.popclose{position:absolute;right:6px;top:6px;min-width:32px;min-height:30px;padding:0}
+.poppin{position:absolute;right:42px;top:6px;min-width:30px;min-height:30px;font-size:11px;padding:0 6px}
+.poppin.on{background:var(--accent-bg);border-color:var(--amber);color:var(--amber)}
 .popsection{flex-basis:100%;margin:4px 0 0;font-size:11px;color:var(--dim)}
 .popitems{display:flex;flex-wrap:wrap;gap:5px;max-width:250px}
 .popitems .btn{min-width:40px;justify-content:center}
@@ -302,6 +309,18 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 .tab[aria-selected=true]{color:var(--amber);border-bottom-color:var(--amber);background:var(--tab-on)}
 .pane{display:none}
 .pane.on{display:block}
+.learn-filters{display:flex;gap:4px;margin-top:8px}
+.learn-filters .btn{flex:1;font-size:11px;min-height:32px;justify-content:center;padding:0 4px}
+.learn-filters .btn.on{background:var(--accent-bg);border-color:var(--amber);color:var(--amber)}
+
+.pane#pTerrain .terrain-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.pane#pTerrain .terrain-toolbar label{display:flex;align-items:center;gap:4px;font-size:11px}
+.pane#pTerrain .terrain-toolbar .btn, .pane#pTerrain .terrain-toolbar select{min-height:34px}
+.pane#pTerrain .terrain-layout{display:flex;flex-direction:column;gap:12px}
+.pane#pTerrain .terrain-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;max-height:320px;overflow-y:auto}
+.pane#pTerrain .terrain-tile canvas{width:48px}
+.pane#pTerrain .terrain-inspector{background:var(--panel-2);padding:10px;border:1px solid var(--line)}
+.pane#pTerrain .terrain-inspector h3{font-size:14px;margin:0 0 6px}
 
 /* ---------- bài tập ---------- */
 .phase{border-bottom:1px solid var(--line)}
@@ -456,7 +475,7 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
 .quickbar .qb[aria-pressed=true]{background:var(--accent-bg);border-color:var(--amber);color:var(--amber)}
 .quickbar .qb.on{background:var(--cool-bg);border-color:var(--cool-bd);color:var(--cyan)}
-.mnav{display:none;position:relative;z-index:40;background:var(--panel);border-top:1px solid var(--line)}
+.mnav{display:none;position:relative;z-index:55;background:var(--panel);border-top:1px solid var(--line)}
 .mnav button{
   flex:1;background:none;border:0;border-top:2px solid transparent;padding:7px 2px 9px;
   display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--dim);font-size:17px;
@@ -471,6 +490,8 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   .stage{position:absolute;inset:0}
   .col{position:absolute;inset:0;z-index:20;display:none;border:0;padding-bottom:8px}
   body[data-view="tools"] .col.left{display:block}
+  body[data-view="terrain"] .col.right,
+  body[data-view="learn"] .col.right,
   body[data-view="ex"] .col.right,
   body[data-view="th"] .col.right,
   body[data-view="file"] .col.right{display:block}

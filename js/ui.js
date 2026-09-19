@@ -22,7 +22,7 @@ import { openLibrary, closeLibrary, saveCurrent, isBlank, exportContactSheet } f
 import { paintDaily, goToNext } from './daily.js';
 import { bindAtlas, importAtlas, syncBar as syncAtlasBar } from './atlas.js';
 import { openMapView, bindMapView } from './mapview.js';
-import { bindTerrain, syncTerrainBar } from './terrainview.js';
+import { bindTerrain, syncTerrainBar, openTerrain } from './terrainview.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
 /* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ */
@@ -60,6 +60,7 @@ export function syncAll(){
   $('#sizeW').value = String(doc.w);
   $('#sizeH').value = String(doc.h);
   $('#hud').textContent = doc.w+'×'+doc.h;
+  const nameEl = $('#projName'); if(nameEl) nameEl.value = doc.name || 'Bản vẽ không tên';
   paintLayers(); paintThumbs(); syncColors(); render(); updateProgress();
   syncAtlasBar(); syncTerrainBar();
 }
@@ -100,8 +101,10 @@ $('#qbColor').addEventListener('click', ()=>openQuickPalette($('#qbColor'), ()=>
 $$('.quickbar .qb[data-q]').forEach(b=>{ b.addEventListener('click', ()=>setTool(b.dataset.q)); attachMods(b, b.dataset.q); });
 attachPalettePopup($('#qbColor'), ()=>setView('tools'));
 attachPalettePopup($('#chipPri'), ()=>setView('tools'));
-$('#chipPri').addEventListener('click', ()=>openQuickPalette($('#chipPri'), ()=>setView('tools')));
-$$('#mnav button').forEach(b=>b.addEventListener('click', ()=>setView(b.dataset.view)));
+$$('#mnav button').forEach(b=>b.addEventListener('click', ()=>{
+  setView(b.dataset.view);
+  if(b.dataset.view==='terrain') { syncTerrainBar(); openTerrain(); }
+}));
 
 const palGrp = $('#palGroup');
 if(palGrp){
@@ -340,9 +343,30 @@ if(atMapPrev) atMapPrev.addEventListener('click', () => openMapView('atlas'));
 $$('.tab').forEach(t=>t.addEventListener('click', ()=>{
   $$('.tab').forEach(x=>x.setAttribute('aria-selected', x===t?'true':'false'));
   $$('.pane').forEach(p=>p.classList.toggle('on', p.id===t.dataset.pane));
-  const back={pEx:'ex', pTh:'th', pFile:'file'}[t.dataset.pane];
+  const back={pHoc:'learn', pTerrain:'terrain', pEx:'learn', pTh:'learn', pFile:'file'}[t.dataset.pane];
   if(back && document.body.dataset.view && document.body.dataset.view!=='draw') setView(back);
+  if(t.dataset.pane==='pTerrain') { syncTerrainBar(); openTerrain(); }
 }));
+
+function setLearnFilter(mode){
+  const thSec = $('#learnSectionTh'), exSec = $('#learnSectionEx');
+  $('#learnFilterAll')?.classList.toggle('on', mode==='all');
+  $('#learnFilterEx')?.classList.toggle('on', mode==='ex');
+  $('#learnFilterTh')?.classList.toggle('on', mode==='th');
+  if(thSec) thSec.style.display = (mode==='all' || mode==='th') ? '' : 'none';
+  if(exSec) exSec.style.display = (mode==='all' || mode==='ex') ? '' : 'none';
+}
+$('#learnFilterAll')?.addEventListener('click', ()=>setLearnFilter('all'));
+$('#learnFilterEx')?.addEventListener('click', ()=>setLearnFilter('ex'));
+$('#learnFilterTh')?.addEventListener('click', ()=>setLearnFilter('th'));
+
+const projNameEl = $('#projName');
+if(projNameEl){
+  projNameEl.value = doc.name || 'Bản vẽ không tên';
+  projNameEl.addEventListener('input', e=>{
+    doc.name = e.target.value.trim() || 'Bản vẽ không tên';
+  });
+}
 
 window.addEventListener('keydown', e=>{
   if(e.defaultPrevented || view.drawing || document.querySelector('dialog[open]')) return;

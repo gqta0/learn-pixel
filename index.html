@@ -223,16 +223,21 @@
     <!-- ================= CỘT PHẢI ================= -->
     <div class="col right">
       <div class="tabs" role="tablist">
-        <button class="tab" role="tab" aria-selected="true" data-pane="pEx">Bài tập</button>
-        <button class="tab" role="tab" aria-selected="false" data-pane="pTh">Lý thuyết</button>
+        <button class="tab" role="tab" aria-selected="true" data-pane="pHoc">Học vẽ</button>
+        <button class="tab" role="tab" aria-selected="false" data-pane="pTerrain">Terrain 56</button>
         <button class="tab" role="tab" aria-selected="false" data-pane="pFile">Lớp &amp; xuất</button>
       </div>
 
-      <div class="pane on" id="pEx">
+      <div class="pane on" id="pHoc">
         <div class="block">
-          <p class="eyebrow">Lộ trình</p>
+          <p class="eyebrow">Lộ trình học tập</p>
           <select id="trackSel" style="width:100%"></select>
           <p class="kbd" id="trackNote" style="margin:7px 0 0"></p>
+          <div class="learn-filters">
+            <button class="btn tiny on" id="learnFilterAll">Tất cả</button>
+            <button class="btn tiny" id="learnFilterEx">Bài tập</button>
+            <button class="btn tiny" id="learnFilterTh">Lý thuyết</button>
+          </div>
           <button class="btn tiny wide primary" id="dailyNext" style="margin-top:8px" hidden></button>
           <p class="kbd" id="dailyInfo" style="margin:6px 0 0"></p>
         </div>
@@ -245,15 +250,66 @@
           </ol>
           <button class="btn tiny wide" id="onboardOk" style="margin-top:9px">Hiểu rồi, ẩn đi</button>
         </div>
-        <div id="exList"></div>
+        <div id="learnSectionTh">
+          <div class="block" style="border-bottom:0;padding-bottom:2px">
+            <p class="eyebrow" style="margin:0">📖 Lý thuyết có hình minh hoạ</p>
+            <p class="kbd" style="margin:4px 0 0">Vẽ bằng thuật toán pixel — so sánh <b>sai</b> / <b>đúng</b> để nhớ lâu.</p>
+          </div>
+          <div id="thList"></div>
+        </div>
+        <div id="learnSectionEx">
+          <div class="block" style="border-bottom:0;padding-bottom:2px;margin-top:8px">
+            <p class="eyebrow" style="margin:0">📋 Bài tập thực hành</p>
+          </div>
+          <div id="exList"></div>
+        </div>
       </div>
 
-      <div class="pane" id="pTh">
+      <div class="pane" id="pTerrain">
         <div class="block">
-          <p class="eyebrow">Lý thuyết có hình minh hoạ</p>
-          <p class="kbd" style="margin:0">Mọi hình dưới đây được vẽ bằng chính thuật toán pixel — so sánh <b>sai</b> / <b>đúng</b> để nhớ lâu.</p>
+          <div class="terrain-toolbar">
+            <p class="eyebrow" style="margin:0;flex:1">🧩 Terrain 56 · Tileset</p>
+            <button class="btn tiny" id="terrainCheck" title="Soi lỗi viền nối giữa các ô">Soi mối nối</button>
+            <button class="btn tiny" id="terrainMap" title="Xem thử trên bản đồ hang động">Xem map</button>
+          </div>
+          <p class="kbd" style="margin:4px 0 8px">47 topology + 9 biến thể · Chọn ô → đọc hướng dẫn → vẽ → soi nối.</p>
+          <div class="terrain-toolbar">
+            <label>Khổ <select id="terrainSize"><option value="16">16×16</option><option value="32">32×32</option></select></label>
+            <button class="btn tiny primary" id="terrainCreate">Tạo bộ 56 ô</button>
+            <button class="btn tiny" id="terrainEdit" title="Nạp ô đang chọn lên canvas chính để vẽ">Vẽ ô này</button>
+          </div>
+          <p class="kbd" id="terrainState" role="status" style="margin:4px 0 6px"></p>
+          <div class="terrain-toolbar">
+            <label><input type="checkbox" id="terrainGuides" checked> Hướng dẫn pixel</label>
+            <label>Lọc <select id="terrainFilter">
+              <option value="all">Tất cả 56 ô</option><option value="surface">Sàn / trần / tường</option>
+              <option value="inner">Góc trong</option><option value="outer">Góc ngoài</option><option value="variants">9 biến thể</option>
+            </select></label>
+          </div>
+          <details id="terrainHelp" style="margin-top:6px">
+            <summary>Chú giải màu · Xuất PNG / JSON</summary>
+            <div class="terrain-toolbar" style="margin-top:6px">
+              <button class="btn tiny" id="terrainPng">PNG sạch</button>
+              <button class="btn tiny" id="terrainAnnotated">PNG chú thích</button>
+              <button class="btn tiny" id="terrainManifest">JSON mapping</button>
+            </div>
+            <div class="terrain-legend" id="terrainLegend" style="margin-top:6px"></div>
+            <p class="kbd" style="margin-top:6px">Cyan ở biên = nối liền sang ô bên cạnh. Nguồn sáng mẫu từ trên.</p>
+          </details>
         </div>
-        <div id="thList"></div>
+        <div class="terrain-layout" style="padding:0 12px 12px">
+          <div class="terrain-grid" id="terrainGrid" aria-label="56 ô terrain"></div>
+          <section class="terrain-inspector" aria-labelledby="terrainTitle">
+            <h3 id="terrainTitle"></h3><p class="kbd" id="terrainMeta"></p>
+            <canvas id="terrainDetail" aria-label="Vai trò pixel của ô đang chọn"></canvas>
+            <p class="kbd" id="terrainPixel">Rê bút/chuột lên ô để xem pixel cần vẽ gì.</p>
+            <p id="terrainRecipe"></p>
+            <div id="terrainNeighbors"></div>
+            <p class="kbd" id="terrainPairLabel"></p>
+            <canvas id="terrainPair" aria-label="Hai ô ghép cạnh nhau"></canvas>
+          </section>
+        </div>
+        <section id="terrainSeams" role="status" aria-live="polite" style="padding:0 12px 12px"></section>
       </div>
 
       <div class="pane" id="pFile">
@@ -292,6 +348,10 @@
 
         <div class="block">
           <p class="eyebrow">Xuất</p>
+          <div class="row" style="margin-bottom:8px">
+            <label class="mini" style="min-width:65px">Tên dự án</label>
+            <input type="text" id="projName" value="Bản vẽ không tên" placeholder="Tên tệp dự án…" class="grow" style="font-weight:600">
+          </div>
           <div class="row">
             <label class="mini grow">Nhân khổ</label>
             <select id="expScale"><option>1</option><option selected>4</option><option>8</option><option>16</option></select>
@@ -437,58 +497,11 @@
   <nav class="mnav" id="mnav">
     <button data-view="draw" aria-current="true">✏️<span>Vẽ</span></button>
     <button data-view="tools" aria-current="false">🎨<span>Màu</span></button>
-    <button data-view="ex" aria-current="false">📋<span>Bài tập</span></button>
-    <button data-view="th" aria-current="false">📖<span>Lý thuyết</span></button>
+    <button data-view="terrain" aria-current="false">🧩<span>Terrain</span></button>
+    <button data-view="learn" aria-current="false">🎓<span>Học vẽ</span></button>
     <button data-view="file" aria-current="false">💾<span>File</span></button>
   </nav>
 </div>
-
-<dialog id="terrainDialog" aria-labelledby="terrainHeading">
-  <div class="terrain-toolbar">
-    <h2 id="terrainHeading">Terrain 56 · bản hướng dẫn vẽ</h2>
-    <button class="btn" id="terrainClose" autofocus>✕ Đóng</button>
-  </div>
-  <p class="kbd">47 topology + 9 biến thể · Chọn ô → đọc hướng dẫn → vẽ → soi nối.</p>
-  <div class="terrain-toolbar">
-    <label>Khổ mới <select id="terrainSize"><option value="16">16×16</option><option value="32">32×32</option></select></label>
-    <button class="btn primary" id="terrainCreate">Tạo bộ 56 ô</button>
-    <button class="btn" id="terrainEdit">Ghi ô cũ & sửa ô chọn</button>
-    <button class="btn" id="terrainCheck">Soi mối nối</button>
-    <button class="btn" id="terrainMap">Ghi & xem map</button>
-  </div>
-  <p class="kbd" id="terrainState" role="status"></p>
-  <div class="terrain-toolbar">
-    <label><input type="checkbox" id="terrainGuides" checked> Hiện hướng dẫn pixel</label>
-    <label>Lọc <select id="terrainFilter">
-      <option value="all">Tất cả 56 ô</option><option value="surface">Sàn / trần / tường</option>
-      <option value="inner">Góc trong</option><option value="outer">Góc ngoài</option><option value="variants">9 biến thể</option>
-    </select></label>
-  </div>
-  <details id="terrainHelp" open>
-    <summary>Chú giải màu · Xuất PNG / JSON</summary>
-    <div class="terrain-toolbar">
-      <button class="btn tiny" id="terrainPng">Ghi & PNG sạch</button>
-      <button class="btn tiny" id="terrainAnnotated">PNG chú thích</button>
-      <button class="btn tiny" id="terrainManifest">JSON mapping</button>
-    </div>
-    <div class="terrain-legend" id="terrainLegend"></div>
-    <p class="kbd">Cyan ở biên = nối liền sang ô bên cạnh. Hướng dẫn không đi vào PNG sạch. Nguồn sáng mẫu từ trên; màu hướng dẫn không bắt buộc dùng trong tranh.</p>
-    <p class="kbd">#00–#55 xếp 8 cột × 7 hàng: 47 blob + 5 ruột + 4 mép (sàn, trần, trái, phải). Layout riêng của Lò Pixel, không phải thứ tự tile mặc định của engine.</p>
-  </details>
-  <div class="terrain-layout">
-    <div class="terrain-grid" id="terrainGrid" aria-label="56 ô terrain"></div>
-    <section class="terrain-inspector" aria-labelledby="terrainTitle">
-      <h3 id="terrainTitle"></h3><p class="kbd" id="terrainMeta"></p>
-      <canvas id="terrainDetail" aria-label="Vai trò pixel của ô đang chọn"></canvas>
-      <p class="kbd" id="terrainPixel">Rê bút/chuột lên ô để xem pixel cần vẽ gì.</p>
-      <p id="terrainRecipe"></p>
-      <div id="terrainNeighbors"></div>
-      <p class="kbd" id="terrainPairLabel"></p>
-      <canvas id="terrainPair" aria-label="Hai ô ghép cạnh nhau"></canvas>
-    </section>
-  </div>
-  <section id="terrainSeams" role="status" aria-live="polite"></section>
-</dialog>
 <dialog id="resizeDialog" aria-labelledby="resizeTitle">
   <form method="dialog">
     <h2 id="resizeTitle">Đổi khổ canvas</h2>
