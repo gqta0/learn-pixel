@@ -109,19 +109,19 @@ let selectedMapCell = { gx: -1, gy: -1, slot: -1, mask: 0 };
 let paintButton = 0;
 
 function fillPreset(preset) {
-  activePreset = preset;
+  activePreset = { ...preset, w: preset.w || MAP_PRESET.w, h: preset.h || MAP_PRESET.h };
   terrainGrid.fill(0);
   stampGrid.fill(null);
   coverageSlots.fill(-1);
-  const W = preset.w;
-  preset.solid_regions.forEach(r => {
+  const W = activePreset.w;
+  activePreset.solid_regions.forEach(r => {
     for (let y = r.y; y < r.y + r.h; y++) {
       for (let x = r.x; x < r.x + r.w; x++) {
         terrainGrid[y * W + x] = 1;
       }
     }
   });
-  preset.air_cutouts.forEach(c => {
+  activePreset.air_cutouts.forEach(c => {
     for (let y = c.y; y < c.y + c.h; y++) {
       for (let x = c.x; x < c.x + c.w; x++) {
         terrainGrid[y * W + x] = 0;
