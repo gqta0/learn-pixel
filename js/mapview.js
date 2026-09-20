@@ -569,6 +569,7 @@ function renderToCanvas(targetCv, includeOverlays, atlasImage) {
   const cols = im ? Math.max(1, Math.floor((im.width - off + pad) / (tw + pad))) : 1;
   const rows = im ? Math.max(1, Math.floor((im.height - off + pad) / (th + pad))) : 1;
   const totalSlots = cols * rows;
+  const useTemplateFallback = mapMode !== 'coverage' && mapSource !== 'canvas';
 
   if (mapMode === 'coverage') {
     for (let gy = 0; gy < GH; gy++) {
@@ -597,12 +598,16 @@ function renderToCanvas(targetCv, includeOverlays, atlasImage) {
         if (!terrainGrid[idx]) continue;
 
         const mask = cellMask(gx, gy);
-        const slot = terrainSlot(mask, gx, gy, totalSlots, activePreset.seed);
+        const resolveTotal = useAtlas && totalSlots > 1 ? totalSlots : 56;
+        const slot = terrainSlot(mask, gx, gy, resolveTotal, activePreset.seed);
         const dx = gx * tw * z, dy = gy * th * z;
 
         if (useAtlas && im && totalSlots > 1) {
           if (slot < 0) continue; // thiếu topology: để hở, không lấy nhầm ô bằng modulo
           drawTerrainSlot(g, slot, im, tw, th, pad, off, cols, rows, z, dx, dy);
+        } else if (useTemplateFallback && slot >= 0) {
+          const fallback = templateTileCanvas(slot, tw);
+          g.drawImage(fallback, 0, 0, tw, tw, dx, dy, tw * z, th * z);
         } else {
           g.drawImage(canvasTile, 0, 0, canvasTile.width, canvasTile.height, dx, dy, tw * z, th * z);
         }
