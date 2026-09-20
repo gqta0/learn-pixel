@@ -80,7 +80,9 @@ export function applyData(d){
     throw new Error('danh sách lớp không hợp lệ');
   if(!Array.isArray(frames)||!frames.length||frames.some(f=>!Array.isArray(f)||f.length!==layers.length))
     throw new Error('danh sách khung/lớp không hợp lệ');
-  if(d.palette!==undefined && !Array.isArray(d.palette)) throw new Error('bảng màu không hợp lệ');
+  if(d.palette!==undefined && (!Array.isArray(d.palette) ||
+     d.palette.some(h=>typeof h!=='string'||!/^#[0-9a-f]{6}$/i.test(h))))
+    throw new Error('bảng màu không hợp lệ');
   if(d.dur!==undefined && !Array.isArray(d.dur)) throw new Error('thời lượng khung không hợp lệ');
   if(d.done!==undefined && !Array.isArray(d.done)) throw new Error('tiến độ bài học không hợp lệ');
   const len=w*h, decode=a=>d.version>=2 ? unrle(a,len) :
