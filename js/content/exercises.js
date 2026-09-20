@@ -1125,6 +1125,7 @@ export function setupExercise(ex){
   stopEditing();                       // dựng bài mới thì rời ô atlas đang mượn
   pushUndo();
   doc.w=W; doc.h=H;
+  doc.terrainLink=null;
   const names = ex.layers || ['Phác thảo','Nét chính'];
   doc.layers=names.map(n=>({name:n,vis:true}));
   doc.frames=[]; doc.dur=[];

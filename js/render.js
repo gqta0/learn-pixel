@@ -97,6 +97,7 @@ export function render(){
     ctx.moveTo(0,H/2+lw/2); ctx.lineTo(W,H/2+lw/2);
     ctx.stroke(); ctx.setLineDash([]);
   }
+  window.dispatchEvent(new CustomEvent('pixelrender'));
 }
 
 /* ---------------- phóng to / thu nhỏ ---------------- */

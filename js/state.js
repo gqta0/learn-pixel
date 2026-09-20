@@ -9,7 +9,7 @@ export const doc = {
   layers:[{name:'Nét chính', vis:true}],
   frames:[],           // frames[i] = [Uint32Array,…] theo thứ tự lớp
   dur:[],              // dur[i] = mili-giây riêng của khung i; 0 hoặc thiếu = chạy theo fps chung
-  af:0, al:0, atlasEdit:null
+  af:0, al:0, atlasEdit:null, terrainLink:null
 };
 export function blank(){ return new Uint32Array(doc.w*doc.h); }
 export function newFrame(){ return doc.layers.map(()=>blank()); }

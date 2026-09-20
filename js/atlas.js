@@ -36,6 +36,18 @@ export function createTerrainAtlas(cv,size){
   sel=anchor=null; doc.atlasEdit=null; zoom=2;
   save(); syncBar(); return true;
 }
+export function writeTerrainSlot(slot, frameIndex=doc.af, persist=true){
+  if(!atlas || atlas.terrain!==TERRAIN_SCHEMA || !Number.isInteger(slot) || slot<0 || slot>=56 ||
+     doc.w!==atlas.tw || doc.h!==atlas.th || !doc.frames[frameIndex]) return false;
+  const cv=document.createElement('canvas');cv.width=atlas.tw;cv.height=atlas.th;
+  frameToCanvas(frameIndex,cv,1);
+  const x=atlas.off+(slot%cols())*stepX(), y=atlas.off+Math.floor(slot/cols())*stepY();
+  const g=atlas.cv.getContext('2d');
+  g.clearRect(x,y,atlas.tw,atlas.th); g.drawImage(cv,x,y);
+  if(persist) save();
+  if(!$('#atlasWrap').hidden) paint();
+  return true;
+}
 export function editAtlasSlot(slot){
   if(!atlas || slot<0 || slot>=cols()*rows()) return false;
   sel={c:slot%cols(),r:Math.floor(slot/cols()),cw:1,ch:1};
@@ -141,6 +153,7 @@ export function editSelection(){
   const px=atlas.cv.getContext('2d').getImageData(r.x,r.y,r.w,r.h);
   doc.frames=[[new Uint32Array(px.data.buffer.slice(0))]];
   doc.af=0; doc.al=0;
+  doc.terrainLink=null;
   view.sel=null;
   doc.atlasEdit={...r,atlasId:atlas.id, c:sel.c, r0:sel.r,
     terrainSlot:atlas.terrain===TERRAIN_SCHEMA && sel.cw===1 && sel.ch===1 ? sel.r*cols()+sel.c : null};

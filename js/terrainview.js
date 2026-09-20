@@ -3,8 +3,11 @@ import { $, $$, syncNavHeight } from './dom.js';
 import { doc, view } from './state.js';
 import { frameToCanvas } from './raster.js';
 import { render, fitZoom } from './render.js';
+import { paintThumbs } from './frames.js';
+import { paintLayers } from './layers.js';
+import { pushUndo } from './history.js';
 import { download } from './storage.js';
-import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, closeAtlas } from './atlas.js';
+import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, writeTerrainSlot, closeAtlas } from './atlas.js';
 import { openMapView } from './mapview.js';
 import { setView } from './tools.js';
 import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
@@ -34,6 +37,38 @@ function tiles(){
 }
 function pixelsOf(cvs){return cvs.map(cv=>new Uint32Array(cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data.buffer));}
 const id=s=>'#'+String(s).padStart(2,'0');
+function pixelsFromCanvas(cv){
+  return new Uint32Array(cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data.buffer.slice(0));
+}
+function hasDocumentArt(){
+  return doc.frames.length>1 || doc.frames.some(frame=>frame.some(layer=>layer.some(Boolean)));
+}
+function linkFramesToTerrain(n){
+  const a=terrainAtlas();
+  if(!a) return false;
+  const source=tiles();
+  pushUndo();
+  doc.w=n; doc.h=n;
+  doc.layers=[{name:'Terrain',vis:true}];
+  doc.frames=source.map(cv=>[pixelsFromCanvas(cv)]);
+  doc.dur=Array(56).fill(0);
+  doc.af=0; doc.al=0; doc.atlasEdit=null;
+  doc.terrainLink={schema:TERRAIN_SCHEMA,atlasId:a.id,slots:TERRAIN_TILES.map(t=>t.slot),
+    labels:$('#terrainFrameLabels')?.checked!==false,
+    live:$('#terrainFrameLive')?.checked!==false,
+    autoSave:$('#terrainFrameAutoSave')?.checked!==false};
+  $('#sizeW').value=String(n); $('#sizeH').value=String(n); $('#hud').textContent=n+'×'+n;
+  paintLayers(); paintThumbs(); fitZoom(); render();
+  $('#terrainState').textContent='Đã liên kết 56 frame · chọn frame bên dưới để sửa đúng tile #ID.';
+  return true;
+}
+export function syncLinkedTerrainFrame(){
+  const link=doc.terrainLink, a=terrainAtlas(), slot=link?.slots?.[doc.af];
+  if(view.drawing || !link?.live || !a || link.atlasId!==a.id || !Number.isInteger(slot)) return false;
+  const ok=writeTerrainSlot(slot,doc.af,link.autoSave!==false);
+  if(ok && document.body.dataset.view==='terrain') paint();
+  return ok;
+}
 function select(slot){
   selected=slot;inspectedPair=null;paint();
   if(innerWidth<=760) $('#terrainTitle').scrollIntoView({block:'start'});
@@ -53,7 +88,16 @@ export function openTerrain(){
 export function closeTerrain(){
   setView('draw');
 }
+function syncFrameOptions(){
+  const link=doc.terrainLink;
+  if(!link) return;
+  const labels=$('#terrainFrameLabels'), live=$('#terrainFrameLive'), save=$('#terrainFrameAutoSave');
+  if(labels) labels.checked=link.labels!==false;
+  if(live) live.checked=link.live!==false;
+  if(save) save.checked=link.autoSave!==false;
+}
 export function syncTerrainBar(){
+  syncFrameOptions();
   const e=editingRect(), enabled=Number.isInteger(e?.terrainSlot) && e.terrainSlot>=0 && e.terrainSlot<56 && !!terrainAtlas();
   $('#terrainDrawTools').hidden=!enabled;
   ['atlasSave','atlasNext'].forEach(key=>{const b=$('#'+key);if(b)b.hidden=enabled;});
@@ -163,7 +207,8 @@ function appendSection(parent,title,slots,cvs,a,e,filter){
 }
 function paint(){
   const cvs=tiles(), filter=$('#terrainFilter').value, a=terrainAtlas(), e=editingRect();
-  $('#terrainState').textContent=a?'Atlas Terrain đang mở · preview gồm nét chưa ghi của ô đang sửa.':'Đang xem mẫu tham khảo · bấm Vẽ ô này để bắt đầu vẽ.';
+  const linked=!!(a && doc.terrainLink?.atlasId===a.id);
+  $('#terrainState').textContent=linked?'Atlas Terrain · đã link 56 frame · preview live theo frame bên dưới.':a?'Atlas Terrain đang mở · preview gồm nét chưa ghi của ô đang sửa.':'Đang xem mẫu tham khảo · bấm Vẽ ô này để bắt đầu vẽ.';
   const grid=$('#terrainGrid');grid.replaceChildren();
   TERRAIN_PRESENTATION_GROUPS.forEach(group=>{
     const groupBox=document.createElement('section');groupBox.className='terrain-group terrain-group-'+group.id;
@@ -234,10 +279,14 @@ export function nextTerrainTile(){
 function create(){
   const n=+$('#terrainSize').value || 16;
   if(![16,32].includes(n)) return false;
+  const wantsFrames=$('#terrainCreateFrames')?.checked;
+  if(wantsFrames && hasDocumentArt() && !confirm('Tạo 56 frame Terrain sẽ thay bộ frame hiện tại. Hãy lưu dự án trước nếu cần giữ. Tiếp tục?')) return false;
   const cv=document.createElement('canvas');cv.width=n*8;cv.height=n*7;
   const g=cv.getContext('2d');
   TERRAIN_TILES.forEach(t=>g.drawImage(canvas(terrainPixels(t.slot,n),n),(t.slot%8)*n,Math.floor(t.slot/8)*n));
   if(!createTerrainAtlas(cv,n)) return false;
+  if(wantsFrames) linkFramesToTerrain(n);
+  else doc.terrainLink=null;
   seamIssues=[];inspectedPair=null;$('#terrainSeams').textContent='Đã tạo khối nền. Tắt hướng dẫn để xem tranh thật, hoặc bật khoá điểm nối khi bắt đầu vẽ.';
   syncTerrainBar();render();paint();
   return true;
@@ -316,6 +365,16 @@ export function bindTerrain(){
     if(e.detail?.view === 'terrain') refreshTerrain();
   });
   $('#terrainCreate')?.addEventListener('click',()=>create());
+  window.addEventListener('pixelrender',syncLinkedTerrainFrame);
+  $('#terrainFrameLabels')?.addEventListener('change',e=>{
+    if(doc.terrainLink){ doc.terrainLink.labels=e.target.checked; paintThumbs(); }
+  });
+  $('#terrainFrameLive')?.addEventListener('change',e=>{
+    if(doc.terrainLink){ doc.terrainLink.live=e.target.checked; if(e.target.checked) syncLinkedTerrainFrame(); }
+  });
+  $('#terrainFrameAutoSave')?.addEventListener('change',e=>{
+    if(doc.terrainLink) doc.terrainLink.autoSave=e.target.checked;
+  });
   $('#terrainEdit')?.addEventListener('click',()=>startPaintingSelectedSlot(selected));
   $('#terrainInspectEdit')?.addEventListener('click',()=>startPaintingSelectedSlot(selected));
   $('#terrainPrevTile')?.addEventListener('click',prevTerrainTile);

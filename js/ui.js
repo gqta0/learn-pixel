@@ -29,6 +29,7 @@ import { bindTerrain, syncTerrainBar, openTerrain, closeTerrain } from './terrai
 export function resizeDoc(w, h, keep){
   const old={w:doc.w,h:doc.h,frames:doc.frames};
   pushUndo();
+  doc.terrainLink=null;
   doc.w=w; doc.h=h;
   doc.frames = old.frames.map(f=> f.map(src=>{
     const d=blank();
@@ -280,14 +281,14 @@ $('#clearBtn').addEventListener('click', ()=>{ pushUndo(); activeData().fill(0);
 $('#btnUndo').addEventListener('click', undo);
 $('#btnRedo').addEventListener('click', redo);
 
-$('#frAdd').addEventListener('click', ()=>{ pushUndo(); doc.frames.splice(doc.af+1,0,newFrame()); doc.dur.splice(doc.af+1,0,0); doc.af++; paintThumbs(); render(); });
-$('#frDup').addEventListener('click', ()=>{ pushUndo(); doc.frames.splice(doc.af+1,0, doc.frames[doc.af].map(d=>d.slice())); doc.dur.splice(doc.af+1,0,doc.dur[doc.af]||0); doc.af++; paintThumbs(); render(); });
+$('#frAdd').addEventListener('click', ()=>{ pushUndo(); doc.terrainLink=null; doc.frames.splice(doc.af+1,0,newFrame()); doc.dur.splice(doc.af+1,0,0); doc.af++; paintThumbs(); render(); });
+$('#frDup').addEventListener('click', ()=>{ pushUndo(); doc.terrainLink=null; doc.frames.splice(doc.af+1,0, doc.frames[doc.af].map(d=>d.slice())); doc.dur.splice(doc.af+1,0,doc.dur[doc.af]||0); doc.af++; paintThumbs(); render(); });
 $('#frDel').addEventListener('click', ()=>{
   if(doc.frames.length<2) return;
-  pushUndo(); doc.frames.splice(doc.af,1); doc.dur.splice(doc.af,1); doc.af=Math.max(0,doc.af-1); paintThumbs(); render();
+  pushUndo(); doc.terrainLink=null; doc.frames.splice(doc.af,1); doc.dur.splice(doc.af,1); doc.af=Math.max(0,doc.af-1); paintThumbs(); render();
 });
-$('#frLeft').addEventListener('click', ()=>{ if(doc.af>0){ pushUndo(); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af-1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af-1,0,t||0); doc.af--; paintThumbs(); render(); } });
-$('#frRight').addEventListener('click', ()=>{ if(doc.af<doc.frames.length-1){ pushUndo(); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af+1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af+1,0,t||0); doc.af++; paintThumbs(); render(); } });
+$('#frLeft').addEventListener('click', ()=>{ if(doc.af>0){ pushUndo(); doc.terrainLink=null; const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af-1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af-1,0,t||0); doc.af--; paintThumbs(); render(); } });
+$('#frRight').addEventListener('click', ()=>{ if(doc.af<doc.frames.length-1){ pushUndo(); doc.terrainLink=null; const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af+1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af+1,0,t||0); doc.af++; paintThumbs(); render(); } });
 $('#frDur').addEventListener('change', e=>{
   const v=parseInt(e.target.value,10);
   doc.dur[doc.af] = isFinite(v) ? Math.max(10,Math.min(4000,v)) : 0;

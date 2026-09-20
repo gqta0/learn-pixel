@@ -61,7 +61,7 @@ export function serialize(){
     app:'lo-pixel', version:2, name:doc.name||'Bản vẽ không tên',
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers:doc.layers, palette:palette,
-    frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur, atlasEdit:doc.atlasEdit,
+    frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur, atlasEdit:doc.atlasEdit, terrainLink:doc.terrainLink,
     done: Array.from(doneSet)
   };
 }
@@ -77,6 +77,7 @@ export function applyData(d){
   doc.dur=(d.dur||[]).slice();
   doc.af=Math.min(d.af||0, doc.frames.length-1); doc.al=Math.min(d.al||0, doc.layers.length-1);
   doc.atlasEdit=d.atlasEdit && typeof d.atlasEdit==='object' ? {...d.atlasEdit} : null;
+  doc.terrainLink=d.terrainLink && typeof d.terrainLink==='object' ? {...d.terrainLink,slots:Array.isArray(d.terrainLink.slots)?d.terrainLink.slots.slice():[]} : null;
   if(d.palette){ setPalette(d.palette); }
   if(d.done) migrateDone(d.done);
   invalidateBuf(); fitZoom(); buildExercises(); syncAll();
