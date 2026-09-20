@@ -7,7 +7,7 @@ import { paintThumbs } from './frames.js';
 import { paintLayers } from './layers.js';
 import { pushUndo } from './history.js';
 import { download } from './storage.js';
-import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, writeTerrainSlot, closeAtlas } from './atlas.js';
+import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, writeTerrainSlot, closeAtlas, linkedTerrainFrameIndex } from './atlas.js';
 import { openMapView } from './mapview.js';
 import { setView } from './tools.js';
 import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
@@ -21,17 +21,9 @@ function terrainAtlas(){
     !a.pad && !a.off && a.cv.width===a.tw*8 && a.cv.height===a.th*7 ? a : null;
 }
 const size=()=>terrainAtlas()?.tw || +$('#terrainSize').value;
-function linkedFrameIndex(slot){
-  const a=terrainAtlas(),link=doc.terrainLink;
-  if(!a || link?.schema!==TERRAIN_SCHEMA || link.atlasId!==a.id ||
-     !Array.isArray(link.slots) || link.slots.length!==56 || doc.frames.length!==56 ||
-     doc.w!==a.tw || doc.h!==a.th) return -1;
-  const i=link.slots.indexOf(slot);
-  return i>=0 && doc.frames[i] ? i : -1;
-}
 function linkedTerrainSlot(){
   const slot=doc.terrainLink?.slots?.[doc.af];
-  return Number.isInteger(slot) && linkedFrameIndex(slot)>=0 ? slot : null;
+  return Number.isInteger(slot) && linkedTerrainFrameIndex(slot)>=0 ? slot : null;
 }
 function canvas(pixels,n){
   const cv=document.createElement('canvas');cv.width=cv.height=n;
@@ -80,6 +72,12 @@ export function syncLinkedTerrainFrame(){
   const ok=writeTerrainSlot(slot,doc.af,link.autoSave!==false);
   if(ok && document.body.dataset.view==='terrain') paint();
   return ok;
+}
+function saveCurrentTerrainTile(){
+  const e=editingRect();
+  if(e) return writeBack();
+  const slot=linkedTerrainSlot();
+  return Number.isInteger(slot) ? writeTerrainSlot(slot,doc.af,true) : false;
 }
 function select(slot){
   selected=slot;inspectedPair=null;paint();
@@ -247,17 +245,15 @@ export function startPaintingSelectedSlot(slot = selected){
   if(!terrainAtlas()){
     if(!create()) return;
   }
-  const linked=linkedFrameIndex(slot);
+  const linked=linkedTerrainFrameIndex(slot);
   if(linked>=0){
-    syncLinkedTerrainFrame();
+    saveCurrentTerrainTile();
     selected=slot;
-    doc.af=linked;
-    doc.al=0;
-    doc.atlasEdit=null;
     setView('draw');
-    paintThumbs();
-    syncTerrainBar();
-    requestAnimationFrame(()=>{ fitZoom(); render(); });
+    if(editAtlasSlot(selected)){
+      syncTerrainBar();
+      requestAnimationFrame(()=>{ fitZoom(); render(); });
+    }
     return;
   }
   if(terrainAtlas() && editingRect()) writeBack();
@@ -279,14 +275,14 @@ export function prevTerrainTile(){
   const e = editingRect();
   const current=Number.isInteger(e?.terrainSlot)?e.terrainSlot:linkedTerrainSlot();
   if(!terrainAtlas() || !Number.isInteger(current)) return;
-  if(e) writeBack(); else syncLinkedTerrainFrame();
+  saveCurrentTerrainTile();
   const order=visiblePresentationSlots($('#terrainFilter')?.value||'all');
   const at=Math.max(0,order.indexOf(current));
   const nextSlot=order[(at+order.length-1)%order.length];
   selected = nextSlot;
-  const linked=linkedFrameIndex(nextSlot);
-  if(linked>=0){
-    doc.af=linked;doc.al=0;paintThumbs();syncTerrainBar();render();return;
+  const linked=linkedTerrainFrameIndex(nextSlot);
+  if(linked>=0 && editAtlasSlot(nextSlot)){
+    syncTerrainBar();render();return;
   }
   if(editAtlasSlot(nextSlot)){
     syncTerrainBar();
@@ -298,14 +294,14 @@ export function nextTerrainTile(){
   const e = editingRect();
   const current=Number.isInteger(e?.terrainSlot)?e.terrainSlot:linkedTerrainSlot();
   if(!terrainAtlas() || !Number.isInteger(current)) return;
-  if(e) writeBack(); else syncLinkedTerrainFrame();
+  saveCurrentTerrainTile();
   const order=visiblePresentationSlots($('#terrainFilter')?.value||'all');
   const at=order.indexOf(current);
   const nextSlot=order[at<0?0:(at+1)%order.length];
   selected = nextSlot;
-  const linked=linkedFrameIndex(nextSlot);
-  if(linked>=0){
-    doc.af=linked;doc.al=0;paintThumbs();syncTerrainBar();render();return;
+  const linked=linkedTerrainFrameIndex(nextSlot);
+  if(linked>=0 && editAtlasSlot(nextSlot)){
+    syncTerrainBar();render();return;
   }
   if(editAtlasSlot(nextSlot)){
     syncTerrainBar();
@@ -379,7 +375,7 @@ function exportGodot(){
   download('terrain56-godot-mapping.json',url);setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function exportPack(){
-  if(editingRect()) writeBack();
+  saveCurrentTerrainTile();
   const n=size(),a=terrainAtlas()?.cv||templateAtlasCanvas(n),manifest=terrainManifest(n);
   const pack={schema:TERRAIN_SCHEMA,format:'lo-pixel-terrain56-pack.v1',tileSize:n,manifest,
     godot:terrainGodotManifest(n),files:{
@@ -417,9 +413,9 @@ export function bindTerrain(){
   $('#terrainPrevTile')?.addEventListener('click',prevTerrainTile);
   $('#terrainNextTile')?.addEventListener('click',nextTerrainTile);
   $('#terrainLockToggle')?.addEventListener('click',()=>{view.terrainLock=!view.terrainLock;syncTerrainBar();});
-  $('#terrainMap')?.addEventListener('click',()=>{if(editingRect()) writeBack();openMapView('atlas');});
+  $('#terrainMap')?.addEventListener('click',()=>{saveCurrentTerrainTile();openMapView('atlas');});
   $('#terrainPng')?.addEventListener('click',()=>{
-    if(editingRect()) writeBack();const a=terrainAtlas()?.cv||templateAtlasCanvas(size());
+    saveCurrentTerrainTile();const a=terrainAtlas()?.cv||templateAtlasCanvas(size());
     download((terrainAtlas()?.name||'terrain56-'+size())+'.png',a.toDataURL('image/png'));
   });
   $('#terrainManifest')?.addEventListener('click',()=>{

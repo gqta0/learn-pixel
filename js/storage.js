@@ -51,9 +51,16 @@ function rle(a){
   return o;
 }
 function unrle(o,len){
+  if(!Array.isArray(o) || o.length%2) throw new Error('dữ liệu RLE không hợp lệ');
   const a=new Uint32Array(len);
   let i=0;
-  for(let k=0;k<o.length && i<len;k+=2){ const end=Math.min(len,i+o[k+1]); a.fill(o[k],i,end); i=end; }
+  for(let k=0;k<o.length && i<len;k+=2){
+    const count=Number(o[k+1]);
+    if(!Number.isInteger(count) || count<1) throw new Error('dữ liệu RLE không hợp lệ');
+    if(i+count>len) throw new Error('dữ liệu RLE thừa pixel');
+    const end=i+count; a.fill(o[k],i,end); i=end;
+  }
+  if(i!==len) throw new Error('dữ liệu RLE thiếu pixel');
   return a;
 }
 export function serialize(){
@@ -66,16 +73,28 @@ export function serialize(){
   };
 }
 export function applyData(d){
-  if(!d || !d.frames || !d.layers) throw new Error('thiếu dữ liệu tranh');
+  const w=Number(d?.w), h=Number(d?.h), layers=d?.layers, frames=d?.frames;
+  if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||w>128||h>128)
+    throw new Error('khổ tranh không hợp lệ (tối đa 128×128)');
+  if(!Array.isArray(layers)||!layers.length||layers.some(l=>!l||typeof l!=='object'))
+    throw new Error('danh sách lớp không hợp lệ');
+  if(!Array.isArray(frames)||!frames.length||frames.some(f=>!Array.isArray(f)||f.length!==layers.length))
+    throw new Error('danh sách khung/lớp không hợp lệ');
+  if(d.palette!==undefined && !Array.isArray(d.palette)) throw new Error('bảng màu không hợp lệ');
+  if(d.dur!==undefined && !Array.isArray(d.dur)) throw new Error('thời lượng khung không hợp lệ');
+  if(d.done!==undefined && !Array.isArray(d.done)) throw new Error('tiến độ bài học không hợp lệ');
+  const len=w*h, decode=a=>d.version>=2 ? unrle(a,len) :
+    (Array.isArray(a)&&a.length===len ? Uint32Array.from(a) : (()=>{ throw new Error('dữ liệu pixel không hợp lệ'); })());
+  const decoded=frames.map(f=>f.map(decode));
   stopEditing();                       // tranh khác rồi thì không còn gắn với ô atlas nào
   doc.name = d.name || 'Bản vẽ không tên';
   const nameEl = $('#projName'); if(nameEl) nameEl.value = doc.name;
-  doc.w=d.w; doc.h=d.h;
-  doc.layers=d.layers.map(l=>({name:l.name,vis:l.vis!==false}));
-  const len=d.w*d.h;
-  doc.frames=d.frames.map(f=>f.map(a=> d.version>=2 ? unrle(a,len) : Uint32Array.from(a)));
+  doc.w=w; doc.h=h;
+  doc.layers=layers.map((l,i)=>({name:String(l.name||'Lớp '+(i+1)),vis:l.vis!==false}));
+  doc.frames=decoded;
   doc.dur=(d.dur||[]).slice();
-  doc.af=Math.min(d.af||0, doc.frames.length-1); doc.al=Math.min(d.al||0, doc.layers.length-1);
+  doc.af=Math.max(0,Math.min(Number.isInteger(d.af)?d.af:0,doc.frames.length-1));
+  doc.al=Math.max(0,Math.min(Number.isInteger(d.al)?d.al:0,doc.layers.length-1));
   doc.atlasEdit=d.atlasEdit && typeof d.atlasEdit==='object' ? {...d.atlasEdit} : null;
   doc.terrainLink=d.terrainLink && typeof d.terrainLink==='object' ? {...d.terrainLink,slots:Array.isArray(d.terrainLink.slots)?d.terrainLink.slots.slice():[]} : null;
   if(d.palette){ setPalette(d.palette); }

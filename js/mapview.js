@@ -100,6 +100,9 @@ let hasSnapshot = false;
 let compareActive = false;
 let ghostVisible = false;
 let ghostOpacity = 0.4;
+let compareHoldTimer = null;
+let compareHeld = false;
+let skipCompareClick = false;
 
 // Trạng thái kéo vẽ chuột
 let isPainting = false;
@@ -859,9 +862,22 @@ export function bindMapView() {
   $('#mapSnapBtn').addEventListener('click', takeSnapshot);
 
   const btnDiff = $('#mapDiffBtn');
-  btnDiff.addEventListener('click', () => toggleCompare());
-  btnDiff.addEventListener('pointerdown', () => toggleCompare(true));
-  btnDiff.addEventListener('pointerup', () => toggleCompare(false));
+  btnDiff.addEventListener('pointerdown', e => {
+    if(e.button!==0) return;
+    try{ btnDiff.setPointerCapture(e.pointerId); }catch(_){ }
+    clearTimeout(compareHoldTimer);
+    compareHoldTimer=setTimeout(()=>{ compareHeld=true; toggleCompare(true); },250);
+  });
+  const releaseCompare=()=>{
+    clearTimeout(compareHoldTimer); compareHoldTimer=null;
+    if(compareHeld){ compareHeld=false; skipCompareClick=true; toggleCompare(false); }
+  };
+  btnDiff.addEventListener('pointerup', releaseCompare);
+  btnDiff.addEventListener('pointercancel', releaseCompare);
+  btnDiff.addEventListener('click', ()=>{
+    if(skipCompareClick){ skipCompareClick=false; return; }
+    toggleCompare();
+  });
 
   const btnGhost = $('#mapGhostBtn');
   btnGhost.addEventListener('click', e => {
