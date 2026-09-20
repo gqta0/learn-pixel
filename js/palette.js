@@ -160,11 +160,11 @@ function group(sel,label,keys){
   sel.appendChild(g);
 }
 export function fillPalSelect(keep){
-  const sel=$('#palSel'), cur = keep || sel.value || 'Master Palette (58 màu)';
+  const sel=$('#palSel'), cur = keep || sel.value || 'Master Palette (72 màu)';
   sel.innerHTML='';
   group(sel,'Dựng sẵn', Object.keys(PALETTES));
   group(sel,'Của bạn',  Object.keys(userPals));
-  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : 'Master Palette (58 màu)';
+  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : 'Master Palette (72 màu)';
   $('#palDel').style.display = isUserPal(sel.value) ? '' : 'none';
 
   const m=$('#matSel');
