@@ -365,6 +365,18 @@ function templateAtlasCanvas(n){
   TERRAIN_TILES.forEach(t=>g.drawImage(canvas(terrainPixels(t.slot,n),n),(t.slot%8)*n,Math.floor(t.slot/8)*n));
   return cv;
 }
+function cleanTerrainCanvas(){
+  const n=size(),source=terrainAtlas()?.cv||templateAtlasCanvas(n),cv=document.createElement('canvas');
+  cv.width=n*8;cv.height=n*7;
+  const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,cv.width,cv.height);g.drawImage(source,0,0);
+  const im=g.getImageData(0,0,cv.width,cv.height),data=im.data;
+  TERRAIN_TILES.forEach(t=>{
+    const roles=tileRoles(t.slot,n),ox=(t.slot%8)*n,oy=Math.floor(t.slot/8)*n;
+    for(let i=0;i<roles.length;i++) if(!roles[i]) data[((oy+Math.floor(i/n))*cv.width+ox+i%n)*4+3]=0;
+  });
+  g.putImageData(im,0,0);
+  return cv;
+}
 function annotationDataUrl(){
   const cvs=tiles(),cv=document.createElement('canvas');cv.width=1440;cv.height=1320;
   const g=cv.getContext('2d');g.fillStyle='#101018';g.fillRect(0,0,cv.width,cv.height);
@@ -388,7 +400,7 @@ function exportGodot(){
 }
 function exportPack(){
   saveCurrentTerrainTile();
-  const n=size(),a=terrainAtlas()?.cv||templateAtlasCanvas(n),manifest=terrainManifest(n);
+  const n=size(),a=cleanTerrainCanvas(),manifest=terrainManifest(n);
   const pack={schema:TERRAIN_SCHEMA,format:'lo-pixel-terrain56-pack.v1',tileSize:n,manifest,
     godot:terrainGodotManifest(n),files:{
       'terrain56.png':a.toDataURL('image/png'),
@@ -445,7 +457,7 @@ export function bindTerrain(){
   $('#terrainLockToggle')?.addEventListener('click',()=>{view.terrainLock=!view.terrainLock;syncTerrainBar();});
   $('#terrainMap')?.addEventListener('click',()=>{saveCurrentTerrainTile();openMapView('atlas');});
   $('#terrainPng')?.addEventListener('click',()=>{
-    saveCurrentTerrainTile();const a=terrainAtlas()?.cv||templateAtlasCanvas(size());
+    saveCurrentTerrainTile();const a=cleanTerrainCanvas();
     download((terrainAtlas()?.name||'terrain56-'+size())+'.png',a.toDataURL('image/png'));
   });
   $('#terrainManifest')?.addEventListener('click',()=>{
