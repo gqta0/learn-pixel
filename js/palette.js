@@ -18,6 +18,28 @@ export const COLOR_TOKENS = {
   '#99b0bf': { group: 'Rock', token: 'stone-400', desc: 'mặt đá có ánh sáng' },
   '#b4c5d1': { group: 'Rock', token: 'stone-300', desc: 'cạnh đá sáng' },
   '#d0dde4': { group: 'Rock', token: 'stone-100', desc: 'highlight hiếm, tinh thể/đá rất sáng' },
+
+  '#293b3b': { group: 'Rock-2', token: 'moss-900', desc: 'khe đá cực tối' },
+  '#3e544f': { group: 'Rock-2', token: 'moss-800', desc: 'shadow đá xanh rêu' },
+  '#586d63': { group: 'Rock-2', token: 'moss-700', desc: 'đá nền tối' },
+  '#748679': { group: 'Rock-2', token: 'moss-600', desc: 'midtone đá phong hóa' },
+  '#939f8d': { group: 'Rock-2', token: 'moss-500', desc: 'mặt đá có ánh sáng' },
+  '#b5bba4': { group: 'Rock-2', token: 'stone-300', desc: 'cạnh đá sáng / đá phủ rêu nhẹ' },
+  '#d8d8bd': { group: 'Rock-2', token: 'stone-100', desc: 'highlight nắng / đá cổ sáng' },
+
+  '#273b49': { group: 'Rock-3', token: 'slate-900', desc: 'khe đá, outline sâu' },
+
+  '#3b5260': { group: 'Rock-3', token: 'slate-800', desc: 'shadow đá lạnh' },
+
+  '#536b76': { group: 'Rock-3', token: 'slate-700', desc: 'đá nền tối' },
+
+  '#70858b': { group: 'Rock-3', token: 'slate-600', desc: 'midtone đá' },
+
+  '#929f9f': { group: 'Rock-3', token: 'stone-500', desc: 'mặt đá nhận sáng' },
+
+  '#b5bdb6': { group: 'Rock-3', token: 'stone-300', desc: 'cạnh đá sáng' },
+
+  '#d9d9c9': { group: 'Rock-3', token: 'stone-100', desc: 'highlight mạnh / mặt đá hướng sáng' },
   /* Sky */
   '#2c488f': { group: 'Sky', token: 'sky-800', desc: 'núi xa, trời sâu' },
   '#3973ad': { group: 'Sky', token: 'sky-700', desc: 'núi/parallax' },
@@ -81,9 +103,11 @@ export const COLOR_TOKENS = {
 };
 
 export const PALETTES = {
-  'Master Palette (58 màu)': [
+  'Master Palette (72 màu)': [
     '#0d171f','#162331','#223344',                                      /* Outline */
     '#2e4659','#435d73','#5e788c','#7a95a7','#99b0bf','#b4c5d1','#d0dde4', /* Rock */
+    '#293b3b','#3e544f','#586d63','#748679','#939f8d','#b5bba4','#d8d8bd', /* Rock-2 */
+    '#273b49','#3b5260','#536b76','#70858b','#929f9f','#b5bdb6','#d9d9c9', /* Rock-3 */
     '#2c488f','#3973ad','#53accc','#74ceda','#cdf1f4',                  /* Sky */
     '#f3e5d3',                                                          /* Neutral */
     '#4e392f','#765640','#a67b54','#e0ab72',                            /* Soil */
@@ -111,7 +135,7 @@ export const PALETTES = {
                            '#a8791f','#dcae35','#ffe07a','#8f4a20','#c26e33','#e59c5e','#c2c3c7','#eef0f5'],
   'Xám 8 bậc (luyện khối)': ['#0d0d12','#1f1f28','#33333f','#4c4c5b','#6b6b7c','#8f8fa0','#b8b8c6','#f0f0f6']
 };
-export let palette = PALETTES['Master Palette (58 màu)'].slice();
+export let palette = PALETTES['Master Palette (72 màu)'].slice();
 export function setPalette(a){ palette = a.slice(); }
 
 /* ---------------- thư viện bảng màu của bạn ----------------
