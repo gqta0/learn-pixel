@@ -14,7 +14,7 @@ test('256 neighborhoods reduce to exactly 47 unique canonical topologies',()=>{
 });
 
 test('artist presentation groups cover every stable slot exactly once',()=>{
-  assert.deepEqual(TERRAIN_PRESENTATION_GROUPS[0].layout.flat().map(x=>x.slot),[20,22,26,24,46,42,16,38,34]);
+  assert.deepEqual(TERRAIN_PRESENTATION_GROUPS[0].layout.flat().map(x=>x.slot),[20,31,26,24,46,42,16,38,34]);
   assert.equal(TERRAIN_PRESENTATION_ORDER.length,56);
   assert.deepEqual([...new Set(TERRAIN_PRESENTATION_ORDER)].sort((a,b)=>a-b),Array.from({length:56},(_,i)=>i));
 });

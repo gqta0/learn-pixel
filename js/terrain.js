@@ -38,7 +38,7 @@ export const TERRAIN_TILES=[
    intact for the engine and manifests; only the artist-facing workbench changes. */
 export const TERRAIN_PRESENTATION_GROUPS=[
   {id:'basic',title:'Khối cơ bản',note:'Nhìn vị trí để hiểu vai trò; #46 là ô giữa.',layout:[
-    [{slot:20,label:'Góc trên-trái'},{slot:22,label:'Mép trên'},{slot:26,label:'Góc trên-phải'}],
+    [{slot:20,label:'Góc trên-trái'},{slot:31,label:'Mép trên'},{slot:26,label:'Góc trên-phải'}],
     [{slot:24,label:'Tường trái'},{slot:46,label:'Ô giữa'},{slot:42,label:'Tường phải'}],
     [{slot:16,label:'Góc dưới-trái'},{slot:38,label:'Mép dưới'},{slot:34,label:'Góc dưới-phải'}]
   ]},
@@ -54,15 +54,16 @@ export const TERRAIN_PRESENTATION_GROUPS=[
     {title:'Đầu nhánh · lên / phải / xuống / trái',slots:[1,2,4,8]},
     {title:'Dải hẹp · ngang / dọc',slots:[5,10]}
   ]},
-  {id:'outer',title:'Góc ngoài',note:'Bốn hướng xoay theo chiều kim đồng hồ.',slots:[3,6,9,12]},
-  {id:'edges',title:'Mép / tường nâng cao',note:'Nhóm theo số góc lõm, rồi theo hướng N / E / S / W.',sections:[
-    {title:'Không góc lõm',slots:[31]},
-    {title:'Một góc lõm',slots:[28,27,18,17,36,35,21]},
-    {title:'Hai góc lõm',slots:[14,13,11,7]}
+  {id:'complex',title:'Mép phức hợp',note:'Khúc rẽ và mép có góc lõm; hướng xoay theo chiều kim đồng hồ.',sections:[
+    {title:'Khúc rẽ khuyết góc chéo · 4 hướng',slots:[6,12,9,3]},
+    {title:'Mép trên có góc lõm',slots:[22,28,14]},
+    {title:'Mép phải có góc lõm',slots:[36,27,13]},
+    {title:'Mép dưới có góc lõm',slots:[35,18,11]},
+    {title:'Mép trái có góc lõm',slots:[17,21,7]}
   ]},
   {id:'variants',title:'Biến thể mỹ thuật',note:'Giữ nguyên connector của ô gốc; chỉ đổi vân, sắc độ hoặc nhịp mép.',sections:[
     {title:'Ruột · gốc #46',slots:[47,48,49,50,51]},
-    {title:'Mép · biến thể cạnh',slots:[52,53,54,55]}
+    {title:'Mép · trên / phải / dưới / trái',slots:[52,55,53,54]}
   ]}
 ];
 export const TERRAIN_PRESENTATION_ORDER=TERRAIN_PRESENTATION_GROUPS.flatMap(group=>
