@@ -354,7 +354,11 @@ function endStroke(e){
   if(preview){ strokeData.set(preview.data); setPreview(null); }
   restoreTerrainLock(strokeData);
   const before=strokeUndo?.frames[strokeUndo.af][strokeUndo.al];
-  if(before && strokeData.some((v,i)=>v!==before[i])){ pushUndo(strokeUndo); markToday(); }
+  if(before && strokeData.some((v,i)=>v!==before[i])){
+    pushUndo(strokeUndo); markToday();
+    if(typeof window.dispatchEvent==='function' && typeof CustomEvent==='function')
+      window.dispatchEvent(new CustomEvent('pixelchange'));
+  }
   owner=null; strokeUndo=null; strokeData=null; terrainLockSnapshot=null;
   moveBase=null; view.brushEff=view.brush;
   render(); paintThumbs();

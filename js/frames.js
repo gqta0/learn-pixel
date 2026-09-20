@@ -20,7 +20,7 @@ export function paintThumbs(){
     tag.textContent=Number.isInteger(slot) ? '#'+String(slot).padStart(2,'0') : i+1;
     tag.title=Number.isInteger(slot) ? 'Terrain slot #'+slot : 'Khung '+(i+1);
     b.appendChild(cv); b.appendChild(tag);
-    b.addEventListener('click', ()=>{ doc.af=i; paintThumbs(); render(); });
+    b.addEventListener('click', ()=>{ doc.af=i; paintThumbs(); render(); window.dispatchEvent(new CustomEvent('framechange')); });
     onLongPress(b, ()=>{
       const items = [
         {label:'+ Khung trống sau khung này', fn:()=>{

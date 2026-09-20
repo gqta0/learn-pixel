@@ -14,7 +14,7 @@ import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
   TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER, tileRoles, terrainPixels, describeMask, neighbors, checkSeams, checkColorSeams,
   terrainManifest, terrainGodotManifest, paintTerrainGuide } from './terrain.js';
 
-let selected=46, seamIssues=[], inspectedPair=null;
+let selected=46, seamIssues=[], inspectedPair=null, terrainDirty=false;
 function terrainAtlas(){
   const a=getAtlas();
   return a?.terrain===TERRAIN_SCHEMA && [16,32].includes(a.tw) && a.th===a.tw &&
@@ -57,6 +57,7 @@ function linkFramesToTerrain(n){
   doc.frames=source.map(cv=>[pixelsFromCanvas(cv)]);
   doc.dur=Array(56).fill(0);
   doc.af=0; doc.al=0; doc.atlasEdit=null;
+  terrainDirty=false;
   doc.terrainLink={schema:TERRAIN_SCHEMA,atlasId:a.id,slots:TERRAIN_TILES.map(t=>t.slot),
     labels:$('#terrainFrameLabels')?.checked!==false,
     live:$('#terrainFrameLive')?.checked!==false,
@@ -70,14 +71,19 @@ export function syncLinkedTerrainFrame(){
   const link=doc.terrainLink, a=terrainAtlas(), slot=link?.slots?.[doc.af];
   if(view.drawing || !link?.live || !a || link.atlasId!==a.id || !Number.isInteger(slot)) return false;
   const ok=writeTerrainSlot(slot,doc.af,link.autoSave!==false);
+  if(ok && link.autoSave!==false) terrainDirty=false;
   if(ok && document.body.dataset.view==='terrain') paint();
+  syncTerrainBar();
   return ok;
 }
 function saveCurrentTerrainTile(){
   const e=editingRect();
-  if(e) return writeBack();
+  if(e){ const ok=writeBack(); if(ok) terrainDirty=false; return ok; }
   const slot=linkedTerrainSlot();
-  return Number.isInteger(slot) ? writeTerrainSlot(slot,doc.af,true) : false;
+  if(!Number.isInteger(slot)) return false;
+  const ok=writeTerrainSlot(slot,doc.af,true);
+  if(ok) terrainDirty=false;
+  return ok;
 }
 function select(slot){
   selected=slot;inspectedPair=null;paint();
@@ -109,10 +115,16 @@ function syncFrameOptions(){
 }
 export function syncTerrainBar(){
   syncFrameOptions();
-  const e=editingRect(),linked=linkedTerrainSlot(),activeSlot=Number.isInteger(e?.terrainSlot)?e.terrainSlot:linked;
+  const e=editingRect(),linked=linkedTerrainSlot(),activeSlot=Number.isInteger(linked)?linked:(Number.isInteger(e?.terrainSlot)?e.terrainSlot:null);
   const enabled=Number.isInteger(activeSlot) && activeSlot>=0 && activeSlot<56 && !!terrainAtlas();
   $('#terrainDrawTools').hidden=!enabled;
   ['atlasSave','atlasNext'].forEach(key=>{const b=$('#'+key);if(b)b.hidden=enabled;});
+  const saveState=$('#terrainSaveState');
+  if(saveState){
+    saveState.hidden=!enabled;
+    saveState.textContent=terrainDirty?'● Chưa ghi atlas':'✓ Đã ghi atlas';
+    saveState.classList.toggle('dirty',terrainDirty);
+  }
   const mode = view.terrainGuide ? (view.terrainGuideMode || 'wireframe') : 'off';
   const label = mode === 'wireframe' ? '👁 Gợi ý: Viền nét' : mode === 'tint' ? '👁 Gợi ý: Phủ mờ' : '👁 Gợi ý: Tắt';
   const btn = $('#terrainGuideToggle');
@@ -220,7 +232,7 @@ function appendSection(parent,title,slots,cvs,a,e,filter,editingSlot){
 function paint(){
   const cvs=tiles(), filter=$('#terrainFilter').value, a=terrainAtlas(), e=editingRect(),editingSlot=Number.isInteger(e?.terrainSlot)?e.terrainSlot:linkedTerrainSlot();
   const linked=!!(a && doc.terrainLink?.atlasId===a.id);
-  $('#terrainState').textContent=linked?'Atlas Terrain · đã link 56 frame · preview live theo frame bên dưới.':a?'Atlas Terrain đang mở · preview gồm nét chưa ghi của ô đang sửa.':'Đang xem mẫu tham khảo · bấm Vẽ ô này để bắt đầu vẽ.';
+  $('#terrainState').textContent=linked?'Atlas Terrain · đã link 56 frame · preview live theo frame bên dưới.'+(terrainDirty?' · Chưa ghi atlas.':' · Atlas đã ghi.') :a?'Atlas Terrain đang mở · preview gồm nét chưa ghi của ô đang sửa.':'Đang xem mẫu tham khảo · bấm Vẽ ô này để bắt đầu vẽ.';
   const grid=$('#terrainGrid');grid.replaceChildren();
   TERRAIN_PRESENTATION_GROUPS.forEach(group=>{
     const groupBox=document.createElement('section');groupBox.className='terrain-group terrain-group-'+group.id;
@@ -399,6 +411,19 @@ export function bindTerrain(){
   });
   $('#terrainCreate')?.addEventListener('click',()=>create());
   window.addEventListener('pixelrender',syncLinkedTerrainFrame);
+  window.addEventListener('pixelchange',()=>{
+    if(Number.isInteger(linkedTerrainSlot())){
+      terrainDirty=true;
+      syncTerrainBar();
+      if(document.body.dataset.view==='terrain') paint();
+    }
+  });
+  window.addEventListener('framechange',()=>{
+    const slot=linkedTerrainSlot();
+    if(Number.isInteger(slot)) editAtlasSlot(slot);
+    syncTerrainBar();
+    if(document.body.dataset.view==='terrain') refreshTerrain();
+  });
   $('#terrainFrameLabels')?.addEventListener('change',e=>{
     if(doc.terrainLink){ doc.terrainLink.labels=e.target.checked; paintThumbs(); }
   });
@@ -406,11 +431,16 @@ export function bindTerrain(){
     if(doc.terrainLink){ doc.terrainLink.live=e.target.checked; if(e.target.checked) syncLinkedTerrainFrame(); }
   });
   $('#terrainFrameAutoSave')?.addEventListener('change',e=>{
-    if(doc.terrainLink) doc.terrainLink.autoSave=e.target.checked;
+    if(doc.terrainLink){
+      doc.terrainLink.autoSave=e.target.checked;
+      if(e.target.checked) saveCurrentTerrainTile();
+      syncTerrainBar();
+    }
   });
   $('#terrainEdit')?.addEventListener('click',()=>startPaintingSelectedSlot(selected));
   $('#terrainInspectEdit')?.addEventListener('click',()=>startPaintingSelectedSlot(selected));
   $('#terrainPrevTile')?.addEventListener('click',prevTerrainTile);
+  $('#terrainSaveTile')?.addEventListener('click',()=>{ if(saveCurrentTerrainTile()) syncTerrainBar(); });
   $('#terrainNextTile')?.addEventListener('click',nextTerrainTile);
   $('#terrainLockToggle')?.addEventListener('click',()=>{view.terrainLock=!view.terrainLock;syncTerrainBar();});
   $('#terrainMap')?.addEventListener('click',()=>{saveCurrentTerrainTile();openMapView('atlas');});

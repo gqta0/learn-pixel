@@ -157,10 +157,12 @@
         </div>
         <div class="ctxbar" id="atlasBar" hidden>
           <span class="kbd">Atlas <b id="atlasWhere"></b></span>
+          <span class="kbd terrain-save-state" id="terrainSaveState" hidden role="status" aria-live="polite"></span>
           <button class="btn tiny primary" id="atlasSave" title="Ghi khung đang vẽ đè lên đúng ô cũ trong atlas">⤴ Ghi lại</button>
           <button class="btn tiny" id="atlasNext" title="Ghi lại rồi mở atlas để chọn ô khác">⤴ Ghi &amp; ô sau</button>
           <button class="btn tiny" id="atlasStop" title="Thôi không gắn với atlas nữa">✕ Rời</button>
           <span id="terrainDrawTools" hidden>
+            <button class="btn tiny primary" id="terrainSaveTile" title="Ghi frame hiện tại vào đúng ô Terrain trong atlas">⤴ Ghi frame</button>
             <button class="btn tiny" id="terrainPrevTile" title="Ghi lại &amp; chuyển sang vẽ ô trước theo nhóm đang lọc (Alt+←)">⤴ Ô trước</button>
             <button class="btn tiny primary" id="terrainNextTile" title="Ghi lại &amp; chuyển sang ô kế tiếp theo nhóm đang lọc (Alt+→)">⤴ Ghi &amp; ô sau</button>
             <button class="btn tiny" id="terrainGuideToggle" aria-pressed="true" title="Chuyển chế độ: Viền nét (thấy 100% màu thật) → Phủ mờ → Tắt (Phím H)">👁 Gợi ý: Viền nét</button>

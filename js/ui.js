@@ -277,7 +277,7 @@ $('#wipeSave').addEventListener('click', ()=>{
   try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
   location.reload();
 });
-$('#clearBtn').addEventListener('click', ()=>{ pushUndo(); activeData().fill(0); render(); paintThumbs(); });
+$('#clearBtn').addEventListener('click', ()=>{ pushUndo(); activeData().fill(0); window.dispatchEvent(new CustomEvent('pixelchange')); render(); paintThumbs(); });
 $('#btnUndo').addEventListener('click', undo);
 $('#btnRedo').addEventListener('click', redo);
 
@@ -408,8 +408,8 @@ window.addEventListener('keydown', e=>{
   if(k==='x'){ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); }
   if(k==='['){ view.brush=Math.max(1,view.brush-1); view.brushEff=view.brush; $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }
   if(k===']'){ view.brush=Math.min(6,view.brush+1); view.brushEff=view.brush; $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }
-  if(k===','){ doc.af=Math.max(0,doc.af-1); paintThumbs(); render(); }
-  if(k==='.'){ doc.af=Math.min(doc.frames.length-1,doc.af+1); paintThumbs(); render(); }
+  if(k===','){ doc.af=Math.max(0,doc.af-1); paintThumbs(); render(); window.dispatchEvent(new CustomEvent('framechange')); }
+  if(k==='.'){ doc.af=Math.min(doc.frames.length-1,doc.af+1); paintThumbs(); render(); window.dispatchEvent(new CustomEvent('framechange')); }
 });
 let rzT=null;
 window.addEventListener('resize', ()=>{
