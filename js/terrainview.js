@@ -21,15 +21,27 @@ function terrainAtlas(){
     !a.pad && !a.off && a.cv.width===a.tw*8 && a.cv.height===a.th*7 ? a : null;
 }
 const size=()=>terrainAtlas()?.tw || +$('#terrainSize').value;
+function linkedFrameIndex(slot){
+  const a=terrainAtlas(),link=doc.terrainLink;
+  if(!a || link?.schema!==TERRAIN_SCHEMA || link.atlasId!==a.id ||
+     !Array.isArray(link.slots) || link.slots.length!==56 || doc.frames.length!==56 ||
+     doc.w!==a.tw || doc.h!==a.th) return -1;
+  const i=link.slots.indexOf(slot);
+  return i>=0 && doc.frames[i] ? i : -1;
+}
+function linkedTerrainSlot(){
+  const slot=doc.terrainLink?.slots?.[doc.af];
+  return Number.isInteger(slot) && linkedFrameIndex(slot)>=0 ? slot : null;
+}
 function canvas(pixels,n){
   const cv=document.createElement('canvas');cv.width=cv.height=n;
   const g=cv.getContext('2d'),im=g.createImageData(n,n);
   new Uint32Array(im.data.buffer).set(pixels);g.putImageData(im,0,0);return cv;
 }
 function tiles(){
-  const a=terrainAtlas(), n=size(), e=editingRect();
+  const a=terrainAtlas(), n=size(), e=editingRect(), editingSlot=Number.isInteger(e?.terrainSlot)?e.terrainSlot:linkedTerrainSlot();
   return TERRAIN_TILES.map(t=>{
-    if(a && e?.terrainSlot===t.slot){const cv=document.createElement('canvas');return frameToCanvas(doc.af,cv,1);}
+    if(a && editingSlot===t.slot){const cv=document.createElement('canvas');return frameToCanvas(doc.af,cv,1);}
     if(!a) return canvas(terrainPixels(t.slot,n),n);
     const cv=document.createElement('canvas');cv.width=cv.height=n;
     cv.getContext('2d').drawImage(a.cv,(t.slot%8)*n,Math.floor(t.slot/8)*n,n,n,0,0,n,n);return cv;
@@ -74,7 +86,8 @@ function select(slot){
   if(innerWidth<=760) $('#terrainTitle').scrollIntoView({block:'start'});
 }
 export function refreshTerrain(){
-  const e=editingRect();if(Number.isInteger(e?.terrainSlot) && e.terrainSlot>=0 && e.terrainSlot<56) selected=e.terrainSlot;
+  const e=editingRect(),linked=linkedTerrainSlot(),slot=Number.isInteger(e?.terrainSlot)?e.terrainSlot:linked;
+  if(Number.isInteger(slot) && slot>=0 && slot<56) selected=slot;
   if(terrainAtlas()) $('#terrainSize').value=terrainAtlas().tw;
   paint();
 }
@@ -98,7 +111,8 @@ function syncFrameOptions(){
 }
 export function syncTerrainBar(){
   syncFrameOptions();
-  const e=editingRect(), enabled=Number.isInteger(e?.terrainSlot) && e.terrainSlot>=0 && e.terrainSlot<56 && !!terrainAtlas();
+  const e=editingRect(),linked=linkedTerrainSlot(),activeSlot=Number.isInteger(e?.terrainSlot)?e.terrainSlot:linked;
+  const enabled=Number.isInteger(activeSlot) && activeSlot>=0 && activeSlot<56 && !!terrainAtlas();
   $('#terrainDrawTools').hidden=!enabled;
   ['atlasSave','atlasNext'].forEach(key=>{const b=$('#'+key);if(b)b.hidden=enabled;});
   const mode = view.terrainGuide ? (view.terrainGuideMode || 'wireframe') : 'off';
@@ -116,8 +130,8 @@ export function syncTerrainBar(){
     lock.title=view.terrainLock?'Giữ nguyên pixel connector ở biên tile':'Cho phép sửa pixel connector; hãy soi mối nối sau khi vẽ';
   }
   if(enabled){
-    const order=visiblePresentationSlots($('#terrainFilter')?.value||'all'),pos=order.indexOf(e.terrainSlot)+1;
-    $('#atlasWhere').textContent='Terrain '+id(e.terrainSlot)+' · '+TERRAIN_TILES[e.terrainSlot].title+' · '+pos+'/'+order.length;
+    const order=visiblePresentationSlots($('#terrainFilter')?.value||'all'),pos=order.indexOf(activeSlot)+1;
+    $('#atlasWhere').textContent='Terrain '+id(activeSlot)+' · '+TERRAIN_TILES[activeSlot].title+' · '+pos+'/'+order.length;
   }
   syncNavHeight();
 }
@@ -184,8 +198,8 @@ function visiblePresentationSlots(filter){
 function tileLabel(slot,custom){
   return '#'+String(slot).padStart(2,'0')+(custom?' · '+custom:' · '+TERRAIN_TILES[slot].title);
 }
-function appendTile(slot,parent,cvs,a,e,custom){
-  const t=TERRAIN_TILES[slot],isEditing=a&&e?.terrainSlot===slot;
+function appendTile(slot,parent,cvs,a,e,custom,editingSlot){
+  const t=TERRAIN_TILES[slot],isEditing=a&&((e?.terrainSlot===slot)||editingSlot===slot);
   const b=document.createElement('button');b.className='terrain-tile'+(isEditing?' editing-active':'');
   b.setAttribute('aria-pressed',slot===selected);b.setAttribute('aria-label',tileLabel(slot,custom)+' mask '+t.mask);b.dataset.slot=slot;
   const cv=document.createElement('canvas');cv.width=cv.height=64;
@@ -197,16 +211,16 @@ function appendTile(slot,parent,cvs,a,e,custom){
   b.addEventListener('dblclick',()=>{select(slot);startPaintingSelectedSlot(slot);});
   parent.append(b);
 }
-function appendSection(parent,title,slots,cvs,a,e,filter){
+function appendSection(parent,title,slots,cvs,a,e,filter,editingSlot){
   const visible=slots.filter(slot=>matchesFilter(TERRAIN_TILES[slot],filter));
   if(!visible.length) return;
   const sub=document.createElement('div');sub.className='terrain-group-section';
   if(title){const heading=document.createElement('p');heading.className='terrain-group-subtitle';heading.textContent=title;sub.append(heading);}
   const grid=document.createElement('div');grid.className='terrain-group-grid';
-  visible.forEach(slot=>appendTile(slot,grid,cvs,a,e));sub.append(grid);parent.append(sub);
+  visible.forEach(slot=>appendTile(slot,grid,cvs,a,e,undefined,editingSlot));sub.append(grid);parent.append(sub);
 }
 function paint(){
-  const cvs=tiles(), filter=$('#terrainFilter').value, a=terrainAtlas(), e=editingRect();
+  const cvs=tiles(), filter=$('#terrainFilter').value, a=terrainAtlas(), e=editingRect(),editingSlot=Number.isInteger(e?.terrainSlot)?e.terrainSlot:linkedTerrainSlot();
   const linked=!!(a && doc.terrainLink?.atlasId===a.id);
   $('#terrainState').textContent=linked?'Atlas Terrain · đã link 56 frame · preview live theo frame bên dưới.':a?'Atlas Terrain đang mở · preview gồm nét chưa ghi của ô đang sửa.':'Đang xem mẫu tham khảo · bấm Vẽ ô này để bắt đầu vẽ.';
   const grid=$('#terrainGrid');grid.replaceChildren();
@@ -218,10 +232,10 @@ function paint(){
     const note=document.createElement('p');note.textContent=group.note;heading.append(title,note);groupBox.append(heading);
     if(group.layout){
       const basic=document.createElement('div');basic.className='terrain-group-grid terrain-basic-grid';
-      group.layout.flat().forEach(item=>{if(matchesFilter(TERRAIN_TILES[item.slot],filter))appendTile(item.slot,basic,cvs,a,e,item.label);});
+      group.layout.flat().forEach(item=>{if(matchesFilter(TERRAIN_TILES[item.slot],filter))appendTile(item.slot,basic,cvs,a,e,item.label,editingSlot);});
       if(basic.children.length) groupBox.append(basic);
-    } else if(group.sections) group.sections.forEach(section=>appendSection(groupBox,section.title,section.slots,cvs,a,e,filter));
-    else appendSection(groupBox,'',group.slots,cvs,a,e,filter);
+    } else if(group.sections) group.sections.forEach(section=>appendSection(groupBox,section.title,section.slots,cvs,a,e,filter,editingSlot));
+    else appendSection(groupBox,'',group.slots,cvs,a,e,filter,editingSlot);
     if(groupBox.querySelector('.terrain-tile')) grid.append(groupBox);
   });
   $('#terrainMap').disabled=!terrainAtlas();
@@ -232,6 +246,19 @@ function paint(){
 export function startPaintingSelectedSlot(slot = selected){
   if(!terrainAtlas()){
     if(!create()) return;
+  }
+  const linked=linkedFrameIndex(slot);
+  if(linked>=0){
+    syncLinkedTerrainFrame();
+    selected=slot;
+    doc.af=linked;
+    doc.al=0;
+    doc.atlasEdit=null;
+    setView('draw');
+    paintThumbs();
+    syncTerrainBar();
+    requestAnimationFrame(()=>{ fitZoom(); render(); });
+    return;
   }
   if(terrainAtlas() && editingRect()) writeBack();
   selected = slot;
@@ -250,12 +277,17 @@ export function startPaintingSelectedSlot(slot = selected){
 
 export function prevTerrainTile(){
   const e = editingRect();
-  if(!terrainAtlas() || !Number.isInteger(e?.terrainSlot)) return;
-  writeBack();
+  const current=Number.isInteger(e?.terrainSlot)?e.terrainSlot:linkedTerrainSlot();
+  if(!terrainAtlas() || !Number.isInteger(current)) return;
+  if(e) writeBack(); else syncLinkedTerrainFrame();
   const order=visiblePresentationSlots($('#terrainFilter')?.value||'all');
-  const at=Math.max(0,order.indexOf(e.terrainSlot));
+  const at=Math.max(0,order.indexOf(current));
   const nextSlot=order[(at+order.length-1)%order.length];
   selected = nextSlot;
+  const linked=linkedFrameIndex(nextSlot);
+  if(linked>=0){
+    doc.af=linked;doc.al=0;paintThumbs();syncTerrainBar();render();return;
+  }
   if(editAtlasSlot(nextSlot)){
     syncTerrainBar();
     render();
@@ -264,12 +296,17 @@ export function prevTerrainTile(){
 
 export function nextTerrainTile(){
   const e = editingRect();
-  if(!terrainAtlas() || !Number.isInteger(e?.terrainSlot)) return;
-  writeBack();
+  const current=Number.isInteger(e?.terrainSlot)?e.terrainSlot:linkedTerrainSlot();
+  if(!terrainAtlas() || !Number.isInteger(current)) return;
+  if(e) writeBack(); else syncLinkedTerrainFrame();
   const order=visiblePresentationSlots($('#terrainFilter')?.value||'all');
-  const at=order.indexOf(e.terrainSlot);
+  const at=order.indexOf(current);
   const nextSlot=order[at<0?0:(at+1)%order.length];
   selected = nextSlot;
+  const linked=linkedFrameIndex(nextSlot);
+  if(linked>=0){
+    doc.af=linked;doc.al=0;paintThumbs();syncTerrainBar();render();return;
+  }
   if(editAtlasSlot(nextSlot)){
     syncTerrainBar();
     render();
