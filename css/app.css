@@ -660,6 +660,8 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   padding:2px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;
 }
 .maptile-scroll::-webkit-scrollbar{display:none}
+#mapModeSel,#mapRecipeSel{min-width:132px}
+#mapCoverage{color:var(--amber);white-space:nowrap}
 .maptile-item{
   flex:0 0 auto;width:32px;height:32px;border:1px solid var(--line);border-radius:2px;
   background:var(--demo-bg);display:grid;place-items:center;cursor:pointer;

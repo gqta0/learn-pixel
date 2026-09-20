@@ -9,7 +9,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 **Trình vẽ**
 - Khổ chữ nhật tuỳ ý tới 128×128, 12 dụng cụ (bút, xoá, tô loang, hút màu, đường, chữ nhật, ê-líp, dịch lớp, **tô khối theo dải**, **chọn vùng**), gương X/Y, lật ngang/dọc, **khoá alpha**.
 - Nhiều lớp (đổi được thứ tự chồng), nhiều khung hình, **thời lượng riêng cho từng khung**, bóng khung trước và sau (onion skin), xem trước lặp 3×3 cho tile.
-- **Soi bản đồ hang động (Map Preview 24×16)**: cửa sổ xem trước và thử nghiệm bản đồ chuẩn theo đặc tả `genesis.tileset.preview.v1`, hỗ trợ autotile blob 47 ô & biến thể lòng hang, **khay chọn & vẽ trực tiếp các tile đang có** (Atlas, Thư viện bản vẽ, Canvas) bằng thao tác kéo rê chuột (Bresenham drag), **tạm giữ mẫu (Snapshot)**, **so sánh nhấp nháy A/B (Flicker compare - phím Space)**, **bóng ma đối chiếu (Ghost overlay)** và ghim tile đối chiếu.
+- **Soi bản đồ hang động (Map Preview 24×16)**: cửa sổ xem trước và thử nghiệm bản đồ chuẩn theo đặc tả `genesis.tileset.preview.v1`, hỗ trợ autotile blob 47 ô + đủ bộ 56 ô, **ba chế độ Natural / Coverage 56 / Recipe** để vừa soi seam liền mạch vừa kiểm độ phủ từng slot, **khay chọn & vẽ trực tiếp các tile đang có** (Atlas, Thư viện bản vẽ, Canvas) bằng thao tác kéo rê chuột (Bresenham drag), **tạm giữ mẫu (Snapshot)**, **so sánh nhấp nháy A/B (Flicker compare - phím Space)**, **bóng ma đối chiếu (Ghost overlay)** và ghim tile đối chiếu.
 - Cắt / chép / dán vùng chọn giữa mọi lớp và khung.
 - Hoàn tác 80 bước. Tối ưu trải nghiệm S-Pen & cảm ứng cho Galaxy S22 Ultra & Galaxy Tab S10 FE: tuỳ chọn chức năng nút bấm S-Pen (Màu phụ / Cục tẩy tức thì / Hút màu tức thì), tự động chống chạm nhầm tay (Palm Rejection) không bị khoá cứng khi bật vẽ ngón, cử chỉ 2 ngón phóng/kéo mượt mà với bộ đệm chống nét vẽ lạc (140ms cooldown), thanh màu nhanh (Quick Palette Popover) ngay trên canvas, và bố cục 3 cột chuyên nghiệp chuẩn Workstation cho Tablet landscape (1001px-1280px) cùng ngăn kéo trượt thông minh cho Tablet portrait.
 
@@ -127,7 +127,7 @@ js/
   library.js          thư viện bản vẽ + bảng liên hoàn
   daily.js            nhịp học: bài tiếp theo, số ngày đã vẽ
   atlas.js            quản lý atlas / tilesheet của dự án
-  mapview.js          soi thử tile trên bản đồ hang động 24×16 (autotile 47 ô)
+  mapview.js          soi map Natural / Coverage 56 / Recipe, autotile 47/56 ô
   ui.js               đồng bộ giao diện + nối mọi sự kiện
   main.js             khởi động
   content/

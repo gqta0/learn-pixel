@@ -10,7 +10,7 @@ import { download } from './storage.js';
 import { getAtlas, editAtlasSlot } from './atlas.js';
 import { getLibraryItems, renderLibraryProject } from './library.js';
 import { setView } from './tools.js';
-import { BLOB_47_MASKS, TERRAIN_TILES, describeMask, terrainSlot } from './terrain.js';
+import { BLOB_47_MASKS, TERRAIN_TILES, describeMask, terrainPixels, terrainSlot } from './terrain.js';
 export { BLOB_47_MASKS };
 
 // Cấu hình lát cắt hang động chuẩn theo đặc tả genesis.tileset.preview.v1
@@ -32,11 +32,58 @@ export const MAP_PRESET = {
   ]
 };
 
+// Các recipe cố định giúp soi những hình ghép thường gặp mà không phải dựng tay
+// lại từ đầu. Chúng dùng cùng resolver autotile với mẫu Natural.
+export const MAP_RECIPES = [
+  {
+    id: 'room', title: 'Phòng vuông', seed: 2301,
+    solid_regions: [{ x: 2, y: 3, w: 20, h: 10 }],
+    air_cutouts: [{ x: 6, y: 5, w: 12, h: 6 }]
+  },
+  {
+    id: 'l-corridor', title: 'Hành lang chữ L', seed: 2302,
+    solid_regions: [
+      { x: 2, y: 3, w: 6, h: 11 },
+      { x: 2, y: 10, w: 18, h: 4 }
+    ],
+    air_cutouts: []
+  },
+  {
+    id: 't-corridor', title: 'Hành lang chữ T', seed: 2303,
+    solid_regions: [
+      { x: 9, y: 2, w: 6, h: 12 },
+      { x: 3, y: 8, w: 18, h: 6 }
+    ],
+    air_cutouts: []
+  },
+  {
+    id: 'platforms', title: 'Bậc / nhánh', seed: 2304,
+    solid_regions: [
+      { x: 2, y: 12, w: 20, h: 2 },
+      { x: 3, y: 8, w: 6, h: 2 },
+      { x: 15, y: 6, w: 6, h: 2 },
+      { x: 8, y: 3, w: 7, h: 2 }
+    ],
+    air_cutouts: []
+  }
+];
+
 // 47 canonical blob autotile bitmasks (N=1, E=2, S=4, W=8, NE=16, SE=32, SW=64, NW=128)
 
 const TOTAL_CELLS = MAP_PRESET.w * MAP_PRESET.h;
 let terrainGrid = new Uint8Array(TOTAL_CELLS);
 let stampGrid = new Array(TOTAL_CELLS).fill(null);
+let coverageSlots = new Int16Array(TOTAL_CELLS);
+coverageSlots.fill(-1);
+let mapMode = 'natural'; // natural | coverage | recipe
+let mapRecipe = 'room';
+let activePreset = MAP_PRESET;
+
+const COVERAGE_POSITIONS = Array.from({ length: 56 }, (_, slot) => ({
+  slot,
+  x: (slot % 8) * 3,
+  y: 1 + Math.floor(slot / 8) * 2
+}));
 
 let mapZoom = 2;
 let mapGridVisible = true;
@@ -61,18 +108,20 @@ let hoverCell = { gx: -1, gy: -1 };
 let selectedMapCell = { gx: -1, gy: -1, slot: -1, mask: 0 };
 let paintButton = 0;
 
-export function resetMapGrid() {
+function fillPreset(preset) {
+  activePreset = preset;
   terrainGrid.fill(0);
   stampGrid.fill(null);
-  const W = MAP_PRESET.w;
-  MAP_PRESET.solid_regions.forEach(r => {
+  coverageSlots.fill(-1);
+  const W = preset.w;
+  preset.solid_regions.forEach(r => {
     for (let y = r.y; y < r.y + r.h; y++) {
       for (let x = r.x; x < r.x + r.w; x++) {
         terrainGrid[y * W + x] = 1;
       }
     }
   });
-  MAP_PRESET.air_cutouts.forEach(c => {
+  preset.air_cutouts.forEach(c => {
     for (let y = c.y; y < c.y + c.h; y++) {
       for (let x = c.x; x < c.x + c.w; x++) {
         terrainGrid[y * W + x] = 0;
@@ -80,16 +129,55 @@ export function resetMapGrid() {
     }
   });
 }
+
+function buildCoverageBoard() {
+  activePreset = MAP_PRESET;
+  terrainGrid.fill(0);
+  stampGrid.fill(null);
+  coverageSlots.fill(-1);
+  COVERAGE_POSITIONS.forEach(({ slot, x, y }) => {
+    coverageSlots[y * MAP_PRESET.w + x] = slot;
+  });
+}
+
+function currentRecipe() {
+  return MAP_RECIPES.find(recipe => recipe.id === mapRecipe) || MAP_RECIPES[0];
+}
+
+function applyMapMode() {
+  if (mapMode === 'coverage') buildCoverageBoard();
+  else if (mapMode === 'recipe') fillPreset(currentRecipe());
+  else fillPreset(MAP_PRESET);
+  compareActive = false;
+  hasSnapshot = false;
+  snapshotCv = null;
+  syncMapModeControls();
+}
+
+function syncMapModeControls() {
+  const mode = $('#mapModeSel');
+  const recipe = $('#mapRecipeSel');
+  if (mode) mode.value = mapMode;
+  if (recipe) {
+    recipe.value = mapRecipe;
+    recipe.hidden = mapMode !== 'recipe';
+  }
+}
+
+export function resetMapGrid() {
+  applyMapMode();
+}
 resetMapGrid();
 
 export function clearAllMap() {
   terrainGrid.fill(0);
   stampGrid.fill(null);
+  coverageSlots.fill(-1);
   paintMap();
 }
 
 function cellMask(x, y) {
-  const W = MAP_PRESET.w, H = MAP_PRESET.h;
+  const W = activePreset.w, H = activePreset.h;
   const isSolid = (cx, cy) => {
     if (cx < 0 || cx >= W) return 1; // vách ngoài
     if (cy >= H) return 1;          // đáy sâu
@@ -125,7 +213,7 @@ function bresenham(x0, y0, x1, y1, callback) {
 }
 
 function applyBrushAt(gx, gy, isErase) {
-  const W = MAP_PRESET.w, H = MAP_PRESET.h;
+  const W = activePreset.w, H = activePreset.h;
   if (gx < 0 || gx >= W || gy < 0 || gy >= H) return;
   const idx = gy * W + gx;
 
@@ -165,17 +253,22 @@ function atlasSlotCount(atlasSrc){
   return cols*rows;
 }
 function selectMapCell(gx,gy){
-  const idx=gy*MAP_PRESET.w+gx, atlasSrc=getAtlasSource(), total=mapSource==='canvas'?0:atlasSlotCount(atlasSrc);
-  const solid=!!terrainGrid[idx], mask=cellMask(gx,gy);
-  selectedMapCell={gx,gy,slot:solid&&total>1?terrainSlot(mask,gx,gy,total,MAP_PRESET.seed):-1,mask};
+  const idx=gy*activePreset.w+gx, atlasSrc=getAtlasSource(), total=mapSource==='canvas'?0:atlasSlotCount(atlasSrc);
+  const coverageSlot=mapMode==='coverage'?coverageSlots[idx]:-1;
+  const solid=mapMode==='coverage'?coverageSlot>=0:!!terrainGrid[idx];
+  const mask=mapMode==='coverage'&&coverageSlot>=0
+    ? (TERRAIN_TILES[coverageSlot]?.mask ?? 0)
+    : cellMask(gx,gy);
+  const slot=coverageSlot>=0?coverageSlot:(solid&&total>1?terrainSlot(mask,gx,gy,total,activePreset.seed):-1);
+  selectedMapCell={gx,gy,slot,mask};
   const info=$('#mapCellInfo'),edit=$('#mapEditTile');
   if(info) info.textContent=!solid?'Cell '+gx+','+gy+' · rỗng':
     selectedMapCell.slot>=0?'Cell '+gx+','+gy+' · tile #'+String(selectedMapCell.slot).padStart(2,'0')+' · '+TERRAIN_TILES[selectedMapCell.slot]?.title+' · mask '+mask:
     'Cell '+gx+','+gy+' · '+describeMask(mask).title+' · mask '+mask;
-  if(edit) edit.disabled=selectedMapCell.slot<0;
+  if(edit) edit.disabled=selectedMapCell.slot<0 || !getAtlas();
 }
 function editSelectedMapTile(){
-  if(selectedMapCell.slot<0) return;
+  if(selectedMapCell.slot<0 || !getAtlas()) return;
   closeMapView();
   if(editAtlasSlot(selectedMapCell.slot)) setView('draw');
 }
@@ -189,6 +282,7 @@ export function openMapView(forceSource) {
   const wrap = $('#mapWrap');
   if (wrap) wrap.hidden = false;
 
+  syncMapModeControls();
   populateTileTray();
   paintMap();
 }
@@ -369,6 +463,62 @@ export function toggleCompare(force) {
   paintMap();
 }
 
+const templateTileCache = new Map();
+function templateTileCanvas(slot, tw) {
+  const key = slot + ':' + tw;
+  if (templateTileCache.has(key)) return templateTileCache.get(key);
+  const cv = document.createElement('canvas');
+  cv.width = tw;
+  cv.height = tw;
+  const pixels = terrainPixels(slot, tw);
+  const g = cv.getContext('2d');
+  const image = g.createImageData(tw, tw);
+  new Uint32Array(image.data.buffer).set(pixels);
+  g.putImageData(image, 0, 0);
+  templateTileCache.set(key, cv);
+  return cv;
+}
+
+function drawTerrainSlot(g, slot, im, tw, th, pad, off, cols, rows, z, dx, dy) {
+  if (slot < 0 || slot >= cols * rows) {
+    const fallback = templateTileCanvas(slot, tw);
+    g.drawImage(fallback, 0, 0, tw, tw, dx, dy, tw * z, th * z);
+    return;
+  }
+  const sc = slot % cols, sr = Math.floor(slot / cols);
+  const sx = off + sc * (tw + pad);
+  const sy = off + sr * (th + pad);
+  g.drawImage(im, sx, sy, tw, th, dx, dy, tw * z, th * z);
+}
+
+function collectMapCoverage(totalSlots) {
+  const used = new Set();
+  const resolveTotal = Math.max(56, totalSlots || 0);
+  for (let gy = 0; gy < activePreset.h; gy++) {
+    for (let gx = 0; gx < activePreset.w; gx++) {
+      const idx = gy * activePreset.w + gx;
+      if (mapMode === 'coverage') {
+        if (coverageSlots[idx] >= 0) used.add(coverageSlots[idx]);
+      } else if (terrainGrid[idx]) {
+        used.add(terrainSlot(cellMask(gx, gy), gx, gy, resolveTotal, activePreset.seed));
+      }
+      const stamp = stampGrid[idx];
+      if (stamp?.src === 'atlas' && Number.isInteger(stamp.slot)) used.add(stamp.slot);
+    }
+  }
+  return used;
+}
+
+function updateMapCoverage(totalSlots) {
+  const el = $('#mapCoverage');
+  if (!el) return;
+  const used = collectMapCoverage(totalSlots);
+  if (mapMode === 'coverage') el.textContent = 'Coverage ' + used.size + '/56 · bảng kiểm slot';
+  else if (mapMode === 'recipe') el.textContent = 'Recipe · ' + used.size + '/56 tile';
+  else el.textContent = 'Natural · ' + used.size + '/56 tile';
+  el.title = 'Số slot terrain 56 đang xuất hiện trong preview này';
+}
+
 /* Dựng bản đồ ra một canvas đích */
 function renderToCanvas(targetCv, includeOverlays, atlasImage) {
   const g = targetCv.getContext('2d');
@@ -391,7 +541,7 @@ function renderToCanvas(targetCv, includeOverlays, atlasImage) {
     th = doc.h;
   }
 
-  const GW = MAP_PRESET.w, GH = MAP_PRESET.h;
+  const GW = activePreset.w, GH = activePreset.h;
   const pxW = GW * tw, pxH = GH * th;
   const z = mapZoom;
 
@@ -414,30 +564,48 @@ function renderToCanvas(targetCv, includeOverlays, atlasImage) {
     g.clearRect(0, 0, targetCv.width, targetCv.height);
   }
 
-  // 2. Lớp Địa hình (Terrain) - autotile 47 ô
+  // 2. Lớp Địa hình (Terrain) - resolver 47 topology + 9 biến thể = 56 slot
   const im = atlasImage || (atlasSrc && atlasSrc.cv) || null;
   const cols = im ? Math.max(1, Math.floor((im.width - off + pad) / (tw + pad))) : 1;
   const rows = im ? Math.max(1, Math.floor((im.height - off + pad) / (th + pad))) : 1;
   const totalSlots = cols * rows;
 
-  for (let gy = 0; gy < GH; gy++) {
-    for (let gx = 0; gx < GW; gx++) {
-      const idx = gy * GW + gx;
-      if (!terrainGrid[idx]) continue;
+  if (mapMode === 'coverage') {
+    for (let gy = 0; gy < GH; gy++) {
+      for (let gx = 0; gx < GW; gx++) {
+        const slot = coverageSlots[gy * GW + gx];
+        if (slot < 0) continue;
+        const dx = gx * tw * z, dy = gy * th * z;
+        if (useAtlas && im && totalSlots > 1) drawTerrainSlot(g, slot, im, tw, th, pad, off, cols, rows, z, dx, dy);
+        else {
+          const fallback = templateTileCanvas(slot, tw);
+          g.drawImage(fallback, 0, 0, tw, tw, dx, dy, tw * z, th * z);
+        }
+        if (includeOverlays) {
+          g.fillStyle = 'rgba(0,0,0,.72)';
+          g.fillRect(dx, dy + th * z - 12, 24, 12);
+          g.fillStyle = '#fff';
+          g.font = 'bold 9px ui-monospace, monospace';
+          g.fillText('#' + String(slot).padStart(2, '0'), dx + 2, dy + th * z - 3);
+        }
+      }
+    }
+  } else {
+    for (let gy = 0; gy < GH; gy++) {
+      for (let gx = 0; gx < GW; gx++) {
+        const idx = gy * GW + gx;
+        if (!terrainGrid[idx]) continue;
 
-      const mask = cellMask(gx, gy);
-      const slot = terrainSlot(mask, gx, gy, totalSlots, MAP_PRESET.seed);
-      const dx = gx * tw * z, dy = gy * th * z;
+        const mask = cellMask(gx, gy);
+        const slot = terrainSlot(mask, gx, gy, totalSlots, activePreset.seed);
+        const dx = gx * tw * z, dy = gy * th * z;
 
-      if (useAtlas && im && totalSlots > 1) {
-        if(slot<0) continue; // thiếu topology: để hở, không lấy nhầm ô bằng modulo
-        const s = slot;
-        const sc = s % cols, sr = Math.floor(s / cols);
-        const sx = off + sc * (tw + pad);
-        const sy = off + sr * (th + pad);
-        g.drawImage(im, sx, sy, tw, th, dx, dy, tw * z, th * z);
-      } else {
-        g.drawImage(canvasTile, 0, 0, canvasTile.width, canvasTile.height, dx, dy, tw * z, th * z);
+        if (useAtlas && im && totalSlots > 1) {
+          if (slot < 0) continue; // thiếu topology: để hở, không lấy nhầm ô bằng modulo
+          drawTerrainSlot(g, slot, im, tw, th, pad, off, cols, rows, z, dx, dy);
+        } else {
+          g.drawImage(canvasTile, 0, 0, canvasTile.width, canvasTile.height, dx, dy, tw * z, th * z);
+        }
       }
     }
   }
@@ -498,8 +666,10 @@ function renderToCanvas(targetCv, includeOverlays, atlasImage) {
   const info = $('#mapInfo');
   if (info) {
     const srcText = useAtlas ? ('Atlas: ' + (atlasSrc ? atlasSrc.name : '')) : ('Bản vẽ: ' + doc.w + '×' + doc.h);
-    info.textContent = GW + '×' + GH + ' ô (' + pxW + '×' + pxH + ' px) · Tile ' + tw + '×' + th + ' · ' + srcText;
+    const modeText = mapMode === 'coverage' ? 'Coverage 56' : mapMode === 'recipe' ? 'Recipe: ' + currentRecipe().title : 'Natural';
+    info.textContent = modeText + ' · ' + GW + '×' + GH + ' ô (' + pxW + '×' + pxH + ' px) · Tile ' + tw + '×' + th + ' · ' + srcText;
   }
+  updateMapCoverage(totalSlots);
 }
 
 export function paintMap() {
@@ -541,7 +711,7 @@ export function exportMapPng() {
 /* Tương tác chuột / cảm ứng kéo rê trên bản đồ */
 function getCellFromPointer(ev, cv) {
   const b = cv.getBoundingClientRect();
-  const GW = MAP_PRESET.w, GH = MAP_PRESET.h;
+  const GW = activePreset.w, GH = activePreset.h;
   const cellW = b.width / GW;
   const cellH = b.height / GH;
   const gx = Math.floor((ev.clientX - b.left) / cellW);
@@ -559,9 +729,15 @@ function onPointerDown(ev) {
   const isRight = ev.button === 2;
 
   const { gx, gy } = getCellFromPointer(ev, cv);
-  const W = MAP_PRESET.w, H = MAP_PRESET.h;
+  const W = activePreset.w, H = activePreset.h;
   if (gx >= 0 && gx < W && gy >= 0 && gy < H) {
     selectMapCell(gx,gy);
+    if (mapMode === 'coverage') {
+      isPainting = false;
+      lastPaintedCell = null;
+      paintMap();
+      return;
+    }
     const idx = gy * W + gx;
     if (!isRight && activeBrush.type === 'auto' && terrainGrid[idx] === 1 && !stampGrid[idx]) {
       terrainGrid[idx] = 0;
@@ -581,7 +757,7 @@ function onPointerMove(ev) {
   const { gx, gy } = getCellFromPointer(ev, cv);
   hoverCell = { gx, gy };
 
-  if (isPainting && !compareActive) {
+  if (isPainting && !compareActive && mapMode !== 'coverage') {
     const isRight = paintButton === 2;
     if (lastPaintedCell && (lastPaintedCell.gx !== gx || lastPaintedCell.gy !== gy)) {
       bresenham(lastPaintedCell.gx, lastPaintedCell.gy, gx, gy, (bx, by) => {
@@ -648,6 +824,20 @@ export function bindMapView() {
   $('#mapBgSel').addEventListener('change', e => {
     mapBg = e.target.value;
     paintMap();
+  });
+
+  $('#mapModeSel').addEventListener('change', e => {
+    mapMode = e.target.value;
+    applyMapMode();
+    paintMap();
+  });
+
+  $('#mapRecipeSel').addEventListener('change', e => {
+    mapRecipe = e.target.value;
+    if (mapMode === 'recipe') {
+      applyMapMode();
+      paintMap();
+    }
   });
 
   $('#mapSrcSel').addEventListener('change', e => {

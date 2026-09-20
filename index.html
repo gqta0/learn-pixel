@@ -465,6 +465,18 @@
         <option value="canvas">Bản vẽ hiện tại</option>
         <option value="atlas">Atlas / Tilesheet</option>
       </select>
+      <label class="mini">Mẫu soi</label>
+      <select id="mapModeSel" title="Chọn loại preview để soi liền mạch hoặc kiểm đủ 56 slot">
+        <option value="natural" selected>Natural · hang chuẩn</option>
+        <option value="coverage">Coverage 56 · kiểm đủ slot</option>
+        <option value="recipe">Recipe · hình ghép mẫu</option>
+      </select>
+      <select id="mapRecipeSel" title="Chọn hình ghép mẫu" hidden>
+        <option value="room">Phòng vuông</option>
+        <option value="l-corridor">Hành lang chữ L</option>
+        <option value="t-corridor">Hành lang chữ T</option>
+        <option value="platforms">Bậc / nhánh</option>
+      </select>
       <label class="mini">Nền</label>
       <select id="mapBgSel">
         <option value="cave" selected>Hang tối (#0d171f)</option>
@@ -483,11 +495,12 @@
       <input type="range" id="mapGhostRange" min="10" max="90" value="40" style="width:54px" title="Độ mờ bóng ma đối chiếu">
       <span class="kbd" id="mapGhostLbl" style="min-width:28px">40%</span>
       <span class="kbd" id="mapSnapBadge" style="color:var(--amber);margin-left:4px" hidden>● Đã ghim mẫu</span>
+      <span class="kbd" id="mapCoverage" style="min-width:150px;text-align:center">Natural · 0/56 tile</span>
       <span class="kbd" id="mapInfo" style="margin-left:auto;min-width:0;text-align:right"></span>
     </div>
     <div class="maptilebar" id="mapTileBar">
       <div class="maptile-tools">
-        <button class="btn tiny on" id="mapBrushAuto" title="Cọ Autotile: đặt khối địa hình tự khớp viền 47 ô">🏔️ Auto</button>
+        <button class="btn tiny on" id="mapBrushAuto" title="Cọ Autotile: đặt khối địa hình tự khớp topology và biến thể trong bộ 56 ô">🏔️ Auto</button>
         <button class="btn tiny" id="mapBrushErase" title="Cọ Tẩy: xoá ô về rỗng (nhấp chuột phải cũng xoá được)">🧹 Tẩy</button>
       </div>
       <span class="sep"></span>
@@ -504,7 +517,7 @@
       <canvas id="mapCv"></canvas>
     </div>
     <p class="kbd" id="mapFootHint" style="margin:0;padding:8px 14px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <span>Kéo rê chuột để vẽ liên tục · Chuột phải để xoá ô · Giữ phím Space để chớp mắt soi mẫu cũ.</span>
+      <span>Natural / Recipe: kéo rê để vẽ · Chuột phải để xoá · Coverage 56: chạm ô để xem slot · Giữ Space để chớp mắt soi mẫu cũ.</span>
       <span id="mapStatusNote" style="color:var(--dim)"></span>
     </p>
   </div>
