@@ -40,13 +40,14 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 ## Terrain 56 — template có hướng dẫn pixel
 
-Mở **🧩 Terrain 56** trên thanh canvas, thanh Terrain của tablet, tab File/Atlas hoặc tab
-Terrain trên thanh dưới mobile.
+Mở **Terrain** từ thanh Terrain trên tablet, tab File/Atlas hoặc tab Terrain trên thanh
+dưới mobile. Workbench trình bày 56 slot theo nhóm hình học; ID atlas vẫn giữ nguyên.
 
 1. Chọn 16×16 hoặc 32×32, bấm **Tạo bộ 56 ô**. App dựng khối nền đá để vẽ tiếp;
    nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
 2. Chọn tile để đọc vai trò pixel, cạnh hở, góc lồi/lõm và các tile nối hợp lệ theo
-   N/E/S/W. Bấm mã tile hàng xóm để chuyển thẳng sang tile đó và xem hai ô ghép cạnh nhau.
+   N/E/S/W. Khối cơ bản được xếp thành sơ đồ 3×3; các nhóm góc lõm, khối rời và biến thể
+   đi theo thứ tự hình học. Bấm mã tile hàng xóm để chuyển thẳng sang tile đó và xem hai ô ghép cạnh nhau.
 3. **Ghi ô cũ & sửa ô chọn** mở tile trong editor đầy đủ. Có thể tắt lớp hướng dẫn,
    vẽ bằng bút/S-Pen rồi **Ghi lại**. Mở workbench sẽ soi cả nét chưa ghi của ô đó.
 4. Khi sửa tile, **🔒 Điểm nối: khoá** giữ nguyên các pixel connector đã có để tránh

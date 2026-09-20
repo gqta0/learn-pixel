@@ -161,8 +161,8 @@
           <button class="btn tiny" id="atlasNext" title="Ghi lại rồi mở atlas để chọn ô khác">⤴ Ghi &amp; ô sau</button>
           <button class="btn tiny" id="atlasStop" title="Thôi không gắn với atlas nữa">✕ Rời</button>
           <span id="terrainDrawTools" hidden>
-            <button class="btn tiny" id="terrainPrevTile" title="Ghi lại &amp; chuyển sang vẽ ô liền trước (Alt+←)">◀ Ô trước</button>
-            <button class="btn tiny" id="terrainNextTile" title="Ghi lại &amp; chuyển sang vẽ ô kế tiếp (Alt+→)">Ô sau ▶</button>
+            <button class="btn tiny" id="terrainPrevTile" title="Ghi lại &amp; chuyển sang vẽ ô trước theo nhóm đang lọc (Alt+←)">⤴ Ô trước</button>
+            <button class="btn tiny primary" id="terrainNextTile" title="Ghi lại &amp; chuyển sang ô kế tiếp theo nhóm đang lọc (Alt+→)">⤴ Ghi &amp; ô sau</button>
             <button class="btn tiny" id="terrainGuideToggle" aria-pressed="true" title="Chuyển chế độ: Viền nét (thấy 100% màu thật) → Phủ mờ → Tắt (Phím H)">👁 Gợi ý: Viền nét</button>
             <button class="btn tiny" id="terrainLockToggle" aria-pressed="true" title="Giữ nguyên pixel connector ở biên tile">🔒 Điểm nối: khoá</button>
             <button class="btn tiny" id="terrainInspect" title="Mở xưởng 56 ô để kiểm tra hoặc chọn ô khác">56 ô / chú thích</button>
@@ -497,6 +497,8 @@
         <span class="kbd" style="font-size:9.5px">Mẫu:</span>
         <canvas id="mapPinnedCv" width="16" height="16"></canvas>
       </div>
+      <span class="kbd map-cell-info" id="mapCellInfo">Chọn một ô trên map để xem tile đang dùng.</span>
+      <button class="btn tiny" id="mapEditTile" title="Mở tile đang chọn lên canvas để sửa" disabled>✎ Sửa tile</button>
     </div>
     <div class="mapview" id="mapViewArea">
       <canvas id="mapCv"></canvas>

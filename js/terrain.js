@@ -34,6 +34,40 @@ export const TERRAIN_TILES=[
   ...[254,251,247,253].map((mask,i)=>({slot:52+i,mask:normalizeMask(mask),kind:'edge',variant:1,
     title:'Mép biến thể · '+['sàn','trần','tường trái','tường phải'][i]}))
 ];
+/* Presentation order is separate from atlas slot order. Stable #slot IDs stay
+   intact for the engine and manifests; only the artist-facing workbench changes. */
+export const TERRAIN_PRESENTATION_GROUPS=[
+  {id:'basic',title:'Khối cơ bản',note:'Nhìn vị trí để hiểu vai trò; #46 là ô giữa.',layout:[
+    [{slot:20,label:'Góc trên-trái'},{slot:22,label:'Mép trên'},{slot:26,label:'Góc trên-phải'}],
+    [{slot:24,label:'Tường trái'},{slot:46,label:'Ô giữa'},{slot:42,label:'Tường phải'}],
+    [{slot:16,label:'Góc dưới-trái'},{slot:38,label:'Mép dưới'},{slot:34,label:'Góc dưới-phải'}]
+  ]},
+  {id:'inner',title:'Góc lõm',note:'Số góc lõm tăng dần; mỗi hàng xoay theo chiều kim đồng hồ.',sections:[
+    {title:'Lõm 1 góc',slots:[33,45,44,41]},
+    {title:'Lõm 2 góc kề',slots:[32,43,39,25]},
+    {title:'Lõm 2 góc đối',slots:[30,40]},
+    {title:'Lõm 3 góc',slots:[19,23,29,37]},
+    {title:'Lõm cả 4 góc',slots:[15]}
+  ]},
+  {id:'loose',title:'Khối rời / nhánh hẹp',note:'Từ khối độc lập đến đầu nhánh và dải hẹp.',sections:[
+    {title:'Một ô độc lập',slots:[0]},
+    {title:'Đầu nhánh · lên / phải / xuống / trái',slots:[1,2,4,8]},
+    {title:'Dải hẹp · ngang / dọc',slots:[5,10]}
+  ]},
+  {id:'outer',title:'Góc ngoài',note:'Bốn hướng xoay theo chiều kim đồng hồ.',slots:[3,6,9,12]},
+  {id:'edges',title:'Mép / tường nâng cao',note:'Nhóm theo số góc lõm, rồi theo hướng N / E / S / W.',sections:[
+    {title:'Không góc lõm',slots:[31]},
+    {title:'Một góc lõm',slots:[28,27,18,17,36,35,21]},
+    {title:'Hai góc lõm',slots:[14,13,11,7]}
+  ]},
+  {id:'variants',title:'Biến thể mỹ thuật',note:'Giữ nguyên connector của ô gốc; chỉ đổi vân, sắc độ hoặc nhịp mép.',sections:[
+    {title:'Ruột · gốc #46',slots:[47,48,49,50,51]},
+    {title:'Mép · biến thể cạnh',slots:[52,53,54,55]}
+  ]}
+];
+export const TERRAIN_PRESENTATION_ORDER=TERRAIN_PRESENTATION_GROUPS.flatMap(group=>
+  group.layout ? group.layout.flat().map(item=>item.slot) :
+    group.sections ? group.sections.flatMap(section=>section.slots) : group.slots);
 // Exposed N/S/W/E, respectively. Diagonals without both sides are removed.
 export function terrainSlot(mask,x=0,y=0,total=56,seed=1701){
   mask=normalizeMask(mask);

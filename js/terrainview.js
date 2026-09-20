@@ -8,7 +8,7 @@ import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, cl
 import { openMapView } from './mapview.js';
 import { setView } from './tools.js';
 import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
-  tileRoles, terrainPixels, describeMask, neighbors, checkSeams, checkColorSeams,
+  TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER, tileRoles, terrainPixels, describeMask, neighbors, checkSeams, checkColorSeams,
   terrainManifest, terrainGodotManifest, paintTerrainGuide } from './terrain.js';
 
 let selected=46, seamIssues=[], inspectedPair=null;
@@ -56,6 +56,7 @@ export function closeTerrain(){
 export function syncTerrainBar(){
   const e=editingRect(), enabled=Number.isInteger(e?.terrainSlot) && e.terrainSlot>=0 && e.terrainSlot<56 && !!terrainAtlas();
   $('#terrainDrawTools').hidden=!enabled;
+  ['atlasSave','atlasNext'].forEach(key=>{const b=$('#'+key);if(b)b.hidden=enabled;});
   const mode = view.terrainGuide ? (view.terrainGuideMode || 'wireframe') : 'off';
   const label = mode === 'wireframe' ? '👁 Gợi ý: Viền nét' : mode === 'tint' ? '👁 Gợi ý: Phủ mờ' : '👁 Gợi ý: Tắt';
   const btn = $('#terrainGuideToggle');
@@ -70,7 +71,10 @@ export function syncTerrainBar(){
     lock.setAttribute('aria-pressed',view.terrainLock);
     lock.title=view.terrainLock?'Giữ nguyên pixel connector ở biên tile':'Cho phép sửa pixel connector; hãy soi mối nối sau khi vẽ';
   }
-  if(enabled) $('#atlasWhere').textContent='Terrain '+id(e.terrainSlot)+' · '+TERRAIN_TILES[e.terrainSlot].title;
+  if(enabled){
+    const order=visiblePresentationSlots($('#terrainFilter')?.value||'all'),pos=order.indexOf(e.terrainSlot)+1;
+    $('#atlasWhere').textContent='Terrain '+id(e.terrainSlot)+' · '+TERRAIN_TILES[e.terrainSlot].title+' · '+pos+'/'+order.length;
+  }
   syncNavHeight();
 }
 function drawDetail(cvs){
@@ -125,30 +129,55 @@ function drawPair(cvs){
   $('#terrainPairLabel').textContent=id(pair.a)+' nối '+pair.direction+' → '+id(pair.b)+
     (pair.positions.length?' · khe hở tại pixel '+pair.positions.join(', '):' · cyan = đường ghép (chỉ hướng dẫn)');
 }
+function matchesFilter(t,filter){
+  const desc=describeMask(t.mask);
+  return !(filter==='inner'&&!desc.inner.length || filter==='outer'&&!desc.outer.length ||
+    filter==='variants'&&t.kind==='blob' || filter==='surface'&&!desc.exposed.length);
+}
+function visiblePresentationSlots(filter){
+  return TERRAIN_PRESENTATION_ORDER.filter(slot=>matchesFilter(TERRAIN_TILES[slot],filter));
+}
+function tileLabel(slot,custom){
+  return '#'+String(slot).padStart(2,'0')+(custom?' · '+custom:' · '+TERRAIN_TILES[slot].title);
+}
+function appendTile(slot,parent,cvs,a,e,custom){
+  const t=TERRAIN_TILES[slot],isEditing=a&&e?.terrainSlot===slot;
+  const b=document.createElement('button');b.className='terrain-tile'+(isEditing?' editing-active':'');
+  b.setAttribute('aria-pressed',slot===selected);b.setAttribute('aria-label',tileLabel(slot,custom)+' mask '+t.mask);b.dataset.slot=slot;
+  const cv=document.createElement('canvas');cv.width=cv.height=64;
+  const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(cvs[slot],0,0,64,64);
+  if($('#terrainGuides').checked) paintTerrainGuide(g,slot,size(),64/size());
+  const label=document.createElement('span');label.textContent=tileLabel(slot,custom);b.append(cv,label);
+  if(isEditing){const badge=document.createElement('span');badge.className='terrain-edit-badge';badge.textContent='● ĐANG VẼ';b.append(badge);}
+  b.addEventListener('click',()=>select(slot));
+  b.addEventListener('dblclick',()=>{select(slot);startPaintingSelectedSlot(slot);});
+  parent.append(b);
+}
+function appendSection(parent,title,slots,cvs,a,e,filter){
+  const visible=slots.filter(slot=>matchesFilter(TERRAIN_TILES[slot],filter));
+  if(!visible.length) return;
+  const sub=document.createElement('div');sub.className='terrain-group-section';
+  if(title){const heading=document.createElement('p');heading.className='terrain-group-subtitle';heading.textContent=title;sub.append(heading);}
+  const grid=document.createElement('div');grid.className='terrain-group-grid';
+  visible.forEach(slot=>appendTile(slot,grid,cvs,a,e));sub.append(grid);parent.append(sub);
+}
 function paint(){
   const cvs=tiles(), filter=$('#terrainFilter').value, a=terrainAtlas(), e=editingRect();
   $('#terrainState').textContent=a?'Atlas Terrain đang mở · preview gồm nét chưa ghi của ô đang sửa.':'Đang xem mẫu tham khảo · bấm Vẽ ô này để bắt đầu vẽ.';
   const grid=$('#terrainGrid');grid.replaceChildren();
-  TERRAIN_TILES.forEach(t=>{
-    const desc=describeMask(t.mask);
-    if(filter==='inner'&&!desc.inner.length || filter==='outer'&&!desc.outer.length ||
-      filter==='variants'&&t.kind==='blob' || filter==='surface'&&!desc.exposed.length) return;
-    const isEditing = a && e?.terrainSlot === t.slot;
-    const b=document.createElement('button');b.className='terrain-tile'+(isEditing?' editing-active':'');
-    b.setAttribute('aria-pressed',t.slot===selected);
-    b.setAttribute('aria-label',id(t.slot)+' '+t.title+' mask '+t.mask);b.dataset.slot=t.slot;
-    const cv=document.createElement('canvas');cv.width=cv.height=64;
-    const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(cvs[t.slot],0,0,64,64);
-    if($('#terrainGuides').checked) paintTerrainGuide(g,t.slot,size(),64/size());
-    const label=document.createElement('span');label.textContent=id(t.slot)+' · '+t.title;
-    b.append(cv,label);
-    if(isEditing){
-      const badge=document.createElement('span');badge.className='terrain-edit-badge';badge.textContent='● ĐANG VẼ';
-      b.append(badge);
-    }
-    b.addEventListener('click',()=>select(t.slot));
-    b.addEventListener('dblclick',()=>{select(t.slot);startPaintingSelectedSlot(t.slot);});
-    grid.append(b);
+  TERRAIN_PRESENTATION_GROUPS.forEach(group=>{
+    const groupBox=document.createElement('section');groupBox.className='terrain-group terrain-group-'+group.id;
+    const heading=document.createElement('div');heading.className='terrain-group-heading';
+    const count=group.layout?group.layout.flat().length:group.sections?group.sections.reduce((n,s)=>n+s.slots.length,0):group.slots.length;
+    const title=document.createElement('h3');title.textContent=group.title+' · '+count;
+    const note=document.createElement('p');note.textContent=group.note;heading.append(title,note);groupBox.append(heading);
+    if(group.layout){
+      const basic=document.createElement('div');basic.className='terrain-group-grid terrain-basic-grid';
+      group.layout.flat().forEach(item=>{if(matchesFilter(TERRAIN_TILES[item.slot],filter))appendTile(item.slot,basic,cvs,a,e,item.label);});
+      if(basic.children.length) groupBox.append(basic);
+    } else if(group.sections) group.sections.forEach(section=>appendSection(groupBox,section.title,section.slots,cvs,a,e,filter));
+    else appendSection(groupBox,'',group.slots,cvs,a,e,filter);
+    if(groupBox.querySelector('.terrain-tile')) grid.append(groupBox);
   });
   $('#terrainMap').disabled=!terrainAtlas();
   $('#terrainNextIssue').disabled=!seamIssues.length;
@@ -178,7 +207,9 @@ export function prevTerrainTile(){
   const e = editingRect();
   if(!terrainAtlas() || !Number.isInteger(e?.terrainSlot)) return;
   writeBack();
-  const nextSlot = (e.terrainSlot + 55) % 56;
+  const order=visiblePresentationSlots($('#terrainFilter')?.value||'all');
+  const at=Math.max(0,order.indexOf(e.terrainSlot));
+  const nextSlot=order[(at+order.length-1)%order.length];
   selected = nextSlot;
   if(editAtlasSlot(nextSlot)){
     syncTerrainBar();
@@ -190,7 +221,9 @@ export function nextTerrainTile(){
   const e = editingRect();
   if(!terrainAtlas() || !Number.isInteger(e?.terrainSlot)) return;
   writeBack();
-  const nextSlot = (e.terrainSlot + 1) % 56;
+  const order=visiblePresentationSlots($('#terrainFilter')?.value||'all');
+  const at=order.indexOf(e.terrainSlot);
+  const nextSlot=order[at<0?0:(at+1)%order.length];
   selected = nextSlot;
   if(editAtlasSlot(nextSlot)){
     syncTerrainBar();

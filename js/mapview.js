@@ -7,9 +7,10 @@ import { $ } from './dom.js';
 import { doc } from './state.js';
 import { frameToCanvas } from './raster.js';
 import { download } from './storage.js';
-import { getAtlas } from './atlas.js';
+import { getAtlas, editAtlasSlot } from './atlas.js';
 import { getLibraryItems, renderLibraryProject } from './library.js';
-import { BLOB_47_MASKS, terrainSlot } from './terrain.js';
+import { setView } from './tools.js';
+import { BLOB_47_MASKS, TERRAIN_TILES, describeMask, terrainSlot } from './terrain.js';
 export { BLOB_47_MASKS };
 
 // Cấu hình lát cắt hang động chuẩn theo đặc tả genesis.tileset.preview.v1
@@ -57,6 +58,7 @@ let ghostOpacity = 0.4;
 let isPainting = false;
 let lastPaintedCell = null;
 let hoverCell = { gx: -1, gy: -1 };
+let selectedMapCell = { gx: -1, gy: -1, slot: -1, mask: 0 };
 let paintButton = 0;
 
 export function resetMapGrid() {
@@ -153,6 +155,29 @@ function getAtlasSource() {
     }
   } catch (_) {}
   return null;
+}
+
+function atlasSlotCount(atlasSrc){
+  if(!atlasSrc?.cv) return 0;
+  const tw=atlasSrc.tw||16,th=atlasSrc.th||16,pad=atlasSrc.pad||0,off=atlasSrc.off||0;
+  const cols=Math.max(1,Math.floor((atlasSrc.cv.width-off+pad)/(tw+pad)));
+  const rows=Math.max(1,Math.floor((atlasSrc.cv.height-off+pad)/(th+pad)));
+  return cols*rows;
+}
+function selectMapCell(gx,gy){
+  const idx=gy*MAP_PRESET.w+gx, atlasSrc=getAtlasSource(), total=mapSource==='canvas'?0:atlasSlotCount(atlasSrc);
+  const solid=!!terrainGrid[idx], mask=cellMask(gx,gy);
+  selectedMapCell={gx,gy,slot:solid&&total>1?terrainSlot(mask,gx,gy,total,MAP_PRESET.seed):-1,mask};
+  const info=$('#mapCellInfo'),edit=$('#mapEditTile');
+  if(info) info.textContent=!solid?'Cell '+gx+','+gy+' · rỗng':
+    selectedMapCell.slot>=0?'Cell '+gx+','+gy+' · tile #'+String(selectedMapCell.slot).padStart(2,'0')+' · '+TERRAIN_TILES[selectedMapCell.slot]?.title+' · mask '+mask:
+    'Cell '+gx+','+gy+' · '+describeMask(mask).title+' · mask '+mask;
+  if(edit) edit.disabled=selectedMapCell.slot<0;
+}
+function editSelectedMapTile(){
+  if(selectedMapCell.slot<0) return;
+  closeMapView();
+  if(editAtlasSlot(selectedMapCell.slot)) setView('draw');
 }
 
 export function openMapView(forceSource) {
@@ -536,6 +561,7 @@ function onPointerDown(ev) {
   const { gx, gy } = getCellFromPointer(ev, cv);
   const W = MAP_PRESET.w, H = MAP_PRESET.h;
   if (gx >= 0 && gx < W && gy >= 0 && gy < H) {
+    selectMapCell(gx,gy);
     const idx = gy * W + gx;
     if (!isRight && activeBrush.type === 'auto' && terrainGrid[idx] === 1 && !stampGrid[idx]) {
       terrainGrid[idx] = 0;
@@ -544,6 +570,7 @@ function onPointerDown(ev) {
     }
     lastPaintedCell = { gx, gy };
     paintMap();
+    selectMapCell(gx,gy);
   }
 }
 
@@ -596,6 +623,7 @@ export function bindMapView() {
   }
 
   $('#mapClose').addEventListener('click', closeMapView);
+  $('#mapEditTile').addEventListener('click', editSelectedMapTile);
   $('#mapReset').addEventListener('click', () => { resetMapGrid(); paintMap(); });
   $('#mapClearAll').addEventListener('click', clearAllMap);
   $('#mapPng').addEventListener('click', exportMapPng);

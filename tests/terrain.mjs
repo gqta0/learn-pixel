@@ -2,7 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {BLOB_47_MASKS, TERRAIN_TILES, normalizeMask, tileRoles, terrainPixels,
   neighbors, canConnect, terrainSlot, checkSeams, checkColorSeams, edgeIndex,
-  terrainConnectorIndices, terrainManifest, terrainGodotManifest} from '../js/terrain.js';
+  terrainConnectorIndices, terrainManifest, terrainGodotManifest,
+  TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER} from '../js/terrain.js';
 
 test('256 neighborhoods reduce to exactly 47 unique canonical topologies',()=>{
   assert.equal(BLOB_47_MASKS.length,47);
@@ -10,6 +11,12 @@ test('256 neighborhoods reduce to exactly 47 unique canonical topologies',()=>{
   assert.equal(new Set(BLOB_47_MASKS.map((_,s)=>tileRoles(s,16).join(','))).size,47);
   assert.equal(TERRAIN_TILES.length,56);
   assert.deepEqual(TERRAIN_TILES.slice(52).map(t=>t.mask),[110,155,55,205]);
+});
+
+test('artist presentation groups cover every stable slot exactly once',()=>{
+  assert.deepEqual(TERRAIN_PRESENTATION_GROUPS[0].layout.flat().map(x=>x.slot),[20,22,26,24,46,42,16,38,34]);
+  assert.equal(TERRAIN_PRESENTATION_ORDER.length,56);
+  assert.deepEqual([...new Set(TERRAIN_PRESENTATION_ORDER)].sort((a,b)=>a-b),Array.from({length:56},(_,i)=>i));
 });
 test('all generated compatible edges join without alpha gaps at both sizes',()=>{
   for(const n of [16,32]){
