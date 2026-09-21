@@ -85,6 +85,12 @@ function saveCurrentTerrainTile(){
   if(ok) terrainDirty=false;
   return ok;
 }
+function syncAllTerrainFramesToAtlas(){
+  const link=doc.terrainLink,a=terrainAtlas();
+  if(!a || link?.atlasId!==a.id || !Array.isArray(link.slots) || link.slots.length!==56 || doc.frames.length!==56) return false;
+  link.slots.forEach((slot,frameIndex)=>writeTerrainSlot(slot,frameIndex,false));
+  return true;
+}
 function select(slot){
   selected=slot;inspectedPair=null;paint();
   if(innerWidth<=760) $('#terrainTitle').scrollIntoView({block:'start'});
@@ -400,6 +406,7 @@ function exportGodot(){
 }
 function exportPack(){
   saveCurrentTerrainTile();
+  syncAllTerrainFramesToAtlas();
   const n=size(),a=cleanTerrainCanvas(),manifest=terrainManifest(n);
   const pack={schema:TERRAIN_SCHEMA,format:'lo-pixel-terrain56-pack.v1',tileSize:n,manifest,
     godot:terrainGodotManifest(n),files:{
@@ -408,6 +415,52 @@ function exportPack(){
     }};
   const url=URL.createObjectURL(new Blob([JSON.stringify(pack)],{type:'application/json'}));
   download('terrain56-pack.json',url);setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportTerrainProject(){
+  if(!terrainAtlas()) return alert('Hãy bấm “Tạo bộ 56 ô” trước khi lưu dự án Terrain.');
+  saveCurrentTerrainTile();
+  syncAllTerrainFramesToAtlas();
+  const link=doc.terrainLink||{};
+  const a=cleanTerrainCanvas(),n=size(),project={
+    schema:TERRAIN_SCHEMA,format:'lo-pixel-terrain56-project.v1',name:terrainAtlas().name,
+    tileSize:n,manifest:terrainManifest(n),link:{schema:TERRAIN_SCHEMA,
+      labels:link.labels!==false,live:link.live!==false,autoSave:link.autoSave!==false},
+    files:{'terrain56.png':a.toDataURL('image/png')}
+  };
+  const url=URL.createObjectURL(new Blob([JSON.stringify(project)],{type:'application/json'}));
+  download('terrain56-project.json',url);setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function importTerrainProject(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const d=JSON.parse(fr.result),format=d?.format;
+      if(d?.schema!==TERRAIN_SCHEMA || !['lo-pixel-terrain56-project.v1','lo-pixel-terrain56-pack.v1'].includes(format))
+        throw new Error('không phải project Terrain 56');
+      const n=Number(d.tileSize||d.manifest?.tileWidth),png=d.files?.['terrain56.png']||d.atlas?.png;
+      if(![16,32].includes(n) || typeof png!=='string' || !png.startsWith('data:image/png'))
+        throw new Error('thiếu atlas PNG hoặc khổ tile không hợp lệ');
+      if(hasDocumentArt() && !confirm('Mở project Terrain 56 sẽ thay frame đang vẽ bằng 56 frame của project. Tiếp tục?')) return;
+      const im=new Image();
+      im.onload=()=>{
+        if(im.width!==n*8 || im.height!==n*7){alert('Atlas Terrain phải đúng khổ '+(n*8)+'×'+(n*7)+' px.');return;}
+        const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;
+        const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(im,0,0);
+        if(!createTerrainAtlas(cv,n,true)) return;
+        const opts=d.link||{};
+        ['labels','live','autoSave'].forEach(key=>{const el=$('#terrainFrame'+key[0].toUpperCase()+key.slice(1));if(el)el.checked=opts[key]!==false;});
+        $('#terrainCreateFrames').checked=true;
+        if(!linkFramesToTerrain(n)) return;
+        $('#terrainSize').value=String(n);
+        seamIssues=[];inspectedPair=null;
+        $('#terrainSeams').textContent='Đã mở project Terrain 56 · 56 frame đã được trải lại theo slot #00–#55.';
+        setView('terrain');refreshTerrain();
+      };
+      im.onerror=()=>alert('Không đọc được atlas PNG trong project Terrain 56.');
+      im.src=png;
+    }catch(err){ alert('Không đọc được project Terrain 56: '+err.message); }
+  };
+  fr.readAsText(file);
 }
 function nextIssue(){
   if(!seamIssues.length){inspectSeams();return;}
@@ -466,6 +519,8 @@ export function bindTerrain(){
   });
   $('#terrainGodot')?.addEventListener('click',exportGodot);
   $('#terrainPack')?.addEventListener('click',exportPack);
+  $('#terrainProject')?.addEventListener('click',exportTerrainProject);
+  $('#terrainProjectFile')?.addEventListener('change',e=>{if(e.target.files[0]) importTerrainProject(e.target.files[0]);e.target.value='';});
   $('#terrainNextIssue')?.addEventListener('click',nextIssue);
   $('#terrainAnnotated')?.addEventListener('click',exportAnnotations);
   $('#terrainCheck')?.addEventListener('click',inspectSeams);

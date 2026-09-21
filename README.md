@@ -55,10 +55,10 @@ dưới mobile. Workbench trình bày 56 slot theo nhóm hình học; ID atlas v
 5. **Soi mối nối** có 3 chế độ: alpha bắt buộc, màu/vân theo cùng vai trò, hoặc cả hai.
    **◎ Ô cần sửa** nhảy thẳng đến cặp lỗi gần nhất; cảnh báo màu/vân là gợi ý mềm,
    không ép style của artist.
-6. Xuất **PNG sạch**, **PNG chú thích**, **JSON layout**, **Godot mapping** và một
-   **terrain56-pack.json** chứa atlas PNG, annotation cùng mapping. Chú thích/overlay
-   không được ghi vào tranh. Atlas được lưu riêng trong trình duyệt; JSON dự án thông
-   thường vẫn chỉ lưu bản vẽ đang mở, không cả atlas.
+6. Xuất **PNG sạch**, **PNG chú thích**, **JSON layout**, **Godot mapping**,
+   **terrain56-pack.json** và **terrain56-project.json**. Project JSON chứa atlas PNG,
+   mapping và cấu hình link; mở lại sẽ tự trải đủ 56 frame theo slot `#00–#55`.
+   Chú thích/overlay không được ghi vào tranh.
 
 Layout riêng, 8 cột × 7 hàng, đánh số từ 0:
 

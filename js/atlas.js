@@ -30,8 +30,8 @@ export function editingRect(){
     ['x','y','w','h','c','r0'].every(k=>Number.isInteger(e[k])&&e[k]>=0) &&
     e.w===doc.w && e.h===doc.h && e.x+e.w<=atlas.cv.width && e.y+e.h<=atlas.cv.height ? e : null;
 }
-export function createTerrainAtlas(cv,size){
-  if(atlas && !confirm('Thay atlas hiện tại bằng bộ Terrain 56? Hãy xuất PNG atlas cũ trước nếu cần giữ. Bản đang vẽ không bị xoá.')) return false;
+export function createTerrainAtlas(cv,size,replace=false){
+  if(atlas && !replace && !confirm('Thay atlas hiện tại bằng bộ Terrain 56? Hãy xuất PNG atlas cũ trước nếu cần giữ. Bản đang vẽ không bị xoá.')) return false;
   atlas={id:crypto.randomUUID(),name:'terrain56-'+size,cv,tw:size,th:size,pad:0,off:0,terrain:TERRAIN_SCHEMA};
   sel=anchor=null; doc.atlasEdit=null; zoom=2;
   save(); syncBar(); return true;
