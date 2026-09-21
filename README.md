@@ -50,6 +50,8 @@ dưới mobile. Workbench trình bày 56 slot theo nhóm hình học; ID atlas v
    đi theo thứ tự hình học. Bấm mã tile hàng xóm để chuyển thẳng sang tile đó và xem hai ô ghép cạnh nhau.
 3. **Ghi ô cũ & sửa ô chọn** mở tile trong editor đầy đủ. Có thể tắt lớp hướng dẫn,
    vẽ bằng bút/S-Pen rồi **Ghi lại**. Mở workbench sẽ soi cả nét chưa ghi của ô đó.
+   Nút **↻ Đồng bộ 56** ghi toàn bộ frame đang link vào atlas ngay khi cần; không phải
+   bấm **Tạo bộ 56 ô** lại và không dựng lại dữ liệu.
 4. Khi sửa tile, **🔒 Điểm nối: khoá** giữ nguyên các pixel connector đã có để tránh
    vô tình khoét thủng mép. Tắt khoá chỉ khi cần sửa connector rồi soi lại.
 5. **Soi mối nối** có 3 chế độ: alpha bắt buộc, màu/vân theo cùng vai trò, hoặc cả hai.

@@ -380,9 +380,10 @@
         <label class="mini">Khổ</label>
         <select id="terrainSize"><option value="16">16×16</option><option value="32">32×32</option></select>
         <button class="btn tiny primary" id="terrainCreate">Tạo bộ 56 ô</button>
+        <button class="btn tiny" id="terrainSyncFrames" title="Ghi 56 frame đang link vào atlas, không tạo lại và không xoá dữ liệu">↻ Đồng bộ 56</button>
         <details class="terrain-frame-options" id="terrainFrameOptions">
-          <summary>↔ Link frame</summary>
-          <label title="Sau khi tạo, dựng 56 frame tương ứng với #00–#55"><input type="checkbox" id="terrainCreateFrames"> Tạo 56 frame</label>
+          <summary>↔ Tùy chọn tile / frame</summary>
+          <label title="Chỉ áp dụng khi tạo bộ mới; dựng 56 frame tương ứng với #00–#55"><input type="checkbox" id="terrainCreateFrames"> Tạo 56 frame khi tạo mới</label>
           <label title="Hiện #ID của terrain ở dưới thumbnail frame"><input type="checkbox" id="terrainFrameLabels" checked> ID dưới frame</label>
           <label title="Frame đổi là preview Terrain đổi theo"><input type="checkbox" id="terrainFrameLive" checked> Live preview</label>
           <label title="Tự ghi frame hiện tại vào Atlas Terrain"><input type="checkbox" id="terrainFrameAutoSave" checked> Tự lưu Terrain</label>

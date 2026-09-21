@@ -85,11 +85,27 @@ function saveCurrentTerrainTile(){
   if(ok) terrainDirty=false;
   return ok;
 }
-function syncAllTerrainFramesToAtlas(){
+function syncAllTerrainFramesToAtlas(persist=false){
   const link=doc.terrainLink,a=terrainAtlas();
   if(!a || link?.atlasId!==a.id || !Array.isArray(link.slots) || link.slots.length!==56 || doc.frames.length!==56) return false;
   link.slots.forEach((slot,frameIndex)=>writeTerrainSlot(slot,frameIndex,false));
+  if(persist) writeTerrainSlot(link.slots[0],0,true);
   return true;
+}
+function syncTerrainFramesNow(){
+  const a=terrainAtlas();
+  if(!a) return alert('Hãy tạo hoặc mở atlas Terrain 56 trước.');
+  const linked=doc.terrainLink?.atlasId===a.id && doc.terrainLink.slots?.length===56 && doc.frames.length===56 && doc.w===a.tw && doc.h===a.th;
+  if(!linked){
+    if(hasDocumentArt() && !confirm('Liên kết sẽ thay các frame hiện tại bằng 56 ô trong atlas. Hãy lưu dự án trước nếu cần giữ. Tiếp tục?')) return;
+    if(!linkFramesToTerrain(a.tw)) return;
+  }else{
+    saveCurrentTerrainTile();
+    if(!syncAllTerrainFramesToAtlas(true)) return;
+    terrainDirty=false;
+    syncTerrainBar(); paint();
+  }
+  $('#terrainState').textContent='Đã đồng bộ 56 frame vào atlas · dữ liệu không bị tạo lại.';
 }
 function select(slot){
   selected=slot;inspectedPair=null;paint();
@@ -131,6 +147,8 @@ export function syncTerrainBar(){
     saveState.textContent=terrainDirty?'● Chưa ghi atlas':'✓ Đã ghi atlas';
     saveState.classList.toggle('dirty',terrainDirty);
   }
+  const syncFrames=$('#terrainSyncFrames');
+  if(syncFrames) syncFrames.disabled=!terrainAtlas();
   const mode = view.terrainGuide ? (view.terrainGuideMode || 'wireframe') : 'off';
   const label = mode === 'wireframe' ? '👁 Gợi ý: Viền nét' : mode === 'tint' ? '👁 Gợi ý: Phủ mờ' : '👁 Gợi ý: Tắt';
   const btn = $('#terrainGuideToggle');
@@ -475,6 +493,7 @@ export function bindTerrain(){
     if(e.detail?.view === 'terrain') refreshTerrain();
   });
   $('#terrainCreate')?.addEventListener('click',()=>create());
+  $('#terrainSyncFrames')?.addEventListener('click',syncTerrainFramesNow);
   window.addEventListener('pixelrender',syncLinkedTerrainFrame);
   window.addEventListener('pixelchange',()=>{
     if(Number.isInteger(linkedTerrainSlot())){
