@@ -753,9 +753,18 @@ body[data-view="terrain"] .col.right{display:none}
 .terrain-frame-options[open]{display:flex;align-items:center;gap:8px;padding:4px 7px;background:var(--panel);border:1px solid var(--line);border-radius:3px}
 .terrain-frame-options[open] summary{border:0;padding:0}
 .terrain-frame-options label{white-space:nowrap}
-.terrain-create-color{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:11px}
-.terrain-create-color i{width:18px;height:18px;border:1px solid var(--line-hi);border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
-.terrain-create-color select{max-width:145px;min-height:28px;background:var(--panel);color:var(--text);border:1px solid var(--line);font-size:11px;padding:2px 4px}
+.terrain-create-colors{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.terrain-create-color{display:flex;align-items:center;gap:8px;width:268px;min-width:0;padding:5px 7px;background:var(--panel);border:1px solid var(--line);border-radius:5px}
+.terrain-create-color:focus-within{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(88,213,255,.22)}
+.terrain-create-color i{display:block;flex:0 0 32px;width:32px;height:32px;border:1px solid var(--line-hi);border-radius:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.terrain-create-color-body{flex:1;min-width:0}
+.terrain-create-color-heading{display:flex;align-items:center;gap:5px;min-width:0;margin-bottom:4px;font-size:11px}
+.terrain-create-color-heading b{color:var(--text);font-size:12px}
+.terrain-create-color-heading span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
+.terrain-create-color-heading code{margin-left:auto;color:var(--cyan);font:10px var(--mono)}
+.terrain-create-color-selects{display:grid;grid-template-columns:minmax(86px,.85fr) minmax(112px,1.15fr);gap:4px}
+.terrain-create-color select{width:100%;min-width:0;min-height:30px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:3px;font-size:11px;padding:3px 5px}
+.terrain-create-color select:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
 .terrain-view .terrain-layout{
   display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;
   flex:1 1 auto;min-height:0;overflow:hidden;padding:12px;

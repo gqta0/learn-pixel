@@ -381,16 +381,31 @@
         <select id="terrainSize"><option value="16">16×16</option><option value="32">32×32</option></select>
         <button class="btn tiny primary" id="terrainCreate">Tạo bộ 56 ô</button>
         <button class="btn tiny" id="terrainSyncFrames" title="Ghi 56 frame đang link vào atlas, không tạo lại và không xoá dữ liệu">↻ Đồng bộ 56</button>
-        <select id="terrainCreatePreset" title="Chọn nhanh bảng màu khởi tạo Terrain 56">
+        <select id="terrainCreatePreset" title="Chọn nhanh màu cho bộ Terrain mới">
           <option value="stone">🎨 Đá lạnh</option>
+          <option value="custom">Tự chọn màu</option>
           <option value="soil">Đất</option>
           <option value="blueQi">Blue Qi</option>
           <option value="qiBlue">Qi xanh dương</option>
           <option value="skyWater">Sky/Water</option>
           <option value="qi">Qi Violet</option>
         </select>
-        <label class="terrain-create-color" title="Chọn màu thân/ruột từ palette hiện tại">Nền <i id="terrainCreateBaseChip" aria-hidden="true"></i><select id="terrainCreateBase" aria-label="Màu nền tile khởi tạo"></select></label>
-        <label class="terrain-create-color" title="Chọn màu cạnh/viền từ palette hiện tại">Cạnh <i id="terrainCreateEdgeChip" aria-hidden="true"></i><select id="terrainCreateEdge" aria-label="Màu cạnh viền tile khởi tạo"></select></label>
+        <div class="terrain-create-colors" role="group" aria-label="Màu tạo Terrain 56">
+          <div class="terrain-create-color" title="Chọn màu thân và ruột cho bộ Terrain mới">
+            <i id="terrainCreateBaseChip" aria-hidden="true"></i>
+            <div class="terrain-create-color-body">
+              <div class="terrain-create-color-heading"><b>Nền</b><span id="terrainCreateBaseName"></span><code id="terrainCreateBaseHex"></code></div>
+              <div class="terrain-create-color-selects"><select id="terrainCreateBaseGroup" aria-label="Nhóm palette cho màu nền"></select><select id="terrainCreateBase" aria-label="Màu nền trong nhóm đã chọn"></select></div>
+            </div>
+          </div>
+          <div class="terrain-create-color" title="Chọn màu cạnh và viền cho bộ Terrain mới">
+            <i id="terrainCreateEdgeChip" aria-hidden="true"></i>
+            <div class="terrain-create-color-body">
+              <div class="terrain-create-color-heading"><b>Cạnh</b><span id="terrainCreateEdgeName"></span><code id="terrainCreateEdgeHex"></code></div>
+              <div class="terrain-create-color-selects"><select id="terrainCreateEdgeGroup" aria-label="Nhóm palette cho màu cạnh"></select><select id="terrainCreateEdge" aria-label="Màu cạnh trong nhóm đã chọn"></select></div>
+            </div>
+          </div>
+        </div>
         <details class="terrain-frame-options" id="terrainFrameOptions">
           <summary>↔ Liên kết tile / frame</summary>
           <label title="Chỉ áp dụng khi tạo bộ mới; dựng 56 frame tương ứng với #00–#55"><input type="checkbox" id="terrainCreateFrames"> Tạo 56 frame khi tạo mới</label>

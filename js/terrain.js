@@ -151,7 +151,7 @@ const shade=(hex,f)=>{
 export function terrainPixels(slot,size,colors){
   const roles=tileRoles(slot,size), tile=TERRAIN_TILES[slot];
   const art=colors ? [0,rgba(colors.base),rgba(colors.edge),rgba(shade(colors.edge,.55)),rgba(shade(colors.edge,.75)),rgba(shade(colors.edge,1.1)),rgba(shade(colors.edge,.55))] :
-    [0,rgba('#657e8c'),rgba('#b4c5d1'),rgba('#2e4659'),rgba('#435d73'),rgba('#99b0bf'),rgba('#2e4659')];
+    [0,rgba('#5e788c'),rgba('#b4c5d1'),rgba('#2e4659'),rgba('#435d73'),rgba('#99b0bf'),rgba('#2e4659')];
   const pixels=Uint32Array.from(roles,r=>art[r]);
   if(tile.kind==='center'){
     for(let y=3;y<size-3;y++) for(let x=3;x<size-3;x++){

@@ -17,43 +17,63 @@ import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
 
 let selected=46, seamIssues=[], inspectedPair=null, terrainDirty=false;
 const TERRAIN_CREATE_PRESETS={
-  stone:{base:'#657e8c',edge:'#b4c5d1'},
+  stone:{base:'#5e788c',edge:'#b4c5d1'},
   soil:{base:'#765640',edge:'#e0ab72'},
-  blueQi:{base:'#1e789c',edge:'#79e2ed'},
+  blueQi:{base:'#1e789c',edge:'#6cf2ff'},
   qiBlue:{base:'#1ea6c5',edge:'#6cf2ff'},
   skyWater:{base:'#3973ad',edge:'#74ceda'},
   qi:{base:'#5e419e',edge:'#b99cff'}
 };
-const TERRAIN_CREATE_DEFAULTS={base:'#657e8c',edge:'#b4c5d1'};
-function syncTerrainColorChips(){
-  ['Base','Edge'].forEach(key=>{
-    const sel=$('#terrainCreate'+key),chip=$('#terrainCreate'+key+'Chip');
-    if(sel&&chip) chip.style.background=sel.value||'transparent';
+const TERRAIN_CREATE_DEFAULTS={base:'#5e788c',edge:'#b4c5d1'};
+function terrainColorGroups(){
+  const colors=[...new Set(palette.map(h=>h.toLowerCase()))];
+  const groups=new Map();
+  colors.forEach(hex=>{
+    const meta=COLOR_TOKENS[hex],group=meta?.group||'Chung';
+    if(!groups.has(group))groups.set(group,[]);
+    groups.get(group).push({hex,meta});
   });
+  return groups;
+}
+function fillTerrainColorOptions(key,groups,preferred){
+  const groupSel=$('#terrainCreate'+key+'Group'),colorSel=$('#terrainCreate'+key);
+  const items=groups.get(groupSel?.value)||[];
+  if(!colorSel)return;
+  colorSel.replaceChildren();
+  items.forEach(({hex,meta})=>{
+    const option=document.createElement('option');
+    option.value=hex;option.textContent=(meta?.token||'Màu')+' · '+hex;
+    option.title=meta?`${meta.group} · ${meta.token} · ${hex} · ${meta.desc}`:hex;
+    colorSel.append(option);
+  });
+  if(items.some(item=>item.hex===preferred)) colorSel.value=preferred;
+  else if(items.length) colorSel.value=items[key==='Edge'?items.length-1:Math.floor((items.length-1)/2)].hex;
+  syncTerrainColorPreview(key);
+}
+function syncTerrainColorPreview(key){
+  const hex=$('#terrainCreate'+key)?.value,meta=hex&&COLOR_TOKENS[hex];
+  const chip=$('#terrainCreate'+key+'Chip'),name=$('#terrainCreate'+key+'Name'),code=$('#terrainCreate'+key+'Hex');
+  if(chip){chip.style.background=hex||'transparent';chip.title=meta?`${meta.group}: ${meta.desc} (${hex})`:hex||'';}
+  if(name){name.textContent=meta?.desc||meta?.token||'Màu tuỳ chọn';name.title=meta?.desc||'';}
+  if(code)code.textContent=hex||'';
 }
 function fillTerrainCreateColors(){
-  const colors=[...new Set(palette.map(h=>h.toLowerCase()))];
+  const groups=terrainColorGroups();
   ['Base','Edge'].forEach(key=>{
-    const sel=$('#terrainCreate'+key);if(!sel)return;
-    const old=sel.value||TERRAIN_CREATE_DEFAULTS[key.toLowerCase()];
-    const groups=new Map();
-    colors.forEach(hex=>{
-      const meta=COLOR_TOKENS[hex],group=meta?.group||'Chung';
-      if(!groups.has(group))groups.set(group,[]);
-      groups.get(group).push({hex,meta});
-    });
-    sel.replaceChildren();
+    const groupSel=$('#terrainCreate'+key+'Group'),colorSel=$('#terrainCreate'+key);
+    if(!groupSel||!colorSel)return;
+    const oldColor=colorSel.value,oldGroup=groupSel.value;
+    const oldColorGroup=[...groups].find(([,items])=>items.some(item=>item.hex===oldColor))?.[0];
+    groupSel.replaceChildren();
     groups.forEach((items,group)=>{
-      const box=document.createElement('optgroup');box.label=group;
-      items.forEach(({hex,meta})=>{
-        const o=document.createElement('option');o.value=hex;o.textContent=(meta?.token||hex)+' · '+hex;
-        box.append(o);
-      });
-      sel.append(box);
+      const option=document.createElement('option');
+      option.value=group;option.textContent=`${group} · ${items.length}`;groupSel.append(option);
     });
-    sel.value=colors.includes(old)?old:(colors[0]||'');
+    const defaultColor=TERRAIN_CREATE_DEFAULTS[key.toLowerCase()];
+    const defaultGroup=[...groups].find(([,items])=>items.some(item=>item.hex===defaultColor))?.[0];
+    groupSel.value=oldColorGroup|| (groups.has(oldGroup)?oldGroup:null) || defaultGroup || groups.keys().next().value || '';
+    fillTerrainColorOptions(key,groups,oldColor||defaultColor);
   });
-  syncTerrainColorChips();
 }
 function terrainCreateColors(){
   const base=$('#terrainCreateBase')?.value,edge=$('#terrainCreateEdge')?.value;
@@ -61,10 +81,25 @@ function terrainCreateColors(){
 }
 function applyTerrainCreatePreset(key){
   const p=TERRAIN_CREATE_PRESETS[key];if(!p)return;
-  const base=$('#terrainCreateBase'),edge=$('#terrainCreateEdge');
-  if(base&&[...base.options].some(o=>o.value===p.base)) base.value=p.base;
-  if(edge&&[...edge.options].some(o=>o.value===p.edge)) edge.value=p.edge;
-  syncTerrainColorChips();paint();
+  const groups=terrainColorGroups();
+  [['Base',p.base],['Edge',p.edge]].forEach(([role,hex])=>{
+    const group=[...groups].find(([,items])=>items.some(item=>item.hex===hex))?.[0];
+    const groupSel=$('#terrainCreate'+role+'Group');
+    if(!group||!groupSel)return;
+    groupSel.value=group;
+    fillTerrainColorOptions(role,groups,hex);
+  });
+  paint();
+}
+function chooseTerrainColorGroup(key){
+  fillTerrainColorOptions(key,terrainColorGroups());
+  const preset=$('#terrainCreatePreset');if(preset)preset.value='custom';
+  if(!terrainAtlas())paint();
+}
+function chooseTerrainColor(key){
+  syncTerrainColorPreview(key);
+  const preset=$('#terrainCreatePreset');if(preset)preset.value='custom';
+  if(!terrainAtlas())paint();
 }
 function terrainAtlas(){
   const a=getAtlas();
@@ -548,7 +583,10 @@ export function bindTerrain(){
   $('#terrainSyncFrames')?.addEventListener('click',syncTerrainFramesNow);
   $('#terrainCreatePreset')?.addEventListener('change',e=>applyTerrainCreatePreset(e.target.value));
   fillTerrainCreateColors();
-  ['terrainCreateBase','terrainCreateEdge'].forEach(key=>$('#'+key)?.addEventListener('change',()=>{syncTerrainColorChips();if(!terrainAtlas())paint();}));
+  ['Base','Edge'].forEach(key=>{
+    $('#terrainCreate'+key+'Group')?.addEventListener('change',()=>chooseTerrainColorGroup(key));
+    $('#terrainCreate'+key)?.addEventListener('change',()=>chooseTerrainColor(key));
+  });
   window.addEventListener('palettechange',fillTerrainCreateColors);
   window.addEventListener('pixelrender',syncLinkedTerrainFrame);
   window.addEventListener('pixelchange',()=>{
