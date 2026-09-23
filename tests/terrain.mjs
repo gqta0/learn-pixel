@@ -27,6 +27,13 @@ test('all generated compatible edges join without alpha gaps at both sizes',()=>
     }
   }
 });
+test('custom creation colors recolor the body and edge roles without changing topology',()=>{
+  const px=terrainPixels(31,16,{base:'#112233',edge:'#d4e5f6'}),roles=tileRoles(31,16);
+  const base=0xff332211,edge=0xfff6e5d4;
+  assert.ok(Array.from(px).some((p,i)=>roles[i]===1&&p===base));
+  assert.ok(Array.from(px).some((p,i)=>roles[i]===2&&p===edge));
+  assert.deepEqual(checkSeams(TERRAIN_TILES.map(t=>terrainPixels(t.slot,16,{base:'#112233',edge:'#d4e5f6'})),16),[]);
+});
 test('neighbor constraints agree with every 4×3 binary terrain patch',()=>{
   const maskAt=(bits,x)=>{
     const at=(a,b)=>!!(bits&(1<<(b*4+a)));

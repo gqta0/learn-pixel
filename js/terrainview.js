@@ -15,6 +15,20 @@ import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
   terrainManifest, terrainGodotManifest, paintTerrainGuide } from './terrain.js';
 
 let selected=46, seamIssues=[], inspectedPair=null, terrainDirty=false;
+const TERRAIN_CREATE_PRESETS={
+  stone:{base:'#657e8c',edge:'#b4c5d1'},
+  soil:{base:'#765640',edge:'#e0ab72'},
+  blueQi:{base:'#1e789c',edge:'#79e2ed'},
+  qi:{base:'#7c5bc4',edge:'#a57eff'}
+};
+function terrainCreateColors(){
+  const base=$('#terrainCreateBase')?.value,edge=$('#terrainCreateEdge')?.value;
+  return base&&edge && (base.toLowerCase()!=='#657e8c'||edge.toLowerCase()!=='#b4c5d1') ? {base,edge}:undefined;
+}
+function applyTerrainCreatePreset(key){
+  const p=TERRAIN_CREATE_PRESETS[key];if(!p)return;
+  $('#terrainCreateBase').value=p.base;$('#terrainCreateEdge').value=p.edge;paint();
+}
 function terrainAtlas(){
   const a=getAtlas();
   return a?.terrain===TERRAIN_SCHEMA && [16,32].includes(a.tw) && a.th===a.tw &&
@@ -34,7 +48,7 @@ function tiles(){
   const a=terrainAtlas(), n=size(), e=editingRect(), editingSlot=Number.isInteger(e?.terrainSlot)?e.terrainSlot:linkedTerrainSlot();
   return TERRAIN_TILES.map(t=>{
     if(a && editingSlot===t.slot){const cv=document.createElement('canvas');return frameToCanvas(doc.af,cv,1);}
-    if(!a) return canvas(terrainPixels(t.slot,n),n);
+    if(!a) return canvas(terrainPixels(t.slot,n,terrainCreateColors()),n);
     const cv=document.createElement('canvas');cv.width=cv.height=n;
     cv.getContext('2d').drawImage(a.cv,(t.slot%8)*n,Math.floor(t.slot/8)*n,n,n,0,0,n,n);return cv;
   });
@@ -352,7 +366,8 @@ function create(){
   if(wantsFrames && hasDocumentArt() && !confirm('Tạo 56 frame Terrain sẽ thay bộ frame hiện tại. Hãy lưu dự án trước nếu cần giữ. Tiếp tục?')) return false;
   const cv=document.createElement('canvas');cv.width=n*8;cv.height=n*7;
   const g=cv.getContext('2d');
-  TERRAIN_TILES.forEach(t=>g.drawImage(canvas(terrainPixels(t.slot,n),n),(t.slot%8)*n,Math.floor(t.slot/8)*n));
+  const colors=terrainCreateColors();
+  TERRAIN_TILES.forEach(t=>g.drawImage(canvas(terrainPixels(t.slot,n,colors),n),(t.slot%8)*n,Math.floor(t.slot/8)*n));
   if(!createTerrainAtlas(cv,n)) return false;
   if(wantsFrames) linkFramesToTerrain(n);
   else doc.terrainLink=null;
@@ -494,6 +509,8 @@ export function bindTerrain(){
   });
   $('#terrainCreate')?.addEventListener('click',()=>create());
   $('#terrainSyncFrames')?.addEventListener('click',syncTerrainFramesNow);
+  $('#terrainCreatePreset')?.addEventListener('change',e=>applyTerrainCreatePreset(e.target.value));
+  ['terrainCreateBase','terrainCreateEdge'].forEach(key=>$('#'+key)?.addEventListener('input',()=>{if(!terrainAtlas())paint();}));
   window.addEventListener('pixelrender',syncLinkedTerrainFrame);
   window.addEventListener('pixelchange',()=>{
     if(Number.isInteger(linkedTerrainSlot())){

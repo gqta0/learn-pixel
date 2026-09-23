@@ -144,9 +144,14 @@ export function terrainConnectorIndices(slot,size){
   return out;
 }
 const rgba=hex=>(parseInt(hex.slice(1,3),16)|(parseInt(hex.slice(3,5),16)<<8)|(parseInt(hex.slice(5,7),16)<<16)|0xff000000)>>>0;
-export function terrainPixels(slot,size){
+const shade=(hex,f)=>{
+  const n=parseInt(hex.slice(1),16),r=Math.min(255,Math.round((n>>16)*f)),g=Math.min(255,Math.round(((n>>8)&255)*f)),b=Math.min(255,Math.round((n&255)*f));
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+};
+export function terrainPixels(slot,size,colors){
   const roles=tileRoles(slot,size), tile=TERRAIN_TILES[slot];
-  const art=[0,rgba('#657e8c'),rgba('#b4c5d1'),rgba('#2e4659'),rgba('#435d73'),rgba('#99b0bf'),rgba('#2e4659')];
+  const art=colors ? [0,rgba(colors.base),rgba(colors.edge),rgba(shade(colors.edge,.55)),rgba(shade(colors.edge,.75)),rgba(shade(colors.edge,1.1)),rgba(shade(colors.edge,.55))] :
+    [0,rgba('#657e8c'),rgba('#b4c5d1'),rgba('#2e4659'),rgba('#435d73'),rgba('#99b0bf'),rgba('#2e4659')];
   const pixels=Uint32Array.from(roles,r=>art[r]);
   if(tile.kind==='center'){
     for(let y=3;y<size-3;y++) for(let x=3;x<size-3;x++){

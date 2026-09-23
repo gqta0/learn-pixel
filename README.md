@@ -44,7 +44,8 @@ Mở **Terrain** từ thanh Terrain trên tablet, tab File/Atlas hoặc tab Terr
 dưới mobile. Workbench trình bày 56 slot theo nhóm hình học; ID atlas vẫn giữ nguyên.
 
 1. Chọn 16×16 hoặc 32×32, bấm **Tạo bộ 56 ô**. App dựng khối nền đá để vẽ tiếp;
-   nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
+   có thể chọn nhanh preset **Đá lạnh / Đất / Blue Qi / Qi tím** hoặc tự chọn màu
+   **Nền** và **Cạnh** trước khi tạo. Nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
 2. Chọn tile để đọc vai trò pixel, cạnh hở, góc lồi/lõm và các tile nối hợp lệ theo
    N/E/S/W. Khối cơ bản được xếp thành sơ đồ 3×3; các nhóm góc lõm, khối rời và biến thể
    đi theo thứ tự hình học. Bấm mã tile hàng xóm để chuyển thẳng sang tile đó và xem hai ô ghép cạnh nhau.
