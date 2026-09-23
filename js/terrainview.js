@@ -19,10 +19,10 @@ let selected=46, seamIssues=[], inspectedPair=null, terrainDirty=false;
 const TERRAIN_CREATE_PRESETS={
   stone:{base:'#657e8c',edge:'#b4c5d1'},
   soil:{base:'#765640',edge:'#e0ab72'},
-  blueQi:{base:'#1ea6c5',edge:'#6cf2ff'},
-  water:{base:'#1e789c',edge:'#79e2ed'},
-  sky:{base:'#3973ad',edge:'#74ceda'},
-  qi:{base:'#5e419e',edge:'#a57eff'}
+  blueQi:{base:'#1e789c',edge:'#79e2ed'},
+  qiBlue:{base:'#1ea6c5',edge:'#6cf2ff'},
+  skyWater:{base:'#3973ad',edge:'#74ceda'},
+  qi:{base:'#5e419e',edge:'#b99cff'}
 };
 const TERRAIN_CREATE_DEFAULTS={base:'#657e8c',edge:'#b4c5d1'};
 function syncTerrainColorChips(){

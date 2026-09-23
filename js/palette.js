@@ -40,12 +40,12 @@ export const COLOR_TOKENS = {
   '#b5bdb6': { group: 'Rock-3', token: 'stone-300', desc: 'cạnh đá sáng' },
 
   '#d9d9c9': { group: 'Rock-3', token: 'stone-100', desc: 'highlight mạnh / mặt đá hướng sáng' },
-  /* Sky */
-  '#2c488f': { group: 'Sky', token: 'sky-800', desc: 'núi xa, trời sâu' },
-  '#3973ad': { group: 'Sky', token: 'sky-700', desc: 'núi/parallax' },
-  '#53accc': { group: 'Sky', token: 'sky-500', desc: 'trời chính' },
-  '#74ceda': { group: 'Sky', token: 'sky-300', desc: 'haze, trời sáng' },
-  '#cdf1f4': { group: 'Sky', token: 'sky-haze', desc: 'sương, mây xa, highlight trời' },
+  /* Sky / Water */
+  '#2c488f': { group: 'Sky/Water', token: 'sky-800', desc: 'núi xa, trời sâu' },
+  '#3973ad': { group: 'Sky/Water', token: 'sky-700', desc: 'núi/parallax' },
+  '#53accc': { group: 'Sky/Water', token: 'sky-500', desc: 'trời chính' },
+  '#74ceda': { group: 'Sky/Water', token: 'sky-300', desc: 'haze, trời sáng' },
+  '#cdf1f4': { group: 'Sky/Water', token: 'sky-haze', desc: 'sương, mây xa, highlight trời' },
   /* Neutral */
   '#f3e5d3': { group: 'Neutral', token: 'cloud', desc: 'giấy, vải sáng, mây ấm' },
   /* Soil */
@@ -69,11 +69,11 @@ export const COLOR_TOKENS = {
   '#428f42': { group: 'Nature', token: 'leaf-500', desc: 'lá nền' },
   '#6ea84a': { group: 'Nature', token: 'leaf-400', desc: 'lá sáng' },
   '#a3c255': { group: 'Nature', token: 'leaf-300', desc: 'cỏ, linh thảo, highlight' },
-  /* Water */
-  '#16445f': { group: 'Water', token: 'water-900', desc: 'nước sâu' },
-  '#1e789c': { group: 'Water', token: 'water-700', desc: 'nước nền' },
-  '#2db7cf': { group: 'Water', token: 'water-500', desc: 'mặt nước sáng' },
-  '#79e2ed': { group: 'Water', token: 'water-300', desc: 'waterfall, sparkle' },
+  /* Blue Qi · water */
+  '#16445f': { group: 'Blue Qi', token: 'blue-qi-water-900', desc: 'nước sâu' },
+  '#1e789c': { group: 'Blue Qi', token: 'blue-qi-water-700', desc: 'nước nền' },
+  '#2db7cf': { group: 'Blue Qi', token: 'blue-qi-water-500', desc: 'mặt nước sáng' },
+  '#79e2ed': { group: 'Blue Qi', token: 'blue-qi-water-300', desc: 'waterfall, sparkle' },
   /* Blue Qi */
   '#1ea6c5': { group: 'Blue Qi', token: 'blue-qi-deep', desc: 'Qi xanh dương thấp, ore dormant' },
   '#6cf2ff': { group: 'Blue Qi', token: 'blue-qi', desc: 'Qi xanh dương active, crystal core' },
@@ -114,10 +114,10 @@ export const PALETTES = {
     '#293b3b','#3e544f','#586d63','#748679','#939f8d','#b5bba4','#d8d8bd', /* Rock-2 */
     '#273b49','#3b5260','#536b76','#70858b','#929f9f','#b5bdb6','#d9d9c9', /* Rock-3 */
     '#0d2829','#154237','#317545','#428f42','#6ea84a','#a3c255',        /* Nature · gần Rock */
-    '#2c488f','#3973ad','#53accc','#74ceda','#cdf1f4',                  /* Sky */
-    '#16445f','#1e789c','#2db7cf','#79e2ed',                            /* Water */
-    '#1ea6c5','#6cf2ff',                                                /* Blue Qi */
-    '#5e419e','#9a7de0','#a57eff','#b99cff',                            /* Qi Violet */
+    '#2c488f','#3973ad','#53accc','#74ceda','#cdf1f4',                  /* Sky/Water */
+    '#16445f','#1e789c','#2db7cf','#79e2ed',                            /* Blue Qi · water */
+    '#1ea6c5','#6cf2ff',                                                /* Blue Qi · qi */
+    '#5e419e','#7c5bc4','#9a7de0','#b99cff',                            /* Qi Violet · đậm → sáng */
     '#f3e5d3',                                                          /* Neutral */
     '#4e392f','#765640','#a67b54','#e0ab72',                            /* Soil */
     '#3a2a24','#694635','#9a6744','#c18a58',                            /* Wood */
