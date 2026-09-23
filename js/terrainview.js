@@ -10,7 +10,7 @@ import { download } from './storage.js';
 import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, writeTerrainSlot, closeAtlas, linkedTerrainFrameIndex } from './atlas.js';
 import { openMapView } from './mapview.js';
 import { setView } from './tools.js';
-import { palette, COLOR_TOKENS } from './palette.js';
+import { PALETTES, COLOR_TOKENS } from './palette.js';
 import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
   TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER, tileRoles, terrainPixels, describeMask, neighbors, checkSeams, checkColorSeams,
   terrainManifest, terrainGodotManifest, paintTerrainGuide } from './terrain.js';
@@ -26,7 +26,7 @@ const TERRAIN_CREATE_PRESETS={
 };
 const TERRAIN_CREATE_DEFAULTS={base:'#5e788c',edge:'#b4c5d1'};
 function terrainColorGroups(){
-  const colors=[...new Set(palette.map(h=>h.toLowerCase()))];
+  const colors=[...new Set(PALETTES['Master Palette (72 màu)'].map(h=>h.toLowerCase()))];
   const groups=new Map();
   colors.forEach(hex=>{
     const meta=COLOR_TOKENS[hex],group=meta?.group||'Chung';
@@ -587,7 +587,6 @@ export function bindTerrain(){
     $('#terrainCreate'+key+'Group')?.addEventListener('change',()=>chooseTerrainColorGroup(key));
     $('#terrainCreate'+key)?.addEventListener('change',()=>chooseTerrainColor(key));
   });
-  window.addEventListener('palettechange',fillTerrainCreateColors);
   window.addEventListener('pixelrender',syncLinkedTerrainFrame);
   window.addEventListener('pixelchange',()=>{
     if(Number.isInteger(linkedTerrainSlot())){
