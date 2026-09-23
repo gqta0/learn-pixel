@@ -72,8 +72,6 @@ export const COLOR_TOKENS = {
   /* Blue Qi · water */
   '#16445f': { group: 'Blue Qi', token: 'blue-qi-water-900', desc: 'nước sâu' },
   '#1e789c': { group: 'Blue Qi', token: 'blue-qi-water-700', desc: 'nước nền' },
-  '#2db7cf': { group: 'Blue Qi', token: 'blue-qi-water-500', desc: 'mặt nước sáng' },
-  '#79e2ed': { group: 'Blue Qi', token: 'blue-qi-water-300', desc: 'waterfall, sparkle' },
   /* Blue Qi */
   '#1ea6c5': { group: 'Blue Qi', token: 'blue-qi-deep', desc: 'Qi xanh dương thấp, ore dormant' },
   '#6cf2ff': { group: 'Blue Qi', token: 'blue-qi', desc: 'Qi xanh dương active, crystal core' },
@@ -108,15 +106,14 @@ export const COLOR_TOKENS = {
 };
 
 export const PALETTES = {
-  'Master Palette (74 màu)': [
+  'Master Palette (72 màu)': [
     '#0d171f','#162331','#223344',                                      /* Outline */
     '#2e4659','#435d73','#5e788c','#7a95a7','#99b0bf','#b4c5d1','#d0dde4', /* Rock */
     '#293b3b','#3e544f','#586d63','#748679','#939f8d','#b5bba4','#d8d8bd', /* Rock-2 */
     '#273b49','#3b5260','#536b76','#70858b','#929f9f','#b5bdb6','#d9d9c9', /* Rock-3 */
     '#0d2829','#154237','#317545','#428f42','#6ea84a','#a3c255',        /* Nature · gần Rock */
     '#2c488f','#3973ad','#53accc','#74ceda','#cdf1f4',                  /* Sky/Water */
-    '#16445f','#1e789c','#2db7cf','#79e2ed',                            /* Blue Qi · water */
-    '#1ea6c5','#6cf2ff',                                                /* Blue Qi · qi */
+    '#16445f','#1e789c','#1ea6c5','#6cf2ff',                                                /* Blue Qi · qi */
     '#5e419e','#7c5bc4','#9a7de0','#b99cff',                            /* Qi Violet · đậm → sáng */
     '#f3e5d3',                                                          /* Neutral */
     '#4e392f','#765640','#a67b54','#e0ab72',                            /* Soil */
@@ -141,7 +138,7 @@ export const PALETTES = {
                            '#a8791f','#dcae35','#ffe07a','#8f4a20','#c26e33','#e59c5e','#c2c3c7','#eef0f5'],
   'Xám 8 bậc (luyện khối)': ['#0d0d12','#1f1f28','#33333f','#4c4c5b','#6b6b7c','#8f8fa0','#b8b8c6','#f0f0f6']
 };
-export let palette = PALETTES['Master Palette (74 màu)'].slice();
+export let palette = PALETTES['Master Palette (72 màu)'].slice();
 export function setPalette(a){ palette = a.slice(); if(typeof window!=='undefined') window.dispatchEvent?.(new Event('palettechange')); }
 
 /* ---------------- thư viện bảng màu của bạn ----------------
@@ -166,11 +163,11 @@ function group(sel,label,keys){
   sel.appendChild(g);
 }
 export function fillPalSelect(keep){
-  const sel=$('#palSel'), cur = keep || sel.value || 'Master Palette (74 màu)';
+  const sel=$('#palSel'), cur = keep || sel.value || 'Master Palette (72 màu)';
   sel.innerHTML='';
   group(sel,'Dựng sẵn', Object.keys(PALETTES));
   group(sel,'Của bạn',  Object.keys(userPals));
-  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : 'Master Palette (74 màu)';
+  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : 'Master Palette (72 màu)';
   $('#palDel').style.display = isUserPal(sel.value) ? '' : 'none';
 
   const m=$('#matSel');
