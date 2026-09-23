@@ -384,13 +384,15 @@
         <select id="terrainCreatePreset" title="Chọn nhanh bảng màu khởi tạo Terrain 56">
           <option value="stone">🎨 Đá lạnh</option>
           <option value="soil">Đất</option>
-          <option value="blueQi">Blue Qi / nước</option>
-          <option value="qi">Qi tím</option>
+          <option value="blueQi">Blue Qi</option>
+          <option value="water">Nước</option>
+          <option value="sky">Bầu trời</option>
+          <option value="qi">Qi Violet</option>
         </select>
-        <label class="terrain-create-color" title="Màu thân/ruột của tile khi tạo mới">Nền <input type="color" id="terrainCreateBase" value="#657e8c" aria-label="Màu nền tile khởi tạo"></label>
-        <label class="terrain-create-color" title="Màu cạnh/viền của tile khi tạo mới">Cạnh <input type="color" id="terrainCreateEdge" value="#b4c5d1" aria-label="Màu cạnh viền tile khởi tạo"></label>
+        <label class="terrain-create-color" title="Chọn màu thân/ruột từ palette hiện tại">Nền <i id="terrainCreateBaseChip" aria-hidden="true"></i><select id="terrainCreateBase" aria-label="Màu nền tile khởi tạo"></select></label>
+        <label class="terrain-create-color" title="Chọn màu cạnh/viền từ palette hiện tại">Cạnh <i id="terrainCreateEdgeChip" aria-hidden="true"></i><select id="terrainCreateEdge" aria-label="Màu cạnh viền tile khởi tạo"></select></label>
         <details class="terrain-frame-options" id="terrainFrameOptions">
-          <summary>↔ Tùy chọn tile / frame</summary>
+          <summary>↔ Liên kết tile / frame</summary>
           <label title="Chỉ áp dụng khi tạo bộ mới; dựng 56 frame tương ứng với #00–#55"><input type="checkbox" id="terrainCreateFrames"> Tạo 56 frame khi tạo mới</label>
           <label title="Hiện #ID của terrain ở dưới thumbnail frame"><input type="checkbox" id="terrainFrameLabels" checked> ID dưới frame</label>
           <label title="Frame đổi là preview Terrain đổi theo"><input type="checkbox" id="terrainFrameLive" checked> Live preview</label>

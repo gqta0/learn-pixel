@@ -10,6 +10,7 @@ import { download } from './storage.js';
 import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, writeTerrainSlot, closeAtlas, linkedTerrainFrameIndex } from './atlas.js';
 import { openMapView } from './mapview.js';
 import { setView } from './tools.js';
+import { palette, COLOR_TOKENS } from './palette.js';
 import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
   TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER, tileRoles, terrainPixels, describeMask, neighbors, checkSeams, checkColorSeams,
   terrainManifest, terrainGodotManifest, paintTerrainGuide } from './terrain.js';
@@ -18,16 +19,52 @@ let selected=46, seamIssues=[], inspectedPair=null, terrainDirty=false;
 const TERRAIN_CREATE_PRESETS={
   stone:{base:'#657e8c',edge:'#b4c5d1'},
   soil:{base:'#765640',edge:'#e0ab72'},
-  blueQi:{base:'#1e789c',edge:'#79e2ed'},
-  qi:{base:'#7c5bc4',edge:'#a57eff'}
+  blueQi:{base:'#1ea6c5',edge:'#6cf2ff'},
+  water:{base:'#1e789c',edge:'#79e2ed'},
+  sky:{base:'#3973ad',edge:'#74ceda'},
+  qi:{base:'#5e419e',edge:'#a57eff'}
 };
+const TERRAIN_CREATE_DEFAULTS={base:'#657e8c',edge:'#b4c5d1'};
+function syncTerrainColorChips(){
+  ['Base','Edge'].forEach(key=>{
+    const sel=$('#terrainCreate'+key),chip=$('#terrainCreate'+key+'Chip');
+    if(sel&&chip) chip.style.background=sel.value||'transparent';
+  });
+}
+function fillTerrainCreateColors(){
+  const colors=[...new Set(palette.map(h=>h.toLowerCase()))];
+  ['Base','Edge'].forEach(key=>{
+    const sel=$('#terrainCreate'+key);if(!sel)return;
+    const old=sel.value||TERRAIN_CREATE_DEFAULTS[key.toLowerCase()];
+    const groups=new Map();
+    colors.forEach(hex=>{
+      const meta=COLOR_TOKENS[hex],group=meta?.group||'Chung';
+      if(!groups.has(group))groups.set(group,[]);
+      groups.get(group).push({hex,meta});
+    });
+    sel.replaceChildren();
+    groups.forEach((items,group)=>{
+      const box=document.createElement('optgroup');box.label=group;
+      items.forEach(({hex,meta})=>{
+        const o=document.createElement('option');o.value=hex;o.textContent=(meta?.token||hex)+' · '+hex;
+        box.append(o);
+      });
+      sel.append(box);
+    });
+    sel.value=colors.includes(old)?old:(colors[0]||'');
+  });
+  syncTerrainColorChips();
+}
 function terrainCreateColors(){
   const base=$('#terrainCreateBase')?.value,edge=$('#terrainCreateEdge')?.value;
-  return base&&edge && (base.toLowerCase()!=='#657e8c'||edge.toLowerCase()!=='#b4c5d1') ? {base,edge}:undefined;
+  return base&&edge && (base.toLowerCase()!==TERRAIN_CREATE_DEFAULTS.base||edge.toLowerCase()!==TERRAIN_CREATE_DEFAULTS.edge) ? {base,edge}:undefined;
 }
 function applyTerrainCreatePreset(key){
   const p=TERRAIN_CREATE_PRESETS[key];if(!p)return;
-  $('#terrainCreateBase').value=p.base;$('#terrainCreateEdge').value=p.edge;paint();
+  const base=$('#terrainCreateBase'),edge=$('#terrainCreateEdge');
+  if(base&&[...base.options].some(o=>o.value===p.base)) base.value=p.base;
+  if(edge&&[...edge.options].some(o=>o.value===p.edge)) edge.value=p.edge;
+  syncTerrainColorChips();paint();
 }
 function terrainAtlas(){
   const a=getAtlas();
@@ -510,7 +547,9 @@ export function bindTerrain(){
   $('#terrainCreate')?.addEventListener('click',()=>create());
   $('#terrainSyncFrames')?.addEventListener('click',syncTerrainFramesNow);
   $('#terrainCreatePreset')?.addEventListener('change',e=>applyTerrainCreatePreset(e.target.value));
-  ['terrainCreateBase','terrainCreateEdge'].forEach(key=>$('#'+key)?.addEventListener('input',()=>{if(!terrainAtlas())paint();}));
+  fillTerrainCreateColors();
+  ['terrainCreateBase','terrainCreateEdge'].forEach(key=>$('#'+key)?.addEventListener('change',()=>{syncTerrainColorChips();if(!terrainAtlas())paint();}));
+  window.addEventListener('palettechange',fillTerrainCreateColors);
   window.addEventListener('pixelrender',syncLinkedTerrainFrame);
   window.addEventListener('pixelchange',()=>{
     if(Number.isInteger(linkedTerrainSlot())){

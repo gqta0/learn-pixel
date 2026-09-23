@@ -754,7 +754,8 @@ body[data-view="terrain"] .col.right{display:none}
 .terrain-frame-options[open] summary{border:0;padding:0}
 .terrain-frame-options label{white-space:nowrap}
 .terrain-create-color{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:11px}
-.terrain-create-color input[type=color]{width:30px;height:28px;padding:2px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.terrain-create-color i{width:18px;height:18px;border:1px solid var(--line-hi);border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.terrain-create-color select{max-width:145px;min-height:28px;background:var(--panel);color:var(--text);border:1px solid var(--line);font-size:11px;padding:2px 4px}
 .terrain-view .terrain-layout{
   display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;
   flex:1 1 auto;min-height:0;overflow:hidden;padding:12px;

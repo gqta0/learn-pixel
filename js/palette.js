@@ -40,12 +40,12 @@ export const COLOR_TOKENS = {
   '#b5bdb6': { group: 'Rock-3', token: 'stone-300', desc: 'cạnh đá sáng' },
 
   '#d9d9c9': { group: 'Rock-3', token: 'stone-100', desc: 'highlight mạnh / mặt đá hướng sáng' },
-  /* Blue Qi: trời và nước dùng chung một dải */
-  '#2c488f': { group: 'Blue Qi', token: 'blue-qi-sky-800', desc: 'núi xa, trời sâu' },
-  '#3973ad': { group: 'Blue Qi', token: 'blue-qi-sky-700', desc: 'núi/parallax' },
-  '#53accc': { group: 'Blue Qi', token: 'blue-qi-sky-500', desc: 'trời chính' },
-  '#74ceda': { group: 'Blue Qi', token: 'blue-qi-sky-300', desc: 'haze, trời sáng' },
-  '#cdf1f4': { group: 'Blue Qi', token: 'blue-qi-sky-haze', desc: 'sương, mây xa, highlight trời' },
+  /* Sky */
+  '#2c488f': { group: 'Sky', token: 'sky-800', desc: 'núi xa, trời sâu' },
+  '#3973ad': { group: 'Sky', token: 'sky-700', desc: 'núi/parallax' },
+  '#53accc': { group: 'Sky', token: 'sky-500', desc: 'trời chính' },
+  '#74ceda': { group: 'Sky', token: 'sky-300', desc: 'haze, trời sáng' },
+  '#cdf1f4': { group: 'Sky', token: 'sky-haze', desc: 'sương, mây xa, highlight trời' },
   /* Neutral */
   '#f3e5d3': { group: 'Neutral', token: 'cloud', desc: 'giấy, vải sáng, mây ấm' },
   /* Soil */
@@ -69,17 +69,21 @@ export const COLOR_TOKENS = {
   '#428f42': { group: 'Nature', token: 'leaf-500', desc: 'lá nền' },
   '#6ea84a': { group: 'Nature', token: 'leaf-400', desc: 'lá sáng' },
   '#a3c255': { group: 'Nature', token: 'leaf-300', desc: 'cỏ, linh thảo, highlight' },
-  '#16445f': { group: 'Blue Qi', token: 'blue-qi-water-900', desc: 'nước sâu' },
-  '#1e789c': { group: 'Blue Qi', token: 'blue-qi-water-700', desc: 'nước nền' },
-  '#2db7cf': { group: 'Blue Qi', token: 'blue-qi-water-500', desc: 'mặt nước sáng' },
-  '#79e2ed': { group: 'Blue Qi', token: 'blue-qi-water-300', desc: 'waterfall, sparkle' },
-  /* Qi */
-  '#1ea6c5': { group: 'Qi', token: 'qi-cyan-deep', desc: 'Qi thấp, ore dormant' },
-  '#6cf2ff': { group: 'Qi', token: 'qi-cyan', desc: 'Qi active, crystal core' },
-  '#3a286f': { group: 'Qi', token: 'qi-violet-950', desc: 'Qi tím cực sâu' },
-  '#5e419e': { group: 'Qi', token: 'qi-violet-deep', desc: 'Qi tầng sâu' },
-  '#7c5bc4': { group: 'Qi', token: 'qi-violet-mid', desc: 'Qi tím trung gian' },
-  '#a57eff': { group: 'Qi', token: 'qi-violet', desc: 'Qi cao cấp' },
+  /* Water */
+  '#16445f': { group: 'Water', token: 'water-900', desc: 'nước sâu' },
+  '#1e789c': { group: 'Water', token: 'water-700', desc: 'nước nền' },
+  '#2db7cf': { group: 'Water', token: 'water-500', desc: 'mặt nước sáng' },
+  '#79e2ed': { group: 'Water', token: 'water-300', desc: 'waterfall, sparkle' },
+  /* Blue Qi */
+  '#1ea6c5': { group: 'Blue Qi', token: 'blue-qi-deep', desc: 'Qi xanh dương thấp, ore dormant' },
+  '#6cf2ff': { group: 'Blue Qi', token: 'blue-qi', desc: 'Qi xanh dương active, crystal core' },
+  /* Qi Violet: giữ hai màu tím gốc, thêm hai bậc sáng hơn */
+  '#3a286f': { group: 'Qi Violet', token: 'qi-violet-950', desc: 'Qi tím cực sâu' },
+  '#5e419e': { group: 'Qi Violet', token: 'qi-violet-deep', desc: 'Qi tím tầng sâu' },
+  '#7c5bc4': { group: 'Qi Violet', token: 'qi-violet-mid', desc: 'Qi tím trung gian' },
+  '#9a7de0': { group: 'Qi Violet', token: 'qi-violet-light', desc: 'Qi tím sáng' },
+  '#a57eff': { group: 'Qi Violet', token: 'qi-violet', desc: 'Qi tím cao cấp' },
+  '#b99cff': { group: 'Qi Violet', token: 'qi-violet-highlight', desc: 'Qi tím highlight sáng' },
   /* Fire */
   '#750d10': { group: 'Fire', token: 'fire-deep', desc: 'magma shadow' },
   '#b34428': { group: 'Fire', token: 'fire-red', desc: 'khe nhiệt, ember' },
@@ -109,14 +113,15 @@ export const PALETTES = {
     '#2e4659','#435d73','#5e788c','#7a95a7','#99b0bf','#b4c5d1','#d0dde4', /* Rock */
     '#293b3b','#3e544f','#586d63','#748679','#939f8d','#b5bba4','#d8d8bd', /* Rock-2 */
     '#273b49','#3b5260','#536b76','#70858b','#929f9f','#b5bdb6','#d9d9c9', /* Rock-3 */
-    '#2c488f','#3973ad','#53accc','#74ceda','#cdf1f4',                  /* Blue Qi · Sky */
-    '#16445f','#1e789c','#2db7cf','#79e2ed',                            /* Blue Qi · Water */
+    '#0d2829','#154237','#317545','#428f42','#6ea84a','#a3c255',        /* Nature · gần Rock */
+    '#2c488f','#3973ad','#53accc','#74ceda','#cdf1f4',                  /* Sky */
+    '#16445f','#1e789c','#2db7cf','#79e2ed',                            /* Water */
+    '#1ea6c5','#6cf2ff',                                                /* Blue Qi */
+    '#5e419e','#9a7de0','#a57eff','#b99cff',                            /* Qi Violet */
     '#f3e5d3',                                                          /* Neutral */
     '#4e392f','#765640','#a67b54','#e0ab72',                            /* Soil */
     '#3a2a24','#694635','#9a6744','#c18a58',                            /* Wood */
     '#56616a','#87919a','#c1944e',                                      /* Metal */
-    '#0d2829','#154237','#317545','#428f42','#6ea84a','#a3c255',        /* Nature */
-    '#1ea6c5','#6cf2ff','#3a286f','#5e419e','#7c5bc4','#a57eff',        /* Qi */
     '#750d10','#b34428','#e68d3e','#f5cb53','#ffea63',                  /* Fire */
     '#e8ad83','#a85b4a','#e6dfd0','#a6a89e','#202b33',                  /* Character */
     '#101b2a','#203246','#586d7a','#f3cf5e',                            /* UI */
@@ -137,7 +142,7 @@ export const PALETTES = {
   'Xám 8 bậc (luyện khối)': ['#0d0d12','#1f1f28','#33333f','#4c4c5b','#6b6b7c','#8f8fa0','#b8b8c6','#f0f0f6']
 };
 export let palette = PALETTES['Master Palette (74 màu)'].slice();
-export function setPalette(a){ palette = a.slice(); }
+export function setPalette(a){ palette = a.slice(); if(typeof window!=='undefined') window.dispatchEvent?.(new Event('palettechange')); }
 
 /* ---------------- thư viện bảng màu của bạn ----------------
    Lưu tách khỏi file dự án: bảng màu sống lâu hơn một bức tranh, và bạn sẽ

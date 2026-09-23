@@ -15,7 +15,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 **Màu**
 - Panel sinh dải màu lệch tông theo **chất liệu** (kim loại, gỗ, đá, da người, lá, vải, thuỷ tinh, vàng, lửa).
-- 7 bảng màu dựng sẵn (Master Palette 74 màu phân theo nhóm chất liệu, gồm nhóm Blue Qi dùng chung cho trời/nước và Qi tím 4 bậc, PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động, Xám 8 bậc).
+- 7 bảng màu dựng sẵn (Master Palette 74 màu phân theo nhóm chất liệu, tách riêng Nature, Sky, Water, Blue Qi và Qi Violet; cùng PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động, Xám 8 bậc).
 - **Thư viện bảng màu của bạn**: lưu bảng màu vào máy và dùng lại cho dự án sau, tách khỏi file tranh.
 - Sửa / bỏ / sắp xếp từng ô màu, bỏ màu thừa, rút bảng màu từ chính bức tranh hoặc từ một ảnh mẫu, thay màu hàng loạt (palette swap).
 - Ô màu chưa dùng ở khung hiện tại thì mờ đi, nên nhìn ra ngay bảng màu đang thừa chỗ nào.
@@ -44,8 +44,8 @@ Mở **Terrain** từ thanh Terrain trên tablet, tab File/Atlas hoặc tab Terr
 dưới mobile. Workbench trình bày 56 slot theo nhóm hình học; ID atlas vẫn giữ nguyên.
 
 1. Chọn 16×16 hoặc 32×32, bấm **Tạo bộ 56 ô**. App dựng khối nền đá để vẽ tiếp;
-   có thể chọn nhanh preset **Đá lạnh / Đất / Blue Qi / Qi tím** hoặc tự chọn màu
-   **Nền** và **Cạnh** trước khi tạo. Nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
+   có thể chọn nhanh preset **Đá lạnh / Đất / Blue Qi / Nước / Bầu trời / Qi Violet** hoặc chọn **Nền** và
+   **Cạnh** trực tiếp từ palette hiện tại trước khi tạo. Nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
 2. Chọn tile để đọc vai trò pixel, cạnh hở, góc lồi/lõm và các tile nối hợp lệ theo
    N/E/S/W. Khối cơ bản được xếp thành sơ đồ 3×3; các nhóm góc lõm, khối rời và biến thể
    đi theo thứ tự hình học. Bấm mã tile hàng xóm để chuyển thẳng sang tile đó và xem hai ô ghép cạnh nhau.
