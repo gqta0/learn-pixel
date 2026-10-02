@@ -133,8 +133,12 @@
           <div class="morebox">
             <button class="btn tiny" id="symLine" aria-pressed="false">┊ Trục giữa</button>
             <button class="btn tiny" id="tileBtn" aria-pressed="false" title="Xem trước lặp 3×3 — kiểm tra tile có lộ mối nối không">▩ Lặp 3×3</button>
-            <button class="btn tiny" id="flipH" title="Lật ngang lớp hiện tại">⇋ Lật ngang</button>
-            <button class="btn tiny" id="flipV" title="Lật dọc lớp hiện tại">⇵ Lật dọc</button>
+            <button class="btn tiny" id="flipH" title="Lật ngang lớp hiện tại (hoặc vùng chọn)">⇋ Lật ngang</button>
+            <button class="btn tiny" id="flipV" title="Lật dọc lớp hiện tại (hoặc vùng chọn)">⇵ Lật dọc</button>
+            <button class="btn tiny" id="rotCw" title="Xoay 90° theo chiều kim đồng hồ — vùng chọn vuông, hoặc cả lớp khi canvas vuông (R)">⟳ Xoay 90°</button>
+            <button class="btn tiny" id="rotCcw" title="Xoay 90° ngược chiều kim đồng hồ (Shift+R)">⟲ Xoay −90°</button>
+            <button class="btn tiny" id="outlineBtn" title="Tô màu chính vào mọi ô trống sát nét vẽ của lớp hiện tại (trong vùng chọn nếu có). Shift+bấm: lấy cả góc chéo">◻ Viền ngoài (màu chính)</button>
+            <button class="btn tiny" id="wrapBtn" aria-pressed="false" title="Dụng cụ Dịch lớp / phím mũi tên: phần trôi khỏi mép hiện lại ở mép đối diện — soi mối nối tile">↻ Dịch vòng (tile)</button>
             <button class="btn tiny" id="lockA" aria-pressed="false" title="Khoá alpha: chỉ vẽ lên chỗ đã có pixel">🔒 Khoá alpha</button>
             <button class="btn tiny" id="realBtn" aria-pressed="false" title="Xem khung này ở cỡ thật ×1 và ×2 trong ô xem trước">👁 Cỡ thật</button>
             <label class="mini" style="margin-top:4px">Lưới đậm mỗi</label>
@@ -312,6 +316,15 @@
             <label class="mini grow">Nhân khổ</label>
             <select id="expScale"><option>1</option><option selected>4</option><option>8</option><option>16</option></select>
           </div>
+          <div class="row">
+            <label class="mini grow">Spritesheet xếp</label>
+            <select id="expCols" title="Cách xếp khung trong PNG spritesheet">
+              <option value="0" selected>1 hàng ngang</option>
+              <option value="4">4 cột</option>
+              <option value="8">8 cột</option>
+              <option value="sq">Lưới vuông</option>
+            </select>
+          </div>
           <div class="grid2" style="margin-top:7px">
             <button class="btn" id="expPng">PNG khung này</button>
             <button class="btn" id="expSheet">PNG spritesheet</button>
@@ -340,7 +353,9 @@
         <div class="block">
           <p class="eyebrow">Phím tắt</p>
           <p class="kbd"><b>B</b> bút · <b>E</b> xoá · <b>G</b> tô loang · <b>I</b> hút màu · <b>L</b> đường · <b>U</b> chữ nhật · <b>O</b> ê-líp · <b>M</b> dịch lớp · <b>S</b> tô khối · <b>A</b> chọn vùng<br>
-          <b>X</b> đổi màu · <b>[ ]</b> cỡ bút · <b>Ctrl+Z / Ctrl+Y</b> hoàn tác · <b>, .</b> đổi khung<br><b>Chạm giữ</b> (hoặc chuột phải) lên nút có góc vát để mở bảng chọn nhanh: cỡ bút, chiều tô khối, hình rỗng/đầy, thao tác vùng chọn, bảng màu.</p>
+          <b>X</b> đổi màu · <b>[ ]</b> cỡ bút · <b>Ctrl+Z / Ctrl+Y</b> hoàn tác · <b>, .</b> đổi khung · <b>R</b> xoay 90°<br>
+          <b>Alt+bấm</b> hút màu tạm · <b>chuột phải</b> với ống hút = lấy màu phụ · <b>Shift+bấm</b> bút/tẩy: kẻ thẳng từ điểm cuối nét trước · <b>Shift+tô loang</b>: đổi mọi ô cùng màu<br>
+          <b>Ctrl+lăn chuột</b> hoặc <b>+ − 0</b> phóng/thu/vừa khung · <b>Ctrl+A</b> chọn hết · <b>Ctrl+D</b> bỏ chọn · <b>mũi tên</b> (dụng cụ Dịch lớp) đẩy 1px, Shift đẩy theo lưới đậm<br><b>Chạm giữ</b> (hoặc chuột phải) lên nút có góc vát để mở bảng chọn nhanh: cỡ bút, chiều tô khối, hình rỗng/đầy, thao tác vùng chọn, bảng màu.</p>
         </div>
 
         <div class="block">
@@ -572,9 +587,10 @@
   <form method="dialog">
     <h2 id="resizeTitle">Đổi khổ canvas</h2>
     <p id="resizeNote"></p>
-    <p class="kbd">Giữ nội dung ở góc trên-trái; phần ngoài khổ mới sẽ bị cắt. Có thể hoàn tác bằng Ctrl+Z.</p>
+    <p class="kbd">Giữ nội dung neo ở góc trên-trái hoặc căn giữa; phần ngoài khổ mới sẽ bị cắt. Có thể hoàn tác bằng Ctrl+Z.</p>
     <div class="resize-actions">
-      <button class="btn primary" value="keep">Giữ nội dung</button>
+      <button class="btn primary" value="keep">Giữ ở góc trên-trái</button>
+      <button class="btn" value="center">Giữ ở giữa</button>
       <button class="btn" value="blank">Tạo khung trắng</button>
       <button class="btn" value="cancel" autofocus>Huỷ</button>
     </div>

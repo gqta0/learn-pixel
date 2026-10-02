@@ -18,6 +18,8 @@ let penSeen=false, gesture=null, panning=null;
 let pixelPerfectHistory=[];
 let owner=null, strokeUndo=null, strokeData=null, strokeSelection=null, spaceDown=false;
 let terrainLockSnapshot=null;
+let lastDot=null;     // điểm cuối của nét bút trước — Shift+bấm nối thẳng từ đây
+const LINE_TOOLS=['pencil','eraser','shade','dither'];
 const wrap=$('#wrap');
 
 function captureTerrainLock(data){
@@ -182,21 +184,31 @@ wrap.addEventListener('pointerdown', e=>{
 
   const isPenPicker = (e.pointerType==='pen' && penAlt(e) && view.penButton==='picker');
   strokeTool = isPenPicker ? 'picker' : getEffectiveTool(e);
+  // Alt + bấm = hút màu tạm thời với mọi dụng cụ vẽ, như Aseprite/Photoshop
+  if(e.altKey && e.pointerType!=='touch' && strokeTool!=='select' && strokeTool!=='move') strokeTool='picker';
 
-  if(strokeTool==='picker'){ pick(p); drawing=false; view.drawing=false; owner=null; return; }
+  if(strokeTool==='picker'){
+    // chuột phải (hoặc nút bên S-Pen ở chế độ màu phụ) hút vào màu phụ
+    pick(p, !isPenPicker && penAlt(e) && (e.pointerType!=='pen' || (view.penButton||'sec')==='sec'));
+    drawing=false; view.drawing=false; owner=null; return;
+  }
   if(strokeTool==='select'){ view.sel=null; render(); return; }   // kéo tiếp mới thành vùng
   strokeUndo=captureUndo();
 
   const col = strokeColor(e);
   setStrokeSeen(strokeTool==='shade' ? new Set() : null);
 
-  if(strokeTool==='pencil' && view.pixelPerfect && (view.brushEff||view.brush)===1){
+  if(e.shiftKey && lastDot && LINE_TOOLS.includes(strokeTool)){
+    // Shift + bấm: kẻ thẳng từ điểm cuối nét trước tới đây
+    lineStamp(activeData(),lastDot.x,lastDot.y,p.x,p.y,strokeTool==='eraser'?0:col);
+  }
+  else if(strokeTool==='pencil' && view.pixelPerfect && (view.brushEff||view.brush)===1){
     pixelPerfectHistory = [];
     stepPixelPerfect(p.x, p.y, col, activeData());
   }
   else if(strokeTool==='pencil' || strokeTool==='shade' || strokeTool==='dither'){ stamp(activeData(),p.x,p.y,col); }
   else if(strokeTool==='eraser'){ stamp(activeData(),p.x,p.y,0); }
-  else if(strokeTool==='fill'){ floodFill(strokeData,p.x,p.y,col); }
+  else if(strokeTool==='fill'){ floodFill(strokeData,p.x,p.y,col,!!e.shiftKey); }   // Shift: đổi mọi ô cùng màu
   else if(strokeTool==='move'){ moveBase = activeData().slice(); }
   else { setPreview({layer:doc.al, data:activeData().slice()}); }
   restoreTerrainLock(strokeData);
@@ -264,7 +276,8 @@ function applyStroke(rawP, col, e){
       dy=Math.max(-strokeSelection.y,Math.min(doc.h-strokeSelection.y-strokeSelection.h,dy));
       view.sel={...strokeSelection,x:strokeSelection.x+dx,y:strokeSelection.y+dy};
     }
-    strokeData.set(moveBase); shiftLayer(strokeData,dx,dy,strokeSelection);
+    strokeData.set(moveBase); shiftLayer(strokeData,dx,dy,strokeSelection,view.wrapMove);
+    $('#hud').textContent = `✥ ${dx>=0?'+':''}${dx}, ${dy>=0?'+':''}${dy} px`+(view.wrapMove && !strokeSelection ? ' · dịch vòng' : '');
   }
   else if(preview){
     preview.data.set(activeData());
@@ -351,6 +364,7 @@ function endStroke(e){
   drawing=false; view.drawing=false; setStrokeSeen(null); pixelPerfectHistory=[];
   // chạm một cái bằng dụng cụ chọn = bỏ chọn
   if(strokeTool==='select' && view.sel && view.sel.w===1 && view.sel.h===1) view.sel=null;
+  if(LINE_TOOLS.includes(strokeTool) && last) lastDot={x:last.x,y:last.y};
   if(preview){ strokeData.set(preview.data); setPreview(null); }
   restoreTerrainLock(strokeData);
   const before=strokeUndo?.frames[strokeUndo.af][strokeUndo.al];
@@ -393,9 +407,20 @@ window.addEventListener('blur', ()=>{
   wrap.classList.remove('pan-ready');
 });
 
-function pick(p){
+function pick(p, toSec=false){
   const v = pixelAt(doc.af, p.x, p.y);
   if(((v>>>24)&255)===0) return;
-  view.pri = v;
+  if(toSec) view.sec = v; else view.pri = v;
   syncColors();
 }
+
+/* Ctrl + lăn chuột (hoặc chụm hai ngón trên touchpad) = phóng quanh con trỏ.
+   Lăn thường vẫn cuộn canvas như cũ. */
+wrap.addEventListener('wheel', e=>{
+  if(!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();                 // kể cả khi đang vẽ: không để trình duyệt phóng cả trang
+  if(drawing) return;
+  const dy = e.deltaMode===1 ? e.deltaY*16 : e.deltaY;
+  const f = Math.exp(-Math.max(-300, Math.min(300, dy)) * 0.0025);
+  setZoom(view.zoom*f, {x:e.clientX, y:e.clientY});
+}, {passive:false});

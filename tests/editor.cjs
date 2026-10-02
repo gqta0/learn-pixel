@@ -139,3 +139,52 @@ test('undo restores the atlas slot together with its pixels',()=>{
   e.run('undo()');assert.equal(e.doc.atlasEdit.terrainSlot,46);
   e.run('redo()');assert.equal(e.doc.atlasEdit.terrainSlot,47);
 });
+test('Shift+click with the pencil draws a straight line from the previous stroke end',()=>{
+  const e=editor();e.stroke(2,2);
+  e.event('pointerdown',1,9,2,'mouse',{shiftKey:true});e.event('pointerup',1,9,2);
+  for(let x=2;x<=9;x++) assert.notEqual(e.pixel(x,2),0);
+  assert.equal(e.marks(),2);e.run('undo()');assert.equal(e.pixel(5,2),0);assert.notEqual(e.pixel(2,2),0);
+});
+test('Shift+fill replaces every pixel of that colour, connected or not',()=>{
+  const e=editor();e.stroke(2,2);e.stroke(20,20);e.view.tool='fill';e.view.pri=0xff0000ff;
+  e.event('pointerdown',1,2,2,'mouse',{shiftKey:true});e.event('pointerup',1,2,2);
+  assert.equal(e.pixel(2,2),0xff0000ff);assert.equal(e.pixel(20,20),0xff0000ff);assert.equal(e.pixel(0,0),0);
+});
+test('Alt+click picks a colour without painting; right-click picker fills the secondary',()=>{
+  const e=editor();e.doc.frames[0][0][2*32+2]=0xff0a0b0c;
+  e.event('pointerdown',1,2,2,'mouse',{altKey:true});e.event('pointerup',1,2,2);
+  assert.equal(e.view.pri,0xff0a0b0c);assert.equal(e.marks(),0);
+  e.doc.frames[0][0][3*32+3]=0xff0d0e0f;e.view.tool='picker';
+  e.event('pointerdown',1,3,3,'mouse',{button:2,buttons:2});
+  assert.equal(e.view.sec,0xff0d0e0f);assert.equal(e.view.pri,0xff0a0b0c);
+});
+test('wrap move carries pixels across the opposite edge',()=>{
+  const e=editor();e.stroke(31,5);e.view.tool='move';e.view.wrapMove=true;
+  e.event('pointerdown',1,10,10);e.event('pointermove',1,12,10);e.event('pointerup',1,12,10);
+  assert.equal(e.pixel(31,5),0);assert.notEqual(e.pixel(1,5),0);
+});
+test('paste without a selection lands where it was copied and selects the pasted block',()=>{
+  const e=editor();e.stroke(10,12);e.view.sel={x:9,y:11,w:3,h:3};
+  e.run('copySel(activeData())');e.run('clearSel(activeData())');e.view.sel=null;
+  e.run('pasteClip(activeData())');
+  assert.notEqual(e.pixel(10,12),0);assert.deepEqual({...e.view.sel},{x:9,y:11,w:3,h:3});
+});
+test('outline wraps solid pixels in 4 directions, corners only on request',()=>{
+  const e=editor();e.stroke(10,10);
+  assert.equal(e.run('outlineData(activeData(),0xff000001)'),4);
+  assert.equal(e.pixel(9,10),0xff000001);assert.equal(e.pixel(9,9),0);
+  const f=editor();f.stroke(10,10);
+  assert.equal(f.run('outlineData(activeData(),0xff000001,true)'),8);assert.equal(f.pixel(9,9),0xff000001);
+});
+test('rotate turns a square block 90° and refuses non-square selections',()=>{
+  const e=editor();e.stroke(2,0);e.view.sel={x:0,y:0,w:4,h:4};
+  assert.equal(e.run('rotateData(activeData(),true)'),true);
+  assert.equal(e.pixel(2,0),0);assert.notEqual(e.pixel(3,2),0);
+  e.run('rotateData(activeData(),false)');assert.notEqual(e.pixel(2,0),0);
+  e.view.sel={x:0,y:0,w:4,h:3};assert.equal(e.run('rotateData(activeData(),true)'),false);
+});
+test('semi-transparent paint keeps its colour over an empty pixel',()=>{
+  const e=editor();
+  assert.equal(e.run('blendOver(0, 0x80ff8040)'),0x80ff8040);
+  assert.equal(e.run('blendOver(0xff000000, 0xffffffff)'),0xffffffff);
+});

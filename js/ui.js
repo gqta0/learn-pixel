@@ -1,9 +1,9 @@
 /* Keo dán giao diện: đồng bộ toàn bộ bảng điều khiển và nối mọi nút bấm.
    Chỉ ở đây mới được phép biết về cả tài liệu lẫn DOM. */
-import { $, $$, syncNavHeight } from './dom.js';
+import { $, $$, syncNavHeight, toast } from './dom.js';
 import { doc, view, blank, newFrame, activeData } from './state.js';
 import { hexToInt, intToHex } from './color.js';
-import { invalidateBuf, flipData, copySel, clearSel, pasteClip } from './raster.js';
+import { invalidateBuf, flipData, rotateData, outlineData, shiftLayer, copySel, clearSel, pasteClip, normSel } from './raster.js';
 import { pushUndo, undo, redo } from './history.js';
 import { render, fitZoom, setZoom } from './render.js';
 import { paintThumbs, paintPreview, togglePlay } from './frames.js';
@@ -25,36 +25,81 @@ import { openMapView, bindMapView } from './mapview.js';
 import { bindTerrain, syncTerrainBar, openTerrain, closeTerrain } from './terrainview.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
-/* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ */
+/* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ.
+   keep: true/'keep' neo góc trên-trái, 'center' căn giữa, false khung trắng */
 export function resizeDoc(w, h, keep){
   const old={w:doc.w,h:doc.h,frames:doc.frames};
   pushUndo();
   doc.terrainLink=null;
   doc.w=w; doc.h=h;
+  const ox = keep==='center' ? Math.floor((w-old.w)/2) : 0;
+  const oy = keep==='center' ? Math.floor((h-old.h)/2) : 0;
   doc.frames = old.frames.map(f=> f.map(src=>{
     const d=blank();
     if(keep){
-      const cw=Math.min(old.w,w), ch=Math.min(old.h,h);
-      for(let y=0;y<ch;y++) for(let x=0;x<cw;x++) d[y*w+x]=src[y*old.w+x];
+      for(let y=0;y<old.h;y++) for(let x=0;x<old.w;x++){
+        const nx=x+ox, ny=y+oy;
+        if(nx>=0 && ny>=0 && nx<w && ny<h) d[ny*w+nx]=src[y*old.w+x];
+      }
     }
     return d;
   }));
   invalidateBuf();
   fitZoom(); syncAll();
 }
+function changed(){
+  window.dispatchEvent(new CustomEvent('pixelchange'));
+  render(); paintThumbs();
+}
 function flipLayer(horiz){
   pushUndo();
   flipData(activeData(), horiz);
-  render(); paintThumbs();
+  changed();
+}
+function rotateLayer(cw){
+  const s=view.sel || {w:doc.w,h:doc.h};
+  if(s.w!==s.h){
+    toast(view.sel ? 'Chỉ xoay được vùng chọn vuông — vùng đang là '+s.w+'×'+s.h+'.'
+                   : 'Canvas '+doc.w+'×'+doc.h+' không vuông: chọn một vùng vuông rồi xoay.');
+    return;
+  }
+  pushUndo();
+  rotateData(activeData(), cw);
+  changed();
+}
+function addOutline(corners){
+  const before=activeData().slice();
+  const n=outlineData(activeData(), view.pri, corners);
+  if(!n){ toast('Không có chỗ nào để thêm viền — lớp đang trống hoặc đã kín.'); return; }
+  activeData().set(before); pushUndo(); outlineData(activeData(), view.pri, corners);
+  changed();
+  toast('Đã thêm viền '+n+' pixel bằng màu chính'+(corners?' (có góc chéo)':'')+'.');
+}
+/* đẩy lớp / vùng chọn đi một bước bằng phím mũi tên khi đang cầm dụng cụ Dịch lớp */
+function nudge(dx,dy){
+  const s=view.sel;
+  if(s){
+    dx=Math.max(-s.x,Math.min(doc.w-s.x-s.w,dx));
+    dy=Math.max(-s.y,Math.min(doc.h-s.y-s.h,dy));
+    if(!dx && !dy) return;
+  }
+  pushUndo();
+  shiftLayer(activeData(),dx,dy,s,view.wrapMove);
+  if(s) view.sel={...s,x:s.x+dx,y:s.y+dy};
+  changed();
 }
 /* đổi màu hàng loạt trên lớp hiện tại, mọi khung — quy trình palette swap */
 function replaceColor(from,to){
+  let n=0;
+  doc.frames.forEach(f=>{ const d=f[doc.al]; for(let i=0;i<d.length;i++) if(d[i]===from) n++; });
+  if(!n || from===to){ toast(from===to ? 'Màu phụ và màu chính đang trùng nhau.' : 'Lớp này không có pixel nào mang màu phụ '+intToHex(from)+'.'); return; }
   pushUndo();
   doc.frames.forEach(f=>{
     const d=f[doc.al];
     for(let i=0;i<d.length;i++) if(d[i]===from) d[i]=to;
   });
-  render(); paintThumbs();
+  changed();
+  toast('Đã đổi '+n+' pixel '+intToHex(from)+' → '+intToHex(to)+' ở '+doc.frames.length+' khung.');
 }
 
 export function syncAll(){
@@ -157,8 +202,9 @@ $('#rampAdd').addEventListener('click', ()=>{
 let pendingResize=null;
 const resizeDialog=$('#resizeDialog');
 resizeDialog.addEventListener('close', ()=>{
-  if(pendingResize && ['keep','blank'].includes(resizeDialog.returnValue))
-    resizeDoc(pendingResize.w,pendingResize.h,resizeDialog.returnValue==='keep');
+  const mode=resizeDialog.returnValue;
+  if(pendingResize && ['keep','center','blank'].includes(mode))
+    resizeDoc(pendingResize.w,pendingResize.h,mode==='blank' ? false : mode);
   else { $('#sizeW').value=doc.w; $('#sizeH').value=doc.h; }
   pendingResize=null;
 });
@@ -170,6 +216,9 @@ $('#applySize').addEventListener('click', ()=>{
   $('#resizeNote').textContent=doc.w+'×'+doc.h+' → '+w+'×'+h+' px';
   resizeDialog.showModal();
 });
+['#sizeW','#sizeH'].forEach(sel=>$(sel).addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); $('#applySize').click(); }
+}));
 $('#zoomIn').addEventListener('click', ()=>setZoom(view.zoom+2));
 $('#zoomOut').addEventListener('click', ()=>setZoom(view.zoom-2));
 $('#zoomFit').addEventListener('click', ()=>{ fitZoom(); render(); });
@@ -191,15 +240,20 @@ $('#tileBtn').addEventListener('click', e=>{
 });
 /* ---------------- vùng chọn ---------------- */
 function selAct(fn, undoable){
-  if(!view.sel && undoable!=='paste') return;
+  if(!view.sel && undoable!=='paste'){ toast('Chưa có vùng chọn — dùng dụng cụ ⬚ (A) hoặc Ctrl+A.'); return; }
   if(undoable) pushUndo();
   if(fn(activeData())===false && undoable) undo();
   render(); paintThumbs();
 }
-$('#selCopy').addEventListener('click', ()=>selAct(d=>copySel(d), false));
+$('#selCopy').addEventListener('click', ()=>selAct(d=>{ copySel(d); toast('Đã chép '+view.sel.w+'×'+view.sel.h+' px.'); }, false));
 $('#selCut').addEventListener('click',  ()=>selAct(d=>{ copySel(d); return clearSel(d); }, true));
 $('#selDel').addEventListener('click',  ()=>selAct(d=>clearSel(d), true));
-$('#selPaste').addEventListener('click',()=>selAct(d=>pasteClip(d), 'paste'));
+$('#selPaste').addEventListener('click',()=>selAct(d=>{
+  const ok=pasteClip(d);
+  if(ok===false) toast('Bộ nhớ tạm đang trống — chép (Ctrl+C) một vùng trước.');
+  else window.dispatchEvent(new CustomEvent('pixelchange'));
+  return ok;
+}, 'paste'));
 $('#selNone').addEventListener('click', ()=>{ view.sel=null; render(); });
 /* ---------------- chuyển lộ trình ---------------- */
 const TRACK_NOTE={
@@ -269,6 +323,16 @@ $('#lockA').addEventListener('click', e=>{
 });
 $('#flipH').addEventListener('click', ()=>flipLayer(true));
 $('#flipV').addEventListener('click', ()=>flipLayer(false));
+$('#rotCw').addEventListener('click', ()=>rotateLayer(true));
+$('#rotCcw').addEventListener('click', ()=>rotateLayer(false));
+$('#outlineBtn').addEventListener('click', e=>addOutline(e.shiftKey));
+export function setWrapMove(on){
+  view.wrapMove=!!on;
+  const b=$('#wrapBtn');
+  b.setAttribute('aria-pressed', view.wrapMove); b.classList.toggle('on', view.wrapMove);
+  render();
+}
+$('#wrapBtn').addEventListener('click', ()=>setWrapMove(!view.wrapMove));
 $('#replaceCol').addEventListener('click', ()=>replaceColor(view.sec, view.pri));
 $('#refToPal').addEventListener('click', ()=>refToPalette(16));
 $('#matSel').addEventListener('change', paintRamp);
@@ -277,7 +341,11 @@ $('#wipeSave').addEventListener('click', ()=>{
   try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
   location.reload();
 });
-$('#clearBtn').addEventListener('click', ()=>{ pushUndo(); activeData().fill(0); window.dispatchEvent(new CustomEvent('pixelchange')); render(); paintThumbs(); });
+$('#clearBtn').addEventListener('click', ()=>{
+  if(!activeData().some(v=>v)){ toast('Lớp này đang trống.'); return; }
+  pushUndo(); activeData().fill(0); changed();
+  toast('Đã xoá lớp "'+doc.layers[doc.al].name+'" ở khung '+(doc.af+1)+' — Ctrl+Z để lấy lại.');
+});
 $('#btnUndo').addEventListener('click', undo);
 $('#btnRedo').addEventListener('click', redo);
 
@@ -313,7 +381,7 @@ $('#lyDup').addEventListener('click', ()=>addLayer(true));
 $('#lyDel').addEventListener('click', delLayer);
 $('#lyMerge').addEventListener('click', mergeDown);
 
-$('#refFile').addEventListener('change', e=>{ if(e.target.files[0]) loadRef(e.target.files[0]); });
+$('#refFile').addEventListener('change', e=>{ if(e.target.files[0]) loadRef(e.target.files[0]); e.target.value=''; });
 $('#refOp').addEventListener('input', e=>{ view.refOp=+e.target.value/100; $('#refLbl').textContent=e.target.value+'%'; render(); });
 $('#refToPix').addEventListener('click', refToPixels);
 $('#refClear').addEventListener('click', ()=>{ view.ref=null; render(); });
@@ -322,7 +390,7 @@ $('#expPng').addEventListener('click', exportPng);
 $('#expSheet').addEventListener('click', exportSheet);
 $('#expPal').addEventListener('click', exportPalettePng);
 $('#expJson').addEventListener('click', exportJson);
-$('#impJson').addEventListener('change', e=>{ if(e.target.files[0]) importJson(e.target.files[0]); });
+$('#impJson').addEventListener('change', e=>{ if(e.target.files[0]) importJson(e.target.files[0]); e.target.value=''; });
 
 bindAtlas();
 bindMapView();
@@ -376,12 +444,29 @@ window.addEventListener('keydown', e=>{
   const k=e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey) && k==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
   if((e.ctrlKey||e.metaKey) && k==='y'){ e.preventDefault(); redo(); return; }
+  if((e.ctrlKey||e.metaKey) && k==='a'){
+    e.preventDefault(); view.sel=normSel(0,0,doc.w-1,doc.h-1); render(); return;
+  }
+  if((e.ctrlKey||e.metaKey) && k==='d'){ e.preventDefault(); view.sel=null; render(); return; }
   if((e.ctrlKey||e.metaKey) && 'cxv'.includes(k)){
     e.preventDefault();
     $(k==='c'?'#selCopy':k==='x'?'#selCut':'#selPaste').click();
     return;
   }
   if(e.ctrlKey||e.metaKey) return;
+  const arrows={arrowleft:[-1,0],arrowright:[1,0],arrowup:[0,-1],arrowdown:[0,1]};
+  if(arrows[k] && !e.altKey && view.tool==='move' && document.body.dataset.view!=='terrain' &&
+     !document.querySelector('.libwrap:not([hidden])')){
+    e.preventDefault();
+    const step=e.shiftKey ? (view.gridStep||8) : 1;
+    nudge(arrows[k][0]*step, arrows[k][1]*step);
+    return;
+  }
+  const onCanvas = document.body.dataset.view!=='terrain' && !document.querySelector('.libwrap:not([hidden])');
+  if(onCanvas && (k==='+'||k==='=')){ setZoom(view.zoom+2); return; }
+  if(onCanvas && (k==='-'||k==='_')){ setZoom(view.zoom-2); return; }
+  if(onCanvas && k==='0'){ fitZoom(); render(); return; }
+  if(onCanvas && k==='r'){ rotateLayer(!e.shiftKey); return; }
   if(k==='escape'){
     if(closePopup()) return;
     if(moreEl.open){ moreEl.open=false; moreEl.querySelector('summary').focus(); return; }

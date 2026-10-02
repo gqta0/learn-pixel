@@ -2,6 +2,7 @@
 import { $ } from './dom.js';
 import { doc, blank } from './state.js';
 import { pushUndo } from './history.js';
+import { blendOver } from './raster.js';
 import { render } from './render.js';
 import { paintThumbs } from './frames.js';
 import { syncAll } from './ui.js';
@@ -56,7 +57,7 @@ export function mergeDown(){
   pushUndo();
   doc.frames.forEach(f=>{
     const top=f[doc.al], bot=f[doc.al-1];
-    for(let i=0;i<bot.length;i++) if(top[i]) bot[i]=top[i];
+    for(let i=0;i<bot.length;i++) if(top[i]) bot[i]=blendOver(bot[i],top[i]);
     f.splice(doc.al,1);
   });
   doc.layers.splice(doc.al,1);

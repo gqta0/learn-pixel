@@ -18,8 +18,10 @@ doc.frames.push(newFrame());
 /* lớp đang chọn của khung đang mở */
 export function activeData(){ return doc.frames[doc.af][doc.al]; }
 
-let savedGroup = true;
+let savedGroup = true, savedPenBtn = 'sec';
+// Trình duyệt chặn bộ nhớ (chế độ riêng tư, iframe) thì localStorage ném lỗi — không được làm sập app.
 try { savedGroup = localStorage.getItem('lo-pixel-pal-group') !== 'false'; } catch(_) {}
+try { savedPenBtn = localStorage.getItem('lo-pixel-pen-btn') || 'sec'; } catch(_) {}
 
 export const view = {
   zoom:12, grid:true, onion:false, symLine:false, drawing:false, terrainGuide:true,
@@ -30,7 +32,7 @@ export const view = {
   lockAlpha:false, sel:null, shadeDir:1, gridStep:8, realSize:false,   // tô khối đi lên (+1) hay đi xuống (-1) trên dải
   ref:null, refOp:0.5,
   pressure:true, fingerMode:'draw', brushEff:1, hover:null,
-  penButton: localStorage.getItem('lo-pixel-pen-btn') || 'sec',
+  penButton: savedPenBtn, wrapMove:false,
   pixelPerfect:false, ditherPattern:'50', ditherMode:'sec',
   groupPalette: savedGroup,
   palettePinned: false,

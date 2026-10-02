@@ -22,6 +22,19 @@ let preview = null;     // {layer:index, data:Uint32Array} — xem trước hìn
 export { preview };
 export function setPreview(p){ preview=p; }
 
+/* chồng pixel s lên pixel d — dùng chung cho ghép lớp và Gộp xuống, để gộp xong
+   nhìn y như lúc còn hai lớp */
+export function blendOver(d, s){
+  const sa=(s>>>24)&255, da=(d>>>24)&255;
+  if(sa===255 || !da) return s;                  // dưới trống: giữ nguyên màu, không bị sạm đi
+  if(!sa) return d;
+  const a = sa/255, ia = 1-a;
+  const r = Math.round((s&255)*a + (d&255)*ia);
+  const g = Math.round(((s>>8)&255)*a + ((d>>8)&255)*ia);
+  const b = Math.round(((s>>16)&255)*a + ((d>>16)&255)*ia);
+  const na = Math.round(sa + da*ia);
+  return rgba(r,g,b,na);
+}
 function composite(frameIdx, target){
   target.fill(0);
   const frame = doc.frames[frameIdx];
@@ -30,15 +43,7 @@ function composite(frameIdx, target){
     const src = (preview && preview.layer===li && frameIdx===doc.af) ? preview.data : frame[li];
     for(let i=0;i<target.length;i++){
       const s=src[i]; if(!s) continue;
-      const sa=(s>>>24)&255;
-      if(sa===255){ target[i]=s; continue; }
-      const d=target[i], da=(d>>>24)&255;
-      const a = sa/255, ia = 1-a;
-      const r = Math.round((s&255)*a + (d&255)*ia);
-      const g = Math.round(((s>>8)&255)*a + ((d>>8)&255)*ia);
-      const b = Math.round(((s>>16)&255)*a + ((d>>16)&255)*ia);
-      const na = Math.round(sa + da*ia);
-      target[i] = rgba(r,g,b,na);
+      target[i] = blendOver(target[i], s);
     }
   }
 }
@@ -127,11 +132,18 @@ export function ellipseStamp(data,x0,y0,x1,y1,col,filled){
     if(!inEl(x-1,y)||!inEl(x+1,y)||!inEl(x,y-1)||!inEl(x,y+1)) stamp(data,x,y,col);
   }
 }
-export function floodFill(data,x,y,col){
+export function floodFill(data,x,y,col,global=false){
   if(!inside(x,y)) return;
   const target=data[idx(x,y)];
   if(target===col) return;
   if(view.lockAlpha && !target) return;          // khoá alpha: không loang ra vùng trống
+  if(global){                                    // Shift+tô: đổi mọi ô cùng màu, liền hay không
+    for(let cy=0;cy<doc.h;cy++) for(let cx=0;cx<doc.w;cx++){
+      const i=idx(cx,cy);
+      if(data[i]===target && inSel(cx,cy)) data[i]=col;
+    }
+    return;
+  }
   const st=[x,y];
   while(st.length){
     const cy=st.pop(), cx=st.pop();
@@ -142,15 +154,51 @@ export function floodFill(data,x,y,col){
     st.push(cx+1,cy, cx-1,cy, cx,cy+1, cx,cy-1);
   }
 }
-export function shiftLayer(data,dx,dy,selection=null){
+/* wrap: phần trôi khỏi mép này hiện lại ở mép đối diện — cách soi mối nối tile.
+   Chỉ áp dụng khi dịch cả lớp; vùng chọn thì luôn dịch thường. */
+export function shiftLayer(data,dx,dy,selection=null,wrap=false){
   const s=selection || {x:0,y:0,w:doc.w,h:doc.h};
   const out=data.slice();
+  if(wrap && !selection){
+    const W=doc.w, H=doc.h;
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++)
+      out[idx(((x+dx)%W+W)%W, ((y+dy)%H+H)%H)] = data[idx(x,y)];
+    data.set(out);
+    return;
+  }
   for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++) out[idx(x,y)]=0;
   for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++){
     const v=data[idx(x,y)];
     if(v && inside(x+dx,y+dy)) out[idx(x+dx,y+dy)]=v;
   }
   data.set(out);
+}
+/* Viền ngoài: tô màu col vào mọi ô trống kề một pixel đặc — viền sprite một nhát.
+   corners=false chỉ xét 4 hướng (viền bo góc, kiểu hay gặp ở sprite game). */
+export function outlineData(data,col,corners=false){
+  const s=view.sel || {x:0,y:0,w:doc.w,h:doc.h};
+  const solid=(x,y)=> inside(x,y) && ((data[idx(x,y)]>>>24)&255)>0;
+  const hits=[];
+  for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++){
+    if(data[idx(x,y)]) continue;
+    if(solid(x-1,y)||solid(x+1,y)||solid(x,y-1)||solid(x,y+1) ||
+       (corners && (solid(x-1,y-1)||solid(x+1,y-1)||solid(x-1,y+1)||solid(x+1,y+1)))) hits.push(idx(x,y));
+  }
+  hits.forEach(i=>{ data[i]=col; });
+  return hits.length;
+}
+/* Xoay 90° theo chiều kim đồng hồ (cw=false: ngược chiều). Chỉ xoay được vùng vuông:
+   vùng chọn vuông, hoặc cả lớp khi canvas vuông. Trả về false nếu không xoay được. */
+export function rotateData(data,cw=true){
+  const s=view.sel || {x:0,y:0,w:doc.w,h:doc.h};
+  if(s.w!==s.h) return false;
+  const n=s.w, out=data.slice();
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++){
+    const sx = cw ? y : n-1-y, sy = cw ? n-1-x : x;
+    out[idx(s.x+x,s.y+y)] = data[idx(s.x+sx,s.y+sy)];
+  }
+  data.set(out);
+  return true;
 }
 /* ---------------- vùng chọn & bộ nhớ tạm ---------------- */
 export function inSel(x,y){
@@ -171,13 +219,13 @@ export function normSel(x0,y0,x1,y1){
   const w=Math.min(doc.w,Math.max(x0,x1)+1)-x, h=Math.min(doc.h,Math.max(y0,y1)+1)-y;
   return (w>0&&h>0) ? {x,y,w,h} : null;
 }
-let clip=null;                                   // {w,h,data} — dùng chung mọi lớp, mọi khung
+let clip=null;                                   // {x,y,w,h,data} — dùng chung mọi lớp, mọi khung
 export function hasClip(){ return !!clip; }
 export function copySel(data){
   const s=view.sel; if(!s) return false;
   const out=new Uint32Array(s.w*s.h);
   for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++) out[y*s.w+x]=data[idx(s.x+x,s.y+y)];
-  clip={w:s.w,h:s.h,data:out};
+  clip={x:s.x,y:s.y,w:s.w,h:s.h,data:out};
   return true;
 }
 export function clearSel(data){
@@ -185,14 +233,18 @@ export function clearSel(data){
   for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++) data[idx(s.x+x,s.y+y)]=0;
   return true;
 }
-/* dán vào góc trên-trái của vùng chọn; chưa chọn thì dán về đúng chỗ cũ */
+/* dán vào góc trên-trái của vùng chọn; chưa chọn thì dán về đúng chỗ cũ.
+   Dán xong thì vùng chọn ôm đúng mảng vừa dán, để bấm Move kéo đi được ngay. */
 export function pasteClip(data){
   if(!clip) return false;
-  const ox=view.sel?view.sel.x:0, oy=view.sel?view.sel.y:0;
+  let ox=view.sel?view.sel.x:clip.x, oy=view.sel?view.sel.y:clip.y;
+  ox=Math.max(0,Math.min(ox,doc.w-1)); oy=Math.max(0,Math.min(oy,doc.h-1));
+  view.sel=null;                                 // put() không được cắt mảng dán theo vùng cũ
   for(let y=0;y<clip.h;y++) for(let x=0;x<clip.w;x++){
     const v=clip.data[y*clip.w+x];
     if(v && inside(ox+x,oy+y)) data[idx(ox+x,oy+y)]=v;
   }
+  view.sel=normSel(ox,oy,ox+clip.w-1,oy+clip.h-1);
   return true;
 }
 /* lật lớp theo chiều ngang hoặc dọc */

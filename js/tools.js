@@ -8,17 +8,17 @@ import { buildExercises } from './content/exercises.js';
 import { onLongPress, popover } from './popup.js';
 
 export const TOOLS=[
-  {id:'pencil', ic:'✏️', key:'B', name:'Bút (B)'},
+  {id:'pencil', ic:'✏️', key:'B', name:'Bút (B) — Shift+bấm kẻ thẳng từ điểm cuối nét trước'},
   {id:'dither', ic:'░', key:'D', name:'Chấm hạt dither (D)'},
   {id:'eraser', ic:'🧽', key:'E', name:'Xoá (E)'},
-  {id:'fill',   ic:'🪣', key:'G', name:'Tô loang (G)'},
-  {id:'picker', ic:'💧', key:'I', name:'Hút màu (I)'},
+  {id:'fill',   ic:'🪣', key:'G', name:'Tô loang (G) — Shift+bấm: đổi mọi ô cùng màu trên lớp'},
+  {id:'picker', ic:'💧', key:'I', name:'Hút màu (I) — chuột phải lấy màu phụ; Alt+bấm hút tạm với mọi dụng cụ'},
   {id:'line',   ic:'／', key:'L', name:'Đường thẳng (L)'},
   {id:'rect',   ic:'▭', key:'U', name:'Chữ nhật rỗng (U)'},
   {id:'rectf',  ic:'▬', key:'', name:'Chữ nhật đầy'},
   {id:'ellipse',ic:'◯', key:'O', name:'Ê-líp rỗng (O)'},
   {id:'ellipsef',ic:'⬤', key:'', name:'Ê-líp đầy'},
-  {id:'move',   ic:'✥', key:'M', name:'Dịch lớp (M)'},
+  {id:'move',   ic:'✥', key:'M', name:'Dịch lớp (M) — phím mũi tên đẩy 1px; chạm giữ để lật / xoay / dịch vòng'},
   {id:'shade',  ic:'◐', key:'S', name:'Tô khối theo dải (S) — bấm để sáng lên 1 bậc, chuột phải / nút bên S-Pen để tối đi'},
   {id:'select', ic:'⬚', key:'A', name:'Chọn vùng (A) — kéo để chọn, chạm một cái để bỏ chọn'}
 ];
@@ -82,9 +82,13 @@ const MODS={
     {label:'⌫ Xoá vùng', fn:()=>$('#selDel').click()},
     {label:'✕ Bỏ chọn',  fn:()=>$('#selNone').click()}
   ]},
-  move:{t:'Di chuyển / lật vùng chọn hoặc lớp hiện tại', items:()=>[
+  move:{t:'Di chuyển / lật / xoay vùng chọn hoặc lớp hiện tại', items:()=>[
     {label:'⇋ Lật ngang', fn:()=>$('#flipH').click()},
-    {label:'⇵ Lật dọc',   fn:()=>$('#flipV').click()}
+    {label:'⇵ Lật dọc',   fn:()=>$('#flipV').click()},
+    {label:'⟳ Xoay 90°',  fn:()=>$('#rotCw').click()},
+    {label:'⟲ Xoay −90°', fn:()=>$('#rotCcw').click()},
+    {label: view.wrapMove ? '↻ Dịch vòng: BẬT' : '↻ Dịch vòng: TẮT', on:!!view.wrapMove,
+     title:'Phần trôi khỏi mép hiện lại ở mép đối diện — soi mối nối tile', fn:()=>$('#wrapBtn').click()}
   ]}
 };
 MODS.rectf=MODS.rect; MODS.ellipsef=MODS.ellipse;

@@ -29,18 +29,25 @@ export function exportPng(){
   const base = sanitizeFilename(doc.name, 'sprite');
   download(base+'_'+doc.w+'x'+doc.h+'_f'+(doc.af+1)+'.png', cv.toDataURL('image/png'));
 }
+/* số cột của spritesheet: 0 = một hàng ngang, 'sq' = lưới gần vuông nhất */
+export function sheetCols(n, pick){
+  if(pick==='sq') return Math.max(1, Math.ceil(Math.sqrt(n)));
+  const c=parseInt(pick,10);
+  return c>0 ? Math.min(c,n) : n;
+}
 export function exportSheet(){
   const s=parseInt($('#expScale').value,10);
+  const n=doc.frames.length, cols=sheetCols(n, $('#expCols')?.value), rows=Math.ceil(n/cols);
   const cv=document.createElement('canvas');
-  cv.width=doc.w*s*doc.frames.length; cv.height=doc.h*s;
+  cv.width=doc.w*s*cols; cv.height=doc.h*s*rows;
   const c=cv.getContext('2d'); c.imageSmoothingEnabled=false;
   const tmp=document.createElement('canvas');
   doc.frames.forEach((f,i)=>{
     frameToCanvas(i,tmp,s);
-    c.drawImage(tmp, i*doc.w*s, 0);
+    c.drawImage(tmp, (i%cols)*doc.w*s, Math.floor(i/cols)*doc.h*s);
   });
   const base = sanitizeFilename(doc.name, 'spritesheet');
-  download(base+'_'+doc.w+'x'+doc.h+'_'+doc.frames.length+'f.png', cv.toDataURL('image/png'));
+  download(base+'_'+doc.w+'x'+doc.h+'_'+n+'f'+(rows>1?'_'+cols+'x'+rows:'')+'.png', cv.toDataURL('image/png'));
 }
 /* Nén RLE từng lớp: pixel art toàn mảng màu liền nhau nên một lớp 128×128
    trống rỗng còn 2 số thay vì 16384. Đây là thứ giữ bản lưu không vượt quota. */
@@ -115,7 +122,9 @@ export function exportPalettePng(){
 export function exportJson(){
   const base = sanitizeFilename(doc.name, 'du-an-pixel');
   const blob=new Blob([JSON.stringify(serialize())],{type:'application/json'});
-  download(base+'.json', URL.createObjectURL(blob));
+  const url=URL.createObjectURL(blob);
+  download(base+'.json', url);
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
 export function importJson(file){
   const fr=new FileReader();
