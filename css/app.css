@@ -256,6 +256,9 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   max-height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain;
 }
 .morebox .btn{text-align:left;justify-content:flex-start}
+/* Trên điện thoại/tablet thanh ngữ cảnh ngay dưới cũng là z-index 35 và đứng sau trong DOM,
+   nên đè lên mục đầu của hộp "⋯ Thêm". Nâng thanh công cụ lên khi hộp đang mở. */
+.stagebar:has(.more[open]){z-index:40}
 .stagebar .sep{width:1px;height:20px;background:var(--line);margin:0 2px}
 /* vùng canvas: mốc định vị cho thanh nhanh, để nó luôn nằm dưới thanh công cụ */
 .canvasarea{position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
@@ -873,3 +876,15 @@ body[data-view="terrain"] .col.right{display:none}
   .terrain-tile canvas{width:58px}
   .terrain-view .terrain-inspector{padding:10px}
 }
+
+/* thông báo ngắn tự tắt (toast) — nằm trên thanh dưới của điện thoại */
+.toast{
+  position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));z-index:60;
+  transform:translate(-50%,12px);opacity:0;pointer-events:none;
+  max-width:min(440px,calc(100vw - 32px));padding:9px 14px;border-radius:6px;
+  background:var(--panel);color:var(--text);border:1px solid var(--line-hi);
+  box-shadow:0 8px 22px rgba(0,0,0,.35);font-size:13px;line-height:1.4;text-align:center;
+  transition:opacity .18s ease, transform .18s ease;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (max-width:1000px){ .toast{bottom:calc(76px + env(safe-area-inset-bottom))} }

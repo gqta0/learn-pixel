@@ -42,7 +42,7 @@ export function paintThumbs(){
           const v = prompt('Thời lượng hiển thị khung '+ (i+1) +' (mili-giây, bỏ trống = theo fps):', doc.dur[i] || '');
           if(v !== null){
             const n = parseInt(v.trim(), 10);
-            doc.dur[i] = (isNaN(n) || n <= 0) ? 0 : n;
+            doc.dur[i] = (isNaN(n) || n <= 0) ? 0 : Math.max(10, Math.min(4000, n));   // cùng giới hạn với ô ms
             paintThumbs();
           }
         }}

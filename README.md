@@ -10,7 +10,9 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 - Khổ chữ nhật tuỳ ý tới 128×128, 12 dụng cụ (bút, xoá, tô loang, hút màu, đường, chữ nhật, ê-líp, dịch lớp, **tô khối theo dải**, **chọn vùng**), gương X/Y, lật ngang/dọc, **khoá alpha**.
 - Nhiều lớp (đổi được thứ tự chồng), nhiều khung hình, **thời lượng riêng cho từng khung**, bóng khung trước và sau (onion skin), xem trước lặp 3×3 cho tile.
 - **Soi bản đồ hang động (Map Preview 24×16)**: cửa sổ xem trước và thử nghiệm bản đồ chuẩn theo đặc tả `genesis.tileset.preview.v1`, hỗ trợ autotile blob 47 ô + đủ bộ 56 ô, **ba chế độ Natural / Coverage 56 / Recipe** để vừa soi seam liền mạch vừa kiểm độ phủ từng slot, **khay chọn & vẽ trực tiếp các tile đang có** (Atlas, Thư viện bản vẽ, Canvas) bằng thao tác kéo rê chuột (Bresenham drag), **tạm giữ mẫu (Snapshot)**, **so sánh nhấp nháy A/B (Flicker compare - phím Space)**, **bóng ma đối chiếu (Ghost overlay)** và ghim tile đối chiếu.
-- Cắt / chép / dán vùng chọn giữa mọi lớp và khung.
+- Cắt / chép / dán vùng chọn giữa mọi lớp và khung; dán xong vùng chọn ôm đúng mảng vừa dán để kéo đi ngay, chưa chọn gì thì dán về đúng chỗ đã chép.
+- Công cụ cho asset game: **xoay 90°** (R / Shift+R) vùng vuông, **viền ngoài** một nhát bằng màu chính (Shift: lấy cả góc chéo), **dịch vòng** (wrap) để soi mối nối tile, phím mũi tên đẩy lớp/vùng chọn 1px khi cầm Dịch lớp (Shift: theo bước lưới đậm), **Shift+tô loang** đổi mọi ô cùng màu, **Shift+bấm** bút/tẩy kẻ thẳng từ điểm cuối nét trước, **Alt+bấm** hút màu tạm, chuột phải với ống hút lấy màu phụ.
+- **Ctrl+lăn chuột** (hoặc chụm touchpad) phóng quanh con trỏ; **+ − 0** phóng/thu/vừa khung; **Ctrl+A / Ctrl+D** chọn hết / bỏ chọn.
 - Hoàn tác 80 bước. Tối ưu trải nghiệm S-Pen & cảm ứng cho Galaxy S22 Ultra & Galaxy Tab S10 FE: tuỳ chọn chức năng nút bấm S-Pen (Màu phụ / Cục tẩy tức thì / Hút màu tức thì), tự động chống chạm nhầm tay (Palm Rejection) không bị khoá cứng khi bật vẽ ngón, cử chỉ 2 ngón phóng/kéo mượt mà với bộ đệm chống nét vẽ lạc (140ms cooldown), thanh màu nhanh (Quick Palette Popover) ngay trên canvas, và bố cục 3 cột chuyên nghiệp chuẩn Workstation cho Tablet landscape (1001px-1280px) cùng ngăn kéo trượt thông minh cho Tablet portrait.
 
 **Màu**
@@ -36,7 +38,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 - **Thư viện bản vẽ**: giữ nhiều bức cùng lúc, xem dạng lưới ảnh nhỏ, mở lại bất cứ lúc nào.
   Bấm *Dựng khung* ở một bài tập thì bức đang làm dở tự được cất vào đây thay vì bị xoá.
 - Tự lưu vào trình duyệt (localStorage, nén RLE) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập. Tiến độ lưu theo tên bài nên chèn bài mới không làm lệch.
-- Xuất PNG / PNG spritesheet / PNG bảng màu, lưu & mở dự án `.json` (nén RLE).
+- Xuất PNG / PNG spritesheet (1 hàng, 4 cột, 8 cột hoặc lưới vuông) / PNG bảng màu, lưu & mở dự án `.json` (nén RLE).
 
 ## Terrain 56 — template có hướng dẫn pixel
 
@@ -106,8 +108,8 @@ node --test tests/editor.cjs
 ```
 
 Giữ Space + kéo chuột hoặc kéo bằng chuột giữa để di chuyển canvas. Hai ngón
-phóng/kéo quanh điểm chạm; Esc huỷ nét đang kéo. Move và Lật chỉ tác động trong
-vùng chọn khi có vùng chọn. Đổi khổ có ba lựa chọn: giữ nội dung, khung trắng, huỷ.
+phóng/kéo quanh điểm chạm; Esc huỷ nét đang kéo. Move, Lật và Xoay chỉ tác động trong
+vùng chọn khi có vùng chọn. Đổi khổ có bốn lựa chọn: giữ ở góc trên-trái, giữ ở giữa, khung trắng, huỷ.
 Dải sáng–tối giữ nguyên khi lấy màu; dùng **Tạo dải từ màu chính** để tạo lại.
 
 ```
