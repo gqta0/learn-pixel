@@ -12,7 +12,7 @@ import { fitZoom, render } from './render.js';
 import { download } from './storage.js';
 import { keepBeforeReplace } from './library.js';
 import { syncAll } from './ui.js';
-import { TERRAIN_SCHEMA } from './terrain.js';
+import { TERRAIN_SCHEMA, TERRAIN_LAYOUT } from './terrain.js';
 
 const KEY='lo-pixel-atlas';
 const MAXPX=128;                    // cụm ô lôi ra không được to hơn khổ canvas cho phép
@@ -30,9 +30,18 @@ export function editingRect(){
     ['x','y','w','h','c','r0'].every(k=>Number.isInteger(e[k])&&e[k]>=0) &&
     e.w===doc.w && e.h===doc.h && e.x+e.w<=atlas.cv.width && e.y+e.h<=atlas.cv.height ? e : null;
 }
+/* Layout 1 → 2: #50 và #51 đổi từ biến thể ruột sang biến thể sàn. Tranh ruột cũ nằm
+   ở slot sàn sẽ thành mặt sàn không có mép, nên chép ô sàn gốc #31 vào hai slot đó —
+   đúng hình ngay, và người vẽ chỉ còn việc sửa cho khác đi. */
+export function migrateTerrainLayout(cv,size){
+  const g=cv.getContext('2d'), at=slot=>[(slot%8)*size,Math.floor(slot/8)*size];
+  const [sx,sy]=at(31);
+  for(const slot of [50,51]){ const [x,y]=at(slot); g.clearRect(x,y,size,size); g.drawImage(cv,sx,sy,size,size,x,y,size,size); }
+  return cv;
+}
 export function createTerrainAtlas(cv,size,replace=false){
   if(atlas && !replace && !confirm('Thay atlas hiện tại bằng bộ Terrain 56? Hãy xuất PNG atlas cũ trước nếu cần giữ. Bản đang vẽ không bị xoá.')) return false;
-  atlas={id:crypto.randomUUID(),name:'terrain56-'+size,cv,tw:size,th:size,pad:0,off:0,terrain:TERRAIN_SCHEMA};
+  atlas={id:crypto.randomUUID(),name:'terrain56-'+size,cv,tw:size,th:size,pad:0,off:0,terrain:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT};
   sel=anchor=null; doc.atlasEdit=null; zoom=2;
   save(); syncBar(); return true;
 }
@@ -56,6 +65,16 @@ export function writeTerrainSlot(slot, frameIndex=doc.af, persist=true){
   g.clearRect(x,y,atlas.tw,atlas.th); g.drawImage(cv,x,y);
   if(persist) save();
   if(!$('#atlasWrap').hidden) paint();
+  return true;
+}
+/* Ghi một canvas ô vào slot — dùng khi app tự dựng ô (ghép từ ô lõi, chép ô gốc),
+   tức không có frame nào để lấy tranh như writeTerrainSlot. */
+export function writeTerrainPixels(slot,tile,persist=true){
+  if(!atlas || atlas.terrain!==TERRAIN_SCHEMA || !Number.isInteger(slot) || slot<0 || slot>=56) return false;
+  const x=atlas.off+(slot%cols())*stepX(), y=atlas.off+Math.floor(slot/cols())*stepY();
+  const g=atlas.cv.getContext('2d');
+  g.clearRect(x,y,atlas.tw,atlas.th); g.drawImage(tile,x,y);
+  if(persist) save();
   return true;
 }
 export function editAtlasSlot(slot){
@@ -120,7 +139,7 @@ function save(immediate=false){
     if(!atlas) return;
     try{
       localStorage.setItem(KEY, JSON.stringify({
-        id:atlas.id, terrain:atlas.terrain, name:atlas.name, tw:atlas.tw, th:atlas.th, pad:atlas.pad, off:atlas.off,
+        id:atlas.id, terrain:atlas.terrain, layout:atlas.layout, name:atlas.name, tw:atlas.tw, th:atlas.th, pad:atlas.pad, off:atlas.off,
         png:atlas.cv.toDataURL('image/png')
       }));
       note('Đã cất vào trình duyệt.');
@@ -141,7 +160,15 @@ export function loadAtlas(){
     const im=new Image();
     im.onload=()=>{
       if(atlas) return; // a user import/create wins over an older asynchronous restore
-      atlas={id:d.id||crypto.randomUUID(),terrain:d.terrain,name:d.name, cv:imgToCanvas(im), tw:d.tw, th:d.th, pad:d.pad, off:d.off};
+      atlas={id:d.id||crypto.randomUUID(),terrain:d.terrain,layout:d.layout,name:d.name, cv:imgToCanvas(im), tw:d.tw, th:d.th, pad:d.pad, off:d.off};
+      if(atlas.terrain===TERRAIN_SCHEMA && atlas.layout!==TERRAIN_LAYOUT && atlas.cv.width===atlas.tw*8 && atlas.cv.height===atlas.th*7){
+        migrateTerrainLayout(atlas.cv,atlas.tw);
+        atlas.layout=TERRAIN_LAYOUT;
+        // frame đang link cũng phải đổi theo, nếu không lần đồng bộ sau sẽ ghi tranh ruột cũ đè lại
+        if(linkedTerrainFrameIndex(31)>=0) for(const slot of [50,51])
+          doc.frames[linkedTerrainFrameIndex(slot)]=doc.frames[linkedTerrainFrameIndex(31)].map(layer=>layer.slice());
+        save(true);
+      }
       syncAll();
     };
     im.src=d.png;

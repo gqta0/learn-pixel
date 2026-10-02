@@ -45,6 +45,19 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 Mở **Terrain** từ thanh Terrain trên tablet, tab File/Atlas hoặc tab Terrain trên thanh
 dưới mobile. Workbench trình bày 56 slot theo nhóm hình học; ID atlas vẫn giữ nguyên.
 
+Màn Terrain chia năm thẻ, mỗi thẻ một việc: **Bộ ô** (chọn ô, ô đang chọn luôn nằm ở
+thanh dưới cùng với nút vẽ) · **Chi tiết** (vai trò pixel, ô nối được; trên màn rộng nằm
+sẵn cạnh lưới) · **Tạo bộ** · **Soi lỗi** · **Xuất**.
+
+**Hai cách làm**, chọn ở thẻ Tạo bộ:
+
+- **Vẽ tay cả 56 ô** — mặc định.
+- **Vẽ 13 ô lõi, app ghép phần còn lại** — 13 ô lõi là khối 3×3 cơ bản và 4 ô lõm một góc;
+  chúng phủ hơn 99% bản đồ thường gặp. Mỗi ô blob là bốn góc phần tư, mỗi góc chỉ có 5
+  trạng thái, nên 34 ô còn lại dựng được từ 13 ô này. App **chỉ ghép khi bấm ⚙ Ghép 34 ô**
+  và có hỏi lại; ô lõi và biến thể không bị đụng. **⧉ Biến thể ← ô gốc** chép ô gốc vào 9 ô
+  biến thể để chỉ còn việc sửa cho khác đi.
+
 1. Chọn 16×16 hoặc 32×32, bấm **Tạo bộ 56 ô**. App dựng khối nền đá để vẽ tiếp;
    có thể chọn nhanh preset **Đá lạnh / Đất / Blue Qi / Qi xanh dương / Sky/Water / Qi Violet** hoặc chọn **Nền** và
    **Cạnh** trực tiếp từ palette hiện tại trước khi tạo. Nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
@@ -70,8 +83,16 @@ Layout riêng, 8 cột × 7 hàng, đánh số từ 0:
 | Slot | Vai trò |
 | --- | --- |
 | 00–46 | 47 mask blob hợp lệ, sắp theo giá trị tăng dần; #46 là ruột gốc |
-| 47–51 | 5 biến thể ruột bổ sung; giữ nguyên pixel sát biên |
-| 52–55 | Mép sàn, trần, tường trái, tường phải; đổi đường viền giữa cạnh hở |
+| 47–49 | 3 biến thể ruột (gốc #46); giữ nguyên pixel sát biên |
+| 50–52 | 3 biến thể sàn (gốc #31) — mặt sàn là thứ người chơi nhìn nhiều nhất |
+| 53–55 | Biến thể trần (#38), tường trái (#24), tường phải (#42) |
+
+Đây là layout 2. Bộ ô lưu theo layout cũ (5 ruột + 4 mép) được chuyển tự động khi mở:
+#50 và #51 đổi từ ruột sang sàn nên được chép ô sàn gốc #31 vào; các slot khác giữ nguyên.
+
+Ô có nhiều biến thể thì chia đều với ô gốc; ô chỉ có một biến thể thì biến thể chiếm 1/3.
+Vị trí chọn bằng phép băm có bước trộn, nên không lặp theo nhịp dọc mặt sàn.
+**Godot mapping** xuất đủ 8 bit góc và cạnh (Terrain Set mode *Match Corners and Sides*).
 
 Bit N=1, E=2, S=4, W=8, NE=16, SE=32, SW=64, NW=128. Góc chéo chỉ xét khi hai
 cạnh kề đều có đất. Đây là **47 topology + 9 biến thể hình ảnh**, không phải 56

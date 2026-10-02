@@ -365,99 +365,161 @@
       </div>
     </div>
 
-    <!-- ================= XƯỞNG TERRAIN 56 (VIEW CHÍNH QUY) ================= -->
-    <div class="terrain-view" id="terrainWrap">
-      <div class="libbar">
-        <p class="eyebrow terrain-title">🧩 Terrain 56 · Tileset Workbench</p>
-        <div class="terrain-actions terrain-primary-actions" aria-label="Thao tác terrain">
-          <button class="btn tiny" id="terrainCheck" title="Soi lỗi viền nối giữa các ô">Soi mối nối</button>
-          <select id="terrainCheckMode" title="Chọn mức kiểm tra mối nối">
-            <option value="all" selected>Alpha + màu/vân</option>
-            <option value="alpha">Chỉ alpha</option>
-            <option value="color">Chỉ màu/vân</option>
-          </select>
-          <button class="btn tiny" id="terrainMap" title="Xem thử trên bản đồ hang động">🗺 Xem map</button>
-          <button class="btn tiny" id="terrainNextIssue" title="Chọn tile đầu tiên đang có lỗi sau lần soi gần nhất">◎ Ô cần sửa</button>
-          <button class="btn tiny primary" id="terrainEdit" title="Nạp ô đang chọn lên canvas chính để vẽ">✎ Vẽ ô này</button>
-          <button class="btn tiny" id="terrainClose" title="Quay lại khung vẽ (hoặc bấm tab Vẽ ở thanh dưới)">← Quay lại vẽ</button>
-        </div>
-        <div class="terrain-actions terrain-export-actions" aria-label="Xuất terrain">
-          <button class="btn tiny" id="terrainPng" title="Xuất toàn bộ 56 ô thành ảnh PNG sạch">⬇ PNG sạch</button>
-          <button class="btn tiny" id="terrainAnnotated" title="Xuất ảnh PNG có chú thích từng ô">⬇ PNG chú thích</button>
-          <button class="btn tiny" id="terrainManifest" title="Xuất file JSON mapping autotile">⬇ JSON layout</button>
-          <button class="btn tiny" id="terrainGodot" title="Xuất mapping handoff cho Godot 4 TileSet Terrain">⬇ Godot</button>
-          <button class="btn tiny" id="terrainPack" title="Xuất một file pack gồm PNG, annotation và mapping">⬇ Xuất bộ</button>
-          <button class="btn tiny primary" id="terrainProject" title="Lưu atlas, mapping và cấu hình link thành project JSON">⬇ Dự án JSON</button>
-          <label class="btn tiny filelabel" title="Mở project Terrain 56 hoặc terrain56-pack.json">⬆ Mở JSON<input type="file" id="terrainProjectFile" accept=".json,application/json"></label>
-        </div>
-      </div>
-      <div class="atbar">
-        <label class="mini">Khổ</label>
-        <select id="terrainSize"><option value="16">16×16</option><option value="32">32×32</option></select>
-        <button class="btn tiny primary" id="terrainCreate">Tạo bộ 56 ô</button>
-        <button class="btn tiny" id="terrainSyncFrames" title="Ghi 56 frame đang link vào atlas, không tạo lại và không xoá dữ liệu">↻ Đồng bộ 56</button>
-        <select id="terrainCreatePreset" title="Chọn nhanh màu cho bộ Terrain mới">
-          <option value="stone">🎨 Đá lạnh</option>
-          <option value="custom">Tự chọn màu</option>
-          <option value="soil">Đất</option>
-          <option value="blueQi">Blue Qi</option>
-          <option value="qiBlue">Qi xanh dương</option>
-          <option value="skyWater">Sky/Water</option>
-          <option value="qi">Qi Violet</option>
-        </select>
-        <div class="terrain-create-colors" role="group" aria-label="Màu tạo Terrain 56 từ Master Palette 72 màu" title="Danh sách màu lấy cố định từ Master Palette (72 màu)">
-          <span class="terrain-create-palette-source">MASTER<br>72 MÀU</span>
-          <div class="terrain-create-color" title="Chọn màu thân và ruột cho bộ Terrain mới">
-            <i id="terrainCreateBaseChip" aria-hidden="true"></i>
-            <div class="terrain-create-color-body">
-              <div class="terrain-create-color-heading"><b>Nền</b><span id="terrainCreateBaseName"></span><code id="terrainCreateBaseHex"></code></div>
-              <div class="terrain-create-color-selects"><select id="terrainCreateBaseGroup" aria-label="Nhóm palette cho màu nền"></select><select id="terrainCreateBase" aria-label="Màu nền trong nhóm đã chọn"></select></div>
+    <!-- ================= XƯỞNG TERRAIN 56 =================
+         Năm thẻ thay cho hai thanh công cụ cuộn ngang: mỗi thẻ là một việc
+         (chọn ô · xem ô · tạo bộ · soi lỗi · xuất), nên không nút nào bị giấu. -->
+    <div class="terrain-view" id="terrainWrap" data-tpane="tiles">
+      <header class="tv-head">
+        <p class="eyebrow tv-title">🧩 Terrain 56</p>
+        <span class="kbd tv-state" id="terrainState" role="status" aria-live="polite"></span>
+        <button class="btn tiny" id="terrainClose" title="Quay lại khung vẽ">← Khung vẽ</button>
+      </header>
+      <nav class="tv-tabs" role="tablist" aria-label="Các phần của xưởng Terrain">
+        <button role="tab" data-tpane="tiles" aria-selected="true">Bộ ô</button>
+        <button role="tab" data-tpane="detail" aria-selected="false" class="tv-narrow">Chi tiết</button>
+        <button role="tab" data-tpane="setup" aria-selected="false">Tạo bộ</button>
+        <button role="tab" data-tpane="check" aria-selected="false">Soi lỗi<b class="tv-badge" id="terrainIssueBadge" hidden></b></button>
+        <button role="tab" data-tpane="export" aria-selected="false">Xuất</button>
+      </nav>
+
+      <div class="tv-body">
+        <!-- ===== Bộ ô ===== -->
+        <section class="tv-pane tv-tiles" data-tpane="tiles">
+          <div class="tv-row tv-filter">
+            <select id="terrainFilter" aria-label="Lọc ô">
+              <option value="all">Tất cả 56 ô</option><option value="surface">Sàn / trần / tường</option>
+              <option value="inner">Góc trong</option><option value="outer">Góc ngoài</option><option value="variants">9 biến thể</option>
+            </select>
+            <label class="tv-check"><input type="checkbox" id="terrainGuides" checked> Hướng dẫn pixel</label>
+          </div>
+          <div class="tv-core" id="terrainCoreBar" hidden>
+            <p class="kbd"><b>Chế độ 13 ô lõi.</b> Vẽ 13 ô viền xanh, rồi để app ghép 34 ô còn lại.</p>
+            <div class="tv-row">
+              <button class="btn tiny primary" id="terrainCompose" title="Dựng 34 ô còn lại từ bốn góc phần tư của 13 ô lõi. Ô lõi và biến thể không bị đụng.">⚙ Ghép 34 ô</button>
+              <button class="btn tiny" id="terrainSeedVariants" title="Chép ô gốc vào 9 ô biến thể để bạn chỉ còn việc sửa cho khác đi">⧉ Biến thể ← ô gốc</button>
             </div>
           </div>
-          <div class="terrain-create-color" title="Chọn màu cạnh và viền cho bộ Terrain mới">
-            <i id="terrainCreateEdgeChip" aria-hidden="true"></i>
-            <div class="terrain-create-color-body">
-              <div class="terrain-create-color-heading"><b>Cạnh</b><span id="terrainCreateEdgeName"></span><code id="terrainCreateEdgeHex"></code></div>
-              <div class="terrain-create-color-selects"><select id="terrainCreateEdgeGroup" aria-label="Nhóm palette cho màu cạnh"></select><select id="terrainCreateEdge" aria-label="Màu cạnh trong nhóm đã chọn"></select></div>
-            </div>
+          <div class="terrain-grid" id="terrainGrid" aria-label="56 ô terrain"></div>
+          <div class="tv-pick">
+            <canvas id="terrainPickThumb" width="40" height="40" aria-hidden="true"></canvas>
+            <div class="tv-pick-text"><b id="terrainPickTitle"></b><span class="kbd" id="terrainPickMeta"></span></div>
+            <button class="btn tiny tv-narrow" id="terrainPickDetail" title="Xem vai trò từng pixel và các ô nối được">ⓘ</button>
+            <button class="btn tiny primary" id="terrainEdit" title="Nạp ô đang chọn lên khung vẽ (Enter, hoặc nhấp đúp lên ô)">✎ Vẽ ô này</button>
           </div>
-        </div>
-        <details class="terrain-frame-options" id="terrainFrameOptions">
-          <summary>↔ Liên kết tile / frame</summary>
-          <label title="Chỉ áp dụng khi tạo bộ mới; dựng 56 frame tương ứng với #00–#55"><input type="checkbox" id="terrainCreateFrames"> Tạo 56 frame khi tạo mới</label>
-          <label title="Hiện #ID của terrain ở dưới thumbnail frame"><input type="checkbox" id="terrainFrameLabels" checked> ID dưới frame</label>
-          <label title="Frame đổi là preview Terrain đổi theo"><input type="checkbox" id="terrainFrameLive" checked> Live preview</label>
-          <label title="Tự ghi frame hiện tại vào Atlas Terrain"><input type="checkbox" id="terrainFrameAutoSave" checked> Tự lưu Terrain</label>
-        </details>
-        <span class="sep"></span>
-        <label><input type="checkbox" id="terrainGuides" checked> Hướng dẫn pixel</label>
-        <label class="mini">Lọc</label>
-        <select id="terrainFilter">
-          <option value="all">Tất cả 56 ô</option><option value="surface">Sàn / trần / tường</option>
-          <option value="inner">Góc trong</option><option value="outer">Góc ngoài</option><option value="variants">9 biến thể</option>
-        </select>
-        <span class="kbd" id="terrainState" style="margin-left:auto"></span>
-      </div>
-      <div class="terrain-layout" style="flex:1 1 auto;min-height:0;overflow:hidden">
-        <div class="terrain-grid" id="terrainGrid" aria-label="56 ô terrain" style="overflow-y:auto"></div>
-        <section class="terrain-inspector" aria-labelledby="terrainTitle" style="overflow-y:auto">
+        </section>
+
+        <!-- ===== Chi tiết ô ===== -->
+        <section class="tv-pane terrain-inspector" data-tpane="detail" aria-labelledby="terrainTitle">
           <div class="terrain-inspector-head">
-            <div>
-              <h3 id="terrainTitle" style="margin:0"></h3>
-              <p class="kbd" id="terrainMeta" style="margin:2px 0 6px"></p>
-            </div>
-            <button class="btn primary wide" id="terrainInspectEdit" title="Nạp ô này lên khung vẽ để vẽ (hoặc nhấp đúp lên ô)">✎ Vẽ ô này ngay (Nhấp đúp)</button>
+            <h3 id="terrainTitle"></h3>
+            <p class="kbd" id="terrainMeta"></p>
+            <button class="btn primary wide" id="terrainInspectEdit" title="Nạp ô này lên khung vẽ">✎ Vẽ ô này</button>
           </div>
           <canvas id="terrainDetail" aria-label="Vai trò pixel của ô đang chọn"></canvas>
           <p class="kbd" id="terrainPixel">Rê bút/chuột lên ô để xem pixel cần vẽ gì.</p>
           <p id="terrainRecipe"></p>
           <div class="terrain-legend" id="terrainLegend" aria-label="Chú giải vai trò pixel"></div>
+          <p class="eyebrow">Ô nối được</p>
           <div id="terrainNeighbors"></div>
           <p class="kbd" id="terrainPairLabel"></p>
           <canvas id="terrainPair" aria-label="Hai ô ghép cạnh nhau"></canvas>
         </section>
+
+        <!-- ===== Tạo bộ ===== -->
+        <section class="tv-pane tv-form" data-tpane="setup">
+          <div class="tv-card">
+            <p class="eyebrow">Cách làm</p>
+            <label class="tv-radio"><input type="radio" name="terrainMode" value="full" checked>
+              <span><b>Vẽ tay cả 56 ô</b><i>Toàn quyền trên từng ô. Hợp khi đã quen tay.</i></span></label>
+            <label class="tv-radio"><input type="radio" name="terrainMode" value="core">
+              <span><b>Vẽ 13 ô lõi, app ghép phần còn lại</b><i>13 ô này phủ hơn 99% bản đồ thường gặp. 34 ô kia dựng từ bốn góc phần tư của chúng, chỉ khi bạn bấm Ghép.</i></span></label>
+          </div>
+          <div class="tv-card">
+            <p class="eyebrow">Bộ mới</p>
+            <div class="tv-row">
+              <label class="mini" for="terrainSize">Khổ ô</label>
+              <select id="terrainSize"><option value="16">16×16</option><option value="32">32×32</option></select>
+              <label class="mini" for="terrainCreatePreset">Màu</label>
+              <select id="terrainCreatePreset" title="Chọn nhanh màu cho bộ Terrain mới">
+                <option value="stone">Đá lạnh</option>
+                <option value="custom">Tự chọn màu</option>
+                <option value="soil">Đất</option>
+                <option value="blueQi">Blue Qi</option>
+                <option value="qiBlue">Qi xanh dương</option>
+                <option value="skyWater">Sky/Water</option>
+                <option value="qi">Qi Violet</option>
+              </select>
+            </div>
+            <div class="terrain-create-colors" role="group" aria-label="Màu tạo Terrain 56 từ Master Palette 72 màu">
+              <div class="terrain-create-color" title="Màu thân và ruột">
+                <i id="terrainCreateBaseChip" aria-hidden="true"></i>
+                <div class="terrain-create-color-body">
+                  <div class="terrain-create-color-heading"><b>Nền</b><span id="terrainCreateBaseName"></span><code id="terrainCreateBaseHex"></code></div>
+                  <div class="terrain-create-color-selects"><select id="terrainCreateBaseGroup" aria-label="Nhóm palette cho màu nền"></select><select id="terrainCreateBase" aria-label="Màu nền trong nhóm đã chọn"></select></div>
+                </div>
+              </div>
+              <div class="terrain-create-color" title="Màu cạnh và viền">
+                <i id="terrainCreateEdgeChip" aria-hidden="true"></i>
+                <div class="terrain-create-color-body">
+                  <div class="terrain-create-color-heading"><b>Cạnh</b><span id="terrainCreateEdgeName"></span><code id="terrainCreateEdgeHex"></code></div>
+                  <div class="terrain-create-color-selects"><select id="terrainCreateEdgeGroup" aria-label="Nhóm palette cho màu cạnh"></select><select id="terrainCreateEdge" aria-label="Màu cạnh trong nhóm đã chọn"></select></div>
+                </div>
+              </div>
+            </div>
+            <label class="tv-check" title="Dựng 56 frame tương ứng với #00–#55 để lật qua lại bằng dải khung"><input type="checkbox" id="terrainCreateFrames"> Trải 56 ô thành 56 frame</label>
+            <button class="btn primary wide" id="terrainCreate">Tạo bộ 56 ô</button>
+          </div>
+          <div class="tv-card" id="terrainFrameOptions">
+            <p class="eyebrow">Liên kết ô ↔ frame</p>
+            <label class="tv-check" title="Hiện #ID của terrain dưới thumbnail frame"><input type="checkbox" id="terrainFrameLabels" checked> Hiện #ID dưới frame</label>
+            <label class="tv-check" title="Frame đổi là ô trong xưởng đổi theo"><input type="checkbox" id="terrainFrameLive" checked> Xem trước trực tiếp</label>
+            <label class="tv-check" title="Tự ghi frame hiện tại vào atlas"><input type="checkbox" id="terrainFrameAutoSave" checked> Tự ghi vào atlas</label>
+            <button class="btn wide" id="terrainSyncFrames" title="Ghi 56 frame đang link vào atlas, không tạo lại và không xoá dữ liệu">↻ Đồng bộ 56 frame vào atlas</button>
+          </div>
+        </section>
+
+        <!-- ===== Soi lỗi ===== -->
+        <section class="tv-pane tv-form" data-tpane="check">
+          <div class="tv-card">
+            <p class="eyebrow">Mối nối</p>
+            <div class="tv-row">
+              <select id="terrainCheckMode" title="Chọn mức kiểm tra mối nối">
+                <option value="all" selected>Alpha + màu/vân</option>
+                <option value="alpha">Chỉ alpha</option>
+                <option value="color">Chỉ màu/vân</option>
+              </select>
+              <button class="btn tiny primary" id="terrainCheck" title="Soi lỗi viền nối giữa các ô">Soi mối nối</button>
+              <button class="btn tiny" id="terrainNextIssue" title="Chọn ô kế tiếp đang có lỗi">◎ Ô cần sửa</button>
+            </div>
+            <section id="terrainSeams" role="status" aria-live="polite"></section>
+          </div>
+          <div class="tv-card">
+            <p class="eyebrow">Trên bản đồ</p>
+            <p class="kbd">Mối nối đúng chưa chắc đã đẹp. Xem cả bộ lát trên một lát cắt hang động để thấy nhịp lặp.</p>
+            <button class="btn wide" id="terrainMap" title="Xem thử trên bản đồ hang động">🗺 Xem trên bản đồ</button>
+          </div>
+        </section>
+
+        <!-- ===== Xuất ===== -->
+        <section class="tv-pane tv-form" data-tpane="export">
+          <div class="tv-card">
+            <p class="eyebrow">Lưu để làm tiếp</p>
+            <button class="btn primary wide" id="terrainProject" title="Lưu atlas, mapping và cấu hình link thành project JSON">⬇ Dự án Terrain (.json)</button>
+            <label class="btn wide filelabel" title="Mở project Terrain 56 hoặc terrain56-pack.json">⬆ Mở dự án Terrain<input type="file" id="terrainProjectFile" accept=".json,application/json"></label>
+          </div>
+          <div class="tv-card">
+            <p class="eyebrow">Đưa vào game</p>
+            <button class="btn wide" id="terrainPng" title="Xuất toàn bộ 56 ô thành ảnh PNG sạch">⬇ Atlas PNG sạch <i>8×7 ô, không chú thích</i></button>
+            <button class="btn wide" id="terrainGodot" title="Mapping cho Godot 4 TileSet Terrain, đủ 8 bit góc và cạnh">⬇ Godot 4 mapping <i>Match Corners and Sides</i></button>
+            <button class="btn wide" id="terrainManifest" title="Xuất file JSON mapping autotile">⬇ JSON layout <i>cho engine tự viết</i></button>
+            <button class="btn wide" id="terrainPack" title="Một file gồm PNG, annotation và mapping">⬇ Cả bộ trong một file</button>
+          </div>
+          <div class="tv-card">
+            <p class="eyebrow">Tham khảo</p>
+            <button class="btn wide" id="terrainAnnotated" title="Xuất ảnh PNG có chú thích từng ô">⬇ PNG có chú thích từng ô</button>
+          </div>
+        </section>
       </div>
-      <section id="terrainSeams" role="status" aria-live="polite" style="padding:6px 14px;border-top:1px solid var(--line)"></section>
     </div>
 
   </div>
