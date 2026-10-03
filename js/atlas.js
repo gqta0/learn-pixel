@@ -39,9 +39,9 @@ export function migrateTerrainLayout(cv,size){
   for(const slot of [50,51]){ const [x,y]=at(slot); g.clearRect(x,y,size,size); g.drawImage(cv,sx,sy,size,size,x,y,size,size); }
   return cv;
 }
-export function createTerrainAtlas(cv,size,replace=false){
+export function createTerrainAtlas(cv,size,replace=false,shape='inset'){
   if(atlas && !replace && !confirm('Thay atlas hiện tại bằng bộ Terrain 56? Hãy xuất PNG atlas cũ trước nếu cần giữ. Bản đang vẽ không bị xoá.')) return false;
-  atlas={id:crypto.randomUUID(),name:'terrain56-'+size,cv,tw:size,th:size,pad:0,off:0,terrain:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT};
+  atlas={id:crypto.randomUUID(),name:'terrain56-'+size,cv,tw:size,th:size,pad:0,off:0,terrain:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,shape:shape==='flush'?'flush':'inset'};
   sel=anchor=null; doc.atlasEdit=null; zoom=2;
   save(); syncBar(); return true;
 }
@@ -85,7 +85,7 @@ export function editAtlasSlot(slot){
     doc.af=linked; doc.al=0; view.sel=null;
     sel={c,r,cw:1,ch:1}; anchor=null;
     doc.atlasEdit={x:atlas.off+c*stepX(),y:atlas.off+r*stepY(),w:atlas.tw,h:atlas.th,
-      atlasId:atlas.id,c,r0:r,terrainSlot:slot};
+      atlasId:atlas.id,c,r0:r,terrainSlot:slot,shape:atlas.shape};
     syncAll();
     return true;
   }
@@ -139,7 +139,7 @@ function save(immediate=false){
     if(!atlas) return;
     try{
       localStorage.setItem(KEY, JSON.stringify({
-        id:atlas.id, terrain:atlas.terrain, layout:atlas.layout, name:atlas.name, tw:atlas.tw, th:atlas.th, pad:atlas.pad, off:atlas.off,
+        id:atlas.id, terrain:atlas.terrain, layout:atlas.layout, shape:atlas.shape, name:atlas.name, tw:atlas.tw, th:atlas.th, pad:atlas.pad, off:atlas.off,
         png:atlas.cv.toDataURL('image/png')
       }));
       note('Đã cất vào trình duyệt.');
@@ -160,7 +160,7 @@ export function loadAtlas(){
     const im=new Image();
     im.onload=()=>{
       if(atlas) return; // a user import/create wins over an older asynchronous restore
-      atlas={id:d.id||crypto.randomUUID(),terrain:d.terrain,layout:d.layout,name:d.name, cv:imgToCanvas(im), tw:d.tw, th:d.th, pad:d.pad, off:d.off};
+      atlas={id:d.id||crypto.randomUUID(),terrain:d.terrain,layout:d.layout,shape:d.shape==='flush'?'flush':'inset',name:d.name, cv:imgToCanvas(im), tw:d.tw, th:d.th, pad:d.pad, off:d.off};
       if(atlas.terrain===TERRAIN_SCHEMA && atlas.layout!==TERRAIN_LAYOUT && atlas.cv.width===atlas.tw*8 && atlas.cv.height===atlas.th*7){
         migrateTerrainLayout(atlas.cv,atlas.tw);
         atlas.layout=TERRAIN_LAYOUT;
@@ -203,7 +203,7 @@ export function editSelection(){
   doc.terrainLink=null;
   view.sel=null;
   doc.atlasEdit={...r,atlasId:atlas.id, c:sel.c, r0:sel.r,
-    terrainSlot:atlas.terrain===TERRAIN_SCHEMA && sel.cw===1 && sel.ch===1 ? sel.r*cols()+sel.c : null};
+    terrainSlot:atlas.terrain===TERRAIN_SCHEMA && sel.cw===1 && sel.ch===1 ? sel.r*cols()+sel.c : null,shape:atlas.shape};
   invalidateBuf(); fitZoom(); syncAll();
   setExtend(false);            // lần mở atlas sau lại bắt đầu bằng chọn một ô
   closeAtlas(); syncBar();

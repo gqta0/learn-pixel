@@ -58,7 +58,7 @@ export function render(){
 
   const te=doc.atlasEdit;
   if(view.terrainGuide && view.terrainGuideMode!=='off' && te && Number.isInteger(te.terrainSlot) && te.terrainSlot>=0 && te.terrainSlot<56 && te.w===doc.w && te.h===doc.h && doc.w===doc.h)
-    paintTerrainGuide(ctx,te.terrainSlot,doc.w,z,view.terrainGuideMode||'wireframe');
+    paintTerrainGuide(ctx,te.terrainSlot,doc.w,z,view.terrainGuideMode||'wireframe',te.shape);
 
   if(view.grid && view.zoom>=6){
     ctx.lineWidth=lw;

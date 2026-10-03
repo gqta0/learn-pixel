@@ -25,7 +25,7 @@ const wrap=$('#wrap');
 function captureTerrainLock(data){
   const te=doc.atlasEdit;
   if(!view.terrainLock || !te || !Number.isInteger(te.terrainSlot) || te.w!==doc.w || te.h!==doc.h || doc.w!==doc.h) return null;
-  return terrainConnectorIndices(te.terrainSlot,doc.w).map(i=>[i,data[i]]).filter(([,v])=>(v>>>24)===255);
+  return terrainConnectorIndices(te.terrainSlot,doc.w,te.shape).map(i=>[i,data[i]]).filter(([,v])=>(v>>>24)===255);
 }
 function restoreTerrainLock(data){
   if(!terrainLockSnapshot) return;
@@ -113,7 +113,7 @@ function hudText(p){
     : (doc.w+'×'+doc.h+'   •   ×'+view.zoom);
   const te=doc.atlasEdit;
   if(te && Number.isInteger(te.terrainSlot) && te.terrainSlot>=0 && te.terrainSlot<56 && te.w===doc.w && te.h===doc.h && inside(p.x,p.y))
-    $('#hud').textContent+=' · '+ROLE_NAMES[tileRoles(te.terrainSlot,doc.w)[p.y*doc.w+p.x]];
+    $('#hud').textContent+=' · '+ROLE_NAMES[tileRoles(te.terrainSlot,doc.w,te.shape)[p.y*doc.w+p.x]];
 }
 function cancelStroke(){
   if(!drawing) return;

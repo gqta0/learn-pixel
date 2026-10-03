@@ -49,6 +49,15 @@ Màn Terrain chia năm thẻ, mỗi thẻ một việc: **Bộ ô** (chọn ô, 
 thanh dưới cùng với nút vẽ) · **Chi tiết** (vai trò pixel, ô nối được; trên màn rộng nằm
 sẵn cạnh lưới) · **Tạo bộ** · **Soi lỗi** · **Xuất**.
 
+**Dáng mép**, chọn khi tạo bộ (không đổi được sau đó):
+
+- **Thụt mép** — mặc định. Mép hở chừa `khổ/8` px trong suốt (16px → 2px) để vẽ cỏ rủ,
+  mép gồ ghề. Đất nhìn thấy nhỏ hơn ô, nên trong game phải thu hộp va chạm vào chừng đó.
+- **Kín sát mép** — đất phủ kín cả ô, khớp hộp va chạm vuông. Sàn/trần/tường thành một
+  dải màu dày `khổ/8` px nằm bên trong ô; góc lõm là một ô vuông nhỏ ở góc.
+
+File xuất (JSON layout, Godot, pack, project) ghi `edgeShape` và gợi ý `collision`.
+
 **Hai cách làm**, chọn ở thẻ Tạo bộ:
 
 - **Vẽ tay cả 56 ô** — mặc định.

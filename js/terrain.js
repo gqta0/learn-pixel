@@ -117,7 +117,32 @@ export function neighbors(slot,direction){
 export const ROLE_COLORS=['#101018','#657e8c','#f4d37c','#34435a','#927ca7','#ef789c','#f3a34a'];
 export const ROLE_NAMES=['Để trong suốt','Thân đất/đá: vẽ vân','Mép trên / sàn: bắt sáng',
   'Mép dưới / trần: bóng tối','Tường: viền bên','Góc ngoài (lồi)','Góc trong (lõm)'];
-export function tileRoles(slot,size){
+/* Hai dáng mép, chọn khi tạo bộ:
+   inset — mép hở thụt vào size/8 px trong suốt (16px → 2px). Chừa chỗ cho cỏ rủ, mép
+           gồ ghề; đổi lại phần đất nhìn thấy nhỏ hơn ô, hộp va chạm phải thu vào theo.
+   flush — đất kín tới sát mép ô, khớp hộp va chạm 16×16. Mép sàn/trần/tường thành một
+           dải màu dày size/8 px nằm bên trong ô. */
+export const TERRAIN_SHAPES={inset:'Thụt mép (chừa chỗ cỏ rủ)',flush:'Kín sát mép (khớp va chạm)'};
+export const shapeInset=(shape,size)=>shape==='flush'?0:Math.max(1,Math.floor(size/8));
+function flushRoles(tile,size){
+  const mask=tile.mask, b=Math.max(1,Math.floor(size/8)), out=new Uint8Array(size*size);
+  const [step,at]=[[5,2],[4,1],[7,3]][tile.variant-1]||[5,2];
+  const mid=v=>v>b+1 && v<size-b-2;          // nhịp biến thể không chạm hai đầu cạnh, nên điểm nối giữ nguyên
+  for(let y=0;y<size;y++) for(let x=0;x<size;x++){
+    const by=tile.kind==='edge'&&mid(x)&&x%step===at?b+1:b, bx=tile.kind==='edge'&&mid(y)&&y%step===at?b+1:b;
+    let role=!(mask&1)&&y<by?2 : !(mask&4)&&y>=size-by?3 : (!(mask&8)&&x<bx)||(!(mask&2)&&x>=size-bx)?4 : 1;
+    const c=CORNERS.find(c=>c.x===(x<size/2?-1:1)&&c.y===(y<size/2?-1:1));
+    const dx=c.x<0?x:size-1-x, dy=c.y<0?y:size-1-y;
+    if(dx<b && dy<b){
+      if(!(mask&c.v)&&!(mask&c.h)) role=5;
+      else if((mask&c.v)&&(mask&c.h)&&!(mask&c.d)) role=6;
+    }
+    out[y*size+x]=role;
+  }
+  return out;
+}
+export function tileRoles(slot,size,shape='inset'){
+  if(shape==='flush') return flushRoles(TERRAIN_TILES[slot],size);
   const tile=TERRAIN_TILES[slot], mask=tile.mask, r=Math.max(1,Math.floor(size/8));
   const solid=new Uint8Array(size*size), out=new Uint8Array(size*size);
   for(let y=0;y<size;y++) for(let x=0;x<size;x++){
@@ -149,8 +174,8 @@ export function tileRoles(slot,size){
   }
   return out;
 }
-export function terrainConnectorIndices(slot,size){
-  const roles=tileRoles(slot,size), out=[];
+export function terrainConnectorIndices(slot,size,shape){
+  const roles=tileRoles(slot,size,shape), out=[];
   for(let y=0;y<size;y++) for(let x=0;x<size;x++){
     const i=y*size+x;
     if(roles[i] && (x===0||y===0||x===size-1||y===size-1)) out.push(i);
@@ -162,8 +187,8 @@ const shade=(hex,f)=>{
   const n=parseInt(hex.slice(1),16),r=Math.min(255,Math.round((n>>16)*f)),g=Math.min(255,Math.round(((n>>8)&255)*f)),b=Math.min(255,Math.round((n&255)*f));
   return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
 };
-export function terrainPixels(slot,size,colors){
-  const roles=tileRoles(slot,size), tile=TERRAIN_TILES[slot];
+export function terrainPixels(slot,size,colors,shape){
+  const roles=tileRoles(slot,size,shape), tile=TERRAIN_TILES[slot];
   const art=colors ? [0,rgba(colors.base),rgba(colors.edge),rgba(shade(colors.edge,.55)),rgba(shade(colors.edge,.75)),rgba(shade(colors.edge,1.1)),rgba(shade(colors.edge,.55))] :
     [0,rgba('#5e788c'),rgba('#b4c5d1'),rgba('#2e4659'),rgba('#435d73'),rgba('#99b0bf'),rgba('#2e4659')];
   const pixels=Uint32Array.from(roles,r=>art[r]);
@@ -202,10 +227,10 @@ export function composeTile(pixels,slot,size){
 export function edgeIndex(direction,p,size){
   return direction==='N'?p:direction==='S'?(size-1)*size+p:direction==='W'?p*size:p*size+size-1;
 }
-export function checkSeams(pixels,size){
+export function checkSeams(pixels,size,shape){
   const issues=[];
   for(const a of TERRAIN_TILES) for(const dir of ['E','S']){
-    const opposite=dir==='E'?'W':'N', roles=tileRoles(a.slot,size);
+    const opposite=dir==='E'?'W':'N', roles=tileRoles(a.slot,size,shape);
     for(const b of neighbors(a.slot,dir)){
       const positions=[];
       for(let p=0;p<size;p++){
@@ -218,12 +243,12 @@ export function checkSeams(pixels,size){
   }
   return issues;
 }
-export function checkColorSeams(pixels,size){
+export function checkColorSeams(pixels,size,shape){
   const issues=[];
   for(const a of TERRAIN_TILES) for(const dir of ['E','S']){
-    const opposite=dir==='E'?'W':'N', ar=tileRoles(a.slot,size);
+    const opposite=dir==='E'?'W':'N', ar=tileRoles(a.slot,size,shape);
     for(const b of neighbors(a.slot,dir)){
-      const br=tileRoles(b,size), positions=[];
+      const br=tileRoles(b,size,shape), positions=[];
       for(let p=0;p<size;p++){
         const ai=edgeIndex(dir,p,size),bi=edgeIndex(opposite,p,size);
         const aa=pixels[a.slot][ai]>>>24,ba=pixels[b][bi]>>>24;
@@ -235,8 +260,13 @@ export function checkColorSeams(pixels,size){
   }
   return issues;
 }
-export function terrainManifest(size){
-  return {schema:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,columns:8,rows:7,tileWidth:size,tileHeight:size,
+/* gợi ý hộp va chạm cho engine: dáng thụt thì đất nhìn thấy nhỏ hơn ô */
+const collisionHint=(shape,size)=>shape==='flush'
+  ? {shape:'full',note:'Đất kín sát mép: dùng hộp va chạm vuông đủ ô.'}
+  : {shape:'inset',insetPx:shapeInset(shape,size),note:'Mép hở thụt '+shapeInset(shape,size)+'px trong suốt: thu hộp va chạm vào chừng đó ở các cạnh hở, nếu không nhân vật sẽ đứng lơ lửng.'};
+export function terrainManifest(size,shape='inset'){
+  return {schema:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,edgeShape:shape,collision:collisionHint(shape,size),
+    columns:8,rows:7,tileWidth:size,tileHeight:size,
     bitOrder:{N:1,E:2,S:4,W:8,NE:16,SE:32,SW:64,NW:128},
     note:'Custom ascending-mask layout; map by mask, not by engine tile index. Guides are not artwork.',
     tiles:TERRAIN_TILES.map(t=>({...t,x:(t.slot%8)*size,y:Math.floor(t.slot/8)*size,
@@ -246,8 +276,9 @@ export function terrainManifest(size){
    16 tổ hợp, ô giữa và mọi ô góc lõm trùng hệt nhau. */
 const GODOT_BITS=[['N',1,'top_side'],['E',2,'right_side'],['S',4,'bottom_side'],['W',8,'left_side'],
   ['NE',16,'top_right_corner'],['SE',32,'bottom_right_corner'],['SW',64,'bottom_left_corner'],['NW',128,'top_left_corner']];
-export function terrainGodotManifest(size){
-  return {schema:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,format:'godot4-terrain-set-handoff',terrainSet:0,terrain:0,
+export function terrainGodotManifest(size,shape='inset'){
+  return {schema:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,edgeShape:shape,collision:collisionHint(shape,size),
+    format:'godot4-terrain-set-handoff',terrainSet:0,terrain:0,
     terrainMode:'MATCH_CORNERS_AND_SIDES',
     tileSize:[size,size],columns:8,rows:7,
     godotPeeringNames:Object.fromEntries(GODOT_BITS.map(([k,,name])=>[k,name])),
@@ -260,8 +291,8 @@ export function terrainGodotManifest(size){
         peeringBits:Object.fromEntries(GODOT_BITS.map(([k,bit])=>[k,t.mask&bit?0:-1]))};
     })};
 }
-export function paintTerrainGuide(ctx,slot,size,scale,mode='wireframe'){
-  const roles=tileRoles(slot,size);
+export function paintTerrainGuide(ctx,slot,size,scale,mode='wireframe',shape){
+  const roles=tileRoles(slot,size,shape);
   ctx.save();
   if(mode==='wireframe'){
     const edgeW=Math.max(2, Math.min(4, Math.floor(scale*0.16)));

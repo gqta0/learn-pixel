@@ -137,3 +137,27 @@ test('godot handoff carries all eight peering bits so no two blob tiles collide'
   // biến thể dùng chung bộ bit với ô gốc
   for(const t of g.tiles.slice(47)) assert.deepEqual(t.peeringBits,g.tiles[variantBase(t.slot)].peeringBits);
 });
+test('flush shape fills every cell yet keeps all 47 topologies distinct and seamless',()=>{
+  for(const n of [16,32]){
+    // không còn pixel trong suốt nào, kể cả khối rời
+    for(const t of TERRAIN_TILES) assert.ok(tileRoles(t.slot,n,'flush').every(r=>r>0),'slot '+t.slot+' @'+n);
+    // vẫn đủ 47 dáng khác nhau — mép và góc giờ là dải màu bên trong ô thay vì phần khoét
+    assert.equal(new Set(BLOB_47_MASKS.map((_,s)=>tileRoles(s,n,'flush').join(''))).size,47);
+    const px=TERRAIN_TILES.map(t=>terrainPixels(t.slot,n,undefined,'flush'));
+    assert.deepEqual(checkSeams(px,n,'flush'),[]);
+    assert.deepEqual(checkColorSeams(px,n,'flush'),[]);
+    // biến thể vẫn là tranh khác, nhưng điểm nối ở biên y hệt ô gốc
+    for(const t of TERRAIN_TILES.slice(47)){
+      const base=terrainPixels(variantBase(t.slot),n,undefined,'flush'),v=terrainPixels(t.slot,n,undefined,'flush');
+      assert.notDeepEqual(v,base);
+      for(const d of ['N','E','S','W']) for(let p=0;p<n;p++) assert.equal(v[edgeIndex(d,p,n)],base[edgeIndex(d,p,n)]);
+    }
+    // ghép 13 → 47 cũng đúng với dáng này
+    const only=px.map((p,s)=>CORE_SLOTS.includes(s)?p:new Uint32Array(n*n));
+    for(let s=0;s<47;s++) assert.deepEqual(composeTile(only,s,n),px[s]);
+  }
+  // dáng thụt mặc định không đổi
+  assert.deepEqual(tileRoles(31,16),tileRoles(31,16,'inset'));
+  assert.equal(terrainManifest(16,'flush').collision.shape,'full');
+  assert.equal(terrainGodotManifest(16).collision.insetPx,2);
+});
