@@ -68,6 +68,19 @@ export function unionBBox(px,w,cols,rows,cw,ch){
   return x1<0 ? {x:0,y:0,w:cw,h:ch} : {x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
 }
 
+/* hộp bao hình của một tấm sau khi chia khung — đầu vào để tính tỉ lệ vừa khung */
+export function sheetBox(src,w,h,cols,rows){
+  cols=Math.max(1,cols|0); rows=Math.max(1,rows|0);
+  return unionBBox(keyOutBackground(src,w,h),w,cols,rows,Math.floor(w/cols),Math.floor(h/rows));
+}
+/* Tỉ lệ lớn nhất để hình nằm trọn trong khung vuông cạnh `side` (0 = không giới hạn khung,
+   chỉ chặn ở 128). Không phóng quá 100%: phóng to ảnh rồi mới pixel hoá chỉ ra pixel to nhỏ
+   không đều. Thu đều hai chiều nên chiều dài hơn chạm sát mép, chiều kia có thể dư vài pixel. */
+export function fitRatio(box,side){
+  const limit=side>0?side:128;
+  return Math.min(1, limit/box.w, limit/box.h);
+}
+
 /* ---------------- rút bảng màu: median cut trên lưới 5 bit mỗi kênh ---------------- */
 export function medianCut(px,n){
   const hist=new Map();
@@ -137,8 +150,9 @@ export function pixelizeSheet(src,w,h,opt){
   const cw=Math.floor(w/cols), ch=Math.floor(h/rows);
   const box=unionBBox(px,w,cols,rows,cw,ch);
   const ratio=Math.min(1,Math.max(0.01,opt.ratio||1));
-  const dw=Math.max(1,Math.round(box.w*ratio)), dh=Math.max(1,Math.round(box.h*ratio));
   const side=opt.canvas|0;
+  const cap=v=>opt.fit&&side ? Math.min(side,v) : v;      // tỉ lệ tự vừa: sai số làm tròn không được tràn khung
+  const dw=cap(Math.max(1,Math.round(box.w*ratio))), dh=cap(Math.max(1,Math.round(box.h*ratio)));
   const W=side||dw, H=side||dh;
   if(dw>W || dh>H) throw new Error('hình '+dw+'×'+dh+' không vừa khung '+W+'×'+H);
   // chân nhân vật đặt sát đáy, canh giữa theo chiều ngang: mọi động tác nhập vào đều chung một mốc

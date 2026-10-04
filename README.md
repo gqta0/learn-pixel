@@ -46,10 +46,14 @@ Thẻ **File → 🎞 Nhập sprite sheet…**. Chọn một hay nhiều ảnh s
 
 1. Mỗi tấm một thẻ. App gợi ý **số khung** từ khổ ảnh và số cụm hình đếm được (★ là gợi ý
    khớp nhất); bạn chốt số thật. Dải ảnh gốc có kẻ vạch chia khung để nhìn là biết đúng chưa.
-2. **Pixel hoá** dùng chung cho cả lô: tỉ lệ thu nhỏ (100% → 20%), khung vẽ (vừa khít hoặc
+2. **Pixel hoá** dùng chung cho cả lô: tỉ lệ (**Tự vừa khung** mặc định, 100% → 20%, hoặc tự nhập %), khung vẽ (vừa khít hoặc
    32–128), số màu (8–48, hoặc ép về bảng màu đang dùng). Ô xem trước chạy hoạt ảnh sau pixel hoá.
 3. **Nhập**: một tấm thì trải thẳng thành khung hình; nhiều tấm thì mỗi tấm thành một bản vẽ
    trong thư viện 📁, và tấm đầu được mở ra.
+
+**Tự vừa khung** lấy tỉ lệ lớn nhất mà hình vẫn nằm trọn trong khung vẽ: chiều dài hơn chạm sát
+mép, chiều kia dư vài pixel vì thu đều hai chiều. Không phóng quá 100%. Nhập nhiều tấm thì cả lô
+dùng một tỉ lệ (của tấm có hình to nhất) để nhân vật không đổi cỡ giữa các động tác.
 
 Cách pixel hoá: ép ảnh gốc về bảng màu trước, rồi mỗi pixel đích lấy màu xuất hiện nhiều nhất
 trong ô nguồn — không lấy trung bình, nên viền tối không bị trộn thành màu bùn. Mọi khung của

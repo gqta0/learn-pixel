@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {countClusters, suggestCount, suggestGrid, unionBBox, medianCut, keyOutBackground,
-  pixelizeSheet, spriteFramesTres} from '../js/sheet.js';
+  pixelizeSheet, spriteFramesTres, sheetBox, fitRatio} from '../js/sheet.js';
 
 const rgba=(r,g,b,a=255)=>((a<<24)|(b<<16)|(g<<8)|r)>>>0;
 /* sheet giả: n khung, mỗi khung một khối màu lệch chỗ khác nhau trong ô */
@@ -95,4 +95,20 @@ test('godot SpriteFrames lists one atlas region per frame in sheet order',()=>{
   assert.ok(t.includes('region = Rect2(0, 0, 64, 48)') && t.includes('region = Rect2(64, 48, 64, 48)'));   // khung 5 xuống hàng 2
   assert.ok(t.includes('"duration": 2.5') && t.includes('"speed": 12.0') && t.includes('"loop": false'));
   assert.ok(t.includes('"name": &"hero_attack"'));
+});
+
+test('fit ratio fills the canvas on the longer side, never overflows and never upscales',()=>{
+  assert.equal(fitRatio({w:120,h:123},64),64/123);
+  assert.equal(fitRatio({w:200,h:50},64),64/200);
+  assert.equal(fitRatio({w:40,h:30},64),1);                 // ảnh gốc nhỏ hơn khung: giữ nguyên, không phóng
+  assert.equal(fitRatio({w:300,h:200},0),128/300);           // không chọn khung thì chặn ở 128
+  const {px,w,h}=sheet(4,125,127);
+  const box=sheetBox(px,w,h,4,1);
+  for(const side of [32,48,64,96,128]){
+    const r=pixelizeSheet(px,w,h,{cols:4,rows:1,ratio:fitRatio(box,side),fit:true,canvas:side,colors:4});
+    assert.deepEqual([r.w,r.h],[side,side]);
+    assert.ok(r.sprite.w<=side && r.sprite.h<=side);
+    if(Math.max(box.w,box.h)>=side) assert.equal(Math.max(r.sprite.w,r.sprite.h),side,'chiều dài hơn phải chạm sát mép khung '+side);
+    else assert.deepEqual([r.sprite.w,r.sprite.h],[box.w,box.h],'hình nhỏ hơn khung thì giữ nguyên cỡ');
+  }
 });

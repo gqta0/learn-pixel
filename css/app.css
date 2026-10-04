@@ -961,6 +961,8 @@ body[data-view="terrain"] .col.right{display:none}
 .sh-grid input{width:72px;min-height:40px;font-size:16px}
 .sh-chips .btn{min-height:36px;min-width:44px;justify-content:center}
 .sh-warn{color:var(--rose)}
+#shRatioPct{flex:0 0 76px;width:76px;min-height:40px;font-size:16px}
+#shRatioPct[hidden]{display:none}
 .sh-preview{display:grid;place-items:center;min-height:120px;border:1px solid var(--line);border-radius:3px;
   background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/12px 12px}
 #shPreview{image-rendering:pixelated;display:block;max-width:100%;height:auto}
