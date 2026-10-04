@@ -40,6 +40,32 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 - Tự lưu vào trình duyệt (localStorage, nén RLE) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập. Tiến độ lưu theo tên bài nên chèn bài mới không làm lệch.
 - Xuất PNG / PNG spritesheet (1 hàng, 4 cột, 8 cột hoặc lưới vuông) / PNG bảng màu, lưu & mở dự án `.json` (nén RLE).
 
+## Sprite sheet → khung hình (pixel hoá)
+
+Thẻ **File → 🎞 Nhập sprite sheet…**. Chọn một hay nhiều ảnh sheet hoạt ảnh:
+
+1. Mỗi tấm một thẻ. App gợi ý **số khung** từ khổ ảnh và số cụm hình đếm được (★ là gợi ý
+   khớp nhất); bạn chốt số thật. Dải ảnh gốc có kẻ vạch chia khung để nhìn là biết đúng chưa.
+2. **Pixel hoá** dùng chung cho cả lô: tỉ lệ thu nhỏ (100% → 20%), khung vẽ (vừa khít hoặc
+   32–128), số màu (8–48, hoặc ép về bảng màu đang dùng). Ô xem trước chạy hoạt ảnh sau pixel hoá.
+3. **Nhập**: một tấm thì trải thẳng thành khung hình; nhiều tấm thì mỗi tấm thành một bản vẽ
+   trong thư viện 📁, và tấm đầu được mở ra.
+
+Cách pixel hoá: ép ảnh gốc về bảng màu trước, rồi mỗi pixel đích lấy màu xuất hiện nhiều nhất
+trong ô nguồn — không lấy trung bình, nên viền tối không bị trộn thành màu bùn. Mọi khung của
+một tấm cắt theo cùng một hộp bao, nên hoạt ảnh không giật. Cả lô dùng chung một bảng màu.
+Hình đặt chân sát đáy khung, canh giữa.
+
+Vẽ lại và tách part: khoanh vùng bằng ⬚ rồi **⇪ Sang lớp…** để chuyển phần đó sang lớp mới
+hoặc một lớp part đã có (ở khung đang mở). Thẻ Lớp có nhân bản, gộp, đổi thứ tự.
+
+**Godot SpriteFrames** (thẻ File → Xuất) tải một file `.tres` và sheet PNG ×1 cùng tên; đặt
+sheet vào thư mục đã khai rồi gán `.tres` cho `AnimatedSprite2D`. Thời lượng riêng từng khung,
+fps và lặp đều được ghi vào.
+
+Thư viện lưu trong localStorage (~5 MB): một hoạt ảnh 16 khung 64×64 chiếm chừng 220 KB,
+tức khoảng 20 hoạt ảnh; ở 128×128 thì ít hơn nhiều. Hết chỗ app sẽ báo và dừng nhập.
+
 ## Terrain 56 — template có hướng dẫn pixel
 
 Mở **Terrain** từ thanh Terrain trên tablet, tab File/Atlas hoặc tab Terrain trên thanh
@@ -109,7 +135,7 @@ topology độc lập. Không giả định cùng thứ tự với tileset của
 mapping theo mask. Tham khảo thuật toán gốc:
 [Autotile-47](https://github.com/Game-Development-Resources/Autotile-47).
 
-Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs`.
+Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs`.
 
 ## Đưa lên GitHub Pages
 

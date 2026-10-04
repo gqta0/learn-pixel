@@ -12,17 +12,18 @@ import { PALETTES, palette, setPalette, paintSwatches, paintRamp, syncColors, ra
          attachPalettePopup, openQuickPalette, palByName, isUserPal, savePaletteAs, deleteUserPal,
          fillPalSelect, addCurrentColor, sortPalette, prunePalette, paletteFromArt, rampFromCurrent } from './palette.js';
 import { setTool, setTheme, setView, syncFingerBtn, syncPixelPerfectBtn, attachMods } from './tools.js';
-import { SAVE_KEY, exportPng, exportSheet, exportPalettePng, exportJson, importJson,
+import { SAVE_KEY, exportPng, exportSheet, exportPalettePng, exportJson, importJson, exportGodotFrames,
          loadRef, refToPixels, refToPalette } from './storage.js';
 import { updateProgress, TRACKS, setTrack, buildExercises } from './content/exercises.js';
 import { buildTheory } from './content/lessons.js';
 import { runLint } from './lint.js';
-import { closePopup } from './popup.js';
+import { closePopup, popover } from './popup.js';
 import { openLibrary, closeLibrary, saveCurrent, isBlank, exportContactSheet } from './library.js';
 import { paintDaily, goToNext } from './daily.js';
 import { bindAtlas, importAtlas, syncBar as syncAtlasBar } from './atlas.js';
 import { openMapView, bindMapView } from './mapview.js';
 import { bindTerrain, syncTerrainBar, openTerrain, closeTerrain } from './terrainview.js';
+import { bindSheetImport } from './sheetview.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
 /* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ.
@@ -255,6 +256,34 @@ $('#selPaste').addEventListener('click',()=>selAct(d=>{
   return ok;
 }, 'paste'));
 $('#selNone').addEventListener('click', ()=>{ view.sel=null; render(); });
+/* Tách part: chuyển phần tranh trong vùng chọn từ lớp đang vẽ sang lớp khác, ở khung đang mở.
+   Lớp dùng chung cho mọi khung, nên khung sau cứ chọn lại đúng lớp part đó là các part nằm cùng một lớp. */
+function moveSelToLayer(target){
+  const s=view.sel; if(!s) return;
+  pushUndo();
+  if(target<0){
+    target=doc.al+1;
+    doc.layers.splice(target,0,{name:'Part '+doc.layers.length,vis:true});
+    doc.frames.forEach(f=>f.splice(target,0,blank()));
+  }
+  const src=doc.frames[doc.af][doc.al], dst=doc.frames[doc.af][target];
+  let moved=0;
+  for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++){
+    const i=y*doc.w+x;
+    if(src[i]){ dst[i]=src[i]; src[i]=0; moved++; }
+  }
+  if(!moved){ undo(); toast('Vùng chọn không có pixel nào trên lớp đang vẽ.'); return; }
+  doc.al=target; invalidateBuf(); syncAll();
+  window.dispatchEvent(new CustomEvent('pixelchange'));
+  toast('Đã chuyển '+moved+' px sang lớp “'+doc.layers[target].name+'”.');
+}
+$('#selToLayer').addEventListener('click', e=>{
+  if(!view.sel){ toast('Chưa có vùng chọn — dùng dụng cụ ⬚ (A) khoanh part trước.'); return; }
+  popover(e.currentTarget,'Chuyển vùng chọn sang lớp',[
+    {label:'＋ Lớp mới',title:'Tạo một lớp part mới ngay trên lớp đang vẽ',fn:()=>moveSelToLayer(-1)},
+    ...doc.layers.map((L,i)=>({label:L.name,on:false,fn:()=>moveSelToLayer(i)})).filter((_,i)=>i!==doc.al).reverse()
+  ]);
+});
 /* ---------------- chuyển lộ trình ---------------- */
 const TRACK_NOTE={
   core:'Làm tuần tự. Mỗi bài bấm <b>Dựng khung</b> để đặt đúng khổ canvas, vẽ xong thì tích ô hoàn thành.',
@@ -389,12 +418,18 @@ $('#refClear').addEventListener('click', ()=>{ view.ref=null; render(); });
 $('#expPng').addEventListener('click', exportPng);
 $('#expSheet').addEventListener('click', exportSheet);
 $('#expPal').addEventListener('click', exportPalettePng);
+$('#expGodot').addEventListener('click', ()=>{
+  const r=exportGodotFrames();
+  toast('Đã tải '+r.tres+' và sheet PNG ×1. Đặt sheet tại '+r.png,4200);
+});
+try{ const d=localStorage.getItem('lo-pixel-godot-dir'); if(d) $('#expGodotDir').value=d; }catch(_){}
 $('#expJson').addEventListener('click', exportJson);
 $('#impJson').addEventListener('change', e=>{ if(e.target.files[0]) importJson(e.target.files[0]); e.target.value=''; });
 
 bindAtlas();
 bindMapView();
 bindTerrain();
+bindSheetImport();
 const mapPrevBtn = $('#mapPrevBtn');
 if(mapPrevBtn) mapPrevBtn.addEventListener('click', () => openMapView());
 const atMapPrev = $('#atMapPrev');

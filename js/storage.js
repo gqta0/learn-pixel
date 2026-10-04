@@ -7,6 +7,7 @@ import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
 import { palette, setPalette, paintSwatches } from './palette.js';
 import { doneSet, buildExercises, migrateDone } from './content/exercises.js';
+import { spriteFramesTres } from './sheet.js';
 import { syncAll } from './ui.js';
 import { stopEditing } from './atlas.js';
 
@@ -35,8 +36,8 @@ export function sheetCols(n, pick){
   const c=parseInt(pick,10);
   return c>0 ? Math.min(c,n) : n;
 }
-export function exportSheet(){
-  const s=parseInt($('#expScale').value,10);
+export function exportSheet(scale){
+  const s=Number(scale)>0 ? scale : parseInt($('#expScale').value,10);   // nút bấm truyền vào một Event, không phải tỉ lệ
   const n=doc.frames.length, cols=sheetCols(n, $('#expCols')?.value), rows=Math.ceil(n/cols);
   const cv=document.createElement('canvas');
   cv.width=doc.w*s*cols; cv.height=doc.h*s*rows;
@@ -48,6 +49,24 @@ export function exportSheet(){
   });
   const base = sanitizeFilename(doc.name, 'spritesheet');
   download(base+'_'+doc.w+'x'+doc.h+'_'+n+'f'+(rows>1?'_'+cols+'x'+rows:'')+'.png', cv.toDataURL('image/png'));
+}
+/* Godot 4: một file SpriteFrames (.tres) trỏ vào sheet PNG ×1 cùng tên. Luôn xuất ×1 vì
+   pixel art phóng trong engine bằng số nguyên, không phóng sẵn trong ảnh. */
+export function exportGodotFrames(){
+  const n=doc.frames.length, cols=sheetCols(n, $('#expCols')?.value), rows=Math.ceil(n/cols);
+  const base=sanitizeFilename(doc.name,'spritesheet');
+  const png=base+'_'+doc.w+'x'+doc.h+'_'+n+'f'+(rows>1?'_'+cols+'x'+rows:'')+'.png';   // khớp tên exportSheet đặt
+  let dir=($('#expGodotDir')?.value||'res://').trim()||'res://';
+  if(!/^res:\/\//.test(dir)) dir='res://'+dir.replace(/^\/+/,'');
+  if(!dir.endsWith('/')) dir+='/';
+  const beat=1000/Math.max(1,view.fps||8);
+  const tres=spriteFramesTres({name:base,texture:dir+png,fw:doc.w,fh:doc.h,cols,count:n,fps:view.fps||8,
+    loop:$('#expGodotLoop')?.checked!==false,durations:doc.frames.map((_,i)=>doc.dur[i]>0?doc.dur[i]/beat:1)});
+  const url=URL.createObjectURL(new Blob([tres],{type:'text/plain'}));
+  download(base+'.tres',url); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  setTimeout(()=>exportSheet(1),350);          // tải hai file liền nhau; cách một nhịp để trình duyệt không nuốt mất file sau
+  try{ localStorage.setItem('lo-pixel-godot-dir',dir); }catch(_){}
+  return {tres:base+'.tres',png:dir+png};
 }
 /* Nén RLE từng lớp: pixel art toàn mảng màu liền nhau nên một lớp 128×128
    trống rỗng còn 2 số thay vì 16384. Đây là thứ giữ bản lưu không vượt quota. */

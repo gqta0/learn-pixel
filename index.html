@@ -157,6 +157,7 @@
           <button class="btn tiny" id="selCopy" title="Chép vùng chọn (Ctrl+C)">⧉ Chép</button>
           <button class="btn tiny" id="selPaste" title="Dán vào góc trên-trái vùng chọn (Ctrl+V)">📋 Dán</button>
           <button class="btn tiny" id="selDel" title="Xoá sạch vùng chọn (Delete)">⌫ Xoá vùng</button>
+          <button class="btn tiny" id="selToLayer" title="Chuyển phần tranh trong vùng chọn sang một lớp khác — dùng để tách tay, đầu, vũ khí thành part riêng">⇪ Sang lớp…</button>
           <button class="btn tiny" id="selNone" title="Bỏ chọn (Esc)">✕ Bỏ chọn</button>
         </div>
         <div class="ctxbar" id="atlasBar" hidden>
@@ -301,6 +302,12 @@
         </div>
 
         <div class="block">
+          <p class="eyebrow">Sprite sheet → khung hình</p>
+          <p class="kbd" style="margin:0 0 7px">Nhập một hay nhiều sheet hoạt ảnh, chốt số khung, pixel hoá theo tỉ lệ bạn chọn rồi trải thẳng thành khung hình để vẽ lại, tách part, thêm lớp.</p>
+          <button class="btn tiny wide primary" id="shOpen">🎞 Nhập sprite sheet…</button>
+        </div>
+
+        <div class="block">
           <p class="eyebrow">Atlas / tilesheet của dự án</p>
           <p class="kbd" style="margin:0 0 7px">Nạp nguyên tấm tilesheet vào, cắt theo lưới ô, lôi từng ô ra sửa rồi ghi lại đúng chỗ. Kéo thả file .png hoặc .json vào trang cũng được.</p>
           <button class="btn tiny wide" id="atOpen">🧩 Mở atlas…</button>
@@ -329,6 +336,12 @@
             <button class="btn" id="expPng">PNG khung này</button>
             <button class="btn" id="expSheet">PNG spritesheet</button>
             <button class="btn" id="expPal">PNG bảng màu</button>
+            <button class="btn" id="expGodot" title="Tải file .tres và sheet PNG ×1 cùng tên. Thả cả hai vào thư mục dưới đây trong dự án Godot rồi gán .tres cho AnimatedSprite2D.">Godot SpriteFrames</button>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <label class="mini" for="expGodotDir" style="min-width:65px">Thư mục Godot</label>
+            <input type="text" id="expGodotDir" value="res://" placeholder="res://sprites/" class="grow" title="Đường dẫn trong dự án Godot nơi bạn sẽ đặt sheet PNG">
+            <label class="tv-check" style="min-height:0"><input type="checkbox" id="expGodotLoop" checked> Lặp</label>
           </div>
           <div class="grid2" style="margin-top:6px">
             <button class="btn primary" id="expJson">Lưu dự án .json</button>
@@ -528,6 +541,52 @@
       </div>
     </div>
 
+  </div>
+
+  <div class="libwrap" id="sheetWrap" hidden>
+    <div class="libbar">
+      <p class="eyebrow" style="margin:0;flex:1">Nhập sprite sheet</p>
+      <label class="btn tiny primary filelabel">＋ Chọn ảnh<input type="file" id="shFiles" accept="image/*" multiple></label>
+      <button class="btn tiny" id="shClose">✕ Đóng</button>
+    </div>
+    <div class="sh-body">
+      <section class="sh-list" id="shList" aria-label="Các sheet đã chọn"></section>
+      <section class="sh-side">
+        <div class="tv-card">
+          <p class="eyebrow">Pixel hoá</p>
+          <div class="tv-row">
+            <label class="mini" for="shRatio">Tỉ lệ</label>
+            <select id="shRatio" title="Thu nhỏ so với ảnh gốc. Nhỏ hơn thì ra chất pixel hơn nhưng mất chi tiết.">
+              <option value="1">100% (giữ nguyên cỡ)</option><option value="0.75">75%</option><option value="0.6667">67%</option>
+              <option value="0.5" selected>50%</option><option value="0.4">40%</option><option value="0.3333">33%</option>
+              <option value="0.25">25%</option><option value="0.2">20%</option>
+            </select>
+          </div>
+          <div class="tv-row">
+            <label class="mini" for="shCanvas">Khung vẽ</label>
+            <select id="shCanvas" title="Khung to hơn hình thì chừa chỗ để vẽ thêm part. Hình luôn đặt chân sát đáy, canh giữa.">
+              <option value="0">Vừa khít hình</option><option value="32">32×32</option><option value="48">48×48</option>
+              <option value="64" selected>64×64</option><option value="96">96×96</option><option value="128">128×128</option>
+            </select>
+          </div>
+          <div class="tv-row">
+            <label class="mini" for="shColors">Số màu</label>
+            <select id="shColors" title="Ít màu thì dễ vẽ lại và ra chất pixel hơn">
+              <option value="8">8 màu</option><option value="12">12 màu</option><option value="16" selected>16 màu</option>
+              <option value="24">24 màu</option><option value="32">32 màu</option><option value="48">48 màu</option>
+              <option value="pal">Theo bảng màu đang dùng</option>
+            </select>
+          </div>
+          <p class="kbd" id="shInfo"></p>
+        </div>
+        <div class="tv-card">
+          <p class="eyebrow">Xem trước</p>
+          <div class="sh-preview"><canvas id="shPreview" width="1" height="1"></canvas></div>
+          <p class="kbd" id="shPreviewInfo"></p>
+        </div>
+        <button class="btn primary wide" id="shImport" disabled>Chọn ảnh trước</button>
+      </section>
+    </div>
   </div>
 
   <div class="libwrap" id="libWrap" hidden>
