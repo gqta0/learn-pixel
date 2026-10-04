@@ -112,3 +112,22 @@ test('fit ratio fills the canvas on the longer side, never overflows and never u
     else assert.deepEqual([r.sprite.w,r.sprite.h],[box.w,box.h],'hình nhỏ hơn khung thì giữ nguyên cỡ');
   }
 });
+
+test('tight canvas hugs the sprite: long side equals the chosen size and no margin is left',()=>{
+  // hình gốc rộng hơn cao, giống tấm có tư thế vươn tay
+  const cols=4,cw=125,ch=100,w=cols*cw,h=ch,px=new Uint32Array(w*h);
+  for(let c=0;c<cols;c++){
+    const bw=c===2?119:90;                       // khung thứ 3 vươn rộng hơn hẳn
+    for(let y=22;y<98;y++) for(let x=3;x<3+bw;x++) px[y*w+c*cw+x]=rgba(200,80,60);
+  }
+  const box=sheetBox(px,w,h,cols,1);
+  assert.deepEqual([box.w,box.h],[119,76]);
+  const sq=pixelizeSheet(px,w,h,{cols,rows:1,ratio:fitRatio(box,96),fit:true,canvas:96,colors:2});
+  const tight=pixelizeSheet(px,w,h,{cols,rows:1,ratio:fitRatio(box,96),fit:true,canvas:96,tight:true,colors:2});
+  assert.deepEqual([sq.w,sq.h],[96,96]);
+  assert.deepEqual([tight.w,tight.h],[96,61]);    // không còn 35 px trống phía trên
+  const top=r=>{ for(let i=0;i<r.w*r.h;i++) if(r.frames[2][i]) return Math.floor(i/r.w); };
+  assert.equal(top(sq),35); assert.equal(top(tight),0);
+  // khung rộng nhất chạm đủ hai mép; khung hẹp vẫn trống bên — đó là chỗ của tư thế vươn ra
+  assert.deepEqual(tight.widths,[73,73,96,73]);
+});

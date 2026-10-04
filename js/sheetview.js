@@ -27,6 +27,7 @@ function ratioNow(){
 const opt=()=>({
   ...ratioNow(),
   canvas:+$('#shCanvas').value,
+  tight:$('#shTight').checked,
   colors:$('#shColors').value==='pal'?0:+$('#shColors').value
 });
 /* Một bảng màu chung cho cả lô: mỗi tấm tự rút màu riêng thì cùng một nhân vật mà động tác
@@ -45,12 +46,12 @@ function batchPalette(){
 }
 function build(s){
   const o=opt();
-  return pixelizeSheet(s.px,s.w,s.h,{cols:s.cols,rows:s.rows,ratio:o.ratio,fit:o.fit,canvas:o.canvas,palette:batchPalette()});
+  return pixelizeSheet(s.px,s.w,s.h,{cols:s.cols,rows:s.rows,ratio:o.ratio,fit:o.fit,canvas:o.canvas,tight:o.tight,palette:batchPalette()});
 }
 /* kết quả hoặc lý do không nhập được — để thẻ của tấm đó tự nói ra */
 function tryBuild(s){
   // nhớ kết quả theo thiết lập: ô xem trước chạy nhiều lần mỗi giây, không thể pixel hoá lại mỗi nhịp
-  const o=opt(), key=[s.cols,s.rows,o.ratio,o.canvas,o.colors,batchPalette().join('')].join('|');
+  const o=opt(), key=[s.cols,s.rows,o.ratio,o.canvas,o.tight,o.colors,batchPalette().join('')].join('|');
   if(s.cacheKey===key) return s.cache;
   let out;
   try{
@@ -132,6 +133,19 @@ function sheetCard(s){
     (odd?' · chia không hết, dư '+(s.w%s.cols)+' px ngang':'')+
     (res.error?' · '+res.error:' → '+res.r.frames.length+' khung '+res.r.w+'×'+res.r.h+', hình '+res.r.sprite.w+'×'+res.r.sprite.h);
   s.ok=!res.error;
+  // Một tư thế vươn rộng hơn hẳn (đấm, vung kiếm) buộc khung phải chừa chỗ cho nó, nên các khung
+  // còn lại trông như bị hở. Nói thẳng khung nào gây ra, để người dùng biết đó không phải lỗi.
+  if(!res.error){
+    const ws=res.r.widths.filter(Boolean), sorted=ws.slice().sort((a,b)=>a-b), mid=sorted[sorted.length>>1]||0;
+    const max=Math.max(0,...ws), at=res.r.widths.indexOf(max)+1;
+    if(mid && max>=mid*1.15){
+      const why=document.createElement('p'); why.className='kbd';
+      why.textContent='Khung '+at+' rộng '+max+' px, các khung khác chừng '+mid+' px. Khung vẽ phải đủ chỗ cho khung '+at+
+        ', nên những khung hẹp hơn sẽ trống chừng '+(max-mid)+' px ở bên — đó là chỗ dành cho tư thế vươn ra.';
+      card.append(strip,head,grid,chips,info,why);
+      return card;
+    }
+  }
 
   card.append(strip,head,grid,chips,info);
   return card;
@@ -218,7 +232,7 @@ export function bindSheetImport(){
   $('#shOpen')?.addEventListener('click',openSheetImport);
   $('#shClose')?.addEventListener('click',closeSheetImport);
   $('#shFiles')?.addEventListener('change',e=>{ addFiles(e.target.files); e.target.value=''; });
-  ['shRatio','shRatioPct','shCanvas','shColors'].forEach(id=>$('#'+id)?.addEventListener('change',paint));
+  ['shRatio','shRatioPct','shCanvas','shTight','shColors'].forEach(id=>$('#'+id)?.addEventListener('change',paint));
   $('#shImport')?.addEventListener('click',importAll);
   const wrap=$('#sheetWrap');
   wrap?.addEventListener('dragover',e=>{ e.preventDefault(); e.stopPropagation(); });

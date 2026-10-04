@@ -153,7 +153,8 @@ export function pixelizeSheet(src,w,h,opt){
   const side=opt.canvas|0;
   const cap=v=>opt.fit&&side ? Math.min(side,v) : v;      // tỉ lệ tự vừa: sai số làm tròn không được tràn khung
   const dw=cap(Math.max(1,Math.round(box.w*ratio))), dh=cap(Math.max(1,Math.round(box.h*ratio)));
-  const W=side||dw, H=side||dh;
+  // tight: khung chữ nhật ôm sát hình thay vì ô vuông — bỏ hẳn lề thừa do hình không vuông
+  const W=opt.tight?dw:(side||dw), H=opt.tight?dh:(side||dh);
   if(dw>W || dh>H) throw new Error('hình '+dw+'×'+dh+' không vừa khung '+W+'×'+H);
   // chân nhân vật đặt sát đáy, canh giữa theo chiều ngang: mọi động tác nhập vào đều chung một mốc
   const ox=Math.floor((W-dw)/2), oy=H-dh;
@@ -164,7 +165,7 @@ export function pixelizeSheet(src,w,h,opt){
   const frames=[];
   for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
     const out=new Uint32Array(W*H);
-    let any=false;
+    let any=false, minX=W, maxX=-1;
     for(let y=0;y<dh;y++){
       const sy0=box.y+Math.floor(y*box.h/dh), sy1=Math.max(sy0+1,box.y+Math.floor((y+1)*box.h/dh));
       for(let x=0;x<dw;x++){
@@ -178,15 +179,16 @@ export function pixelizeSheet(src,w,h,opt){
         if(solid*2<total) continue;                 // quá nửa ô nguồn trong suốt thì để trong suốt
         let bi=0; for(let k=1;k<votes.length;k++) if(votes[k]>votes[bi]) bi=k;
         out[(oy+y)*W+ox+x]=pal32[bi]; any=true;
+        if(x<minX) minX=x; if(x>maxX) maxX=x;
       }
     }
-    frames.push({px:out,any});
+    frames.push({px:out,any,width:maxX<0?0:maxX-minX+1});
   }
   if(opt.skipEmpty!==false) while(frames.length>1 && !frames[frames.length-1].any) frames.pop();
   const used=new Set();
   frames.forEach(f=>f.px.forEach(p=>{ if(p) used.add(p); }));
   return {w:W,h:H,frames:frames.map(f=>f.px),palette:palette.filter(hx=>used.has(hexToAbgr(hx))),
-    cell:{w:cw,h:ch},crop:box,sprite:{w:dw,h:dh}};
+    cell:{w:cw,h:ch},crop:box,sprite:{w:dw,h:dh},widths:frames.map(f=>f.width)};
 }
 
 /* ---------------- Godot 4: SpriteFrames (.tres) ----------------

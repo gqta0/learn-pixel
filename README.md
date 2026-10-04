@@ -55,6 +55,11 @@ Thẻ **File → 🎞 Nhập sprite sheet…**. Chọn một hay nhiều ảnh s
 mép, chiều kia dư vài pixel vì thu đều hai chiều. Không phóng quá 100%. Nhập nhiều tấm thì cả lô
 dùng một tỉ lệ (của tấm có hình to nhất) để nhân vật không đổi cỡ giữa các động tác.
 
+**Ôm sát hình** (bật sẵn) cho khung chữ nhật vừa đúng hình, cạnh dài bằng cỡ đã chọn, nên không còn
+lề thừa do hình không vuông. Tắt đi để lấy khung vuông, chừa chỗ vẽ thêm part. Khung vẽ luôn phải
+đủ chỗ cho tư thế rộng nhất của cả tấm; nếu một khung vươn rộng hơn hẳn, thẻ của tấm sẽ nói rõ
+khung nào và các khung khác trống bao nhiêu pixel.
+
 Cách pixel hoá: ép ảnh gốc về bảng màu trước, rồi mỗi pixel đích lấy màu xuất hiện nhiều nhất
 trong ô nguồn — không lấy trung bình, nên viền tối không bị trộn thành màu bùn. Mọi khung của
 một tấm cắt theo cùng một hộp bao, nên hoạt ảnh không giật. Cả lô dùng chung một bảng màu.
