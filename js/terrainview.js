@@ -54,10 +54,11 @@ const TERRAIN_CREATE_PRESETS={
 };
 const TERRAIN_CREATE_DEFAULTS={base:'#5e788c',edge:'#b4c5d1'};
 function terrainColorGroups(){
-  const colors=[...new Set(PALETTES['Master Palette (72 màu)'].map(h=>h.toLowerCase()))];
+  const colors=[...new Set(PALETTES['Master Palette (88 màu)'].map(h=>h.toLowerCase()))];
   const groups=new Map();
   colors.forEach(hex=>{
     const meta=COLOR_TOKENS[hex],group=meta?.group||'Chung';
+    if(['Skin','Silk','Cinnabar'].includes(group)) return;      // dải nhân vật không phải màu đất đá
     if(!groups.has(group))groups.set(group,[]);
     groups.get(group).push({hex,meta});
   });

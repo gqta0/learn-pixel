@@ -93,17 +93,36 @@ export const COLOR_TOKENS = {
   '#e68d3e': { group: 'Fire', token: 'fire-orange', desc: 'dung nham/flame body' },
   '#f5cb53': { group: 'Fire', token: 'fire-gold', desc: 'nguồn nhiệt mạnh' },
   '#ffea63': { group: 'Fire', token: 'fire-yellow', desc: 'điểm nóng nhất, highlight' },
-  /* Character */
-  '#e8ad83': { group: 'Character', token: 'skin-light', desc: 'skin light' },
-  '#a85b4a': { group: 'Character', token: 'skin-shadow', desc: 'skin shadow' },
-  '#a6a89e': { group: 'Character', token: 'cloth-shadow', desc: 'shadow vải' },
+  /* Skin · da: bóng ngả đỏ rượu, sáng ngả ngà — sáu bậc liền để lên khối mặt và tay */
+  '#5e2f32': { group: 'Skin', token: 'skin-900', desc: 'bóng sâu nhất của da, hốc mắt, dưới cằm' },
+  '#a85b4a': { group: 'Skin', token: 'skin-700', desc: 'bóng da' },
+  '#d08a66': { group: 'Skin', token: 'skin-500', desc: 'da phần khuất sáng' },
+  '#e8ad83': { group: 'Skin', token: 'skin-300', desc: 'da nền' },
+  '#f5cba6': { group: 'Skin', token: 'skin-200', desc: 'da nhận sáng' },
+  '#fde6cf': { group: 'Skin', token: 'skin-100', desc: 'highlight da, da sứ của tiên nhân' },
+  /* Silk · thuỷ mặc: dải trung tính hơi ấm từ mực tới lụa ngà. Dùng cho tóc đen, y phục
+     trắng, đồ tối. Không ngả xanh — thiếu dải này thì áo trắng bị kéo sang nhóm rêu. */
+  '#1f1e1c': { group: 'Silk', token: 'ink-black', desc: 'tóc đen, mực đậm nhất' },
+  '#33312d': { group: 'Silk', token: 'silk-900', desc: 'bóng tóc, vải đen' },
+  '#4c4944': { group: 'Silk', token: 'silk-800', desc: 'ánh tóc, quần áo tối' },
+  '#6b6760': { group: 'Silk', token: 'silk-600', desc: 'bóng sâu của lụa trắng' },
+  '#8f8a80': { group: 'Silk', token: 'silk-500', desc: 'nếp gấp áo, bóng vải' },
+  '#b5aea1': { group: 'Silk', token: 'silk-300', desc: 'lụa phần khuất sáng' },
+  '#d8d1c2': { group: 'Silk', token: 'silk-200', desc: 'lụa trắng nền' },
+  '#f4efe3': { group: 'Silk', token: 'silk-100', desc: 'lụa ngà nhận sáng, tóc bạc' },
+  '#a6a89e': { group: 'Silk', token: 'cloth-shadow', desc: 'shadow vải ám rêu (màu cũ, giữ cho tranh đã vẽ)' },
+  /* Cinnabar · chu sa: đỏ son của đai lưng, dây buộc tóc, ấn triện, bùa */
+  '#4a1620': { group: 'Cinnabar', token: 'cinnabar-900', desc: 'bóng sâu của vải đỏ' },
+  '#861f24': { group: 'Cinnabar', token: 'cinnabar-700', desc: 'đỏ son phần bóng' },
+  '#c2362c': { group: 'Cinnabar', token: 'cinnabar-500', desc: 'đỏ chu sa nền: đai lưng, dây buộc tóc' },
+  '#e86a4a': { group: 'Cinnabar', token: 'cinnabar-300', desc: 'đỏ nhận sáng' },
   /* Status */
   '#d8474f': { group: 'Status', token: 'health', desc: 'HP, damage' },
   '#74c77a': { group: 'Status', token: 'success', desc: 'heal, valid action' }
 };
 
 export const PALETTES = {
-  'Master Palette (72 màu)': [
+  'Master Palette (88 màu)': [
     '#0d171f','#162331','#223344',                                      /* Outline · cũng dùng cho tóc, HUD */
     '#2e4659','#435d73','#5e788c','#7a95a7','#99b0bf','#b4c5d1','#d0dde4', /* Rock */
     '#293b3b','#3e544f','#586d63','#748679','#939f8d','#b5bba4','#d8d8bd', /* Rock-2 */
@@ -120,7 +139,10 @@ export const PALETTES = {
     '#3a2a24','#694635','#9a6744','#c18a58',                            /* Wood */
     '#87919a','#c1944e',                                                /* Metal */
     '#750d10','#b34428','#e68d3e','#f5cb53','#ffea63',                  /* Fire · #f5cb53 cũng là ô chọn UI / cảnh báo */
-    '#e8ad83','#a85b4a','#a6a89e',                                      /* Character */
+    '#5e2f32','#a85b4a','#d08a66','#e8ad83','#f5cba6','#fde6cf',        /* Skin · da, tối → sáng */
+    '#1f1e1c','#33312d','#4c4944','#6b6760','#8f8a80','#b5aea1','#d8d1c2','#f4efe3', /* Silk · thuỷ mặc: tóc, y phục */
+    '#a6a89e',                                                          /* Silk · shadow vải cũ */
+    '#4a1620','#861f24','#c2362c','#e86a4a',                            /* Cinnabar · chu sa */
     '#d8474f','#74c77a'                                                 /* Status */
   ],
   'PICO-8 (16 màu)': ['#000000','#1d2b53','#7e2553','#008751','#ab5236','#5f574f','#c2c3c7','#fff1e8',
@@ -137,7 +159,7 @@ export const PALETTES = {
                            '#a8791f','#dcae35','#ffe07a','#8f4a20','#c26e33','#e59c5e','#c2c3c7','#eef0f5'],
   'Xám 8 bậc (luyện khối)': ['#0d0d12','#1f1f28','#33333f','#4c4c5b','#6b6b7c','#8f8fa0','#b8b8c6','#f0f0f6']
 };
-export let palette = PALETTES['Master Palette (72 màu)'].slice();
+export let palette = PALETTES['Master Palette (88 màu)'].slice();
 export function setPalette(a){ palette = a.slice(); if(typeof window!=='undefined') window.dispatchEvent?.(new Event('palettechange')); }
 
 /* ---------------- thư viện bảng màu của bạn ----------------
@@ -162,11 +184,11 @@ function group(sel,label,keys){
   sel.appendChild(g);
 }
 export function fillPalSelect(keep){
-  const sel=$('#palSel'), cur = keep || sel.value || 'Master Palette (72 màu)';
+  const sel=$('#palSel'), cur = keep || sel.value || 'Master Palette (88 màu)';
   sel.innerHTML='';
   group(sel,'Dựng sẵn', Object.keys(PALETTES));
   group(sel,'Của bạn',  Object.keys(userPals));
-  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : 'Master Palette (72 màu)';
+  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : 'Master Palette (88 màu)';
   $('#palDel').style.display = isUserPal(sel.value) ? '' : 'none';
 
   const m=$('#matSel');

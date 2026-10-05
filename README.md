@@ -17,7 +17,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 **Màu**
 - Panel sinh dải màu lệch tông theo **chất liệu** (kim loại, gỗ, đá, da người, lá, vải, thuỷ tinh, vàng, lửa).
-- 7 bảng màu dựng sẵn (Master Palette 72 màu phân theo nhóm chất liệu cho thế giới tu tiên xanh tươi: Grass, Jade (lá linh mộc / rừng nền), Spirit Mist (linh khí & sương), Sky Day, Blossom (đào/sen), Blue Qi, Qi Violet cùng đá, đất, gỗ, lửa; kèm PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động, Xám 8 bậc).
+- 7 bảng màu dựng sẵn (Master Palette 88 màu phân theo nhóm chất liệu cho thế giới tu tiên xanh tươi, kèm ba dải nhân vật **Skin** / **Silk** thuỷ mặc cho tóc và y phục / **Cinnabar** chu sa: Grass, Jade (lá linh mộc / rừng nền), Spirit Mist (linh khí & sương), Sky Day, Blossom (đào/sen), Blue Qi, Qi Violet cùng đá, đất, gỗ, lửa; kèm PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động, Xám 8 bậc).
 - **Thư viện bảng màu của bạn**: lưu bảng màu vào máy và dùng lại cho dự án sau, tách khỏi file tranh.
 - Sửa / bỏ / sắp xếp từng ô màu, bỏ màu thừa, rút bảng màu từ chính bức tranh hoặc từ một ảnh mẫu, thay màu hàng loạt (palette swap).
 - Ô màu chưa dùng ở khung hiện tại thì mờ đi, nên nhìn ra ngay bảng màu đang thừa chỗ nào.
