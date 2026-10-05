@@ -46,15 +46,15 @@ function setPane(name){
 const showDetail=()=>setPane('detail');
 const TERRAIN_CREATE_PRESETS={
   stone:{base:'#5e788c',edge:'#b4c5d1'},
-  soil:{base:'#765640',edge:'#e0ab72'},
+  soil:{base:'#765640',edge:'#d7aa6b'},
   blueQi:{base:'#1e789c',edge:'#6cf2ff'},
-  qiBlue:{base:'#1ea6c5',edge:'#6cf2ff'},
-  skyWater:{base:'#3973ad',edge:'#74ceda'},
+  qiBlue:{base:'#08919b',edge:'#6cf2ff'},
+  skyWater:{base:'#3973ad',edge:'#91d2ec'},
   qi:{base:'#5e419e',edge:'#b99cff'}
 };
 const TERRAIN_CREATE_DEFAULTS={base:'#5e788c',edge:'#b4c5d1'};
 function terrainColorGroups(){
-  const colors=[...new Set(PALETTES['Master Palette (88 màu)'].map(h=>h.toLowerCase()))];
+  const colors=[...new Set(PALETTES['Master Palette (85 màu)'].map(h=>h.toLowerCase()))];
   const groups=new Map();
   colors.forEach(hex=>{
     const meta=COLOR_TOKENS[hex],group=meta?.group||'Chung';

@@ -17,7 +17,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 **Màu**
 - Panel sinh dải màu lệch tông theo **chất liệu** (kim loại, gỗ, đá, da người, lá, vải, thuỷ tinh, vàng, lửa).
-- 7 bảng màu dựng sẵn (Master Palette 88 màu phân theo nhóm chất liệu cho thế giới tu tiên xanh tươi, kèm ba dải nhân vật **Skin** / **Silk** thuỷ mặc cho tóc và y phục / **Cinnabar** chu sa: Grass, Jade (lá linh mộc / rừng nền), Spirit Mist (linh khí & sương), Sky Day, Blossom (đào/sen), Blue Qi, Qi Violet cùng đá, đất, gỗ, lửa; kèm PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động, Xám 8 bậc).
+- 7 bảng màu dựng sẵn (Master Palette 85 màu cho thế giới tu tiên, chia 19 dải: Ink, Rock, Moss stone, Grass, Jade, Spirit, Sky, Water, Qi cyan, Qi violet, Blossom, Soil, Wood, Brass, Fire, Skin, Silk thuỷ mặc, Cinnabar chu sa, Status; kèm PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động, Xám 8 bậc).
 - **Thư viện bảng màu của bạn**: lưu bảng màu vào máy và dùng lại cho dự án sau, tách khỏi file tranh.
 - Sửa / bỏ / sắp xếp từng ô màu, bỏ màu thừa, rút bảng màu từ chính bức tranh hoặc từ một ảnh mẫu, thay màu hàng loạt (palette swap).
 - Ô màu chưa dùng ở khung hiện tại thì mờ đi, nên nhìn ra ngay bảng màu đang thừa chỗ nào.
@@ -39,6 +39,22 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
   Bấm *Dựng khung* ở một bài tập thì bức đang làm dở tự được cất vào đây thay vì bị xoá.
 - Tự lưu vào trình duyệt (localStorage, nén RLE) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập. Tiến độ lưu theo tên bài nên chèn bài mới không làm lệch.
 - Xuất PNG / PNG spritesheet (1 hàng, 4 cột, 8 cột hoặc lưới vuông) / PNG bảng màu, lưu & mở dự án `.json` (nén RLE).
+
+## Master Palette 85 — quy tắc dùng màu
+
+Bảng không có cặp màu nào gần trùng (mọi cặp cách nhau ΔE OKLab ≥ 0,035) và mọi dải đều sáng dần.
+
+1. **Một viền duy nhất:** `#0d171f`. `#162331` và `#223344` là bóng và nền HUD.
+2. **Sắc tô tối nhất của mọi dải từ L29 trở lên.** Ngoại lệ: `#1f1e1c` (Silk) là đen để tô tóc, không viền.
+3. **Góc màu 195–210 ở độ sáng cao chỉ dành cho Khí** (dải Qi cyan). Nước ở 224–240, trời ở 239–265, ngọc ở 161–200.
+4. **Đỏ mang nghĩa** (nguy hiểm, máu, vật nhặt được) phải lệch ít nhất 15 L so với nền lục phía sau và luôn đi
+   kèm hình dạng hoặc biểu tượng: lục giữa và đỏ có cùng độ sáng nên người mù màu đỏ–lục không phân biệt được.
+5. **Hai vai cần gần cùng một màu thì dùng chung một mã**, không thêm mã mới sát mã cũ. Đang dùng chung:
+   sắt = Rock bậc 2/4/6 · mây, giấy, viền sáng của da = `#f4efe3` · bóng vải = `#b5aea1` ·
+   cảnh báo, ô đang chọn, đồng sáng = `#f5cb53` · sương xa = `#d9efff`.
+6. **Màu thêm mới phải cách mọi màu đang có ít nhất ΔE 0,035** và nằm đúng thứ tự độ sáng trong dải.
+
+Tranh vẽ bằng Master 88 cũ: thẻ Màu → **Tranh → Master 85** đổi 25 mã cũ sang mã mới ở mọi lớp, mọi khung.
 
 ## Sprite sheet → khung hình (pixel hoá)
 

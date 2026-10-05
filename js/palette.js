@@ -5,145 +5,147 @@ import { MATERIALS, buildRamp, hexToInt, intToHex, intToCss, rgbToHsl } from './
 import { autosave } from './storage.js';
 import { onLongPress, popover } from './popup.js';
 
+/* Mã cũ của Master 88 → mã thay thế trong Master 85. Dùng để chuyển tranh đã vẽ sang bảng mới
+   và để tranh cũ vẫn hiện đúng nhóm màu. #8fcfb8 (sương cũ) bị bỏ, không có màu thay. */
+export const MASTER_REMAP = {
+  '#293b3b':'#283b3a', '#3e544f':'#3a5647', '#586d63':'#527059', '#748679':'#6e896f',
+  '#939f8d':'#8ea283', '#b5bba4':'#b3bd96', '#d8d8bd':'#dad9ad', '#3d8a2a':'#4a873c',
+  '#6cbc33':'#7cb759', '#a8e04a':'#b1dc74', '#e4f78a':'#e5f4a7', '#16445f':'#004264',
+  '#74ceda':'#91d2ec', '#1ea6c5':'#08919b', '#e0ab72':'#d7aa6b', '#3a2a24':'#41261c',
+  '#c18a58':'#ba8851', '#c1944e':'#b89c40', '#b34428':'#b14714', '#e86a4a':'#ee6353',
+  '#f3e5d3':'#f4efe3', '#fde6cf':'#f4efe3', '#a6a89e':'#b5aea1', '#87919a':'#7a95a7',
+  '#cdf1f4':'#d9efff',
+};
 export const COLOR_TOKENS = {
-  /* Outline */
-  '#0d171f': { group: 'Outline', token: 'ink-950', desc: 'outline sâu nhất, khe hang, nền cực tối' },
-  '#162331': { group: 'Outline', token: 'ink-900', desc: 'outline chính của tile/sprite' },
-  '#223344': { group: 'Outline', token: 'ink-800', desc: 'outline phụ, bóng sâu' },
-  /* Rock */
+  /* Ink · viền và bóng sâu; chỉ ink-950 làm viền */
+  '#0d171f': { group: 'Ink', token: 'ink-950', desc: 'viền duy nhất của tile/sprite; khe hang, nền cực tối' },
+  '#162331': { group: 'Ink', token: 'ink-900', desc: 'bóng sâu, nền HUD (không dùng làm viền)' },
+  '#223344': { group: 'Ink', token: 'ink-800', desc: 'bóng, ô HUD nổi' },
+  /* Rock · đá lạnh; ba bậc 2/4/6 kiêm luôn sắt */
   '#2e4659': { group: 'Rock', token: 'slate-800', desc: 'đá cực tối' },
-  '#435d73': { group: 'Rock', token: 'slate-700', desc: 'shadow đá' },
+  '#435d73': { group: 'Rock', token: 'slate-700', desc: 'shadow đá · cũng là sắt tối (metal-700)' },
   '#5e788c': { group: 'Rock', token: 'slate-600', desc: 'đá nền tối' },
-  '#7a95a7': { group: 'Rock', token: 'slate-500', desc: 'đá nền sáng' },
+  '#7a95a7': { group: 'Rock', token: 'slate-500', desc: 'đá nền sáng · cũng là sắt nền (metal-500)' },
   '#99b0bf': { group: 'Rock', token: 'stone-400', desc: 'mặt đá có ánh sáng' },
-  '#b4c5d1': { group: 'Rock', token: 'stone-300', desc: 'cạnh đá sáng' },
+  '#b4c5d1': { group: 'Rock', token: 'stone-300', desc: 'cạnh đá sáng · cũng là sắt sáng (metal-300)' },
   '#d0dde4': { group: 'Rock', token: 'stone-100', desc: 'highlight hiếm, tinh thể/đá rất sáng' },
-
-  '#293b3b': { group: 'Rock-2', token: 'moss-900', desc: 'khe đá cực tối' },
-  '#3e544f': { group: 'Rock-2', token: 'moss-800', desc: 'shadow đá xanh rêu' },
-  '#586d63': { group: 'Rock-2', token: 'moss-700', desc: 'đá nền tối' },
-  '#748679': { group: 'Rock-2', token: 'moss-600', desc: 'midtone đá phong hóa' },
-  '#939f8d': { group: 'Rock-2', token: 'moss-500', desc: 'mặt đá có ánh sáng' },
-  '#b5bba4': { group: 'Rock-2', token: 'stone-300', desc: 'cạnh đá sáng / đá phủ rêu nhẹ' },
-  '#d8d8bd': { group: 'Rock-2', token: 'stone-100', desc: 'highlight nắng / đá cổ sáng' },
-
-  /* Grass · cỏ mặt đất: bóng ngả xanh ngọc, sáng ngả vàng nắng */
+  /* Moss stone · đá rêu: xanh hẳn để không lẫn với dải xám Silk */
+  '#283b3a': { group: 'Moss stone', token: 'moss-900', desc: 'khe đá cực tối' },
+  '#3a5647': { group: 'Moss stone', token: 'moss-800', desc: 'shadow đá xanh rêu' },
+  '#527059': { group: 'Moss stone', token: 'moss-700', desc: 'đá nền tối' },
+  '#6e896f': { group: 'Moss stone', token: 'moss-600', desc: 'midtone đá phong hóa' },
+  '#8ea283': { group: 'Moss stone', token: 'moss-500', desc: 'mặt đá có ánh sáng' },
+  '#b3bd96': { group: 'Moss stone', token: 'moss-300', desc: 'cạnh đá sáng / đá phủ rêu nhẹ' },
+  '#dad9ad': { group: 'Moss stone', token: 'moss-100', desc: 'highlight nắng / đá cổ sáng' },
+  /* Grass · cỏ: lục giữa dịu lại cho đỡ chói hơn Khí */
   '#173d2a': { group: 'Grass', token: 'grass-900', desc: 'gốc cỏ, bóng sâu dưới thảm cỏ' },
   '#245c2c': { group: 'Grass', token: 'grass-800', desc: 'bóng cỏ, mép dưới lớp cỏ' },
-  '#3d8a2a': { group: 'Grass', token: 'grass-600', desc: 'thân cỏ tối' },
-  '#6cbc33': { group: 'Grass', token: 'grass-500', desc: 'cỏ nền' },
-  '#a8e04a': { group: 'Grass', token: 'grass-300', desc: 'mặt cỏ nhận nắng' },
-  '#e4f78a': { group: 'Grass', token: 'grass-100', desc: 'ngọn cỏ bắt nắng, highlight' },
-  /* Jade · lá linh mộc, rừng nền parallax */
+  '#4a873c': { group: 'Grass', token: 'grass-600', desc: 'thân cỏ tối' },
+  '#7cb759': { group: 'Grass', token: 'grass-500', desc: 'cỏ nền' },
+  '#b1dc74': { group: 'Grass', token: 'grass-300', desc: 'mặt cỏ nhận nắng' },
+  '#e5f4a7': { group: 'Grass', token: 'grass-100', desc: 'ngọn cỏ bắt nắng, highlight' },
+  /* Jade · lá linh mộc */
   '#0b3436': { group: 'Jade', token: 'jade-950', desc: 'tán lá cực tối, lõi bụi rậm' },
   '#0f5c50': { group: 'Jade', token: 'jade-800', desc: 'bóng lá linh mộc, rừng nền lớp gần' },
   '#14866a': { group: 'Jade', token: 'jade-600', desc: 'lá nền, rừng nền lớp giữa' },
   '#2fb688': { group: 'Jade', token: 'jade-400', desc: 'lá sáng, ngọc bích' },
   '#7fe8b4': { group: 'Jade', token: 'jade-200', desc: 'mép lá nắng, linh thảo' },
-  /* Spirit Mist · linh khí & sương */
-  '#5dffc0': { group: 'Spirit Mist', token: 'spirit-glow', desc: 'linh khí phát sáng, hạt khí' },
-  '#8fcfb8': { group: 'Spirit Mist', token: 'mist-300', desc: 'núi/rừng xa trong sương' },
-  '#c4f0de': { group: 'Spirit Mist', token: 'mist-100', desc: 'sương linh khí, viền núi xa, quầng sáng' },
-  /* Sky / Water */
-  '#2c488f': { group: 'Sky/Water', token: 'sky-800', desc: 'núi xa, trời sâu' },
-  '#3973ad': { group: 'Sky/Water', token: 'sky-700', desc: 'núi/parallax' },
-  '#53accc': { group: 'Sky/Water', token: 'sky-500', desc: 'trời chính' },
-  '#74ceda': { group: 'Sky/Water', token: 'sky-300', desc: 'haze, trời sáng' },
-  '#cdf1f4': { group: 'Sky/Water', token: 'sky-haze', desc: 'sương, mây xa, highlight trời' },
-  /* Sky Day · trời ban ngày */
-  '#4f8fe0': { group: 'Sky Day', token: 'sky-day-600', desc: 'trời ngày, đỉnh màn hình' },
-  '#93c8ff': { group: 'Sky Day', token: 'sky-day-300', desc: 'trời ngày, giữa màn hình' },
-  '#d9efff': { group: 'Sky Day', token: 'sky-day-100', desc: 'chân trời, mây sáng' },
-  /* Neutral */
-  '#f3e5d3': { group: 'Neutral', token: 'cloud', desc: 'giấy, vải sáng, mây ấm' },
-  /* Soil */
-  '#4e392f': { group: 'Soil', token: 'soil-700', desc: 'đất sâu/ẩm' },
-  '#765640': { group: 'Soil', token: 'soil-500', desc: 'đất nền' },
-  '#a67b54': { group: 'Soil', token: 'soil-300', desc: 'đất khô' },
-  '#e0ab72': { group: 'Soil', token: 'soil-200', desc: 'cạnh đất nắng, cát khô' },
-  /* Wood */
-  '#3a2a24': { group: 'Wood', token: 'wood-900', desc: 'viền gỗ' },
-  '#694635': { group: 'Wood', token: 'wood-700', desc: 'gỗ tối' },
-  '#9a6744': { group: 'Wood', token: 'wood-500', desc: 'plank/gỗ nền' },
-  '#c18a58': { group: 'Wood', token: 'wood-300', desc: 'cạnh gỗ sáng' },
-  /* Metal */
-  '#87919a': { group: 'Metal', token: 'metal-500', desc: 'iron base' },
-  '#c1944e': { group: 'Metal', token: 'brass', desc: 'máy móc, fittings, pháp khí' },
-  /* Blue Qi · water */
-  '#16445f': { group: 'Blue Qi', token: 'blue-qi-water-900', desc: 'nước sâu' },
-  '#1e789c': { group: 'Blue Qi', token: 'blue-qi-water-700', desc: 'nước nền' },
-  /* Blue Qi */
-  '#1ea6c5': { group: 'Blue Qi', token: 'blue-qi-deep', desc: 'Qi xanh dương thấp, ore dormant' },
-  '#6cf2ff': { group: 'Blue Qi', token: 'blue-qi', desc: 'Qi xanh dương active, crystal core' },
-  /* Qi Violet: giữ hai màu tím gốc, thêm hai bậc sáng hơn */
-  '#3a286f': { group: 'Qi Violet', token: 'qi-violet-950', desc: 'Qi tím cực sâu' },
-  '#5e419e': { group: 'Qi Violet', token: 'qi-violet-deep', desc: 'Qi tím tầng sâu' },
-  '#7c5bc4': { group: 'Qi Violet', token: 'qi-violet-mid', desc: 'Qi tím trung gian' },
-  '#9a7de0': { group: 'Qi Violet', token: 'qi-violet-light', desc: 'Qi tím sáng' },
-  '#a57eff': { group: 'Qi Violet', token: 'qi-violet', desc: 'Qi tím cao cấp' },
-  '#b99cff': { group: 'Qi Violet', token: 'qi-violet-highlight', desc: 'Qi tím highlight sáng' },
-  /* Blossom · hoa đào / sen */
+  /* Spirit · ánh linh khí và sương */
+  '#5dffc0': { group: 'Spirit', token: 'spirit-glow', desc: 'linh khí phát sáng, hạt khí' },
+  '#c4f0de': { group: 'Spirit', token: 'mist-100', desc: 'sương linh khí, viền núi xa, quầng sáng' },
+  /* Sky · trời, một dải liền từ xanh tím sâu tới chân trời */
+  '#2c488f': { group: 'Sky', token: 'sky-800', desc: 'núi xa, trời sâu' },
+  '#3973ad': { group: 'Sky', token: 'sky-700', desc: 'núi/parallax' },
+  '#4f8fe0': { group: 'Sky', token: 'sky-600', desc: 'trời ngày, đỉnh màn hình' },
+  '#6faeef': { group: 'Sky', token: 'sky-500', desc: 'màu trời ban ngày chính' },
+  '#93c8ff': { group: 'Sky', token: 'sky-300', desc: 'trời ngày, giữa màn hình' },
+  '#d9efff': { group: 'Sky', token: 'sky-100', desc: 'chân trời, mây sáng · cũng là sương xa (sky-haze)' },
+  /* Water · nước, góc màu 224–240 */
+  '#004264': { group: 'Water', token: 'water-900', desc: 'nước sâu' },
+  '#1e789c': { group: 'Water', token: 'water-700', desc: 'nước nền' },
+  '#53accc': { group: 'Water', token: 'water-500', desc: 'nước nhận sáng' },
+  '#91d2ec': { group: 'Water', token: 'water-300', desc: 'mặt nước sáng, bọt' },
+  /* Qi cyan · Khí: góc màu 195–210 ở độ sáng cao chỉ dành cho Khí */
+  '#08919b': { group: 'Qi cyan', token: 'qi-cyan-deep', desc: 'Khí xanh tầng thấp, ore dormant' },
+  '#01cbd3': { group: 'Qi cyan', token: 'qi-cyan-mid', desc: 'Khí xanh đang chuyển, thân tia khí' },
+  '#6cf2ff': { group: 'Qi cyan', token: 'qi-cyan', desc: 'lõi Khí active, crystal core' },
+  /* Qi violet · Khí tím, đậm → sáng */
+  '#5e419e': { group: 'Qi violet', token: 'qi-violet-deep', desc: 'Qi tím tầng sâu' },
+  '#7c5bc4': { group: 'Qi violet', token: 'qi-violet-mid', desc: 'Qi tím trung gian' },
+  '#9a7de0': { group: 'Qi violet', token: 'qi-violet-light', desc: 'Qi tím sáng' },
+  '#b99cff': { group: 'Qi violet', token: 'qi-violet-highlight', desc: 'Qi tím highlight sáng' },
+  /* Blossom · đào / sen */
   '#6e2350': { group: 'Blossom', token: 'blossom-900', desc: 'bóng sâu hoa đào/sen' },
   '#b04a7c': { group: 'Blossom', token: 'blossom-700', desc: 'cánh hoa phần bóng' },
   '#ec89ae': { group: 'Blossom', token: 'blossom-400', desc: 'cánh hoa đào/sen' },
   '#ffd0df': { group: 'Blossom', token: 'blossom-100', desc: 'highlight cánh hoa' },
-  /* Fire */
+  /* Soil · đất */
+  '#4e392f': { group: 'Soil', token: 'soil-700', desc: 'đất sâu/ẩm' },
+  '#765640': { group: 'Soil', token: 'soil-500', desc: 'đất nền' },
+  '#a67b54': { group: 'Soil', token: 'soil-300', desc: 'đất khô' },
+  '#d7aa6b': { group: 'Soil', token: 'soil-200', desc: 'cạnh đất nắng, cát khô' },
+  /* Wood · gỗ */
+  '#41261c': { group: 'Wood', token: 'wood-900', desc: 'viền gỗ' },
+  '#694635': { group: 'Wood', token: 'wood-700', desc: 'gỗ tối' },
+  '#9a6744': { group: 'Wood', token: 'wood-500', desc: 'plank/gỗ nền' },
+  '#ba8851': { group: 'Wood', token: 'wood-300', desc: 'cạnh gỗ sáng' },
+  /* Brass · đồng thau, viền vàng */
+  '#776022': { group: 'Brass', token: 'brass-700', desc: 'bóng của đồng, viền vàng phần khuất' },
+  '#b89c40': { group: 'Brass', token: 'brass', desc: 'đồng thau: máy móc, fittings, pháp khí, viền vàng' },
+  /* Fire · lửa */
   '#750d10': { group: 'Fire', token: 'fire-deep', desc: 'magma shadow' },
-  '#b34428': { group: 'Fire', token: 'fire-red', desc: 'khe nhiệt, ember' },
+  '#b14714': { group: 'Fire', token: 'fire-red', desc: 'khe nhiệt, ember' },
   '#e68d3e': { group: 'Fire', token: 'fire-orange', desc: 'dung nham/flame body' },
-  '#f5cb53': { group: 'Fire', token: 'fire-gold', desc: 'nguồn nhiệt mạnh' },
+  '#f5cb53': { group: 'Fire', token: 'fire-gold', desc: 'nguồn nhiệt mạnh · cũng là cảnh báo, ô đang chọn, đồng sáng' },
   '#ffea63': { group: 'Fire', token: 'fire-yellow', desc: 'điểm nóng nhất, highlight' },
-  /* Skin · da: bóng ngả đỏ rượu, sáng ngả ngà — sáu bậc liền để lên khối mặt và tay */
+  /* Skin · da, tối → sáng */
   '#5e2f32': { group: 'Skin', token: 'skin-900', desc: 'bóng sâu nhất của da, hốc mắt, dưới cằm' },
   '#a85b4a': { group: 'Skin', token: 'skin-700', desc: 'bóng da' },
   '#d08a66': { group: 'Skin', token: 'skin-500', desc: 'da phần khuất sáng' },
   '#e8ad83': { group: 'Skin', token: 'skin-300', desc: 'da nền' },
   '#f5cba6': { group: 'Skin', token: 'skin-200', desc: 'da nhận sáng' },
-  '#fde6cf': { group: 'Skin', token: 'skin-100', desc: 'highlight da, da sứ của tiên nhân' },
-  /* Silk · thuỷ mặc: dải trung tính hơi ấm từ mực tới lụa ngà. Dùng cho tóc đen, y phục
-     trắng, đồ tối. Không ngả xanh — thiếu dải này thì áo trắng bị kéo sang nhóm rêu. */
-  '#1f1e1c': { group: 'Silk', token: 'ink-black', desc: 'tóc đen, mực đậm nhất' },
+  /* Silk · thuỷ mặc: tóc, y phục; xám hơi ấm, không ngả xanh */
+  '#1f1e1c': { group: 'Silk', token: 'ink-black', desc: 'đen để tô: tóc đen, mực đậm nhất (không cần viền)' },
   '#33312d': { group: 'Silk', token: 'silk-900', desc: 'bóng tóc, vải đen' },
   '#4c4944': { group: 'Silk', token: 'silk-800', desc: 'ánh tóc, quần áo tối' },
   '#6b6760': { group: 'Silk', token: 'silk-600', desc: 'bóng sâu của lụa trắng' },
   '#8f8a80': { group: 'Silk', token: 'silk-500', desc: 'nếp gấp áo, bóng vải' },
-  '#b5aea1': { group: 'Silk', token: 'silk-300', desc: 'lụa phần khuất sáng' },
+  '#b5aea1': { group: 'Silk', token: 'silk-300', desc: 'lụa phần khuất sáng · cũng là bóng vải (cloth-shadow)' },
   '#d8d1c2': { group: 'Silk', token: 'silk-200', desc: 'lụa trắng nền' },
-  '#f4efe3': { group: 'Silk', token: 'silk-100', desc: 'lụa ngà nhận sáng, tóc bạc' },
-  '#a6a89e': { group: 'Silk', token: 'cloth-shadow', desc: 'shadow vải ám rêu (màu cũ, giữ cho tranh đã vẽ)' },
-  /* Cinnabar · chu sa: đỏ son của đai lưng, dây buộc tóc, ấn triện, bùa */
+  '#f4efe3': { group: 'Silk', token: 'silk-100', desc: 'lụa ngà nhận sáng, tóc bạc · cũng là mây, giấy, viền sáng của da (cloud)' },
+  /* Cinnabar · chu sa: đai lưng, dây buộc tóc, ấn triện */
   '#4a1620': { group: 'Cinnabar', token: 'cinnabar-900', desc: 'bóng sâu của vải đỏ' },
   '#861f24': { group: 'Cinnabar', token: 'cinnabar-700', desc: 'đỏ son phần bóng' },
   '#c2362c': { group: 'Cinnabar', token: 'cinnabar-500', desc: 'đỏ chu sa nền: đai lưng, dây buộc tóc' },
-  '#e86a4a': { group: 'Cinnabar', token: 'cinnabar-300', desc: 'đỏ nhận sáng' },
-  /* Status */
+  '#ee6353': { group: 'Cinnabar', token: 'cinnabar-300', desc: 'đỏ nhận sáng' },
+  /* Status · HUD */
   '#d8474f': { group: 'Status', token: 'health', desc: 'HP, damage' },
-  '#74c77a': { group: 'Status', token: 'success', desc: 'heal, valid action' }
+  '#74c77a': { group: 'Status', token: 'success', desc: 'heal, valid action' },
 };
+for(const [cu,moi] of Object.entries(MASTER_REMAP))
+  if(!COLOR_TOKENS[cu]) COLOR_TOKENS[cu]={...COLOR_TOKENS[moi], legacy:true, desc:'màu cũ của Master 88 → nay là '+moi};
 
 export const PALETTES = {
-  'Master Palette (88 màu)': [
-    '#0d171f','#162331','#223344',                                      /* Outline · cũng dùng cho tóc, HUD */
+  'Master Palette (85 màu)': [
+    '#0d171f','#162331','#223344',                                    /* Ink */
     '#2e4659','#435d73','#5e788c','#7a95a7','#99b0bf','#b4c5d1','#d0dde4', /* Rock */
-    '#293b3b','#3e544f','#586d63','#748679','#939f8d','#b5bba4','#d8d8bd', /* Rock-2 */
-    '#173d2a','#245c2c','#3d8a2a','#6cbc33','#a8e04a','#e4f78a',        /* Grass · cỏ */
-    '#0b3436','#0f5c50','#14866a','#2fb688','#7fe8b4',                  /* Jade · lá linh mộc */
-    '#5dffc0','#8fcfb8','#c4f0de',                                      /* Spirit Mist · linh khí & sương */
-    '#2c488f','#3973ad','#53accc','#74ceda','#cdf1f4',                  /* Sky/Water */
-    '#4f8fe0','#93c8ff','#d9efff',                                      /* Sky Day · trời ngày */
-    '#16445f','#1e789c','#1ea6c5','#6cf2ff',                            /* Blue Qi */
-    '#5e419e','#7c5bc4','#9a7de0','#b99cff',                            /* Qi Violet · đậm → sáng */
-    '#6e2350','#b04a7c','#ec89ae','#ffd0df',                            /* Blossom · đào/sen */
-    '#f3e5d3',                                                          /* Neutral */
-    '#4e392f','#765640','#a67b54','#e0ab72',                            /* Soil */
-    '#3a2a24','#694635','#9a6744','#c18a58',                            /* Wood */
-    '#87919a','#c1944e',                                                /* Metal */
-    '#750d10','#b34428','#e68d3e','#f5cb53','#ffea63',                  /* Fire · #f5cb53 cũng là ô chọn UI / cảnh báo */
-    '#5e2f32','#a85b4a','#d08a66','#e8ad83','#f5cba6','#fde6cf',        /* Skin · da, tối → sáng */
-    '#1f1e1c','#33312d','#4c4944','#6b6760','#8f8a80','#b5aea1','#d8d1c2','#f4efe3', /* Silk · thuỷ mặc: tóc, y phục */
-    '#a6a89e',                                                          /* Silk · shadow vải cũ */
-    '#4a1620','#861f24','#c2362c','#e86a4a',                            /* Cinnabar · chu sa */
-    '#d8474f','#74c77a'                                                 /* Status */
+    '#283b3a','#3a5647','#527059','#6e896f','#8ea283','#b3bd96','#dad9ad', /* Moss stone */
+    '#173d2a','#245c2c','#4a873c','#7cb759','#b1dc74','#e5f4a7',      /* Grass */
+    '#0b3436','#0f5c50','#14866a','#2fb688','#7fe8b4',                /* Jade */
+    '#5dffc0','#c4f0de',                                              /* Spirit */
+    '#2c488f','#3973ad','#4f8fe0','#6faeef','#93c8ff','#d9efff',      /* Sky */
+    '#004264','#1e789c','#53accc','#91d2ec',                          /* Water */
+    '#08919b','#01cbd3','#6cf2ff',                                    /* Qi cyan */
+    '#5e419e','#7c5bc4','#9a7de0','#b99cff',                          /* Qi violet */
+    '#6e2350','#b04a7c','#ec89ae','#ffd0df',                          /* Blossom */
+    '#4e392f','#765640','#a67b54','#d7aa6b',                          /* Soil */
+    '#41261c','#694635','#9a6744','#ba8851',                          /* Wood */
+    '#776022','#b89c40',                                              /* Brass */
+    '#750d10','#b14714','#e68d3e','#f5cb53','#ffea63',                /* Fire */
+    '#5e2f32','#a85b4a','#d08a66','#e8ad83','#f5cba6',                /* Skin */
+    '#1f1e1c','#33312d','#4c4944','#6b6760','#8f8a80','#b5aea1','#d8d1c2','#f4efe3', /* Silk */
+    '#4a1620','#861f24','#c2362c','#ee6353',                          /* Cinnabar */
+    '#d8474f','#74c77a'                                               /* Status */
   ],
   'PICO-8 (16 màu)': ['#000000','#1d2b53','#7e2553','#008751','#ab5236','#5f574f','#c2c3c7','#fff1e8',
                       '#ff004d','#ffa300','#ffec27','#00e436','#29adff','#83769c','#ff77a8','#ffccaa'],
@@ -159,7 +161,7 @@ export const PALETTES = {
                            '#a8791f','#dcae35','#ffe07a','#8f4a20','#c26e33','#e59c5e','#c2c3c7','#eef0f5'],
   'Xám 8 bậc (luyện khối)': ['#0d0d12','#1f1f28','#33333f','#4c4c5b','#6b6b7c','#8f8fa0','#b8b8c6','#f0f0f6']
 };
-export let palette = PALETTES['Master Palette (88 màu)'].slice();
+export let palette = PALETTES['Master Palette (85 màu)'].slice();
 export function setPalette(a){ palette = a.slice(); if(typeof window!=='undefined') window.dispatchEvent?.(new Event('palettechange')); }
 
 /* ---------------- thư viện bảng màu của bạn ----------------
@@ -184,11 +186,11 @@ function group(sel,label,keys){
   sel.appendChild(g);
 }
 export function fillPalSelect(keep){
-  const sel=$('#palSel'), cur = keep || sel.value || 'Master Palette (88 màu)';
+  const sel=$('#palSel'), cur = keep || sel.value || 'Master Palette (85 màu)';
   sel.innerHTML='';
   group(sel,'Dựng sẵn', Object.keys(PALETTES));
   group(sel,'Của bạn',  Object.keys(userPals));
-  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : 'Master Palette (88 màu)';
+  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : 'Master Palette (85 màu)';
   $('#palDel').style.display = isUserPal(sel.value) ? '' : 'none';
 
   const m=$('#matSel');

@@ -556,8 +556,8 @@ function renderToCanvas(targetCv, includeOverlays, atlasImage) {
   if (mapBg === 'sky') {
     const grad = g.createLinearGradient(0, 0, 0, targetCv.height);
     grad.addColorStop(0, '#2c488f');
-    grad.addColorStop(0.6, '#53accc');
-    grad.addColorStop(1, '#cdf1f4');
+    grad.addColorStop(0.6, '#6faeef');     // trời ban ngày chính; #53accc giờ là màu nước
+    grad.addColorStop(1, '#d9efff');
     g.fillStyle = grad;
     g.fillRect(0, 0, targetCv.width, targetCv.height);
   } else if (mapBg === 'cave') {
