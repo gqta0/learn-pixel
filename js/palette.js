@@ -104,6 +104,16 @@ export const COLOR_TOKENS = {
   '#d08a66': { group: 'Skin', token: 'skin-500', desc: 'da phần khuất sáng' },
   '#e8ad83': { group: 'Skin', token: 'skin-300', desc: 'da nền' },
   '#f5cba6': { group: 'Skin', token: 'skin-200', desc: 'da nhận sáng' },
+  /* Warm stone · đá xám ấm: cùng bậc sáng với đá xám lạnh thường gặp, chỉ đổi nhiệt độ.
+     Bóng ngả tím than để đá tối vẫn ăn với nền navy; chỗ sáng ngả kem. Ở bảng "Đá ấm", không nằm trong Master. */
+  '#413e4a': { group: 'Warm stone', token: 'warm-stone-900', desc: 'bóng sâu nhất của đá, khe giữa hai tảng' },
+  '#5e4c49': { group: 'Warm stone', token: 'warm-stone-800', desc: 'mặt khuất của tảng đá' },
+  '#76635b': { group: 'Warm stone', token: 'warm-stone-700', desc: 'bóng đá, mặt dưới của gờ' },
+  '#968377': { group: 'Warm stone', token: 'warm-stone-500', desc: 'thân đá tối' },
+  '#ac9c8d': { group: 'Warm stone', token: 'warm-stone-400', desc: 'thân đá nền' },
+  '#cabcad': { group: 'Warm stone', token: 'warm-stone-300', desc: 'mặt đá nhận sáng' },
+  '#d8cfc1': { group: 'Warm stone', token: 'warm-stone-200', desc: 'cạnh trên của gờ đá' },
+  '#e5e0d5': { group: 'Warm stone', token: 'warm-stone-100', desc: 'điểm sáng nhất, mép đá bắt nắng' },
   /* Silk · thuỷ mặc: tóc, y phục; xám hơi ấm, không ngả xanh */
   '#1f1e1c': { group: 'Silk', token: 'ink-black', desc: 'đen để tô: tóc đen, mực đậm nhất (không cần viền)' },
   '#33312d': { group: 'Silk', token: 'silk-900', desc: 'bóng tóc, vải đen' },
@@ -146,6 +156,12 @@ export const PALETTES = {
     '#1f1e1c','#33312d','#4c4944','#6b6760','#8f8a80','#b5aea1','#d8d1c2','#f4efe3', /* Silk */
     '#4a1620','#861f24','#c2362c','#ee6353',                          /* Cinnabar */
     '#d8474f','#74c77a'                                               /* Status */
+  ],
+  /* Đá ấm: đủ để vẽ một nền đá có cỏ — mực/nền tối, 8 bậc đá xám ấm, cỏ */
+  'Đá ấm (17 màu)': [
+    '#0d171f','#162331','#223344',                                    /* Ink · nền, viền */
+    '#413e4a','#5e4c49','#76635b','#968377','#ac9c8d','#cabcad','#d8cfc1','#e5e0d5', /* Warm stone */
+    '#173d2a','#245c2c','#4a873c','#7cb759','#b1dc74','#e5f4a7'       /* Grass */
   ],
   'PICO-8 (16 màu)': ['#000000','#1d2b53','#7e2553','#008751','#ab5236','#5f574f','#c2c3c7','#fff1e8',
                       '#ff004d','#ffa300','#ffec27','#00e436','#29adff','#83769c','#ff77a8','#ffccaa'],
