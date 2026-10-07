@@ -215,6 +215,7 @@ export function fillPalSelect(keep){
   }
 }
 export function palByName(n){ return PALETTES[n] || userPals[n] || null; }
+export function userPaletteNames(){ return Object.keys(userPals); }
 /* trả về tên đã lưu, hoặc null nếu người dùng bấm huỷ */
 export function savePaletteAs(){
   const goi = isUserPal($('#palSel').value) ? $('#palSel').value : '';

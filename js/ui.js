@@ -11,6 +11,7 @@ import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.
 import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches, paintRamp, syncColors, rampCols,
          attachPalettePopup, openQuickPalette, palByName, isUserPal, savePaletteAs, deleteUserPal,
          fillPalSelect, addCurrentColor, sortPalette, prunePalette, paletteFromArt, rampFromCurrent } from './palette.js';
+import { mountPalettePicker } from './palpick.js';
 import { setTool, setTheme, setView, syncFingerBtn, syncPixelPerfectBtn, attachMods } from './tools.js';
 import { SAVE_KEY, exportPng, exportSheet, exportPalettePng, exportJson, importJson, exportGodotFrames,
          loadRef, refToPixels, refToPalette } from './storage.js';
@@ -427,7 +428,8 @@ $('#lyMerge').addEventListener('click', mergeDown);
 
 $('#refFile').addEventListener('change', e=>{ if(e.target.files[0]) loadRef(e.target.files[0]); e.target.value=''; });
 $('#refOp').addEventListener('input', e=>{ view.refOp=+e.target.value/100; $('#refLbl').textContent=e.target.value+'%'; render(); });
-$('#refToPix').addEventListener('click', refToPixels);
+const refPick = $('#refPalPick') ? mountPalettePicker($('#refPalPick'),{auto:true,raw:true,value:'cur'}) : null;
+$('#refToPix').addEventListener('click', ()=>refToPixels(refPick ? refPick.value() : {mode:'raw'}));
 $('#refClear').addEventListener('click', ()=>{ view.ref=null; render(); });
 
 $('#expPng').addEventListener('click', exportPng);

@@ -68,9 +68,13 @@ Thẻ **File → 🎞 Nhập sprite sheet…**. Chọn một hay nhiều ảnh s
 1. Mỗi tấm một thẻ. App gợi ý **số khung** từ khổ ảnh và số cụm hình đếm được (★ là gợi ý
    khớp nhất); bạn chốt số thật. Dải ảnh gốc có kẻ vạch chia khung để nhìn là biết đúng chưa.
 2. **Pixel hoá** dùng chung cho cả lô: tỉ lệ (**Tự vừa khung** mặc định, 100% → 20%, hoặc tự nhập %), khung vẽ (vừa khít hoặc
-   32–128), số màu (8–48, hoặc ép về bảng màu đang dùng). Ô xem trước chạy hoạt ảnh sau pixel hoá.
-3. **Nhập**: một tấm thì trải thẳng thành khung hình; nhiều tấm thì mỗi tấm thành một bản vẽ
-   trong thư viện 📁, và tấm đầu được mở ra.
+   32–128), **màu** (tự rút 8–48 màu từ ảnh, hoặc ép về một bảng bất kỳ: bảng đang dùng, bảng dựng sẵn,
+   bảng của bạn). Ô xem trước chạy hoạt ảnh sau pixel hoá.
+3. **Nhập**: một tấm thì trải thẳng thành khung hình. Nhiều tấm thì chọn:
+   - **Mỗi tấm một lớp, chung một bản vẽ** (mặc định): tấm đầu danh sách nằm lớp trên cùng, tên lớp là tên tấm.
+     Hợp để vẽ lại style trên lớp riêng, so hai động tác, ghép part. Khung chung lấy cỡ lớn nhất (tấm nhỏ hơn
+     đặt chân sát đáy, canh giữa); tấm ít khung hơn để trống phần đuôi — thẻ thông tin báo trước tấm nào.
+   - **Mỗi tấm một bản vẽ** trong thư viện 📁, tấm đầu được mở ra.
 
 **Tự vừa khung** lấy tỉ lệ lớn nhất mà hình vẫn nằm trọn trong khung vẽ: chiều dài hơn chạm sát
 mép, chiều kia dư vài pixel vì thu đều hai chiều. Không phóng quá 100%. Nhập nhiều tấm thì cả lô
@@ -84,6 +88,17 @@ khung nào và các khung khác trống bao nhiêu pixel.
 Cách pixel hoá: ép ảnh gốc về bảng màu trước, rồi mỗi pixel đích lấy màu xuất hiện nhiều nhất
 trong ô nguồn — không lấy trung bình, nên viền tối không bị trộn thành màu bùn. Mọi khung của
 một tấm cắt theo cùng một hộp bao, nên hoạt ảnh không giật. Cả lô dùng chung một bảng màu.
+
+### Chọn bảng màu và nhóm màu (dùng chung cho sprite sheet và Ảnh mẫu → pixel)
+
+Ô **Màu** chọn nguồn màu. Khi ép về một bảng, mục **Nâng cao: chọn nhóm màu** liệt kê các nhóm của bảng
+đó (theo token: Ink, Rock, Warm stone, Grass, Skin, Silk…; màu không có token vào nhóm "Khác") để bật/tắt
+từng nhóm — ví dụ chỉ bật Ink + Skin + Silk + Cinnabar của Master để pixel hoá một nhân vật, hoặc chỉ
+Grass + Warm stone cho một tile. Mỗi bảng nhớ riêng các nhóm đang tắt.
+
+**Ảnh mẫu → pixel** (thẻ File, khối Ảnh mẫu) dùng cùng bộ chọn: ép về bảng/nhóm màu đã chọn, tự rút
+8–48 màu từ ảnh, hoặc **giữ màu gốc** (cách cũ: trộn trung bình, nhiều màu, chỉ để tham khảo). Khi ép
+màu, ảnh được bầu màu theo ô như pixel hoá sprite sheet thay vì trộn trung bình.
 Hình đặt chân sát đáy khung, canh giữa.
 
 Vẽ lại và tách part: khoanh vùng bằng ⬚ rồi **⇪ Sang lớp…** để chuyển phần đó sang lớp mới

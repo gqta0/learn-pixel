@@ -293,8 +293,9 @@
           <label class="btn tiny wide filelabel">Chọn ảnh mẫu…<input type="file" id="refFile" accept="image/*"></label>
           <div class="row" style="margin-top:6px"><label class="mini grow">Độ mờ <b id="refLbl">50%</b></label></div>
           <input type="range" id="refOp" min="0" max="100" value="50">
+          <div id="refPalPick" style="margin-top:6px"></div>
           <div class="row">
-            <button class="btn tiny grow" id="refToPix">Ảnh → pixel (vào lớp hiện tại)</button>
+            <button class="btn tiny grow" id="refToPix" title="Pixel hoá ảnh mẫu vào lớp hiện tại theo nguồn màu đã chọn ở trên">Ảnh → pixel (vào lớp hiện tại)</button>
             <button class="btn tiny" id="refClear">Bỏ</button>
           </div>
           <div class="row">
@@ -575,15 +576,15 @@
             </select>
           </div>
           <label class="tv-check" title="Bật: khung là hình chữ nhật vừa đúng hình, cạnh dài bằng cỡ đã chọn, không còn lề thừa. Tắt: khung vuông, chừa chỗ để vẽ thêm part."><input type="checkbox" id="shTight" checked> Ôm sát hình (khung chữ nhật, bỏ lề thừa)</label>
-          <div class="tv-row">
-            <label class="mini" for="shColors">Số màu</label>
-            <select id="shColors" title="Ít màu thì dễ vẽ lại và ra chất pixel hơn">
-              <option value="8">8 màu</option><option value="12">12 màu</option><option value="16" selected>16 màu</option>
-              <option value="24">24 màu</option><option value="32">32 màu</option><option value="48">48 màu</option>
-              <option value="pal">Theo bảng màu đang dùng</option>
-            </select>
-          </div>
+          <div id="shPalPick" title="Ít màu thì dễ vẽ lại và ra chất pixel hơn. Ép về một bảng có sẵn để mọi asset chung một bộ màu."></div>
           <p class="kbd" id="shInfo"></p>
+        </div>
+        <div class="tv-card" id="shModeCard" hidden>
+          <p class="eyebrow">Nhiều tấm</p>
+          <label class="tv-radio"><input type="radio" name="shMode" value="layers" checked>
+            <span><b>Mỗi tấm một lớp, chung một bản vẽ</b><i>Tấm đầu danh sách nằm lớp trên cùng. Hợp để vẽ lại style, so động tác, ghép part. Khung chung lấy cỡ lớn nhất, tấm ít khung hơn để trống phần đuôi.</i></span></label>
+          <label class="tv-radio"><input type="radio" name="shMode" value="library">
+            <span><b>Mỗi tấm một bản vẽ trong thư viện</b><i>Mỗi động tác là một bản riêng trong 📁, mở tấm đầu ra để vẽ.</i></span></label>
         </div>
         <div class="tv-card">
           <p class="eyebrow">Xem trước</p>

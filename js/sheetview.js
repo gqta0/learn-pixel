@@ -6,13 +6,13 @@ import { toast } from './dom.js';
 import { view } from './state.js';
 import { pushUndo } from './history.js';
 import { applyData } from './storage.js';
-import { palette } from './palette.js';
 import { keepBeforeReplace, saveCurrent, openProject, forgetCurrent } from './library.js';
-import { suggestGrid, pixelizeSheet, medianCut, keyOutBackground, sheetBox, fitRatio } from './sheet.js';
+import { suggestGrid, pixelizeSheet, medianCut, keyOutBackground, sheetBox, fitRatio, stackSheets } from './sheet.js';
+import { mountPalettePicker } from './palpick.js';
 
 let sheets=[];        // {id,name,w,h,px,cv,cols,rows,options}
 let picked=null;      // id tấm đang xem trước
-let previewTimer=null, previewFrame=0, sharedPal=null, sharedKey='';
+let previewTimer=null, previewFrame=0, sharedPal=null, sharedKey='', picker=null;
 
 /* Tỉ lệ: số cố định, tự nhập %, hoặc "tự vừa khung". Tự vừa lấy MỘT tỉ lệ cho cả lô — tỉ lệ
    của tấm có hình to nhất — vì mỗi tấm tự vừa riêng thì nhân vật sẽ to nhỏ khác nhau giữa
@@ -28,20 +28,21 @@ const opt=()=>({
   ...ratioNow(),
   canvas:+$('#shCanvas').value,
   tight:$('#shTight').checked,
-  colors:$('#shColors').value==='pal'?0:+$('#shColors').value
+  pal:picker ? picker.value() : {mode:'auto',n:16}
 });
+const importMode=()=>sheets.length>1 && document.querySelector('input[name="shMode"]:checked')?.value==='library' ? 'library' : 'layers';
 /* Một bảng màu chung cho cả lô: mỗi tấm tự rút màu riêng thì cùng một nhân vật mà động tác
    này lệch tông động tác kia. Gom mẫu pixel của mọi tấm rồi rút một lần. */
 function batchPalette(){
   const o=opt();
-  if(!o.colors) return palette.slice();
-  const key=o.colors+'|'+sheets.map(s=>s.id).join(',');
+  if(o.pal.mode==='pal') return o.pal.colors;
+  const key=o.pal.n+'|'+sheets.map(s=>s.id).join(',');
   if(key===sharedKey && sharedPal) return sharedPal;
   const total=sheets.reduce((n,s)=>n+s.px.length,0), step=Math.max(1,Math.floor(total/400000));
   const sample=new Uint32Array(Math.ceil(total/step)+sheets.length);
   let k=0;
   sheets.forEach(s=>{ const px=keyOutBackground(s.px,s.w,s.h); for(let i=0;i<px.length;i+=step) sample[k++]=px[i]; });
-  sharedPal=medianCut(sample.subarray(0,k),o.colors); sharedKey=key;
+  sharedPal=medianCut(sample.subarray(0,k),o.pal.n); sharedKey=key;
   return sharedPal;
 }
 function build(s){
@@ -51,9 +52,10 @@ function build(s){
 /* kết quả hoặc lý do không nhập được — để thẻ của tấm đó tự nói ra */
 function tryBuild(s){
   // nhớ kết quả theo thiết lập: ô xem trước chạy nhiều lần mỗi giây, không thể pixel hoá lại mỗi nhịp
-  const o=opt(), key=[s.cols,s.rows,o.ratio,o.canvas,o.tight,o.colors,batchPalette().join('')].join('|');
+  const o=opt(), pal=batchPalette(), key=[s.cols,s.rows,o.ratio,o.canvas,o.tight,o.pal.mode,pal.join('')].join('|');
   if(s.cacheKey===key) return s.cache;
   let out;
+  if(!pal.length){ s.cacheKey=key; s.cache={error:'Chưa chọn màu nào — bật ít nhất một nhóm màu ở mục Nâng cao.'}; return s.cache; }
   try{
     const r=build(s);
     out = r.w>128 || r.h>128 ? {error:'Khung '+r.w+'×'+r.h+' vượt 128. Giảm tỉ lệ.'} : {r};
@@ -162,15 +164,19 @@ function paint(){
   const ok=sheets.filter(s=>s.ok).length;
   const btn=$('#shImport');
   btn.disabled=!ok || ok!==sheets.length;
-  btn.textContent=!sheets.length?'Chọn ảnh trước':ok!==sheets.length?'Còn tấm chưa vừa khung':
-    sheets.length===1?'Nhập và trải thành khung hình':'Nhập '+sheets.length+' tấm vào thư viện';
+  const noColor=!!sheets.length && !batchPalette().length;
+  btn.textContent=!sheets.length?'Chọn ảnh trước':noColor?'Chưa chọn màu nào':ok!==sheets.length?'Còn tấm chưa vừa khung':
+    sheets.length===1?'Nhập và trải thành khung hình':
+    importMode()==='layers'?'Nhập '+sheets.length+' tấm thành '+sheets.length+' lớp':'Nhập '+sheets.length+' tấm vào thư viện';
+  $('#shModeCard').hidden=sheets.length<2;
   const pal=sheets.length?batchPalette():[];
   const o=opt();
   $('#shRatioPct').hidden=$('#shRatio').value!=='custom';
   $('#shInfo').textContent=!sheets.length?'':
     (o.fit?'Tỉ lệ tự vừa: '+Math.round(o.ratio*1000)/10+'%'+(sheets.length>1?', chung cho cả lô để nhân vật không đổi cỡ giữa các động tác':'')+
       (o.ratio>=1?' (ảnh gốc đã nhỏ hơn khung, không phóng to)':'')+'. ':'')+
-    (o.colors?'Bảng màu chung: '+pal.length+' màu rút từ '+sheets.length+' tấm.':'Ép về bảng màu đang dùng ('+pal.length+' màu).');
+    (o.pal.mode==='auto'?'Bảng màu chung: '+pal.length+' màu rút từ '+sheets.length+' tấm.':'Ép về '+o.pal.name+' ('+pal.length+' màu).')+
+    (sheets.length>1 && importMode()==='layers' ? ' '+layerInfo() : '');
   paintPreview();
 }
 
@@ -188,6 +194,15 @@ function paintPreview(){
   $('#shPreviewInfo').textContent=s.name+' · khung '+(previewFrame%r.frames.length+1)+'/'+r.frames.length+' · ×'+z;
 }
 
+/* cỡ khung chung và số khung khi xếp thành lớp — để người dùng biết trước tấm nào sẽ trống đuôi */
+function layerInfo(){
+  const rs=sheets.map(s=>tryBuild(s)).filter(x=>x.r).map(x=>x.r);
+  if(rs.length!==sheets.length) return '';
+  const W=Math.max(...rs.map(r=>r.w)), H=Math.max(...rs.map(r=>r.h)), n=Math.max(...rs.map(r=>r.frames.length));
+  const short=sheets.filter((s,i)=>rs[i].frames.length<n).map((s,i)=>'“'+s.name+'”');
+  return 'Xếp thành '+sheets.length+' lớp, khung chung '+W+'×'+H+', '+n+' khung'+
+    (short.length?'; '+short.join(', ')+' có ít khung hơn nên để trống phần đuôi.':'.');
+}
 function toData(s,r){
   return {name:s.name,w:r.w,h:r.h,layers:[{name:'Gốc',vis:true}],
     frames:r.frames.map(f=>[Array.from(f)]),palette:r.palette,dur:[],af:0,al:0};
@@ -197,7 +212,13 @@ function importAll(){
   if(!keepBeforeReplace()) return;                 // bức đang vẽ được cất vào thư viện trước
   pushUndo();
   const results=sheets.map(s=>[s,tryBuild(s).r]);
-  if(results.length===1){
+  if(results.length>1 && importMode()==='layers'){
+    const st=stackSheets(results.map(([s,r])=>({name:s.name,r})));
+    forgetCurrent();
+    applyData({name:results.map(([s])=>s.name).join(' + '),w:st.w,h:st.h,layers:st.layers,
+      frames:st.frames.map(f=>f.map(d=>Array.from(d))),palette:st.palette,dur:[],af:0,al:st.layers.length-1});
+    toast('Đã nhập '+results.length+' tấm thành '+results.length+' lớp · '+st.count+' khung '+st.w+'×'+st.h+'.',3600);
+  }else if(results.length===1){
     forgetCurrent();
     applyData(toData(...results[0]));
     toast('Đã trải '+results[0][1].frames.length+' khung '+results[0][1].w+'×'+results[0][1].h+'.');
@@ -232,7 +253,9 @@ export function bindSheetImport(){
   $('#shOpen')?.addEventListener('click',openSheetImport);
   $('#shClose')?.addEventListener('click',closeSheetImport);
   $('#shFiles')?.addEventListener('change',e=>{ addFiles(e.target.files); e.target.value=''; });
-  ['shRatio','shRatioPct','shCanvas','shTight','shColors'].forEach(id=>$('#'+id)?.addEventListener('change',paint));
+  ['shRatio','shRatioPct','shCanvas','shTight'].forEach(id=>$('#'+id)?.addEventListener('change',paint));
+  document.querySelectorAll('input[name="shMode"]').forEach(r=>r.addEventListener('change',paint));
+  if($('#shPalPick')) picker=mountPalettePicker($('#shPalPick'),{auto:true,value:'auto:16',onChange:paint});
   $('#shImport')?.addEventListener('click',importAll);
   const wrap=$('#sheetWrap');
   wrap?.addEventListener('dragover',e=>{ e.preventDefault(); e.stopPropagation(); });

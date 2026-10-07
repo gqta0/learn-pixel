@@ -209,3 +209,50 @@ export function spriteFramesTres({name='default',texture,fw,fh,cols,count,fps=8,
   return out.join('\n');
 }
 function fmt(v){ const n=Number(v)>0?Number(v):1; return Number.isInteger(n)?n+'.0':String(+n.toFixed(3)); }
+
+/* ---------------- ảnh mẫu → pixel ----------------
+   Cùng cách bầu màu như pixelizeSheet nhưng kéo giãn trọn ảnh vào khung W×H (không cắt hộp bao,
+   không neo chân): đây là ảnh mẫu đè lên cả canvas. palette: mảng hex để ép màu vào. */
+export function pixelizeImage(src,w,h,W,H,palette){
+  if(!palette || !palette.length) throw new Error('chưa có màu nào để ép ảnh vào');
+  const near=nearestIn(palette), pal32=palette.map(hexToAbgr), votes=new Uint16Array(palette.length);
+  const out=new Uint32Array(W*H);
+  for(let y=0;y<H;y++){
+    const sy0=Math.floor(y*h/H), sy1=Math.max(sy0+1,Math.floor((y+1)*h/H));
+    for(let x=0;x<W;x++){
+      const sx0=Math.floor(x*w/W), sx1=Math.max(sx0+1,Math.floor((x+1)*w/W));
+      votes.fill(0);
+      let solid=0,total=0;
+      for(let sy=sy0;sy<sy1;sy++) for(let sx=sx0;sx<sx1;sx++){
+        const p=src[sy*w+sx]; total++;
+        if(A(p)>=OPAQUE){ solid++; votes[near(p)]++; }
+      }
+      if(solid*2<total) continue;
+      let bi=0; for(let k=1;k<votes.length;k++) if(votes[k]>votes[bi]) bi=k;
+      out[y*W+x]=pal32[bi];
+    }
+  }
+  return out;
+}
+
+/* ---------------- nhiều sheet → nhiều lớp của một bản vẽ ----------------
+   items: [{name, r}] với r là kết quả pixelizeSheet. Tấm đầu danh sách nằm ở lớp TRÊN CÙNG,
+   đúng thứ tự người dùng nhìn thấy trong danh sách lớp. Khung chung lấy cỡ lớn nhất; tấm nhỏ hơn
+   đặt chân sát đáy, canh giữa — cùng mốc với pixelizeSheet. Tấm ít khung hơn để trống phần đuôi. */
+export function stackSheets(items){
+  if(!items.length) throw new Error('chưa có tấm nào');
+  const W=Math.max(...items.map(it=>it.r.w)), H=Math.max(...items.map(it=>it.r.h));
+  const count=Math.max(...items.map(it=>it.r.frames.length));
+  const order=items.slice().reverse();                       // lớp 0 là lớp dưới cùng
+  const frames=Array.from({length:count},(_,f)=>order.map(({r})=>{
+    const out=new Uint32Array(W*H), src=r.frames[f];
+    if(!src) return out;
+    const ox=Math.floor((W-r.w)/2), oy=H-r.h;
+    for(let y=0;y<r.h;y++) out.set(src.subarray(y*r.w,(y+1)*r.w),(oy+y)*W+ox);
+    return out;
+  }));
+  const palette=[...new Set(items.flatMap(it=>it.r.palette))];
+  return {w:W,h:H,count,palette,frames,
+    layers:order.map(({name},i)=>({name:name||'Lớp '+(i+1),vis:true})),
+    counts:items.map(it=>it.r.frames.length)};
+}
