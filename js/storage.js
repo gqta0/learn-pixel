@@ -1,5 +1,5 @@
 /* Xuất PNG / spritesheet / .json, mở lại dự án, và lưu tự động vào trình duyệt. */
-import { $ } from './dom.js';
+import { $, toast } from './dom.js';
 import { doc, view, activeData } from './state.js';
 import { frameToCanvas, invalidateBuf } from './raster.js';
 import { pushUndo } from './history.js';
@@ -7,7 +7,7 @@ import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
 import { palette, setPalette, paintSwatches } from './palette.js';
 import { doneSet, buildExercises, migrateDone } from './content/exercises.js';
-import { spriteFramesTres } from './sheet.js';
+import { spriteFramesTres, pixelizeImage, medianCut } from './sheet.js';
 import { syncAll } from './ui.js';
 import { stopEditing } from './atlas.js';
 
@@ -191,17 +191,40 @@ export function loadRef(file){
   };
   fr.readAsDataURL(file);
 }
-export function refToPixels(){
-  if(!view.ref) return;
+/* Ảnh mẫu → pixel vào lớp hiện tại. spec từ bộ chọn bảng màu:
+   {mode:'pal',colors,name} ép về bảng (có thể đã lọc nhóm) · {mode:'auto',n} tự rút n màu từ ảnh ·
+   {mode:'raw'} giữ màu gốc (trộn trung bình như trước — nhiều màu, chỉ để tham khảo). */
+export function refToPixels(spec={mode:'raw'}){
+  if(!view.ref){ toast('Chọn ảnh mẫu trước.'); return; }
+  if(spec.mode==='pal' && !spec.colors?.length){ toast('Chưa chọn màu nào — bật ít nhất một nhóm màu ở mục Nâng cao.'); return; }
+  let out;
+  if(spec.mode==='raw'){
+    const cv=document.createElement('canvas'); cv.width=doc.w; cv.height=doc.h;
+    const c=cv.getContext('2d');
+    c.imageSmoothingEnabled=true;
+    c.drawImage(view.ref,0,0,doc.w,doc.h);
+    out=new Uint32Array(c.getImageData(0,0,doc.w,doc.h).data.buffer);
+  }else{
+    // Không thu thẳng về khổ tranh (trung bình màu làm bùn viền): giữ ảnh ở cỡ vừa phải rồi
+    // để mỗi pixel đích bầu màu xuất hiện nhiều nhất trong ô nguồn của nó.
+    const iw=view.ref.naturalWidth||view.ref.width, ih=view.ref.naturalHeight||view.ref.height;
+    const sw=Math.max(doc.w,Math.min(iw,doc.w*8)), sh=Math.max(doc.h,Math.min(ih,doc.h*8));
+    const cv=document.createElement('canvas'); cv.width=sw; cv.height=sh;
+    const c=cv.getContext('2d',{willReadFrequently:true});
+    c.imageSmoothingEnabled=true;
+    c.drawImage(view.ref,0,0,sw,sh);
+    const src=new Uint32Array(c.getImageData(0,0,sw,sh).data.buffer);
+    const colors=spec.mode==='auto' ? medianCut(src,spec.n) : spec.colors;
+    if(!colors.length){ toast('Ảnh mẫu trong suốt, không có màu để rút.'); return; }
+    out=pixelizeImage(src,sw,sh,doc.w,doc.h,colors);
+  }
   pushUndo();
-  const cv=document.createElement('canvas'); cv.width=doc.w; cv.height=doc.h;
-  const c=cv.getContext('2d');
-  c.imageSmoothingEnabled=true;
-  c.drawImage(view.ref,0,0,doc.w,doc.h);
-  const d=c.getImageData(0,0,doc.w,doc.h);
-  const src=new Uint32Array(d.data.buffer);
-  activeData().set(src);
-  render(); paintThumbs();
+  activeData().set(out);
+  window.dispatchEvent(new CustomEvent('pixelchange'));
+  render(); paintThumbs(); paintSwatches();
+  const used=new Set(); out.forEach(p=>{ if(p>>>24) used.add(p); });
+  toast('Đã pixel hoá ảnh mẫu vào lớp “'+doc.layers[doc.al].name+'”: '+used.size+' màu'+
+    (spec.mode==='pal' ? ' từ '+spec.name+'.' : spec.mode==='auto' ? ' tự rút từ ảnh.' : ' gốc (chưa ép bảng màu).'),3200);
 }
 /* rút bảng màu từ ảnh mẫu — làm tròn về lưới 16 mức mỗi kênh rồi lấy màu hay gặp nhất */
 export function refToPalette(n){

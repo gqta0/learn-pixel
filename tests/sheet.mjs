@@ -1,7 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {countClusters, suggestCount, suggestGrid, unionBBox, medianCut, keyOutBackground,
-  pixelizeSheet, spriteFramesTres, sheetBox, fitRatio} from '../js/sheet.js';
+  pixelizeSheet, spriteFramesTres, sheetBox, fitRatio, pixelizeImage, stackSheets} from '../js/sheet.js';
+import {groupColors, pickColors} from '../js/palgroups.js';
 
 const rgba=(r,g,b,a=255)=>((a<<24)|(b<<16)|(g<<8)|r)>>>0;
 /* sheet giả: n khung, mỗi khung một khối màu lệch chỗ khác nhau trong ô */
@@ -130,4 +131,40 @@ test('tight canvas hugs the sprite: long side equals the chosen size and no marg
   assert.equal(top(sq),35); assert.equal(top(tight),0);
   // khung rộng nhất chạm đủ hai mép; khung hẹp vẫn trống bên — đó là chỗ của tư thế vươn ra
   assert.deepEqual(tight.widths,[73,73,96,73]);
+});
+
+test('image → pixel votes each target pixel into the chosen palette, keeping hard edges',()=>{
+  // 8×8 nguồn: nửa trái đỏ, nửa phải xanh, thêm nhiễu lệch tông
+  const w=8,h=8,src=new Uint32Array(w*h);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++) src[y*w+x]=x<4?rgba(200+(y%2)*20,40,40):rgba(40,60,210-(x%2)*15);
+  const out=pixelizeImage(src,w,h,2,2,['#d03030','#3040d0','#ffffff']);
+  const red=rgba(0xd0,0x30,0x30), blue=rgba(0x30,0x40,0xd0);
+  assert.deepEqual([...out],[red,blue,red,blue]);
+  assert.throws(()=>pixelizeImage(src,w,h,2,2,[]),/chưa có màu/);
+  // ô nguồn quá nửa trong suốt thì để trong suốt
+  const clear=new Uint32Array(16); clear[0]=rgba(255,0,0);
+  assert.equal(pixelizeImage(clear,4,4,1,1,['#ff0000'])[0],0);
+});
+test('several sheets stack into layers of one drawing: first sheet on top, shared size, short sheets padded',()=>{
+  const mk=(w,h,n,c)=>({w,h,palette:['#'+c],frames:Array.from({length:n},()=>new Uint32Array(w*h).fill(rgba(1,2,3)))});
+  const st=stackSheets([{name:'Gốc',r:mk(4,6,3,'010203')},{name:'Style mới',r:mk(6,4,2,'040506')}]);
+  assert.equal(st.w,6); assert.equal(st.h,6); assert.equal(st.count,3);
+  assert.deepEqual(st.layers.map(l=>l.name),['Style mới','Gốc']);          // lớp 0 = dưới cùng
+  assert.equal(st.frames.length,3); assert.ok(st.frames.every(f=>f.length===2));
+  // "Gốc" 4×6 canh giữa ngang: cột 0 trống, cột 1 có hình
+  const top=st.frames[0][1];
+  assert.equal(top[0],0); assert.notEqual(top[1],0);
+  // "Style mới" 6×4 đặt chân sát đáy: hàng 0–1 trống, hàng 2 có hình
+  const bottom=st.frames[0][0];
+  assert.equal(bottom[0],0); assert.notEqual(bottom[2*6],0);
+  // tấm chỉ có 2 khung: khung 3 của nó trống
+  assert.ok(st.frames[2][0].every(v=>v===0)); assert.ok(st.frames[2][1].some(v=>v));
+  assert.deepEqual(st.counts,[3,2]); assert.deepEqual(st.palette,['#010203','#040506']);
+});
+test('palette groups come from the token table; unknown colours fall into "Khác"; groups can be switched off',()=>{
+  const tokens={'#aa0000':{group:'Fire'},'#bb0000':{group:'Fire'},'#00aa00':{group:'Grass'},'#123456':{group:'Ink',legacy:true}};
+  const hexes=['#AA0000','#00aa00','#bb0000','#ffffff','#123456'];
+  assert.deepEqual(groupColors(hexes,tokens).map(g=>[g.group,g.colors.length]),[['Fire',2],['Grass',1],['Khác',2]]);
+  assert.deepEqual(pickColors(hexes,tokens,new Set(['Fire'])),['#00aa00','#ffffff','#123456']);
+  assert.deepEqual(pickColors(hexes,tokens,['Fire','Grass','Khác']),[]);
 });
