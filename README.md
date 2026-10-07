@@ -17,7 +17,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 **Màu**
 - Panel sinh dải màu lệch tông theo **chất liệu** (kim loại, gỗ, đá, da người, lá, vải, thuỷ tinh, vàng, lửa).
-- 8 bảng màu dựng sẵn (Master Palette 85 màu cho thế giới tu tiên, chia 19 dải: Ink, Rock, Moss stone, Grass, Jade, Spirit, Sky, Water, Qi cyan, Qi violet, Blossom, Soil, Wood, Brass, Fire, Skin, Silk thuỷ mặc, Cinnabar chu sa, Status; **Đá ấm 17 màu**: 8 bậc đá xám ấm cùng mực nền và cỏ, để vẽ nền đá có cỏ ấm hơn dải Rock; kèm PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động, Xám 8 bậc).
+- 7 bảng màu dựng sẵn (Master Palette 92 màu cho thế giới tu tiên, chia 20 dải: Ink, Rock, Moss stone, Warm stone (đá xám ấm), Grass, Jade, Spirit, Sky, Water, Qi cyan, Qi violet, Blossom, Soil, Wood, Brass, Fire, Skin, Silk thuỷ mặc, Cinnabar chu sa, Status; kèm PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động, Xám 8 bậc).
 - **Thư viện bảng màu của bạn**: lưu bảng màu vào máy và dùng lại cho dự án sau, tách khỏi file tranh.
 - Sửa / bỏ / sắp xếp từng ô màu, bỏ màu thừa, rút bảng màu từ chính bức tranh hoặc từ một ảnh mẫu, thay màu hàng loạt (palette swap).
 - Ô màu chưa dùng ở khung hiện tại thì mờ đi, nên nhìn ra ngay bảng màu đang thừa chỗ nào.
@@ -40,7 +40,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 - Tự lưu vào trình duyệt (localStorage, nén RLE) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập. Tiến độ lưu theo tên bài nên chèn bài mới không làm lệch.
 - Xuất PNG / PNG spritesheet (1 hàng, 4 cột, 8 cột hoặc lưới vuông) / PNG bảng màu, lưu & mở dự án `.json` (nén RLE).
 
-## Master Palette 85 — quy tắc dùng màu
+## Master Palette 92 — quy tắc dùng màu
 
 Bảng không có cặp màu nào gần trùng (mọi cặp cách nhau ΔE OKLab ≥ 0,035) và mọi dải đều sáng dần.
 
@@ -51,10 +51,15 @@ Bảng không có cặp màu nào gần trùng (mọi cặp cách nhau ΔE OKLab
    kèm hình dạng hoặc biểu tượng: lục giữa và đỏ có cùng độ sáng nên người mù màu đỏ–lục không phân biệt được.
 5. **Hai vai cần gần cùng một màu thì dùng chung một mã**, không thêm mã mới sát mã cũ. Đang dùng chung:
    sắt = Rock bậc 2/4/6 · mây, giấy, viền sáng của da = `#f4efe3` · bóng vải = `#b5aea1` ·
-   cảnh báo, ô đang chọn, đồng sáng = `#f5cb53` · sương xa = `#d9efff`.
+   cảnh báo, ô đang chọn, đồng sáng = `#f5cb53` · sương xa = `#d9efff` ·
+   lụa trắng nền và cạnh trên gờ đá ấm = `#d8d1c2`.
 6. **Màu thêm mới phải cách mọi màu đang có ít nhất ΔE 0,035** và nằm đúng thứ tự độ sáng trong dải.
 
-Tranh vẽ bằng Master 88 cũ: thẻ Màu → **Tranh → Master 85** đổi 25 mã cũ sang mã mới ở mọi lớp, mọi khung.
+Tranh vẽ bằng Master 88 cũ: thẻ Màu → **Tranh → Master mới** đổi 25 mã cũ sang mã mới ở mọi lớp, mọi khung.
+
+**Warm stone** (đá xám ấm) giữ cùng bậc sáng với đá xám lạnh, chỉ đổi nhiệt độ: bóng ngả tím than để đá tối
+vẫn ăn với nền navy, chỗ sáng ngả kem. Dùng Rock cho đá lạnh, Warm stone cho đá ấm; preset Terrain **Đá ấm**
+tạo bộ 56 ô với nền `#7c6d6c` và cạnh `#cabcad`.
 
 ## Sprite sheet → khung hình (pixel hoá)
 
@@ -119,7 +124,7 @@ File xuất (JSON layout, Godot, pack, project) ghi `edgeShape` và gợi ý `co
   biến thể để chỉ còn việc sửa cho khác đi.
 
 1. Chọn 16×16 hoặc 32×32, bấm **Tạo bộ 56 ô**. App dựng khối nền đá để vẽ tiếp;
-   có thể chọn nhanh preset **Đá lạnh / Đất / Blue Qi / Qi xanh dương / Sky/Water / Qi Violet** hoặc chọn **Nền** và
+   có thể chọn nhanh preset **Đá lạnh / Đá ấm / Đất / Blue Qi / Qi xanh dương / Sky/Water / Qi Violet** hoặc chọn **Nền** và
    **Cạnh** trực tiếp từ palette hiện tại trước khi tạo. Nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
 2. Chọn tile để đọc vai trò pixel, cạnh hở, góc lồi/lõm và các tile nối hợp lệ theo
    N/E/S/W. Khối cơ bản được xếp thành sơ đồ 3×3; các nhóm góc lõm, khối rời và biến thể
@@ -160,7 +165,7 @@ topology độc lập. Không giả định cùng thứ tự với tileset của
 mapping theo mask. Tham khảo thuật toán gốc:
 [Autotile-47](https://github.com/Game-Development-Resources/Autotile-47).
 
-Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs`.
+Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs`.
 
 ## Đưa lên GitHub Pages
 
