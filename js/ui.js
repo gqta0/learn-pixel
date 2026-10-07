@@ -8,7 +8,7 @@ import { pushUndo, undo, redo } from './history.js';
 import { render, fitZoom, setZoom } from './render.js';
 import { paintThumbs, paintPreview, togglePlay } from './frames.js';
 import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.js';
-import { PALETTES, MASTER_REMAP, palette, setPalette, paintSwatches, paintRamp, syncColors, rampCols,
+import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches, paintRamp, syncColors, rampCols,
          attachPalettePopup, openQuickPalette, palByName, isUserPal, savePaletteAs, deleteUserPal,
          fillPalSelect, addCurrentColor, sortPalette, prunePalette, paletteFromArt, rampFromCurrent } from './palette.js';
 import { setTool, setTheme, setView, syncFingerBtn, syncPixelPerfectBtn, attachMods } from './tools.js';
@@ -363,7 +363,7 @@ export function setWrapMove(on){
 }
 $('#wrapBtn').addEventListener('click', ()=>setWrapMove(!view.wrapMove));
 $('#replaceCol').addEventListener('click', ()=>replaceColor(view.sec, view.pri));
-/* Tranh vẽ bằng Master 88 → Master 85: đổi đúng 25 mã có màu thay, ở mọi lớp và mọi khung.
+/* Tranh vẽ bằng Master 88 → Master hiện tại: đổi đúng 25 mã có màu thay, ở mọi lớp và mọi khung.
    Màu ngoài danh sách (kể cả #8fcfb8 đã bỏ mà không có màu thay) giữ nguyên. */
 $('#remapMaster').addEventListener('click', ()=>{
   const map=new Map(Object.entries(MASTER_REMAP).map(([cu,moi])=>[hexToInt(cu),hexToInt(moi)]));
@@ -372,11 +372,11 @@ $('#remapMaster').addEventListener('click', ()=>{
   doc.frames.forEach(f=>f.forEach(d=>{
     for(let i=0;i<d.length;i++){ const v=map.get(d[i]); if(v!==undefined){ d[i]=v; n++; } }
   }));
-  const name='Master Palette (85 màu)';
+  const name=MASTER_NAME;
   setPalette(PALETTES[name]); fillPalSelect(name);
   invalidateBuf(); paintSwatches(); syncAll();
   window.dispatchEvent(new CustomEvent('pixelchange'));
-  toast(n ? 'Đã đổi '+n+' px sang mã màu Master 85.' : 'Tranh này không dùng mã màu cũ nào. Đã chuyển sang bảng Master 85.');
+  toast(n ? 'Đã đổi '+n+' px sang mã màu '+MASTER_NAME+'.' : 'Tranh này không dùng mã màu cũ nào. Đã chuyển sang '+MASTER_NAME+'.');
 });
 $('#refToPal').addEventListener('click', ()=>refToPalette(16));
 $('#matSel').addEventListener('change', paintRamp);

@@ -11,7 +11,7 @@ import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, wr
   migrateTerrainLayout, closeAtlas, linkedTerrainFrameIndex } from './atlas.js';
 import { openMapView } from './mapview.js';
 import { setView } from './tools.js';
-import { PALETTES, COLOR_TOKENS } from './palette.js';
+import { PALETTES, COLOR_TOKENS, MASTER_NAME } from './palette.js';
 import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
   TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER, tileRoles, terrainPixels, describeMask, neighbors, checkSeams, checkColorSeams,
   terrainManifest, terrainGodotManifest, paintTerrainGuide,
@@ -46,6 +46,7 @@ function setPane(name){
 const showDetail=()=>setPane('detail');
 const TERRAIN_CREATE_PRESETS={
   stone:{base:'#5e788c',edge:'#b4c5d1'},
+  warmStone:{base:'#7c6d6c',edge:'#cabcad'},
   soil:{base:'#765640',edge:'#d7aa6b'},
   blueQi:{base:'#1e789c',edge:'#6cf2ff'},
   qiBlue:{base:'#08919b',edge:'#6cf2ff'},
@@ -54,7 +55,7 @@ const TERRAIN_CREATE_PRESETS={
 };
 const TERRAIN_CREATE_DEFAULTS={base:'#5e788c',edge:'#b4c5d1'};
 function terrainColorGroups(){
-  const colors=[...new Set(PALETTES['Master Palette (85 màu)'].map(h=>h.toLowerCase()))];
+  const colors=[...new Set(PALETTES[MASTER_NAME].map(h=>h.toLowerCase()))];
   const groups=new Map();
   colors.forEach(hex=>{
     const meta=COLOR_TOKENS[hex],group=meta?.group||'Chung';

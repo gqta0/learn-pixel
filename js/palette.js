@@ -104,6 +104,16 @@ export const COLOR_TOKENS = {
   '#d08a66': { group: 'Skin', token: 'skin-500', desc: 'da phần khuất sáng' },
   '#e8ad83': { group: 'Skin', token: 'skin-300', desc: 'da nền' },
   '#f5cba6': { group: 'Skin', token: 'skin-200', desc: 'da nhận sáng' },
+  /* Warm stone · đá xám ấm: cùng bậc sáng với đá xám lạnh thường gặp, chỉ đổi nhiệt độ.
+     Bóng ngả tím than để đá tối vẫn ăn với nền navy; chỗ sáng ngả kem. Bậc 3–4 giữ ít màu
+     nhưng ngả hồng để cách dải Silk ≥ ΔE 0,035; bậc 7 dùng chung #d8d1c2 của Silk. */
+  '#413e49': { group: 'Warm stone', token: 'warm-stone-900', desc: 'bóng sâu nhất của đá, khe giữa hai tảng' },
+  '#5f4b4e': { group: 'Warm stone', token: 'warm-stone-800', desc: 'mặt khuất của tảng đá' },
+  '#7c6d6c': { group: 'Warm stone', token: 'warm-stone-700', desc: 'bóng đá, mặt dưới của gờ' },
+  '#897d7a': { group: 'Warm stone', token: 'warm-stone-500', desc: 'thân đá tối' },
+  '#ac9c8d': { group: 'Warm stone', token: 'warm-stone-400', desc: 'thân đá nền' },
+  '#cabcad': { group: 'Warm stone', token: 'warm-stone-300', desc: 'mặt đá nhận sáng' },
+  '#e6e0d3': { group: 'Warm stone', token: 'warm-stone-100', desc: 'điểm sáng nhất, mép đá bắt nắng' },
   /* Silk · thuỷ mặc: tóc, y phục; xám hơi ấm, không ngả xanh */
   '#1f1e1c': { group: 'Silk', token: 'ink-black', desc: 'đen để tô: tóc đen, mực đậm nhất (không cần viền)' },
   '#33312d': { group: 'Silk', token: 'silk-900', desc: 'bóng tóc, vải đen' },
@@ -111,7 +121,7 @@ export const COLOR_TOKENS = {
   '#6b6760': { group: 'Silk', token: 'silk-600', desc: 'bóng sâu của lụa trắng' },
   '#8f8a80': { group: 'Silk', token: 'silk-500', desc: 'nếp gấp áo, bóng vải' },
   '#b5aea1': { group: 'Silk', token: 'silk-300', desc: 'lụa phần khuất sáng · cũng là bóng vải (cloth-shadow)' },
-  '#d8d1c2': { group: 'Silk', token: 'silk-200', desc: 'lụa trắng nền' },
+  '#d8d1c2': { group: 'Silk', token: 'silk-200', desc: 'lụa trắng nền · cũng là cạnh trên của gờ đá ấm (Warm stone bậc 7)' },
   '#f4efe3': { group: 'Silk', token: 'silk-100', desc: 'lụa ngà nhận sáng, tóc bạc · cũng là mây, giấy, viền sáng của da (cloud)' },
   /* Cinnabar · chu sa: đai lưng, dây buộc tóc, ấn triện */
   '#4a1620': { group: 'Cinnabar', token: 'cinnabar-900', desc: 'bóng sâu của vải đỏ' },
@@ -125,11 +135,16 @@ export const COLOR_TOKENS = {
 for(const [cu,moi] of Object.entries(MASTER_REMAP))
   if(!COLOR_TOKENS[cu]) COLOR_TOKENS[cu]={...COLOR_TOKENS[moi], legacy:true, desc:'màu cũ của Master 88 → nay là '+moi};
 
+/* Tên bảng chủ — đổi số màu thì chỉ sửa ở đây. Bảng lưu trước đó theo tên cũ vẫn mở được
+   vì ô chọn tự rơi về bảng chủ khi không tìm thấy tên. */
+export const MASTER_NAME = 'Master Palette (92 màu)';
+
 export const PALETTES = {
-  'Master Palette (85 màu)': [
+  [MASTER_NAME]: [
     '#0d171f','#162331','#223344',                                    /* Ink */
     '#2e4659','#435d73','#5e788c','#7a95a7','#99b0bf','#b4c5d1','#d0dde4', /* Rock */
     '#283b3a','#3a5647','#527059','#6e896f','#8ea283','#b3bd96','#dad9ad', /* Moss stone */
+    '#413e49','#5f4b4e','#7c6d6c','#897d7a','#ac9c8d','#cabcad','#e6e0d3',      /* Warm stone · bậc 7 là #d8d1c2 của Silk */
     '#173d2a','#245c2c','#4a873c','#7cb759','#b1dc74','#e5f4a7',      /* Grass */
     '#0b3436','#0f5c50','#14866a','#2fb688','#7fe8b4',                /* Jade */
     '#5dffc0','#c4f0de',                                              /* Spirit */
@@ -161,7 +176,7 @@ export const PALETTES = {
                            '#a8791f','#dcae35','#ffe07a','#8f4a20','#c26e33','#e59c5e','#c2c3c7','#eef0f5'],
   'Xám 8 bậc (luyện khối)': ['#0d0d12','#1f1f28','#33333f','#4c4c5b','#6b6b7c','#8f8fa0','#b8b8c6','#f0f0f6']
 };
-export let palette = PALETTES['Master Palette (85 màu)'].slice();
+export let palette = PALETTES[MASTER_NAME].slice();
 export function setPalette(a){ palette = a.slice(); if(typeof window!=='undefined') window.dispatchEvent?.(new Event('palettechange')); }
 
 /* ---------------- thư viện bảng màu của bạn ----------------
@@ -186,11 +201,11 @@ function group(sel,label,keys){
   sel.appendChild(g);
 }
 export function fillPalSelect(keep){
-  const sel=$('#palSel'), cur = keep || sel.value || 'Master Palette (85 màu)';
+  const sel=$('#palSel'), cur = keep || sel.value || MASTER_NAME;
   sel.innerHTML='';
   group(sel,'Dựng sẵn', Object.keys(PALETTES));
   group(sel,'Của bạn',  Object.keys(userPals));
-  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : 'Master Palette (85 màu)';
+  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : MASTER_NAME;
   $('#palDel').style.display = isUserPal(sel.value) ? '' : 'none';
 
   const m=$('#matSel');
