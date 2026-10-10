@@ -7,8 +7,9 @@ import { view } from './state.js';
 import { pushUndo } from './history.js';
 import { applyData } from './storage.js';
 import { keepBeforeReplace, saveCurrent, openProject, forgetCurrent } from './library.js';
-import { suggestGrid, pixelizeSheet, medianCut, keyOutBackground, sheetBox, fitRatio, stackSheets, spriteHeight, syncRatios } from './sheet.js';
+import { suggestGrid, pixelizeSheet, medianCut, keyOutBackground, sheetBox, fitRatio, stackSheets, stackLayout, spriteHeight, syncRatios } from './sheet.js';
 import { mountPalettePicker } from './palpick.js';
+import { footCenter as footCenterOf } from './sheet.js';
 
 let sheets=[];        // {id,name,w,h,px,cv,cols,rows,options, scale(%),dx,dy — chỉnh tay khi nhiều tấm}
 let picked=null;      // id tấm đang xem trước
@@ -56,6 +57,7 @@ const opt=()=>({
   tight:$('#shTight').checked,
   pal:picker ? picker.value() : {mode:'auto',n:16}
 });
+const alignMode=()=>$('#shAlign')?.value==='box' ? 'box' : 'feet';
 const importMode=()=>sheets.length>1 && document.querySelector('input[name="shMode"]:checked')?.value==='library' ? 'library' : 'layers';
 /* Một bảng màu chung cho cả lô: mỗi tấm tự rút màu riêng thì cùng một nhân vật mà động tác
    này lệch tông động tác kia. Gom mẫu pixel của mọi tấm rồi rút một lần. */
@@ -212,7 +214,14 @@ function paint(){
   const btn=$('#shImport');
   btn.disabled=!ok || ok!==sheets.length;
   const noColor=!!sheets.length && !batchPalette().length;
-  btn.textContent=!sheets.length?'Chọn ảnh trước':noColor?'Chưa chọn màu nào':ok!==sheets.length?'Còn tấm chưa vừa khung':
+  // căn theo chân dời các tấm lệch nhau nên khung chung có thể rộng hơn từng tấm
+  let tooBig='';
+  if(sheets.length>1 && importMode()==='layers' && ok===sheets.length){
+    const L=stackLayout(sheets.map(x=>({r:tryBuild(x).r,dx:x.dx,dy:x.dy})),alignMode());
+    if(L.W>128 || L.H>128) tooBig='Khung chung '+L.W+'×'+L.H+' vượt 128 — giảm cỡ nhân vật';
+  }
+  if(tooBig) btn.disabled=true;
+  btn.textContent=!sheets.length?'Chọn ảnh trước':noColor?'Chưa chọn màu nào':tooBig?tooBig:ok!==sheets.length?'Còn tấm chưa vừa khung':
     sheets.length===1?'Nhập và trải thành khung hình':
     importMode()==='layers'?'Nhập '+sheets.length+' tấm thành '+sheets.length+' lớp':'Nhập '+sheets.length+' tấm vào thư viện';
   $('#shModeCard').hidden=sheets.length<2;
@@ -239,22 +248,27 @@ function paintPreview(){
   // So cỡ: chồng mờ khung tương ứng của các tấm khác, đặt đúng như khi xếp thành lớp
   const others=$('#shOverlay')?.checked && !$('#shOverlayRow').hidden ?
     sheets.filter(x=>x!==s).map(x=>[x,tryBuild(x).r]).filter(([,rr])=>rr) : [];
-  const all=[[s,r],...others], W=Math.max(...all.map(([,rr])=>rr.w)), H=Math.max(...all.map(([,rr])=>rr.h));
+  const all=[[s,r],...others];
+  const lay=others.length ? stackLayout(all.map(([x,rr])=>({r:rr,dx:x.dx,dy:x.dy})),alignMode()) : {W:r.w,H:r.h,pos:[{ox:0,oy:0}]};
+  const W=lay.W, H=lay.H;
   const z=Math.max(1,Math.floor(220/Math.max(W,H)));
   cv.width=W*z; cv.height=H*z; cv.style.width=cv.width+'px';
   g.imageSmoothingEnabled=false; g.clearRect(0,0,cv.width,cv.height);
-  const draw=(x,rr,alpha)=>{
+  const draw=(k,rr,alpha)=>{
     const tmp=document.createElement('canvas'); tmp.width=rr.w; tmp.height=rr.h;
     const im=tmp.getContext('2d').createImageData(rr.w,rr.h);
     new Uint32Array(im.data.buffer).set(rr.frames[previewFrame%rr.frames.length]);
     tmp.getContext('2d').putImageData(im,0,0);
-    const dx=others.length?(x.dx|0):0, dy=others.length?(x.dy|0):0;
     g.globalAlpha=alpha;
-    g.drawImage(tmp,(Math.floor((W-rr.w)/2)+dx)*z,(H-rr.h+dy)*z,rr.w*z,rr.h*z);
+    g.drawImage(tmp,lay.pos[k].ox*z,lay.pos[k].oy*z,rr.w*z,rr.h*z);
     g.globalAlpha=1;
   };
-  others.forEach(([x,rr])=>draw(x,rr,0.35));
-  draw(s,r,1);
+  others.forEach(([,rr],k)=>draw(k+1,rr,0.35));
+  draw(0,r,1);
+  if(others.length && alignMode()==='feet'){          // vạch chân: cột mà mọi tấm cùng đứng lên
+    const fx=(lay.pos[0].ox+footCenterOf(r))*z;
+    g.strokeStyle='rgba(88,213,255,.9)'; g.setLineDash([4,4]); g.beginPath(); g.moveTo(fx,0); g.lineTo(fx,cv.height); g.stroke(); g.setLineDash([]);
+  }
   $('#shPreviewInfo').textContent=s.name+' · khung '+(previewFrame%r.frames.length+1)+'/'+r.frames.length+' · ×'+z+
     (others.length?' · mờ phía sau: '+others.map(([x])=>x.name).join(', '):'');
 }
@@ -263,7 +277,7 @@ function paintPreview(){
 function layerInfo(){
   const rs=sheets.map(s=>tryBuild(s)).filter(x=>x.r).map(x=>x.r);
   if(rs.length!==sheets.length) return '';
-  const W=Math.max(...rs.map(r=>r.w)), H=Math.max(...rs.map(r=>r.h)), n=Math.max(...rs.map(r=>r.frames.length));
+  const {W,H}=stackLayout(rs.map((r,i)=>({r,dx:sheets[i].dx,dy:sheets[i].dy})),alignMode()), n=Math.max(...rs.map(r=>r.frames.length));
   const short=sheets.filter((s,i)=>rs[i].frames.length<n).map((s,i)=>'“'+s.name+'”');
   return 'Xếp thành '+sheets.length+' lớp, khung chung '+W+'×'+H+', '+n+' khung'+
     (short.length?'; '+short.join(', ')+' có ít khung hơn nên để trống phần đuôi.':'.');
@@ -278,7 +292,7 @@ function importAll(){
   pushUndo();
   const results=sheets.map(s=>[s,tryBuild(s).r]);
   if(results.length>1 && importMode()==='layers'){
-    const st=stackSheets(results.map(([s,r])=>({name:s.name,r,dx:s.dx,dy:s.dy})));
+    const st=stackSheets(results.map(([s,r])=>({name:s.name,r,dx:s.dx,dy:s.dy})),alignMode());
     forgetCurrent();
     applyData({name:results.map(([s])=>s.name).join(' + '),w:st.w,h:st.h,layers:st.layers,
       frames:st.frames.map(f=>f.map(d=>Array.from(d))),palette:st.palette,dur:[],af:0,al:st.layers.length-1});
@@ -318,7 +332,7 @@ export function bindSheetImport(){
   $('#shOpen')?.addEventListener('click',openSheetImport);
   $('#shClose')?.addEventListener('click',closeSheetImport);
   $('#shFiles')?.addEventListener('change',e=>{ addFiles(e.target.files); e.target.value=''; });
-  ['shRatio','shRatioPct','shCanvas','shTight','shSize','shCharH','shOverlay'].forEach(id=>$('#'+id)?.addEventListener('change',paint));
+  ['shRatio','shRatioPct','shCanvas','shTight','shSize','shCharH','shOverlay','shAlign'].forEach(id=>$('#'+id)?.addEventListener('change',paint));
   document.querySelectorAll('input[name="shMode"]').forEach(r=>r.addEventListener('change',paint));
   if($('#shPalPick')) picker=mountPalettePicker($('#shPalPick'),{auto:true,value:'auto:16',onChange:paint});
   $('#shImport')?.addEventListener('click',importAll);

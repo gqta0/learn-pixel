@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {countClusters, suggestCount, suggestGrid, unionBBox, medianCut, keyOutBackground,
-  pixelizeSheet, spriteFramesTres, sheetBox, fitRatio, pixelizeImage, stackSheets, spriteHeight, syncRatios} from '../js/sheet.js';
+  pixelizeSheet, spriteFramesTres, sheetBox, fitRatio, pixelizeImage, stackSheets, spriteHeight, syncRatios, footCenter, stackLayout} from '../js/sheet.js';
 import {groupColors, pickColors} from '../js/palgroups.js';
 
 const rgba=(r,g,b,a=255)=>((a<<24)|(b<<16)|(g<<8)|r)>>>0;
@@ -196,4 +196,21 @@ test('stacked layers can be nudged by a few pixels; anything pushed outside the 
   assert.notEqual(a[1*4+2],0); assert.notEqual(a[2*4+3],0); assert.equal(a[3*4+1],0);
   const off=stackSheets([{name:'a',r,dx:9},{name:'b',r:big}]);
   assert.ok(off.frames[0][1].every(v=>v===0));
+});
+
+test('layers line up on the feet, not on the bounding box, when a cape trails behind',()=>{
+  // tấm A: thân + chân ở x 6..9, vạt áo kéo dài sang trái tới x 0 (chỉ ở nửa trên) → hộp bao lệch trái
+  const mk=(w,h,body,cape)=>{ const f=new Uint32Array(w*h);
+    for(let y=0;y<h;y++) for(let x=body[0];x<=body[1];x++) f[y*w+x]=rgba(9,9,9);
+    if(cape) for(let y=1;y<4;y++) for(let x=0;x<body[0];x++) f[y*w+x]=rgba(200,200,200);
+    return {w,h,sprite:{w,h},palette:[],frames:[f]}; };
+  const A=mk(10,10,[6,9],true), B=mk(4,10,[0,3],false);
+  assert.equal(footCenter(A),8); assert.equal(footCenter(B),2);
+  const feet=stackLayout([{r:A},{r:B}],'feet');
+  assert.equal(feet.pos[0].ox+8, feet.pos[1].ox+2);           // hai tâm chân cùng một cột
+  assert.equal(feet.W,10);
+  const box=stackLayout([{r:A},{r:B}],'box');
+  assert.notEqual(box.pos[0].ox+8, box.pos[1].ox+2);           // căn hộp bao thì lệch
+  const st=stackSheets([{name:'A',r:A},{name:'B',r:B}]);      // mặc định căn theo chân
+  assert.notEqual(st.frames[0][0][6],0); assert.equal(st.frames[0][0][5],0);
 });

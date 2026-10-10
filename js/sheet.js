@@ -266,22 +266,49 @@ export function pixelizeImage(src,w,h,W,H,palette){
 }
 
 /* ---------------- nhiều sheet → nhiều lớp của một bản vẽ ----------------
-   items: [{name, r, dx, dy}] với r là kết quả pixelizeSheet, dx/dy là độ lệch chỉnh tay (pixel,
-   phần ra ngoài khung bị cắt). Tấm đầu danh sách nằm ở lớp TRÊN CÙNG,
-   đúng thứ tự người dùng nhìn thấy trong danh sách lớp. Khung chung lấy cỡ lớn nhất; tấm nhỏ hơn
-   đặt chân sát đáy, canh giữa — cùng mốc với pixelizeSheet. Tấm ít khung hơn để trống phần đuôi. */
-export function stackSheets(items){
+   Tâm chân của một tấm đã pixel hoá: trung bình x của các pixel nằm trong dải đáy (12% chiều cao
+   hình, tối thiểu 2 hàng) tính từ pixel thấp nhất của TỪNG khung, gộp mọi khung. Vạt áo bay về sau
+   hay vũ khí vươn ra trước làm hộp bao rộng lệch một phía, nhưng chân thì vẫn ở dưới thân —
+   căn theo chân thì các động tác đứng đúng một chỗ khi đổi qua lại trong game. */
+export function footCenter(r){
+  const band=Math.max(2,Math.round((r.sprite?.h||r.h)*0.12));
+  let sx=0,n=0;
+  for(const f of r.frames){
+    let bot=-1;
+    for(let y=r.h-1;y>=0 && bot<0;y--) for(let x=0;x<r.w;x++) if(f[y*r.w+x]){ bot=y; break; }
+    for(let y=Math.max(0,bot-band+1);bot>=0 && y<=bot;y++) for(let x=0;x<r.w;x++) if(f[y*r.w+x]){ sx+=x+0.5; n++; }
+  }
+  return n ? sx/n : r.w/2;
+}
+/* Vị trí từng tấm trong khung chung. align 'feet': mọi tấm có tâm chân trùng một cột; 'box': canh
+   giữa hộp bao (cách cũ). Chân luôn sát đáy. dx/dy là chỉnh tay. Khung chung vừa đủ chứa mọi tấm. */
+export function stackLayout(items,align='feet'){
+  const H=Math.max(...items.map(it=>it.r.h));
+  let pos;
+  if(align==='feet'){
+    const fx=items.map(it=>footCenter(it.r)), left=Math.max(...fx);
+    pos=items.map((it,i)=>({ox:Math.round(left-fx[i]),oy:H-it.r.h}));
+  }else{
+    const W0=Math.max(...items.map(it=>it.r.w));
+    pos=items.map(it=>({ox:Math.floor((W0-it.r.w)/2),oy:H-it.r.h}));
+  }
+  const W=Math.max(...items.map((it,i)=>pos[i].ox+it.r.w));
+  return {W,H,pos:pos.map((p,i)=>({ox:p.ox+(items[i].dx|0),oy:p.oy+(items[i].dy|0)}))};
+}
+/* items: [{name, r, dx, dy}] với r là kết quả pixelizeSheet, dx/dy là độ lệch chỉnh tay (pixel,
+   phần ra ngoài khung bị cắt). Tấm đầu danh sách nằm ở lớp TRÊN CÙNG, đúng thứ tự người dùng nhìn
+   thấy trong danh sách lớp. Tấm ít khung hơn để trống phần đuôi. */
+export function stackSheets(items,align='feet'){
   if(!items.length) throw new Error('chưa có tấm nào');
-  const W=Math.max(...items.map(it=>it.r.w)), H=Math.max(...items.map(it=>it.r.h));
+  const {W,H,pos}=stackLayout(items,align);
   const count=Math.max(...items.map(it=>it.r.frames.length));
-  const order=items.slice().reverse();                       // lớp 0 là lớp dưới cùng
-  const frames=Array.from({length:count},(_,f)=>order.map(({r,dx=0,dy=0})=>{
+  const order=items.map((it,i)=>({...it,p:pos[i]})).reverse();   // lớp 0 là lớp dưới cùng
+  const frames=Array.from({length:count},(_,f)=>order.map(({r,p})=>{
     const out=new Uint32Array(W*H), src=r.frames[f];
     if(!src) return out;
-    const ox=Math.floor((W-r.w)/2)+(dx|0), oy=H-r.h+(dy|0);
     for(let y=0;y<r.h;y++){
-      const ty=oy+y; if(ty<0||ty>=H) continue;
-      for(let x=0;x<r.w;x++){ const tx=ox+x, v=src[y*r.w+x]; if(v && tx>=0 && tx<W) out[ty*W+tx]=v; }
+      const ty=p.oy+y; if(ty<0||ty>=H) continue;
+      for(let x=0;x<r.w;x++){ const tx=p.ox+x, v=src[y*r.w+x]; if(v && tx>=0 && tx<W) out[ty*W+tx]=v; }
     }
     return out;
   }));

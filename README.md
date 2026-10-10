@@ -85,6 +85,12 @@ khung nhảy hay tóc bay không làm lệch) rồi cho mỗi tấm một tỉ l
 Mỗi thẻ có **Cỡ %** (chỉnh tay khi tóc, vũ khí làm phép đo lệch) và **Lệch ←→ / ↑↓** (dời lớp cho
 chân, thân chồng khít). Ô xem trước bật **So cỡ: chồng mờ các tấm khác** để so trực tiếp.
 
+**Căn ngang theo chân** (mặc định): chân mọi tấm luôn sát đáy, và tâm chân (trung bình các pixel
+trong dải đáy của từng khung) của mọi tấm nằm trên cùng một cột — vạch xanh trong ô xem trước. Vạt áo
+bay về sau hay vũ khí vươn ra trước làm hộp bao rộng lệch một phía, nên căn giữa hộp bao (cách cũ,
+vẫn chọn được) sẽ làm nhân vật nhảy sang ngang khi đổi động tác trong game. Khung chung vừa đủ chứa
+mọi tấm sau khi căn; nếu vượt 128 app báo trước.
+
 **Lớp có số khung khác nhau** (ví dụ chạy 8 khung, đánh 16 khung):
 - Dải khung làm mờ những khung lớp đang chọn không có hình, và ghi "Lớp “run”: 8/16 khung".
 - Nút **◧** cạnh ▶ chạy riêng lớp đang chọn, đúng số khung của lớp đó.
