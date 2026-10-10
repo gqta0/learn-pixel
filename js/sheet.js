@@ -68,24 +68,60 @@ export function unionBBox(px,w,cols,rows,cw,ch){
   return x1<0 ? {x:0,y:0,w:cw,h:ch} : {x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
 }
 
-/* Chiều cao nhân vật của một tấm: trung vị chiều cao hộp bao TỪNG khung (không phải hộp bao chung),
-   để một khung nhảy cao hay tóc bay không kéo lệch phép đo. Đây là thước để các tấm vẽ ở cỡ khác
-   nhau về cùng một cỡ nhân vật. */
-export function spriteHeight(src,w,h,cols,rows){
+/* Chiều cao nhân vật của một tấm: trung vị chiều cao TỪNG khung (không phải hộp bao chung), và chỉ
+   tính những hàng "đặc" — hàng có số pixel ≥ dense × hàng rộng nhất của khung đó. Sợi tóc, dải ruy
+   băng, mép áo hất lên chỉ là vài pixel mỗi hàng nên không kéo phép đo cao lên: hai tấm vẽ cùng
+   cỡ (đứng đánh, nhảy) đo ra gần bằng nhau. dense=0 là đo cả hộp bao như cũ. */
+export function spriteHeight(src,w,h,cols,rows,dense=0.25){
   cols=Math.max(1,cols|0); rows=Math.max(1,rows|0);
   const px=keyOutBackground(src,w,h), cw=Math.floor(w/cols), ch=Math.floor(h/rows), hs=[];
+  const cnt=new Uint16Array(ch);
   for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
-    let y0=-1,y1=-1;
+    let mx=0;
     for(let y=0;y<ch;y++){
-      let any=false;
-      for(let x=0;x<cw && !any;x++) any=A(px[(r*ch+y)*w+c*cw+x])>=OPAQUE;
-      if(any){ if(y0<0) y0=y; y1=y; }
+      let n=0;
+      for(let x=0;x<cw;x++) if(A(px[(r*ch+y)*w+c*cw+x])>=OPAQUE) n++;
+      cnt[y]=n; if(n>mx) mx=n;
     }
-    if(y0>=0) hs.push(y1-y0+1);
+    if(!mx) continue;
+    let y0=-1,y1=-1;
+    for(let y=0;y<ch;y++) if(cnt[y] && cnt[y]>=mx*dense){ if(y0<0) y0=y; y1=y; }
+    hs.push(y1-y0+1);
   }
   if(!hs.length) return 0;
   hs.sort((a,b)=>a-b);
   return hs[hs.length>>1];
+}
+/* Đáy hình của từng khung (toạ độ trong ô), -1 nếu khung trống. */
+function frameBottoms(px,w,cols,rows,cw,ch){
+  const out=[];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    let bot=-1;
+    for(let y=ch-1;y>=0 && bot<0;y--) for(let x=0;x<cw;x++) if(A(px[(r*ch+y)*w+c*cw+x])>=OPAQUE){ bot=y; break; }
+    out.push(bot);
+  }
+  return out;
+}
+/* Độ cao nhân vật bay lên trong ảnh: chênh lệch đáy hình giữa khung thấp nhất và cao nhất.
+   Sheet nhảy thường vẽ sẵn đường bay; game platformer thì engine lo độ cao, sprite nên nhảy tại chỗ. */
+export function verticalTravel(src,w,h,cols,rows){
+  cols=Math.max(1,cols|0); rows=Math.max(1,rows|0);
+  const px=keyOutBackground(src,w,h), b=frameBottoms(px,w,cols,rows,Math.floor(w/cols),Math.floor(h/rows)).filter(v=>v>=0);
+  return b.length ? Math.max(...b)-Math.min(...b) : 0;
+}
+/* Hộp bao khi nhảy tại chỗ: mỗi khung được hạ xuống cho đáy hình chạm đáy chung, rồi mới gộp. */
+function inPlaceBox(px,w,cols,rows,cw,ch){
+  const bots=frameBottoms(px,w,cols,rows,cw,ch), B=Math.max(...bots);
+  const u=unionBBox(px,w,cols,rows,cw,ch);
+  let top=B;
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const f=r*cols+c; if(bots[f]<0) continue;
+    for(let y=0;y<ch;y++){
+      let any=false; for(let x=0;x<cw && !any;x++) any=A(px[(r*ch+y)*w+c*cw+x])>=OPAQUE;
+      if(any){ top=Math.min(top,y+B-bots[f]); break; }
+    }
+  }
+  return {box:B<0?u:{x:u.x,y:top,w:u.w,h:B-top+1}, shifts:bots.map(b=>b<0?0:B-b)};
 }
 /* Tỉ lệ cho từng tấm để mọi nhân vật cao bằng nhau. heights: chiều cao gốc từng tấm,
    adj: hệ số chỉnh tay từng tấm (1 = không chỉnh), fits: tỉ lệ tối đa để tấm đó vừa khung.
@@ -99,9 +135,10 @@ export function syncRatios(heights,adj,fits,target=0){
 }
 
 /* hộp bao hình của một tấm sau khi chia khung — đầu vào để tính tỉ lệ vừa khung */
-export function sheetBox(src,w,h,cols,rows){
+export function sheetBox(src,w,h,cols,rows,inPlace=false){
   cols=Math.max(1,cols|0); rows=Math.max(1,rows|0);
-  return unionBBox(keyOutBackground(src,w,h),w,cols,rows,Math.floor(w/cols),Math.floor(h/rows));
+  const px=keyOutBackground(src,w,h), cw=Math.floor(w/cols), ch=Math.floor(h/rows);
+  return inPlace ? inPlaceBox(px,w,cols,rows,cw,ch).box : unionBBox(px,w,cols,rows,cw,ch);
 }
 /* Tỉ lệ lớn nhất để hình nằm trọn trong khung vuông cạnh `side` (0 = không giới hạn khung,
    chỉ chặn ở 128). Không phóng quá 100%: phóng to ảnh rồi mới pixel hoá chỉ ra pixel to nhỏ
@@ -178,7 +215,9 @@ export function pixelizeSheet(src,w,h,opt){
   const px=keyOutBackground(src,w,h);
   const cols=Math.max(1,opt.cols|0), rows=Math.max(1,opt.rows|0);
   const cw=Math.floor(w/cols), ch=Math.floor(h/rows);
-  const box=unionBBox(px,w,cols,rows,cw,ch);
+  // inPlace: hạ từng khung cho chân chạm đáy chung — bỏ đường bay vẽ sẵn trong sheet nhảy
+  const ip=opt.inPlace ? inPlaceBox(px,w,cols,rows,cw,ch) : null;
+  const box=ip ? ip.box : unionBBox(px,w,cols,rows,cw,ch);
   const ratio=Math.min(1,Math.max(0.01,opt.ratio||1));
   const side=opt.canvas|0;
   const cap=v=>opt.fit&&side ? Math.min(side,v) : v;      // tỉ lệ tự vừa: sai số làm tròn không được tràn khung
@@ -194,7 +233,7 @@ export function pixelizeSheet(src,w,h,opt){
   const votes=new Uint16Array(palette.length);
   const frames=[];
   for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
-    const out=new Uint32Array(W*H);
+    const out=new Uint32Array(W*H), shift=ip ? ip.shifts[r*cols+c] : 0;
     let any=false, minX=W, maxX=-1;
     for(let y=0;y<dh;y++){
       const sy0=box.y+Math.floor(y*box.h/dh), sy1=Math.max(sy0+1,box.y+Math.floor((y+1)*box.h/dh));
@@ -203,7 +242,9 @@ export function pixelizeSheet(src,w,h,opt){
         votes.fill(0);
         let solid=0,total=0;
         for(let sy=sy0;sy<sy1;sy++) for(let sx=sx0;sx<sx1;sx++){
-          const p=px[(r*ch+sy)*w+c*cw+sx]; total++;
+          total++;
+          const yy=sy-shift; if(yy<0||yy>=ch) continue;   // khung đã hạ xuống: phần trên rơi ra ngoài ô thì trống
+          const p=px[(r*ch+yy)*w+c*cw+sx];
           if(A(p)>=OPAQUE){ solid++; votes[near(p)]++; }
         }
         if(solid*2<total) continue;                 // quá nửa ô nguồn trong suốt thì để trong suốt

@@ -7,7 +7,7 @@ import { view } from './state.js';
 import { pushUndo } from './history.js';
 import { applyData } from './storage.js';
 import { keepBeforeReplace, saveCurrent, openProject, forgetCurrent } from './library.js';
-import { suggestGrid, pixelizeSheet, medianCut, keyOutBackground, sheetBox, fitRatio, stackSheets, stackLayout, spriteHeight, syncRatios } from './sheet.js';
+import { suggestGrid, pixelizeSheet, medianCut, keyOutBackground, sheetBox, fitRatio, stackSheets, stackLayout, spriteHeight, syncRatios, verticalTravel } from './sheet.js';
 import { mountPalettePicker } from './palpick.js';
 import { footCenter as footCenterOf } from './sheet.js';
 
@@ -20,9 +20,18 @@ let previewTimer=null, previewFrame=0, sharedPal=null, sharedKey='', picker=null
    các động tác (đòn vung tay làm hộp bao rộng ra, nhân vật bị thu nhỏ theo). */
 /* tỉ lệ tối đa để một tấm vừa khung, và chiều cao nhân vật gốc — nhớ đệm theo cách chia khung */
 function fitOf(s,canvas){
-  const k=s.cols+'x'+s.rows+'|'+canvas;
-  if(s.fitKey!==k){ s.fitKey=k; s.fit=fitRatio(sheetBox(s.px,s.w,s.h,s.cols,s.rows),canvas); }
+  const k=s.cols+'x'+s.rows+'|'+canvas+'|'+!!s.inPlace;
+  if(s.fitKey!==k){ s.fitKey=k; s.fit=fitRatio(sheetBox(s.px,s.w,s.h,s.cols,s.rows,!!s.inPlace),canvas); }
   return s.fit;
+}
+/* Sheet nhảy vẽ sẵn đường bay: đáy hình các khung chênh nhau quá 15% chiều cao nhân vật.
+   Tự bật "nhảy tại chỗ" cho tới khi người dùng tự bấm — game platformer để engine lo độ cao. */
+function detectTravel(s){
+  const k=s.cols+'x'+s.rows;
+  if(s.tKey===k) return s.travel;
+  s.tKey=k; s.travel=verticalTravel(s.px,s.w,s.h,s.cols,s.rows);
+  if(s.inPlaceAuto!==false) s.inPlace = s.travel > heightOf(s)*0.15;
+  return s.travel;
 }
 function heightOf(s){
   const k=s.cols+'x'+s.rows;
@@ -30,6 +39,7 @@ function heightOf(s){
   return s.hgt;
 }
 function ratioNow(){
+  sheets.forEach(detectTravel);
   const v=$('#shRatio').value, canvas=+$('#shCanvas').value;
   if(v==='custom') return {ratio:Math.min(1,Math.max(0.05,(parseFloat($('#shRatioPct').value)||50)/100)),fit:false};
   if(v!=='fit') return {ratio:+v,fit:false};
@@ -41,6 +51,7 @@ function ratioNow(){
    từng tấm rồi cho mỗi tấm một tỉ lệ riêng để nhân vật cao bằng nhau. */
 const syncOn=()=>sheets.length>1 && $('#shSize')?.value!=='keep';
 function sizing(){
+  sheets.forEach(detectTravel);
   const base=ratioNow(), adj=sheets.map(s=>(s.scale||100)/100);
   if(!syncOn()) return {per:sheets.map((s,i)=>Math.min(1,base.ratio*adj[i])),fit:base.fit&&adj.every(a=>a===1),target:0,short:[]};
   const canvas=+$('#shCanvas').value, typed=Math.max(0,parseInt($('#shCharH')?.value,10)||0);
@@ -75,12 +86,13 @@ function batchPalette(){
 }
 function build(s){
   const o=opt(), z=ratioFor(s);
-  return pixelizeSheet(s.px,s.w,s.h,{cols:s.cols,rows:s.rows,ratio:z.ratio,fit:z.fit,canvas:o.canvas,tight:o.tight,palette:batchPalette()});
+  return pixelizeSheet(s.px,s.w,s.h,{cols:s.cols,rows:s.rows,ratio:z.ratio,fit:z.fit,canvas:o.canvas,tight:o.tight,inPlace:!!s.inPlace,palette:batchPalette()});
 }
 /* kết quả hoặc lý do không nhập được — để thẻ của tấm đó tự nói ra */
 function tryBuild(s){
   // nhớ kết quả theo thiết lập: ô xem trước chạy nhiều lần mỗi giây, không thể pixel hoá lại mỗi nhịp
-  const o=opt(), z=ratioFor(s), pal=batchPalette(), key=[s.cols,s.rows,z.ratio,z.fit,o.canvas,o.tight,o.pal.mode,pal.join('')].join('|');
+  detectTravel(s);
+  const o=opt(), z=ratioFor(s), pal=batchPalette(), key=[s.cols,s.rows,!!s.inPlace,z.ratio,z.fit,o.canvas,o.tight,o.pal.mode,pal.join('')].join('|');
   if(s.cacheKey===key) return s.cache;
   let out;
   if(!pal.length){ s.cacheKey=key; s.cache={error:'Chưa chọn màu nào — bật ít nhất một nhóm màu ở mục Nâng cao.'}; return s.cache; }
@@ -95,8 +107,12 @@ function tryBuild(s){
 function addFiles(files){
   const list=[...files].filter(f=>/^image\//.test(f.type));
   if(!list.length) return;
-  let left=list.length;
+  // Ảnh giải mã xong không theo thứ tự chọn; giữ đúng thứ tự người dùng chọn vì tấm đầu là lớp
+  // trên cùng và là mốc cỡ khi chọn tỉ lệ tay.
+  let left=list.length, seq=sheets.reduce((m,x)=>Math.max(m,x.seq||0),0);
+  const done=()=>{ sheets.sort((a,b)=>a.seq-b.seq); if(!picked && sheets.length) picked=sheets[0].id; paint(); };
   list.forEach(file=>{
+    const order=++seq;
     const im=new Image(), url=URL.createObjectURL(file);
     im.onload=()=>{
       const cv=document.createElement('canvas'); cv.width=im.naturalWidth; cv.height=im.naturalHeight;
@@ -105,12 +121,12 @@ function addFiles(files){
       const sug=suggestGrid(keyOutBackground(px,cv.width,cv.height),cv.width,cv.height);
       const s={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
         name:file.name.replace(/\.[^.]+$/,''),w:cv.width,h:cv.height,px,cv,
-        cols:sug.cols,rows:sug.rows,options:sug.colOptions,guess:sug.cols,scale:100,dx:0,dy:0};
-      sheets.push(s); if(!picked) picked=s.id;
+        cols:sug.cols,rows:sug.rows,options:sug.colOptions,guess:sug.cols,scale:100,dx:0,dy:0,seq:order};
+      sheets.push(s);
       URL.revokeObjectURL(url);
-      if(--left===0) paint();
+      if(--left===0) done();
     };
-    im.onerror=()=>{ URL.revokeObjectURL(url); toast('Không đọc được '+file.name); if(--left===0) paint(); };
+    im.onerror=()=>{ URL.revokeObjectURL(url); toast('Không đọc được '+file.name); if(--left===0) done(); };
     im.src=url;
   });
 }
@@ -175,14 +191,26 @@ function sheetCard(s){
       why.textContent='Khung '+at+' rộng '+max+' px, các khung khác chừng '+mid+' px. Khung vẽ phải đủ chỗ cho khung '+at+
         ', nên những khung hẹp hơn sẽ trống chừng '+(max-mid)+' px ở bên — đó là chỗ dành cho tư thế vươn ra.';
       card.append(strip,head,grid,chips,info,why);
+      if(s.travel>heightOf(s)*0.05 || s.inPlace) card.append(jumpRow(s));
       if(sheets.length>1) card.append(tuneRow(s));
       return card;
     }
   }
 
   card.append(strip,head,grid,chips,info);
+  if(s.travel>heightOf(s)*0.05 || s.inPlace) card.append(jumpRow(s));
   if(sheets.length>1) card.append(tuneRow(s));
   return card;
+}
+function jumpRow(s){
+  const lab=document.createElement('label'); lab.className='tv-check sh-jump';
+  const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!s.inPlace;
+  cb.addEventListener('change',()=>{ s.inPlace=cb.checked; s.inPlaceAuto=false; paint(); });
+  const t=document.createElement('span');
+  t.textContent='Nhảy tại chỗ — hạ chân mọi khung xuống đáy, bỏ đường bay ~'+s.travel+' px vẽ sẵn trong ảnh'+
+    (s.inPlaceAuto!==false && s.inPlace ? ' (tự bật vì phát hiện đường bay; game platformer để engine lo độ cao)' : '');
+  lab.append(cb,t);
+  return lab;
 }
 /* Chỉnh tay từng tấm khi nhập nhiều tấm: cỡ % (khi tóc, vũ khí làm phép đo chiều cao lệch) và
    độ lệch x/y để chân, thân các lớp chồng khít nhau. */

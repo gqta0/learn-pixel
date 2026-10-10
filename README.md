@@ -78,12 +78,21 @@ Thẻ **File → 🎞 Nhập sprite sheet…**. Chọn một hay nhiều ảnh s
 
 **Đồng bộ cỡ nhân vật** (nhiều tấm, mặc định): các sheet thường vẽ ở cỡ khác nhau — ví dụ tấm chạy
 nhân vật cao 190 px, tấm đánh chỉ 105 px — nên một tỉ lệ chung cho cả lô làm nhân vật ở động tác này
-to gấp đôi động tác kia. App đo chiều cao nhân vật từng tấm (trung vị chiều cao từng khung, để một
-khung nhảy hay tóc bay không làm lệch) rồi cho mỗi tấm một tỉ lệ riêng để nhân vật cao bằng nhau.
+to gấp đôi động tác kia. App đo chiều cao nhân vật từng tấm — trung vị chiều cao từng khung,
+chỉ tính các hàng "đặc" (≥ 25% hàng rộng nhất) nên sợi tóc, ruy băng, mép áo hất lên không kéo phép đo
+cao lên — rồi cho mỗi tấm một tỉ lệ riêng để nhân vật cao bằng nhau. Tư thế khác nhau (chạy chúi người,
+đứng thẳng) vẫn có thể lệch vài phần trăm; chỉnh bằng **Cỡ %** và so trên ô xem trước chồng mờ.
 Ô **px** đặt chiều cao đích; để trống thì lấy cỡ lớn nhất mà mọi tấm vẫn vừa khung. Không phóng quá
 100%: tấm có ảnh gốc nhỏ hơn cỡ đích sẽ báo thấp hơn. **Giữ tỉ lệ giữa các ảnh gốc** là cách cũ.
 Mỗi thẻ có **Cỡ %** (chỉnh tay khi tóc, vũ khí làm phép đo lệch) và **Lệch ←→ / ↑↓** (dời lớp cho
 chân, thân chồng khít). Ô xem trước bật **So cỡ: chồng mờ các tấm khác** để so trực tiếp.
+
+**Nhảy tại chỗ**: sheet nhảy hay vẽ sẵn đường bay (nhân vật bay lên trong ảnh), làm hộp bao cao thêm
+hàng chục pixel và kéo cả lô thu nhỏ để vừa khung. App tự nhận ra (đáy hình các khung chênh nhau quá
+15% chiều cao nhân vật) và bật **Nhảy tại chỗ**: mỗi khung được hạ cho chân chạm đáy, game platformer để
+engine lo độ cao. Bỏ tích nếu muốn giữ đường bay trong sprite.
+
+Thứ tự các tấm giữ đúng thứ tự chọn file (tấm đầu là lớp trên cùng và là mốc cỡ khi chọn tỉ lệ tay).
 
 **Căn ngang theo chân** (mặc định): chân mọi tấm luôn sát đáy, và tâm chân (trung bình các pixel
 trong dải đáy của từng khung) của mọi tấm nằm trên cùng một cột — vạch xanh trong ô xem trước. Vạt áo
