@@ -68,6 +68,36 @@ export function unionBBox(px,w,cols,rows,cw,ch){
   return x1<0 ? {x:0,y:0,w:cw,h:ch} : {x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
 }
 
+/* Chiều cao nhân vật của một tấm: trung vị chiều cao hộp bao TỪNG khung (không phải hộp bao chung),
+   để một khung nhảy cao hay tóc bay không kéo lệch phép đo. Đây là thước để các tấm vẽ ở cỡ khác
+   nhau về cùng một cỡ nhân vật. */
+export function spriteHeight(src,w,h,cols,rows){
+  cols=Math.max(1,cols|0); rows=Math.max(1,rows|0);
+  const px=keyOutBackground(src,w,h), cw=Math.floor(w/cols), ch=Math.floor(h/rows), hs=[];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    let y0=-1,y1=-1;
+    for(let y=0;y<ch;y++){
+      let any=false;
+      for(let x=0;x<cw && !any;x++) any=A(px[(r*ch+y)*w+c*cw+x])>=OPAQUE;
+      if(any){ if(y0<0) y0=y; y1=y; }
+    }
+    if(y0>=0) hs.push(y1-y0+1);
+  }
+  if(!hs.length) return 0;
+  hs.sort((a,b)=>a-b);
+  return hs[hs.length>>1];
+}
+/* Tỉ lệ cho từng tấm để mọi nhân vật cao bằng nhau. heights: chiều cao gốc từng tấm,
+   adj: hệ số chỉnh tay từng tấm (1 = không chỉnh), fits: tỉ lệ tối đa để tấm đó vừa khung.
+   target>0: chiều cao đích người dùng nhập; không thì lấy cỡ lớn nhất mà mọi tấm đều vừa khung.
+   Không phóng quá 100%: tấm nào phải phóng to mới đạt cỡ đích thì giữ 100% và báo thấp hơn. */
+export function syncRatios(heights,adj,fits,target=0){
+  const T=target>0 ? target :
+    Math.floor(Math.min(...heights.map((h,i)=>h>0 ? Math.min(fits[i],1)*h/adj[i] : Infinity)));
+  const ratios=heights.map((h,i)=>h>0 ? Math.min(1,T*adj[i]/h) : 1);
+  return {target:T, ratios, short:heights.map((h,i)=>h>0 && T*adj[i]/h>1)};
+}
+
 /* hộp bao hình của một tấm sau khi chia khung — đầu vào để tính tỉ lệ vừa khung */
 export function sheetBox(src,w,h,cols,rows){
   cols=Math.max(1,cols|0); rows=Math.max(1,rows|0);
@@ -236,7 +266,8 @@ export function pixelizeImage(src,w,h,W,H,palette){
 }
 
 /* ---------------- nhiều sheet → nhiều lớp của một bản vẽ ----------------
-   items: [{name, r}] với r là kết quả pixelizeSheet. Tấm đầu danh sách nằm ở lớp TRÊN CÙNG,
+   items: [{name, r, dx, dy}] với r là kết quả pixelizeSheet, dx/dy là độ lệch chỉnh tay (pixel,
+   phần ra ngoài khung bị cắt). Tấm đầu danh sách nằm ở lớp TRÊN CÙNG,
    đúng thứ tự người dùng nhìn thấy trong danh sách lớp. Khung chung lấy cỡ lớn nhất; tấm nhỏ hơn
    đặt chân sát đáy, canh giữa — cùng mốc với pixelizeSheet. Tấm ít khung hơn để trống phần đuôi. */
 export function stackSheets(items){
@@ -244,11 +275,14 @@ export function stackSheets(items){
   const W=Math.max(...items.map(it=>it.r.w)), H=Math.max(...items.map(it=>it.r.h));
   const count=Math.max(...items.map(it=>it.r.frames.length));
   const order=items.slice().reverse();                       // lớp 0 là lớp dưới cùng
-  const frames=Array.from({length:count},(_,f)=>order.map(({r})=>{
+  const frames=Array.from({length:count},(_,f)=>order.map(({r,dx=0,dy=0})=>{
     const out=new Uint32Array(W*H), src=r.frames[f];
     if(!src) return out;
-    const ox=Math.floor((W-r.w)/2), oy=H-r.h;
-    for(let y=0;y<r.h;y++) out.set(src.subarray(y*r.w,(y+1)*r.w),(oy+y)*W+ox);
+    const ox=Math.floor((W-r.w)/2)+(dx|0), oy=H-r.h+(dy|0);
+    for(let y=0;y<r.h;y++){
+      const ty=oy+y; if(ty<0||ty>=H) continue;
+      for(let x=0;x<r.w;x++){ const tx=ox+x, v=src[y*r.w+x]; if(v && tx>=0 && tx<W) out[ty*W+tx]=v; }
+    }
     return out;
   }));
   const palette=[...new Set(items.flatMap(it=>it.r.palette))];

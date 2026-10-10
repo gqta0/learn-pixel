@@ -3,7 +3,7 @@
 import { $, $$, syncNavHeight, toast } from './dom.js';
 import { doc, view, blank, newFrame, activeData } from './state.js';
 import { hexToInt, intToHex } from './color.js';
-import { invalidateBuf, flipData, rotateData, outlineData, shiftLayer, copySel, clearSel, pasteClip, normSel } from './raster.js';
+import { invalidateBuf, flipData, rotateData, outlineData, shiftLayer, copySel, clearSel, pasteClip, normSel, layerLength } from './raster.js';
 import { pushUndo, undo, redo } from './history.js';
 import { render, fitZoom, setZoom } from './render.js';
 import { paintThumbs, paintPreview, togglePlay } from './frames.js';
@@ -417,6 +417,14 @@ if(ppBtn){
     ppBtn.title = 'Lặp Ping-Pong (xuôi-ngược) đang ' + (view.pingPong ? 'BẬT' : 'TẮT');
   });
 }
+$('#soloBtn')?.addEventListener('click', e=>{
+  view.soloLayer=!view.soloLayer;
+  e.currentTarget.classList.toggle('on', view.soloLayer);
+  e.currentTarget.setAttribute('aria-pressed', view.soloLayer);
+  paintPreview();
+  if(view.soloLayer && doc.layers.length>1)
+    toast('Xem trước chỉ chạy lớp “'+doc.layers[doc.al].name+'” ('+(layerLength()||doc.frames.length)+' khung).');
+});
 $('#fps').addEventListener('change', e=>{ view.fps=Math.max(1,+e.target.value||8); if(view.playing){ togglePlay(); togglePlay(); } });
 
 $('#lyUp').addEventListener('click', ()=>moveLayer(1));

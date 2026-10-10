@@ -1,7 +1,7 @@
 /* Xuất PNG / spritesheet / .json, mở lại dự án, và lưu tự động vào trình duyệt. */
 import { $, toast } from './dom.js';
 import { doc, view, activeData } from './state.js';
-import { frameToCanvas, invalidateBuf } from './raster.js';
+import { frameToCanvas, invalidateBuf, layerLength } from './raster.js';
 import { pushUndo } from './history.js';
 import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
@@ -36,32 +36,38 @@ export function sheetCols(n, pick){
   const c=parseInt(pick,10);
   return c>0 ? Math.min(c,n) : n;
 }
+/* Xuất cả bản vẽ, hoặc chỉ lớp đang chọn với đúng số khung của lớp đó — mỗi lớp là một
+   động tác riêng (chạy 8 khung, đánh 16 khung) thì mỗi lớp ra một sheet riêng cho engine. */
+function sheetPlan(){
+  const only=$('#expLayerOnly')?.checked && doc.layers.length>1 ? doc.al : -1;
+  const n=only>=0 ? Math.max(1,layerLength(only)) : doc.frames.length;
+  const base=sanitizeFilename(doc.name,'spritesheet')+(only>=0 ? '_'+sanitizeFilename(doc.layers[only].name,'lop') : '');
+  return {only,n,base};
+}
 export function exportSheet(scale){
   const s=Number(scale)>0 ? scale : parseInt($('#expScale').value,10);   // nút bấm truyền vào một Event, không phải tỉ lệ
-  const n=doc.frames.length, cols=sheetCols(n, $('#expCols')?.value), rows=Math.ceil(n/cols);
+  const {only,n,base}=sheetPlan(), cols=sheetCols(n, $('#expCols')?.value), rows=Math.ceil(n/cols);
   const cv=document.createElement('canvas');
   cv.width=doc.w*s*cols; cv.height=doc.h*s*rows;
   const c=cv.getContext('2d'); c.imageSmoothingEnabled=false;
   const tmp=document.createElement('canvas');
-  doc.frames.forEach((f,i)=>{
-    frameToCanvas(i,tmp,s);
+  for(let i=0;i<n;i++){
+    frameToCanvas(i,tmp,s,only);
     c.drawImage(tmp, (i%cols)*doc.w*s, Math.floor(i/cols)*doc.h*s);
-  });
-  const base = sanitizeFilename(doc.name, 'spritesheet');
+  }
   download(base+'_'+doc.w+'x'+doc.h+'_'+n+'f'+(rows>1?'_'+cols+'x'+rows:'')+'.png', cv.toDataURL('image/png'));
 }
 /* Godot 4: một file SpriteFrames (.tres) trỏ vào sheet PNG ×1 cùng tên. Luôn xuất ×1 vì
    pixel art phóng trong engine bằng số nguyên, không phóng sẵn trong ảnh. */
 export function exportGodotFrames(){
-  const n=doc.frames.length, cols=sheetCols(n, $('#expCols')?.value), rows=Math.ceil(n/cols);
-  const base=sanitizeFilename(doc.name,'spritesheet');
+  const {n,base}=sheetPlan(), cols=sheetCols(n, $('#expCols')?.value), rows=Math.ceil(n/cols);
   const png=base+'_'+doc.w+'x'+doc.h+'_'+n+'f'+(rows>1?'_'+cols+'x'+rows:'')+'.png';   // khớp tên exportSheet đặt
   let dir=($('#expGodotDir')?.value||'res://').trim()||'res://';
   if(!/^res:\/\//.test(dir)) dir='res://'+dir.replace(/^\/+/,'');
   if(!dir.endsWith('/')) dir+='/';
   const beat=1000/Math.max(1,view.fps||8);
   const tres=spriteFramesTres({name:base,texture:dir+png,fw:doc.w,fh:doc.h,cols,count:n,fps:view.fps||8,
-    loop:$('#expGodotLoop')?.checked!==false,durations:doc.frames.map((_,i)=>doc.dur[i]>0?doc.dur[i]/beat:1)});
+    loop:$('#expGodotLoop')?.checked!==false,durations:doc.frames.slice(0,n).map((_,i)=>doc.dur[i]>0?doc.dur[i]/beat:1)});
   const url=URL.createObjectURL(new Blob([tres],{type:'text/plain'}));
   download(base+'.tres',url); setTimeout(()=>URL.revokeObjectURL(url),1000);
   setTimeout(()=>exportSheet(1),350);          // tải hai file liền nhau; cách một nhịp để trình duyệt không nuốt mất file sau

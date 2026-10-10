@@ -23,7 +23,7 @@ export function paintLayers(){
     ren.className='vis'; ren.textContent='✎'; ren.title='Đổi tên lớp';
     ren.addEventListener('click', e=>{ e.stopPropagation(); rename(); });
     row.appendChild(vis); row.appendChild(nm); row.appendChild(ren);
-    row.addEventListener('click', ()=>{ doc.al=i; paintLayers(); render(); });
+    row.addEventListener('click', ()=>{ doc.al=i; paintLayers(); render(); paintThumbs(); });
     box.appendChild(row);
   }
 }

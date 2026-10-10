@@ -987,3 +987,9 @@ body[data-view="terrain"] .col.right{display:none}
 .pp-strip b{width:9px;height:14px;border-radius:1px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
 .pp-group:has(input:not(:checked)) span,.pp-group:has(input:not(:checked)) .pp-strip{opacity:.4}
 .pp-note:empty{display:none}
+
+/* khung mà lớp đang chọn không có hình (lớp ngắn hơn dải khung chung) */
+.frame.frame-out{opacity:.38}
+.frame.frame-out[aria-current="true"]{opacity:.75}
+.sh-tune{margin-top:6px}
+.sh-tune input{width:64px}

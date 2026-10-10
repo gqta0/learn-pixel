@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {countClusters, suggestCount, suggestGrid, unionBBox, medianCut, keyOutBackground,
-  pixelizeSheet, spriteFramesTres, sheetBox, fitRatio, pixelizeImage, stackSheets} from '../js/sheet.js';
+  pixelizeSheet, spriteFramesTres, sheetBox, fitRatio, pixelizeImage, stackSheets, spriteHeight, syncRatios} from '../js/sheet.js';
 import {groupColors, pickColors} from '../js/palgroups.js';
 
 const rgba=(r,g,b,a=255)=>((a<<24)|(b<<16)|(g<<8)|r)>>>0;
@@ -167,4 +167,33 @@ test('palette groups come from the token table; unknown colours fall into "Khác
   assert.deepEqual(groupColors(hexes,tokens).map(g=>[g.group,g.colors.length]),[['Fire',2],['Grass',1],['Khác',2]]);
   assert.deepEqual(pickColors(hexes,tokens,new Set(['Fire'])),['#00aa00','#ffffff','#123456']);
   assert.deepEqual(pickColors(hexes,tokens,['Fire','Grass','Khác']),[]);
+});
+
+test('character height is the median per-frame height, so one jumping frame does not skew it',()=>{
+  const cw=20,ch=40,cols=3,w=cw*cols,px=new Uint32Array(w*ch);
+  const fill=(c,y0,y1)=>{ for(let y=y0;y<=y1;y++) for(let x=5;x<12;x++) px[y*w+c*cw+x]=rgba(200,40,40); };
+  fill(0,10,39); fill(1,12,39); fill(2,0,20);                 // cao 30, 28, 21 (khung 3 đang nhảy)
+  assert.equal(spriteHeight(px,w,ch,cols,1),28);
+});
+test('sync ratios bring sheets drawn at different sizes to one character height, never upscaling',()=>{
+  // tấm chạy: nhân vật cao 190; tấm đánh: 105. Vừa khung giới hạn tấm chạy ở 25%, tấm đánh ở 40%.
+  const z=syncRatios([190,105],[1,1],[0.25,0.4]);
+  assert.equal(z.target,42);                                   // tấm đánh giới hạn: 105×0,4 = 42 < 190×0,25
+  assert.ok(Math.abs(190*z.ratios[0]-42)<1e-9 && Math.abs(105*z.ratios[1]-42)<1e-9);
+  // chỉnh tay +10% cho tấm thứ hai
+  const t=syncRatios([190,105],[1,1.1],[0.25,0.4]);
+  assert.ok(Math.abs(105*t.ratios[1]-t.target*1.1)<1e-9);
+  // cỡ đích nhập tay lớn hơn ảnh gốc của tấm nhỏ: giữ 100% và báo thấp hơn
+  const u=syncRatios([190,105],[1,1],[1,1],150);
+  assert.equal(u.ratios[1],1); assert.deepEqual(u.short,[false,true]);
+});
+test('stacked layers can be nudged by a few pixels; anything pushed outside the frame is clipped',()=>{
+  const r={w:2,h:2,palette:['#010203'],frames:[new Uint32Array(4).fill(rgba(1,2,3))]};
+  const big={w:4,h:4,palette:[],frames:[new Uint32Array(16)]};
+  const st=stackSheets([{name:'a',r,dx:1,dy:-1},{name:'b',r:big}]);
+  const a=st.frames[0][1];                                     // lớp trên = tấm đầu
+  // mặc định đặt ở x=1..2, y=2..3; lệch (1,-1) → x=2..3, y=1..2
+  assert.notEqual(a[1*4+2],0); assert.notEqual(a[2*4+3],0); assert.equal(a[3*4+1],0);
+  const off=stackSheets([{name:'a',r,dx:9},{name:'b',r:big}]);
+  assert.ok(off.frames[0][1].every(v=>v===0));
 });

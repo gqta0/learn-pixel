@@ -1,13 +1,17 @@
 /* Dải khung hình và ô xem trước animation (kèm chế độ lặp 3×3 để soi tile). */
 import { $ } from './dom.js';
 import { doc, view } from './state.js';
-import { buf, compositeToBuf, frameToCanvas } from './raster.js';
+import { buf, compositeToBuf, frameToCanvas, layerLength } from './raster.js';
 import { render } from './render.js';
 import { pushUndo } from './history.js';
 import { onLongPress, popover } from './popup.js';
 
 export function paintThumbs(){
   const box=$('#frames'); box.innerHTML='';
+  // nhiều lớp dài khác nhau: làm mờ những khung lớp đang chọn không có hình
+  const len=layerLength(doc.al), short=doc.layers.length>1 && len<doc.frames.length;
+  const info=$('#layerLenInfo');
+  if(info) info.textContent = short ? 'Lớp “'+doc.layers[doc.al].name+'”: '+len+'/'+doc.frames.length+' khung' : '';
   const linked=doc.terrainLink?.labels && Array.isArray(doc.terrainLink.slots);
   box.classList.toggle('terrain-linked-frames',!!linked);
   doc.frames.forEach((f,i)=>{
@@ -19,6 +23,7 @@ export function paintThumbs(){
     const slot=linked ? doc.terrainLink.slots[i] : null;
     tag.textContent=Number.isInteger(slot) ? '#'+String(slot).padStart(2,'0') : i+1;
     tag.title=Number.isInteger(slot) ? 'Terrain slot #'+slot : 'Khung '+(i+1);
+    if(short && i>=len){ b.classList.add('frame-out'); b.title='Lớp “'+doc.layers[doc.al].name+'” không có hình từ khung '+(len+1); }
     b.appendChild(cv); b.appendChild(tag);
     b.addEventListener('click', ()=>{ doc.af=i; paintThumbs(); render(); window.dispatchEvent(new CustomEvent('framechange')); });
     onLongPress(b, ()=>{
@@ -86,10 +91,14 @@ export function paintThumbs(){
 }
 const pvCv=$('#preview'), pvCtx=pvCv.getContext('2d');
 let pvFrame=0, pvDir=1, pvTimer=null;
+/* Chạy riêng lớp đang chọn: chỉ lớp đó, và chỉ đúng số khung của nó — lớp "chạy" 8 khung
+   không phải đứng chờ 8 khung trống cho bằng lớp "đánh" 16 khung. */
+const soloOn=()=>view.soloLayer && doc.layers.length>1;
+function playLen(){ return soloOn() ? (layerLength(doc.al)||doc.frames.length) : doc.frames.length; }
 export function paintPreview(){
-  const f = view.playing ? (pvFrame % doc.frames.length) : doc.af;
+  const f = view.playing ? (pvFrame % playLen()) : doc.af;
   pvCv.classList.toggle('real-size',view.realSize);
-  compositeToBuf(f);
+  compositeToBuf(f, soloOn() ? doc.al : -1);
   if(view.realSize){                       // cỡ thật: đúng thứ bài học bắt phải nhìn
     const w=doc.w, h=doc.h, gap=6;
     pvCv.width=w*3+gap; pvCv.height=Math.max(h*2, h);
@@ -111,17 +120,18 @@ export function paintPreview(){
    mà bài Giãn cách dạy: khung lấy đà giữ lâu, khung bung chỉ một nhịp chớp */
 function frameMs(i){ return doc.dur[i] || 1000/Math.max(1,view.fps); }
 function stepFrame(){
-  if(view.pingPong && doc.frames.length > 2){
+  const n=playLen();
+  if(view.pingPong && n > 2){
     pvFrame += pvDir;
-    if(pvFrame >= doc.frames.length - 1){
-      pvFrame = doc.frames.length - 1;
+    if(pvFrame >= n - 1){
+      pvFrame = n - 1;
       pvDir = -1;
     } else if(pvFrame <= 0){
       pvFrame = 0;
       pvDir = 1;
     }
   } else {
-    pvFrame = (pvFrame + 1) % doc.frames.length;
+    pvFrame = (pvFrame + 1) % n;
     pvDir = 1;
   }
   paintPreview();

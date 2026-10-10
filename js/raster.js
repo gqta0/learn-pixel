@@ -35,11 +35,12 @@ export function blendOver(d, s){
   const na = Math.round(sa + da*ia);
   return rgba(r,g,b,na);
 }
-function composite(frameIdx, target){
+/* only: chỉ ghép đúng lớp đó (kể cả khi đang ẩn) — xem/xuất riêng một lớp */
+function composite(frameIdx, target, only=-1){
   target.fill(0);
   const frame = doc.frames[frameIdx];
   for(let li=0; li<frame.length; li++){
-    if(!doc.layers[li].vis) continue;
+    if(only>=0 ? li!==only : !doc.layers[li].vis) continue;
     const src = (preview && preview.layer===li && frameIdx===doc.af) ? preview.data : frame[li];
     for(let i=0;i<target.length;i++){
       const s=src[i]; if(!s) continue;
@@ -48,9 +49,9 @@ function composite(frameIdx, target){
   }
 }
 /* ghép một khung vào vùng đệm; sau đó cứ drawImage(buf, …) là xong */
-export function compositeToBuf(frameIdx){
+export function compositeToBuf(frameIdx, only=-1){
   ensureBuf();
-  composite(frameIdx, img32);
+  composite(frameIdx, img32, only);
   bctx.putImageData(img,0,0);
   return buf;
 }
@@ -61,14 +62,24 @@ export function pixelAt(frameIdx,x,y){
   composite(frameIdx, img32);
   return img32[idx(x,y)];
 }
-export function frameToCanvas(frameIdx, cv, scale){
-  compositeToBuf(frameIdx);
+export function frameToCanvas(frameIdx, cv, scale, only=-1){
+  compositeToBuf(frameIdx, only);
   cv.width=doc.w*scale; cv.height=doc.h*scale;
   const c=cv.getContext('2d');
   c.imageSmoothingEnabled=false;
   c.clearRect(0,0,cv.width,cv.height);
   c.drawImage(buf,0,0,cv.width,cv.height);
   return cv;
+}
+
+/* số khung thật của một lớp: tới khung cuối cùng lớp đó còn có hình. Nhập nhiều sheet thành
+   nhiều lớp thì mỗi lớp dài khác nhau (chạy 8 khung, đánh 16 khung) trong cùng một dải khung. */
+export function layerLength(li=doc.al){
+  for(let f=doc.frames.length-1; f>=0; f--){
+    const d=doc.frames[f][li];
+    if(d) for(let i=0;i<d.length;i++) if(d[i]) return f+1;
+  }
+  return 0;
 }
 
 /* ---------------- thao tác pixel ---------------- */

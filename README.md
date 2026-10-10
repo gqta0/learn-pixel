@@ -76,6 +76,21 @@ Thẻ **File → 🎞 Nhập sprite sheet…**. Chọn một hay nhiều ảnh s
      đặt chân sát đáy, canh giữa); tấm ít khung hơn để trống phần đuôi — thẻ thông tin báo trước tấm nào.
    - **Mỗi tấm một bản vẽ** trong thư viện 📁, tấm đầu được mở ra.
 
+**Đồng bộ cỡ nhân vật** (nhiều tấm, mặc định): các sheet thường vẽ ở cỡ khác nhau — ví dụ tấm chạy
+nhân vật cao 190 px, tấm đánh chỉ 105 px — nên một tỉ lệ chung cho cả lô làm nhân vật ở động tác này
+to gấp đôi động tác kia. App đo chiều cao nhân vật từng tấm (trung vị chiều cao từng khung, để một
+khung nhảy hay tóc bay không làm lệch) rồi cho mỗi tấm một tỉ lệ riêng để nhân vật cao bằng nhau.
+Ô **px** đặt chiều cao đích; để trống thì lấy cỡ lớn nhất mà mọi tấm vẫn vừa khung. Không phóng quá
+100%: tấm có ảnh gốc nhỏ hơn cỡ đích sẽ báo thấp hơn. **Giữ tỉ lệ giữa các ảnh gốc** là cách cũ.
+Mỗi thẻ có **Cỡ %** (chỉnh tay khi tóc, vũ khí làm phép đo lệch) và **Lệch ←→ / ↑↓** (dời lớp cho
+chân, thân chồng khít). Ô xem trước bật **So cỡ: chồng mờ các tấm khác** để so trực tiếp.
+
+**Lớp có số khung khác nhau** (ví dụ chạy 8 khung, đánh 16 khung):
+- Dải khung làm mờ những khung lớp đang chọn không có hình, và ghi "Lớp “run”: 8/16 khung".
+- Nút **◧** cạnh ▶ chạy riêng lớp đang chọn, đúng số khung của lớp đó.
+- Thẻ File → Xuất: **Chỉ xuất lớp đang chọn** cho PNG spritesheet và Godot SpriteFrames ra đúng số
+  khung của lớp, tên file thêm tên lớp — mỗi động tác một sheet riêng cho engine.
+
 **Tự vừa khung** lấy tỉ lệ lớn nhất mà hình vẫn nằm trọn trong khung vẽ: chiều dài hơn chạm sát
 mép, chiều kia dư vài pixel vì thu đều hai chiều. Không phóng quá 100%. Nhập nhiều tấm thì cả lô
 dùng một tỉ lệ (của tấm có hình to nhất) để nhân vật không đổi cỡ giữa các động tác.

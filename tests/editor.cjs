@@ -188,3 +188,13 @@ test('semi-transparent paint keeps its colour over an empty pixel',()=>{
   assert.equal(e.run('blendOver(0, 0x80ff8040)'),0x80ff8040);
   assert.equal(e.run('blendOver(0xff000000, 0xffffffff)'),0xffffffff);
 });
+
+test('layer length is the last frame where that layer still has pixels',()=>{
+  const e=editor();
+  e.doc.layers.push({name:'Đánh',vis:true});
+  e.doc.frames=[0,1,2,3].map(()=>[new Uint32Array(1024),new Uint32Array(1024)]);
+  e.doc.frames[1][0][5]=0xff0000ff;                            // lớp 0 dài 2 khung
+  e.doc.frames[3][1][5]=0xff00ff00;                            // lớp 1 dài 4 khung
+  assert.equal(e.run('layerLength(0)'),2); assert.equal(e.run('layerLength(1)'),4);
+  e.doc.frames[3][1][5]=0; assert.equal(e.run('layerLength(1)'),0);
+});
