@@ -117,9 +117,9 @@
     <div class="stage">
       <div class="stagebar">
         <label class="mini">Khổ</label>
-        <input type="number" id="sizeW" min="4" max="128" value="32" style="width:56px" title="Chiều ngang">
+        <input type="number" id="sizeW" min="4" max="256" value="32" style="width:56px" title="Chiều ngang">
         <span class="kbd">×</span>
-        <input type="number" id="sizeH" min="4" max="128" value="32" style="width:56px" title="Chiều dọc">
+        <input type="number" id="sizeH" min="4" max="256" value="32" style="width:56px" title="Chiều dọc">
         <button class="btn tiny" id="applySize">Đổi khổ</button>
         <div class="sep"></div>
         <button class="btn tiny" id="zoomOut">−</button>
@@ -139,6 +139,8 @@
             <button class="btn tiny" id="rotCw" title="Xoay 90° theo chiều kim đồng hồ — vùng chọn vuông, hoặc cả lớp khi canvas vuông (R)">⟳ Xoay 90°</button>
             <button class="btn tiny" id="rotCcw" title="Xoay 90° ngược chiều kim đồng hồ (Shift+R)">⟲ Xoay −90°</button>
             <button class="btn tiny" id="outlineBtn" title="Tô màu chính vào mọi ô trống sát nét vẽ của lớp hiện tại (trong vùng chọn nếu có). Shift+bấm: lấy cả góc chéo">◻ Viền ngoài (màu chính)</button>
+            <button class="btn tiny on" id="groundBtn" aria-pressed="true" title="Đường mặt đất và điểm chân (◆) lưu từ lúc nhập sheet. Game đặt nhân vật theo điểm này.">⊥ Mặt đất &amp; điểm chân</button>
+            <button class="btn tiny on" id="onionWrapBtn" aria-pressed="true" title="Bóng khung trước/sau nối vòng: khung đầu thấy bóng khung cuối và ngược lại — để canh mối nối clip lặp">⟲ Bóng khung nối vòng</button>
             <button class="btn tiny" id="wrapBtn" aria-pressed="false" title="Dụng cụ Dịch lớp / phím mũi tên: phần trôi khỏi mép hiện lại ở mép đối diện — soi mối nối tile">↻ Dịch vòng (tile)</button>
             <button class="btn tiny" id="lockA" aria-pressed="false" title="Khoá alpha: chỉ vẽ lên chỗ đã có pixel">🔒 Khoá alpha</button>
             <button class="btn tiny" id="realBtn" aria-pressed="false" title="Xem khung này ở cỡ thật ×1 và ×2 trong ô xem trước">👁 Cỡ thật</button>
@@ -224,6 +226,8 @@
             <button class="btn tiny" id="playBtn">▶</button>
             <button class="btn tiny" id="pingPongBtn" aria-pressed="false" title="Lặp Ping-Pong (xuôi-ngược)">⇄</button>
             <button class="btn tiny" id="soloBtn" aria-pressed="false" title="Chạy riêng lớp đang chọn, đúng số khung của lớp đó">◧</button>
+            <button class="btn tiny" id="gameSizeBtn" aria-pressed="false" title="Xem ở cỡ trong game: thu nhân vật về chiều cao trên màn hình (có làm mịn), đứng trên gạch 16 px">🎮</button>
+            <input type="number" id="gameH" min="8" max="256" value="56" style="width:52px" hidden title="Chiều cao nhân vật trên màn hình game (px)" aria-label="Chiều cao nhân vật trong game">
             <input type="number" id="fps" value="8" min="1" max="30" style="width:52px">
             <span class="kbd">fps</span>
           </div>
@@ -347,6 +351,14 @@
             <input type="text" id="expGodotDir" value="res://" placeholder="res://sprites/" class="grow" title="Đường dẫn trong dự án Godot nơi bạn sẽ đặt sheet PNG">
             <label class="tv-check" style="min-height:0"><input type="checkbox" id="expGodotLoop" checked> Lặp</label>
           </div>
+          <div class="row" style="margin-top:6px">
+            <select id="packMode" class="grow" title="Cách chia sheet khi gói ZIP (dùng cho cả nút Xuất cả thư viện)">
+              <option value="merged">Gói: hình đã ghép (mỗi bản một sheet)</option>
+              <option value="layers">Gói: mỗi lớp một sheet, đủ khung (bộ phận)</option>
+              <option value="actions">Gói: mỗi lớp một sheet, độ dài riêng (động tác)</option>
+            </select>
+          </div>
+          <button class="btn wide primary" id="expPack" style="margin-top:6px" title="Một file ZIP: sheet PNG ×1, Godot SpriteFrames .tres và manifest.json (khổ, số khung, fps, thời lượng từng khung, điểm chân, mốc). Lớp ẩn không xuất.">⬇ Gói ZIP: sheet + Godot + bảng kê</button>
           <div class="grid2" style="margin-top:6px">
             <button class="btn primary" id="expJson">Lưu dự án .json</button>
             <label class="btn filelabel" style="text-align:center">Mở .json<input type="file" id="impJson" accept=".json"></label>
@@ -574,7 +586,7 @@
             <label class="mini" for="shCanvas">Khung vẽ</label>
             <select id="shCanvas" title="Khung to hơn hình thì chừa chỗ để vẽ thêm part. Hình luôn đặt chân sát đáy, canh giữa.">
               <option value="0">Vừa khít hình</option><option value="32">32×32</option><option value="48">48×48</option>
-              <option value="64" selected>64×64</option><option value="96">96×96</option><option value="128">128×128</option>
+              <option value="64" selected>64×64</option><option value="96">96×96</option><option value="128">128×128</option><option value="160">160×160</option><option value="192">192×192</option><option value="256">256×256</option>
             </select>
           </div>
           <div class="tv-row" id="shSizeRow" hidden>
@@ -583,7 +595,7 @@
               <option value="sync" selected>Đồng bộ chiều cao</option>
               <option value="keep">Giữ tỉ lệ giữa các ảnh gốc</option>
             </select>
-            <input type="number" id="shCharH" min="8" max="128" step="1" placeholder="tự" style="width:64px" title="Chiều cao nhân vật đích (pixel). Để trống: lớn nhất mà mọi tấm vẫn vừa khung." aria-label="Chiều cao nhân vật đích">
+            <input type="number" id="shCharH" min="8" max="256" step="1" placeholder="tự" style="width:64px" title="Chiều cao nhân vật đích (pixel). Để trống: lớn nhất mà mọi tấm vẫn vừa khung." aria-label="Chiều cao nhân vật đích">
             <span class="kbd">px</span>
           </div>
           <label class="tv-check" title="Bật: khung là hình chữ nhật vừa đúng hình, cạnh dài bằng cỡ đã chọn, không còn lề thừa. Tắt: khung vuông, chừa chỗ để vẽ thêm part."><input type="checkbox" id="shTight" checked> Ôm sát hình (khung chữ nhật, bỏ lề thừa)</label>
@@ -619,6 +631,7 @@
     <div class="libbar">
       <p class="eyebrow" style="margin:0;flex:1">Bản vẽ của bạn <span class="kbd" id="libCount"></span></p>
       <button class="btn tiny" id="libSheet" title="Xếp mọi bản vẽ thành một tấm PNG để soi cả bộ">🖼 Bảng liên hoàn</button>
+      <button class="btn tiny" id="libPack" title="Xuất mọi bản vẽ thành một file ZIP: sheet PNG, Godot .tres và manifest.json. Cách chia sheet theo ô “Gói” ở thẻ File → Xuất.">⬇ Xuất cả thư viện (ZIP)</button>
       <button class="btn tiny primary" id="libSave">Cất bản đang vẽ</button>
       <button class="btn tiny" id="libClose">✕ Đóng</button>
     </div>

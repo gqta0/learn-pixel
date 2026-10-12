@@ -1,23 +1,52 @@
 /* Thư viện bản vẽ: giữ nhiều bức cùng lúc thay vì mỗi lần dựng bài lại xoá bức cũ.
-   Lưu trong localStorage cùng cơ chế nén RLE với file dự án — một bức 32×32 tô kín
-   24 màu xen kẽ (trường hợp xấu nhất) chỉ ~13 KB, nên chứa được hàng trăm bức. */
-import { $ } from './dom.js';
+   Lưu trong IndexedDB, mỗi bức một bản ghi (nén RLE như file dự án). localStorage chỉ còn là
+   đường lui khi trình duyệt chặn IndexedDB, và là nơi đọc dữ liệu cũ để chép sang một lần. */
+import { $, toast } from './dom.js';
 import { doc } from './state.js';
 import { serialize, applyData, download } from './storage.js';
+import { idbAvailable, idbAll, idbSet, idbDel, askPersist, STORES } from './idb.js';
 
 const KEY='lo-pixel-projects';
 let items={};        // id -> {name, at, data}
 let openId=null;     // bức đang mở, để lần cất sau ghi đè thay vì đẻ thêm bản mới
+let useIdb=idbAvailable();
 
-function read(){
-  try{ items = JSON.parse(localStorage.getItem(KEY)||'{}') || {}; }
-  catch(_){ items={}; }
+function readLocal(){
+  try{ return JSON.parse(localStorage.getItem(KEY)||'{}') || {}; }
+  catch(_){ return {}; }
 }
-function write(){
+function writeLocal(){
   try{ localStorage.setItem(KEY, JSON.stringify(items)); return true; }
   catch(_){ return false; }
 }
-read();
+/* Nạp thư viện lúc khởi động. Lần đầu có IndexedDB: chép mọi bức cũ từ localStorage sang,
+   ghi xong hết mới xoá bản cũ — để hỏng giữa chừng thì dữ liệu vẫn còn ở chỗ cũ. */
+export const libraryReady=(async()=>{
+  if(!useIdb){ items=readLocal(); return; }
+  try{
+    items=await idbAll(STORES.projects);
+    const old=readLocal(), ids=Object.keys(old).filter(id=>!items[id]);
+    if(ids.length){
+      for(const id of ids){ await idbSet(STORES.projects,id,old[id]); items[id]=old[id]; }
+      try{ localStorage.removeItem(KEY); }catch(_){}
+    }else if(Object.keys(old).length){ try{ localStorage.removeItem(KEY); }catch(_){} }
+  }catch(err){
+    useIdb=false; items=readLocal();
+    console.warn('Thư viện quay về localStorage:',err);
+  }
+})();
+/* Ghi một bức. Với IndexedDB việc ghi chạy nền: lỗi (hết chỗ) báo bằng thông báo chứ không
+   chặn nét vẽ. Trả về false chỉ khi đang dùng localStorage và nó đầy. */
+function persist(id){
+  if(!useIdb) return writeLocal();
+  askPersist();
+  const p=items[id];
+  (p ? idbSet(STORES.projects,id,p) : idbDel(STORES.projects,id))
+    .catch(err=>toast('Không lưu được thư viện: '+err.message+'. Hãy Lưu dự án .json để giữ bức này.',6000));
+  return true;
+}
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);   // nhập nhiều tấm trong cùng một mili-giây
+export function libraryBackend(){ return useIdb ? 'IndexedDB' : 'localStorage'; }
 
 export function isBlank(){
   return doc.frames.every(f=>f.every(d=>d.every(v=>v===0)));
@@ -27,10 +56,11 @@ function defaultName(){
 }
 /* Cất bức đang vẽ. Trả về id, hoặc null nếu hết chỗ. */
 export function saveCurrent(name, asNew){
-  const id = (!asNew && openId) || Date.now().toString(36);
-  items[id] = { name: name || (items[id]&&items[id].name) || defaultName(),
+  const id = (!asNew && openId) || newId();
+  const prev=items[id];
+  items[id] = { name: name || (prev&&prev.name) || defaultName(),
                 at: Date.now(), data: serialize() };
-  if(!write()){ delete items[id]; return null; }
+  if(!persist(id)){ if(prev) items[id]=prev; else delete items[id]; return null; }
   openId=id;
   return id;
 }
@@ -41,8 +71,8 @@ export function openProject(id){
   openId=id;
   return true;
 }
-export function removeProject(id){ delete items[id]; write(); }
-export function renameProject(id,n){ if(items[id]){ items[id].name=n; write(); } }
+export function removeProject(id){ delete items[id]; persist(id); }
+export function renameProject(id,n){ if(items[id]){ items[id].name=n; persist(id); } }
 export function currentId(){ return openId; }
 export function forgetCurrent(){ openId=null; }
 
@@ -81,10 +111,10 @@ function thumb(p, box){
 }
 
 /* ---------------- giao diện ---------------- */
-export function openLibrary(){
-  read();
-  paint();
+export async function openLibrary(){
   $('#libWrap').hidden=false;
+  await libraryReady;
+  paint();
 }
 export function closeLibrary(){ $('#libWrap').hidden=true; }
 
@@ -160,7 +190,6 @@ export function keepBeforeReplace(){
    Bài cuối lộ trình bảo "xem tất cả cạnh nhau mới thấy cái nào lệch tông".
    Đây là cái ảnh đó: mọi bản vẽ trong thư viện, xếp lưới, có tên dưới mỗi ô. */
 export function exportContactSheet(){
-  read();
   const ids=Object.keys(items).sort((a,b)=>items[a].at-items[b].at);
   if(!ids.length){ alert('Thư viện chưa có bản vẽ nào để xếp thành bảng.'); return 0; }
 
@@ -194,5 +223,5 @@ export function exportContactSheet(){
   return ids.length;
 }
 
-export function getLibraryItems(){ read(); return items; }
+export function getLibraryItems(){ return items; }
 export function renderLibraryProject(p){ return renderProject(p); }

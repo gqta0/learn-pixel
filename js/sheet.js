@@ -2,7 +2,10 @@
    Thuần tính toán trên mảng pixel (Uint32Array ABGR) — không DOM, nên kiểm thử được. */
 
 const A=p=>p>>>24, R=p=>p&255, G=p=>(p>>>8)&255, B=p=>(p>>>16)&255;
-const OPAQUE=128;                                   // alpha từ ngưỡng này trở lên coi là có pixel
+const OPAQUE=128;
+/* Trần khổ canvas. Bảy clip nhân vật ~128 px cần khung cao ~176 (tóc, áo bay khi nhảy), nên lấy 256.
+   Lưu nằm trong IndexedDB nên khổ to không còn vướng hạn mức ~5 triệu ký tự của localStorage. */
+export const MAX_SIDE=256;                                   // alpha từ ngưỡng này trở lên coi là có pixel
 
 /* Sheet nền đặc (không trong suốt): nếu bốn góc cùng một màu đặc thì coi màu đó là nền và khoét đi. */
 export function keyOutBackground(px,w,h,tol=24){
@@ -141,10 +144,10 @@ export function sheetBox(src,w,h,cols,rows,inPlace=false){
   return inPlace ? inPlaceBox(px,w,cols,rows,cw,ch).box : unionBBox(px,w,cols,rows,cw,ch);
 }
 /* Tỉ lệ lớn nhất để hình nằm trọn trong khung vuông cạnh `side` (0 = không giới hạn khung,
-   chỉ chặn ở 128). Không phóng quá 100%: phóng to ảnh rồi mới pixel hoá chỉ ra pixel to nhỏ
+   chỉ chặn ở MAX_SIDE). Không phóng quá 100%: phóng to ảnh rồi mới pixel hoá chỉ ra pixel to nhỏ
    không đều. Thu đều hai chiều nên chiều dài hơn chạm sát mép, chiều kia có thể dư vài pixel. */
 export function fitRatio(box,side){
-  const limit=side>0?side:128;
+  const limit=side>0?side:MAX_SIDE;
   return Math.min(1, limit/box.w, limit/box.h);
 }
 

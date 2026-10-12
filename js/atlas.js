@@ -4,6 +4,7 @@
 
    Tấm ảnh gốc không nằm trong doc — doc chỉ mượn một mẩu. Nhờ vậy sửa một ô
    16×16 trên tấm 896×768 vẫn nhẹ như vẽ một sprite bình thường. */
+import { MAX_SIDE } from './sheet.js';
 import { $, syncNavHeight } from './dom.js';
 import { doc, view } from './state.js';
 import { invalidateBuf, frameToCanvas } from './raster.js';
@@ -15,7 +16,7 @@ import { syncAll } from './ui.js';
 import { TERRAIN_SCHEMA, TERRAIN_LAYOUT } from './terrain.js';
 
 const KEY='lo-pixel-atlas';
-const MAXPX=128;                    // cụm ô lôi ra không được to hơn khổ canvas cho phép
+const MAXPX=MAX_SIDE;               // cụm ô lôi ra không được to hơn khổ canvas cho phép
 
 let atlas=null;      // {name, cv, tw, th, pad, off}
 let sel=null;        // {c,r,cw,ch} tính theo ô

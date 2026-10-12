@@ -7,7 +7,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 ## Có gì trong này
 
 **Trình vẽ**
-- Khổ chữ nhật tuỳ ý tới 128×128, 12 dụng cụ (bút, xoá, tô loang, hút màu, đường, chữ nhật, ê-líp, dịch lớp, **tô khối theo dải**, **chọn vùng**), gương X/Y, lật ngang/dọc, **khoá alpha**.
+- Khổ chữ nhật tuỳ ý tới 256×256, 12 dụng cụ (bút, xoá, tô loang, hút màu, đường, chữ nhật, ê-líp, dịch lớp, **tô khối theo dải**, **chọn vùng**), gương X/Y, lật ngang/dọc, **khoá alpha**.
 - Nhiều lớp (đổi được thứ tự chồng), nhiều khung hình, **thời lượng riêng cho từng khung**, bóng khung trước và sau (onion skin), xem trước lặp 3×3 cho tile.
 - **Soi bản đồ hang động (Map Preview 24×16)**: cửa sổ xem trước và thử nghiệm bản đồ chuẩn theo đặc tả `genesis.tileset.preview.v1`, hỗ trợ autotile blob 47 ô + đủ bộ 56 ô, **ba chế độ Natural / Coverage 56 / Recipe** để vừa soi seam liền mạch vừa kiểm độ phủ từng slot, **khay chọn & vẽ trực tiếp các tile đang có** (Atlas, Thư viện bản vẽ, Canvas) bằng thao tác kéo rê chuột (Bresenham drag), **tạm giữ mẫu (Snapshot)**, **so sánh nhấp nháy A/B (Flicker compare - phím Space)**, **bóng ma đối chiếu (Ghost overlay)** và ghim tile đối chiếu.
 - Cắt / chép / dán vùng chọn giữa mọi lớp và khung; dán xong vùng chọn ôm đúng mảng vừa dán để kéo đi ngay, chưa chọn gì thì dán về đúng chỗ đã chép.
@@ -37,7 +37,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 **Lưu**
 - **Thư viện bản vẽ**: giữ nhiều bức cùng lúc, xem dạng lưới ảnh nhỏ, mở lại bất cứ lúc nào.
   Bấm *Dựng khung* ở một bài tập thì bức đang làm dở tự được cất vào đây thay vì bị xoá.
-- Tự lưu vào trình duyệt (localStorage, nén RLE) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập. Tiến độ lưu theo tên bài nên chèn bài mới không làm lệch.
+- Tự lưu vào trình duyệt (IndexedDB, nén RLE; trình duyệt chặn IndexedDB thì dùng localStorage) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập. Tiến độ lưu theo tên bài nên chèn bài mới không làm lệch.
 - Xuất PNG / PNG spritesheet (1 hàng, 4 cột, 8 cột hoặc lưới vuông) / PNG bảng màu, lưu & mở dự án `.json` (nén RLE).
 
 ## Master Palette 92 — quy tắc dùng màu
@@ -68,7 +68,7 @@ Thẻ **File → 🎞 Nhập sprite sheet…**. Chọn một hay nhiều ảnh s
 1. Mỗi tấm một thẻ. App gợi ý **số khung** từ khổ ảnh và số cụm hình đếm được (★ là gợi ý
    khớp nhất); bạn chốt số thật. Dải ảnh gốc có kẻ vạch chia khung để nhìn là biết đúng chưa.
 2. **Pixel hoá** dùng chung cho cả lô: tỉ lệ (**Tự vừa khung** mặc định, 100% → 20%, hoặc tự nhập %), khung vẽ (vừa khít hoặc
-   32–128), **màu** (tự rút 8–48 màu từ ảnh, hoặc ép về một bảng bất kỳ: bảng đang dùng, bảng dựng sẵn,
+   32–256), **màu** (tự rút 8–48 màu từ ảnh, hoặc ép về một bảng bất kỳ: bảng đang dùng, bảng dựng sẵn,
    bảng của bạn). Ô xem trước chạy hoạt ảnh sau pixel hoá.
 3. **Nhập**: một tấm thì trải thẳng thành khung hình. Nhiều tấm thì chọn:
    - **Mỗi tấm một lớp, chung một bản vẽ** (mặc định): tấm đầu danh sách nằm lớp trên cùng, tên lớp là tên tấm.
@@ -98,7 +98,7 @@ Thứ tự các tấm giữ đúng thứ tự chọn file (tấm đầu là lớ
 trong dải đáy của từng khung) của mọi tấm nằm trên cùng một cột — vạch xanh trong ô xem trước. Vạt áo
 bay về sau hay vũ khí vươn ra trước làm hộp bao rộng lệch một phía, nên căn giữa hộp bao (cách cũ,
 vẫn chọn được) sẽ làm nhân vật nhảy sang ngang khi đổi động tác trong game. Khung chung vừa đủ chứa
-mọi tấm sau khi căn; nếu vượt 128 app báo trước.
+mọi tấm sau khi căn; nếu vượt 256 app báo trước.
 
 **Lớp có số khung khác nhau** (ví dụ chạy 8 khung, đánh 16 khung):
 - Dải khung làm mờ những khung lớp đang chọn không có hình, và ghi "Lớp “run”: 8/16 khung".
@@ -138,8 +138,30 @@ hoặc một lớp part đã có (ở khung đang mở). Thẻ Lớp có nhân b
 sheet vào thư mục đã khai rồi gán `.tres` cho `AnimatedSprite2D`. Thời lượng riêng từng khung,
 fps và lặp đều được ghi vào.
 
-Thư viện lưu trong localStorage (~5 MB): một hoạt ảnh 16 khung 64×64 chiếm chừng 220 KB,
-tức khoảng 20 hoạt ảnh; ở 128×128 thì ít hơn nhiều. Hết chỗ app sẽ báo và dừng nhập.
+Thư viện và bản tự lưu nằm trong **IndexedDB** (hạn mức hàng trăm MB đến vài GB tuỳ máy, thẻ Lưu tự
+động ghi số MB đang dùng). Lần đầu mở bản mới, dữ liệu cũ trong localStorage được chép sang rồi mới xoá.
+App xin trình duyệt giữ dữ liệu lâu dài; dù vậy vẫn nên **Xuất cả thư viện (ZIP)** định kỳ để sao lưu.
+
+### Đưa vào game: điểm chân, mốc, gói ZIP
+
+- **Thông số lúc nhập được lưu trong dự án**: mỗi lớp nhập từ sheet giữ tên sheet, số khung, hộp cắt,
+  tỉ lệ, Cỡ %, độ lệch, nhảy tại chỗ và **điểm chân** (pivot: x là cột chân, y là mặt đất, tính bằng
+  pixel trong khung). Canvas hiện **đường mặt đất** và dấu ▼ điểm chân (⋯ Thêm → ⊥ Mặt đất & điểm chân);
+  đổi khổ canvas thì điểm chân dời theo.
+- **Mốc có tên trên khung**: chạm giữ / chuột phải một khung → 🏷 Mốc khung này (rời đất, đỉnh, chạm đất,
+  ra đòn, trúng đòn, hồi chiêu, hoặc tự gõ). Mốc gắn với lớp đang chọn, hiện trên ảnh nhỏ của khung và
+  đi theo khung khi chèn, xoá, dời.
+- **⬇ Gói ZIP** (thẻ File → Xuất) và **⬇ Xuất cả thư viện (ZIP)** (thư viện 📁): sheet PNG ×1, Godot
+  SpriteFrames `.tres` và `manifest.json` — tên, khổ khung, số cột/hàng, số khung, fps, thời lượng từng
+  khung (ms), điểm chân, chiều cao nhân vật, mốc, thông số nhập. Ba cách chia:
+  - *hình đã ghép* — mỗi bản vẽ một sheet;
+  - *mỗi lớp một sheet, đủ khung* — bộ phận (đầu, thân, chân, áo choàng) ghép trong game, mọi sheet cùng khổ và số khung;
+  - *mỗi lớp một sheet, độ dài riêng* — mỗi lớp là một động tác (chạy 8 khung, đánh 16 khung).
+  Lớp ẩn không xuất. Trong Godot: `AnimatedSprite2D.centered = false`, `offset = (-pivot.x, -pivot.y)`.
+- **Bóng khung nối vòng** (⋯ Thêm, bật sẵn): khung đầu thấy bóng khung cuối và ngược lại, theo độ dài
+  của lớp đang chọn — để canh mối nối clip lặp.
+- **🎮 Cỡ trong game** (cạnh nút ▶): thu khung về chiều cao nhân vật trên màn hình (mặc định 56 px, có
+  làm mịn như game), đứng trên hàng gạch 16 px (ô đầu của atlas nếu có).
 
 ## Terrain 56 — template có hướng dẫn pixel
 
@@ -210,7 +232,7 @@ topology độc lập. Không giả định cùng thứ tự với tileset của
 mapping theo mask. Tham khảo thuật toán gốc:
 [Autotile-47](https://github.com/Game-Development-Resources/Autotile-47).
 
-Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs`.
+Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs tests/pack.mjs`.
 
 ## Đưa lên GitHub Pages
 

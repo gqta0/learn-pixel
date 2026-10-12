@@ -1,7 +1,8 @@
 /* Keo dán giao diện: đồng bộ toàn bộ bảng điều khiển và nối mọi nút bấm.
    Chỉ ở đây mới được phép biết về cả tài liệu lẫn DOM. */
+import { MAX_SIDE } from './sheet.js';
 import { $, $$, syncNavHeight, toast } from './dom.js';
-import { doc, view, blank, newFrame, activeData } from './state.js';
+import { doc, view, blank, newFrame, activeData, marksInsert, marksRemove, marksMove } from './state.js';
 import { hexToInt, intToHex } from './color.js';
 import { invalidateBuf, flipData, rotateData, outlineData, shiftLayer, copySel, clearSel, pasteClip, normSel, layerLength } from './raster.js';
 import { pushUndo, undo, redo } from './history.js';
@@ -13,13 +14,14 @@ import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches
          fillPalSelect, addCurrentColor, sortPalette, prunePalette, paletteFromArt, rampFromCurrent } from './palette.js';
 import { mountPalettePicker } from './palpick.js';
 import { setTool, setTheme, setView, syncFingerBtn, syncPixelPerfectBtn, attachMods } from './tools.js';
-import { SAVE_KEY, exportPng, exportSheet, exportPalettePng, exportJson, importJson, exportGodotFrames,
-         loadRef, refToPixels, refToPalette } from './storage.js';
+import { SAVE_KEY, clearSave, exportPng, exportSheet, exportPalettePng, exportJson, importJson, exportGodotFrames,
+         loadRef, refToPixels, refToPalette, serialize } from './storage.js';
 import { updateProgress, TRACKS, setTrack, buildExercises } from './content/exercises.js';
 import { buildTheory } from './content/lessons.js';
 import { runLint } from './lint.js';
 import { closePopup, popover } from './popup.js';
-import { openLibrary, closeLibrary, saveCurrent, isBlank, exportContactSheet } from './library.js';
+import { openLibrary, closeLibrary, saveCurrent, isBlank, exportContactSheet, libraryReady, getLibraryItems, currentId } from './library.js';
+import { packProjects } from './pack.js';
 import { paintDaily, goToNext } from './daily.js';
 import { bindAtlas, importAtlas, syncBar as syncAtlasBar } from './atlas.js';
 import { openMapView, bindMapView } from './mapview.js';
@@ -36,6 +38,10 @@ export function resizeDoc(w, h, keep){
   doc.w=w; doc.h=h;
   const ox = keep==='center' ? Math.floor((w-old.w)/2) : 0;
   const oy = keep==='center' ? Math.floor((h-old.h)/2) : 0;
+  const dx=keep?ox:0, dy=keep?oy:0;
+  const moveP=p=>p ? {x:Math.max(0,Math.min(w,p.x+dx)), y:Math.max(0,Math.min(h,p.y+dy))} : p;
+  doc.anchor=moveP(doc.anchor);
+  doc.layers.forEach(L=>{ if(L.src?.pivot) L.src.pivot=moveP(L.src.pivot); });
   doc.frames = old.frames.map(f=> f.map(src=>{
     const d=blank();
     if(keep){
@@ -211,7 +217,7 @@ resizeDialog.addEventListener('close', ()=>{
   pendingResize=null;
 });
 $('#applySize').addEventListener('click', ()=>{
-  const num=(sel,cur)=>{ const v=parseInt($(sel).value,10); return isFinite(v) ? Math.max(4,Math.min(128,v)) : cur; };
+  const num=(sel,cur)=>{ const v=parseInt($(sel).value,10); return isFinite(v) ? Math.max(4,Math.min(MAX_SIDE,v)) : cur; };
   const w=num('#sizeW',doc.w), h=num('#sizeH',doc.h);
   if(w===doc.w && h===doc.h) return;
   pendingResize={w,h}; resizeDialog.returnValue='cancel';
@@ -233,6 +239,7 @@ function toggleBtn(sel, key){
   });
   $(sel).classList.toggle('on', view[key]);
 }
+toggleBtn('#groundBtn','showGround'); toggleBtn('#onionWrapBtn','onionWrap');
 toggleBtn('#gridBtn','grid'); toggleBtn('#onionBtn','onion'); toggleBtn('#symLine','symLine');
 $('#tileBtn').addEventListener('click', e=>{
   view.tile3=!view.tile3;
@@ -383,8 +390,7 @@ $('#refToPal').addEventListener('click', ()=>refToPalette(16));
 $('#matSel').addEventListener('change', paintRamp);
 $('#wipeSave').addEventListener('click', ()=>{
   if(!confirm('Xoá bản lưu trong trình duyệt và mở lại trang từ đầu?\nTranh hiện tại sẽ mất — lưu .json trước nếu cần.')) return;
-  try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
-  location.reload();
+  clearSave().then(()=>location.reload());
 });
 $('#clearBtn').addEventListener('click', ()=>{
   if(!activeData().some(v=>v)){ toast('Lớp này đang trống.'); return; }
@@ -394,14 +400,14 @@ $('#clearBtn').addEventListener('click', ()=>{
 $('#btnUndo').addEventListener('click', undo);
 $('#btnRedo').addEventListener('click', redo);
 
-$('#frAdd').addEventListener('click', ()=>{ pushUndo(); doc.terrainLink=null; doc.frames.splice(doc.af+1,0,newFrame()); doc.dur.splice(doc.af+1,0,0); doc.af++; paintThumbs(); render(); });
-$('#frDup').addEventListener('click', ()=>{ pushUndo(); doc.terrainLink=null; doc.frames.splice(doc.af+1,0, doc.frames[doc.af].map(d=>d.slice())); doc.dur.splice(doc.af+1,0,doc.dur[doc.af]||0); doc.af++; paintThumbs(); render(); });
+$('#frAdd').addEventListener('click', ()=>{ pushUndo(); doc.terrainLink=null; marksInsert(doc.af+1); doc.frames.splice(doc.af+1,0,newFrame()); doc.dur.splice(doc.af+1,0,0); doc.af++; paintThumbs(); render(); });
+$('#frDup').addEventListener('click', ()=>{ pushUndo(); doc.terrainLink=null; marksInsert(doc.af+1); doc.frames.splice(doc.af+1,0, doc.frames[doc.af].map(d=>d.slice())); doc.dur.splice(doc.af+1,0,doc.dur[doc.af]||0); doc.af++; paintThumbs(); render(); });
 $('#frDel').addEventListener('click', ()=>{
   if(doc.frames.length<2) return;
-  pushUndo(); doc.terrainLink=null; doc.frames.splice(doc.af,1); doc.dur.splice(doc.af,1); doc.af=Math.max(0,doc.af-1); paintThumbs(); render();
+  pushUndo(); doc.terrainLink=null; marksRemove(doc.af); doc.frames.splice(doc.af,1); doc.dur.splice(doc.af,1); doc.af=Math.max(0,doc.af-1); paintThumbs(); render();
 });
-$('#frLeft').addEventListener('click', ()=>{ if(doc.af>0){ pushUndo(); doc.terrainLink=null; const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af-1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af-1,0,t||0); doc.af--; paintThumbs(); render(); } });
-$('#frRight').addEventListener('click', ()=>{ if(doc.af<doc.frames.length-1){ pushUndo(); doc.terrainLink=null; const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af+1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af+1,0,t||0); doc.af++; paintThumbs(); render(); } });
+$('#frLeft').addEventListener('click', ()=>{ if(doc.af>0){ pushUndo(); doc.terrainLink=null; marksMove(doc.af,doc.af-1); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af-1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af-1,0,t||0); doc.af--; paintThumbs(); render(); } });
+$('#frRight').addEventListener('click', ()=>{ if(doc.af<doc.frames.length-1){ pushUndo(); doc.terrainLink=null; marksMove(doc.af,doc.af+1); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af+1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af+1,0,t||0); doc.af++; paintThumbs(); render(); } });
 $('#frDur').addEventListener('change', e=>{
   const v=parseInt(e.target.value,10);
   doc.dur[doc.af] = isFinite(v) ? Math.max(10,Math.min(4000,v)) : 0;
@@ -424,6 +430,20 @@ $('#soloBtn')?.addEventListener('click', e=>{
   paintPreview();
   if(view.soloLayer && doc.layers.length>1)
     toast('Xem trước chỉ chạy lớp “'+doc.layers[doc.al].name+'” ('+(layerLength()||doc.frames.length)+' khung).');
+});
+$('#gameH').value=view.gameH;
+$('#gameSizeBtn').addEventListener('click', e=>{
+  view.gameSize=!view.gameSize;
+  e.currentTarget.classList.toggle('on', view.gameSize);
+  e.currentTarget.setAttribute('aria-pressed', view.gameSize);
+  $('#gameH').hidden=!view.gameSize;
+  paintPreview();
+  if(view.gameSize) toast('Xem trước ở cỡ game: nhân vật cao '+view.gameH+' px, có làm mịn, trên gạch 16 px. Đổi số px ở ô cạnh nút.',3600);
+});
+$('#gameH').addEventListener('change', e=>{
+  view.gameH=Math.max(8,Math.min(256,parseInt(e.target.value,10)||56)); e.target.value=view.gameH;
+  try{ localStorage.setItem('lo-pixel-game-h', String(view.gameH)); }catch(_){}
+  paintPreview();
 });
 $('#fps').addEventListener('change', e=>{ view.fps=Math.max(1,+e.target.value||8); if(view.playing){ togglePlay(); togglePlay(); } });
 
@@ -449,6 +469,31 @@ $('#expGodot').addEventListener('click', ()=>{
 });
 try{ const d=localStorage.getItem('lo-pixel-godot-dir'); if(d) $('#expGodotDir').value=d; }catch(_){}
 $('#expJson').addEventListener('click', exportJson);
+/* Gói ZIP cho game: bản đang vẽ, hoặc cả thư viện một lượt */
+const packModeName={merged:'hình đã ghép',layers:'mỗi lớp một sheet (đủ khung)',actions:'mỗi lớp một sheet (độ dài riêng)'};
+$('#expPack').addEventListener('click', async e=>{
+  const btn=e.currentTarget; btn.disabled=true;
+  try{
+    const mode=$('#packMode').value, n=await packProjects([{data:serialize()}], mode, doc.name);
+    if(n) toast('Đã gói '+n+' sheet ('+packModeName[mode]+') + Godot .tres + manifest.json.',4200);
+  }catch(err){ toast('Không gói được: '+err.message,5000); }
+  finally{ btn.disabled=false; }
+});
+$('#libPack').addEventListener('click', async e=>{
+  const btn=e.currentTarget; btn.disabled=true;
+  try{
+    await libraryReady;
+    if(currentId()) saveCurrent();                              // bản đang mở: lấy nét mới nhất
+    const items=getLibraryItems(), ids=Object.keys(items).sort((a,b)=>items[a].at-items[b].at);
+    const list=ids.map(id=>({data:items[id].data}));
+    if(!currentId() && !isBlank()) list.push({data:serialize()});   // bản đang vẽ chưa cất cũng đi kèm
+    if(!list.length){ toast('Thư viện chưa có bản vẽ nào.'); return; }
+    const mode=$('#packMode').value, d=new Date();
+    const n=await packProjects(list, mode, 'thu-vien_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'));
+    if(n) $('#libCount').textContent=list.length+' bản vẽ · vừa xuất '+n+' sheet ('+packModeName[mode]+')';
+  }catch(err){ toast('Không xuất được thư viện: '+err.message,5000); }
+  finally{ btn.disabled=false; }
+});
 $('#impJson').addEventListener('change', e=>{ if(e.target.files[0]) importJson(e.target.files[0]); e.target.value=''; });
 
 bindAtlas();

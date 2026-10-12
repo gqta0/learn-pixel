@@ -7,7 +7,7 @@ import { view } from './state.js';
 import { pushUndo } from './history.js';
 import { applyData } from './storage.js';
 import { keepBeforeReplace, saveCurrent, openProject, forgetCurrent } from './library.js';
-import { suggestGrid, pixelizeSheet, medianCut, keyOutBackground, sheetBox, fitRatio, stackSheets, stackLayout, spriteHeight, syncRatios, verticalTravel } from './sheet.js';
+import { suggestGrid, pixelizeSheet, medianCut, keyOutBackground, sheetBox, fitRatio, stackSheets, stackLayout, spriteHeight, syncRatios, verticalTravel, MAX_SIDE } from './sheet.js';
 import { mountPalettePicker } from './palpick.js';
 import { footCenter as footCenterOf } from './sheet.js';
 
@@ -98,7 +98,7 @@ function tryBuild(s){
   if(!pal.length){ s.cacheKey=key; s.cache={error:'Chưa chọn màu nào — bật ít nhất một nhóm màu ở mục Nâng cao.'}; return s.cache; }
   try{
     const r=build(s);
-    out = r.w>128 || r.h>128 ? {error:'Khung '+r.w+'×'+r.h+' vượt 128. Giảm tỉ lệ.'} : {r};
+    out = r.w>MAX_SIDE || r.h>MAX_SIDE ? {error:'Khung '+r.w+'×'+r.h+' vượt '+MAX_SIDE+'. Giảm tỉ lệ.'} : {r};
   }catch(err){ out={error:err.message.charAt(0).toUpperCase()+err.message.slice(1)+'. Giảm tỉ lệ hoặc chọn khung to hơn.'}; }
   s.cacheKey=key; s.cache=out;
   return out;
@@ -246,7 +246,7 @@ function paint(){
   let tooBig='';
   if(sheets.length>1 && importMode()==='layers' && ok===sheets.length){
     const L=stackLayout(sheets.map(x=>({r:tryBuild(x).r,dx:x.dx,dy:x.dy})),alignMode());
-    if(L.W>128 || L.H>128) tooBig='Khung chung '+L.W+'×'+L.H+' vượt 128 — giảm cỡ nhân vật';
+    if(L.W>MAX_SIDE || L.H>MAX_SIDE) tooBig='Khung chung '+L.W+'×'+L.H+' vượt '+MAX_SIDE+' — giảm cỡ nhân vật';
   }
   if(tooBig) btn.disabled=true;
   btn.textContent=!sheets.length?'Chọn ảnh trước':noColor?'Chưa chọn màu nào':tooBig?tooBig:ok!==sheets.length?'Còn tấm chưa vừa khung':
@@ -310,9 +310,19 @@ function layerInfo(){
   return 'Xếp thành '+sheets.length+' lớp, khung chung '+W+'×'+H+', '+n+' khung'+
     (short.length?'; '+short.join(', ')+' có ít khung hơn nên để trống phần đuôi.':'.');
 }
+/* Thông số lúc nhập, lưu vào lớp: lệnh đóng gói bên game không phải suy ngược điểm chân. */
+const round1=v=>Math.round(v*10)/10;
+function srcOf(s,r,pivot){
+  const z=ratioFor(s);
+  return {sheet:s.name, cols:s.cols, rows:s.rows, frames:r.frames.length, cell:r.cell, crop:r.crop,
+    ratio:Math.round(z.ratio*10000)/10000, scale:s.scale||100, dx:s.dx|0, dy:s.dy|0, inPlace:!!s.inPlace,
+    charH:Math.round(heightOf(s)*z.ratio), pivot:{x:round1(pivot.x), y:pivot.y}};
+}
 function toData(s,r){
-  return {name:s.name,w:r.w,h:r.h,layers:[{name:'Gốc',vis:true}],
-    frames:r.frames.map(f=>[Array.from(f)]),palette:r.palette,dur:[],af:0,al:0};
+  const pivot={x:footCenterOf(r), y:r.h}, src=srcOf(s,r,pivot);
+  return {name:s.name,w:r.w,h:r.h,layers:[{name:'Gốc',vis:true,src}],
+    frames:r.frames.map(f=>[Array.from(f)]),palette:r.palette,dur:[],af:0,al:0,
+    anchor:src.pivot, charH:src.charH};
 }
 function importAll(){
   if(!sheets.length || sheets.some(s=>!s.ok)) return;
@@ -320,10 +330,15 @@ function importAll(){
   pushUndo();
   const results=sheets.map(s=>[s,tryBuild(s).r]);
   if(results.length>1 && importMode()==='layers'){
-    const st=stackSheets(results.map(([s,r])=>({name:s.name,r,dx:s.dx,dy:s.dy})),alignMode());
+    const items=results.map(([s,r])=>({name:s.name,r,dx:s.dx,dy:s.dy}));
+    const st=stackSheets(items,alignMode()), lay=stackLayout(items,alignMode());
+    // điểm chân từng lớp trong khung chung; lớp của tấm i nằm ở vị trí ngược (tấm đầu = lớp trên cùng)
+    const srcs=results.map(([s,r],i)=>srcOf(s,r,{x:lay.pos[i].ox+footCenterOf(r), y:lay.pos[i].oy+r.h}));
+    const layers=st.layers.map((L,k)=>({...L,src:srcs[st.layers.length-1-k]}));
     forgetCurrent();
-    applyData({name:results.map(([s])=>s.name).join(' + '),w:st.w,h:st.h,layers:st.layers,
-      frames:st.frames.map(f=>f.map(d=>Array.from(d))),palette:st.palette,dur:[],af:0,al:st.layers.length-1});
+    applyData({name:results.map(([s])=>s.name).join(' + '),w:st.w,h:st.h,layers,
+      frames:st.frames.map(f=>f.map(d=>Array.from(d))),palette:st.palette,dur:[],af:0,al:st.layers.length-1,
+      anchor:srcs[0].pivot, charH:srcs[0].charH});
     toast('Đã nhập '+results.length+' tấm thành '+results.length+' lớp · '+st.count+' khung '+st.w+'×'+st.h+'.',3600);
   }else if(results.length===1){
     forgetCurrent();

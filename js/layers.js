@@ -1,6 +1,6 @@
 /* Danh sách lớp: chọn, ẩn/hiện, đổi tên, thêm, nhân bản, gộp, xoá. */
 import { $ } from './dom.js';
-import { doc, blank } from './state.js';
+import { doc, blank, cloneLayer } from './state.js';
 import { pushUndo } from './history.js';
 import { blendOver } from './raster.js';
 import { render } from './render.js';
@@ -30,7 +30,7 @@ export function paintLayers(){
 export function addLayer(copy){
   pushUndo();
   const at=doc.al+1;
-  doc.layers.splice(at,0,{name: copy? doc.layers[doc.al].name+' (bản sao)' : 'Lớp '+(doc.layers.length+1), vis:true});
+  doc.layers.splice(at,0, copy ? {...cloneLayer(doc.layers[doc.al]), name:doc.layers[doc.al].name+' (bản sao)'} : {name:'Lớp '+(doc.layers.length+1), vis:true});
   doc.frames.forEach(f=> f.splice(at,0, copy? f[doc.al].slice() : blank()));
   doc.al=at; syncAll();
 }
@@ -60,6 +60,8 @@ export function mergeDown(){
     for(let i=0;i<bot.length;i++) if(top[i]) bot[i]=blendOver(bot[i],top[i]);
     f.splice(doc.al,1);
   });
+  const top=doc.layers[doc.al], bot=doc.layers[doc.al-1];
+  if(top.marks) bot.marks={...top.marks, ...(bot.marks||{})};      // lớp dưới giữ mốc của nó, thêm mốc lớp trên vào chỗ trống
   doc.layers.splice(doc.al,1);
   doc.al--; syncAll();
 }

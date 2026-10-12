@@ -22,6 +22,7 @@ function editor(){
   dom.createElement=element; dom.querySelector=()=>null;
   const context=vm.createContext({doc,view,board,$,document:dom,window:win,Uint32Array,
     activeData:()=>doc.frames[doc.af][doc.al],blank:()=>new Uint32Array(doc.w*doc.h),
+    cloneLayer:l=>JSON.parse(JSON.stringify(l)),
     terrainConnectorIndices:()=>[2],tileRoles:()=>new Uint8Array(doc.w*doc.h),ROLE_NAMES:[],
     rgba:(r,g,b,a)=>(r|(g<<8)|(b<<16)|(a<<24))>>>0,
     render(){},syncAll(){},paintThumbs(){},paintSwatches(){},syncColors(){},syncFingerBtn(){},
@@ -197,4 +198,16 @@ test('layer length is the last frame where that layer still has pixels',()=>{
   e.doc.frames[3][1][5]=0xff00ff00;                            // lớp 1 dài 4 khung
   assert.equal(e.run('layerLength(0)'),2); assert.equal(e.run('layerLength(1)'),4);
   e.doc.frames[3][1][5]=0; assert.equal(e.run('layerLength(1)'),0);
+});
+
+test('undo brings the pivot and layer marks back together with the pixels',()=>{
+  const e=editor();
+  e.doc.anchor={x:10,y:32}; e.doc.layers[0].marks={0:'rời đất'}; e.doc.layers[0].src={pivot:{x:10,y:32}};
+  e.run('pushUndo()');
+  e.doc.anchor={x:14,y:36}; e.doc.layers[0].src.pivot={x:14,y:36}; delete e.doc.layers[0].marks;
+  e.run('undo()');
+  const plain=v=>JSON.parse(JSON.stringify(v));                 // đối tượng sinh trong vm khác prototype
+  assert.deepEqual(plain(e.doc.anchor),{x:10,y:32});
+  assert.deepEqual(plain(e.doc.layers[0].marks),{0:'rời đất'});
+  assert.deepEqual(plain(e.doc.layers[0].src.pivot),{x:10,y:32});
 });

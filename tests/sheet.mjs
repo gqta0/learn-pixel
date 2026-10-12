@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {countClusters, suggestCount, suggestGrid, unionBBox, medianCut, keyOutBackground,
-  pixelizeSheet, spriteFramesTres, sheetBox, fitRatio, pixelizeImage, stackSheets, spriteHeight, syncRatios, footCenter, stackLayout, verticalTravel} from '../js/sheet.js';
+  pixelizeSheet, spriteFramesTres, sheetBox, fitRatio, pixelizeImage, stackSheets, spriteHeight, syncRatios, footCenter, stackLayout, verticalTravel, MAX_SIDE} from '../js/sheet.js';
 import {groupColors, pickColors} from '../js/palgroups.js';
 
 const rgba=(r,g,b,a=255)=>((a<<24)|(b<<16)|(g<<8)|r)>>>0;
@@ -102,10 +102,11 @@ test('fit ratio fills the canvas on the longer side, never overflows and never u
   assert.equal(fitRatio({w:120,h:123},64),64/123);
   assert.equal(fitRatio({w:200,h:50},64),64/200);
   assert.equal(fitRatio({w:40,h:30},64),1);                 // ảnh gốc nhỏ hơn khung: giữ nguyên, không phóng
-  assert.equal(fitRatio({w:300,h:200},0),128/300);           // không chọn khung thì chặn ở 128
+  assert.equal(fitRatio({w:300,h:200},0),MAX_SIDE/300);      // không chọn khung thì chặn ở trần khổ (256)
+  assert.equal(MAX_SIDE,256);
   const {px,w,h}=sheet(4,125,127);
   const box=sheetBox(px,w,h,4,1);
-  for(const side of [32,48,64,96,128]){
+  for(const side of [32,48,64,96,128,192]){
     const r=pixelizeSheet(px,w,h,{cols:4,rows:1,ratio:fitRatio(box,side),fit:true,canvas:side,colors:4});
     assert.deepEqual([r.w,r.h],[side,side]);
     assert.ok(r.sprite.w<=side && r.sprite.h<=side);
