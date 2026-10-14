@@ -168,9 +168,43 @@ App xin trình duyệt giữ dữ liệu lâu dài; dù vậy vẫn nên **Xuấ
 Mở **Terrain** từ thanh Terrain trên tablet, tab File/Atlas hoặc tab Terrain trên thanh
 dưới mobile. Workbench trình bày 56 slot theo nhóm hình học; ID atlas vẫn giữ nguyên.
 
-Màn Terrain chia năm thẻ, mỗi thẻ một việc: **Bộ ô** (chọn ô, ô đang chọn luôn nằm ở
-thanh dưới cùng với nút vẽ) · **Chi tiết** (vai trò pixel, ô nối được; trên màn rộng nằm
-sẵn cạnh lưới) · **Tạo bộ** · **Soi lỗi** · **Xuất**.
+Màn Terrain chia sáu thẻ, mỗi thẻ một việc: **Bộ ô** (chọn ô, ô đang chọn luôn nằm ở
+thanh dưới cùng với nút vẽ) · **⚡ Tạo nhanh** · **Chi tiết** (vai trò pixel, ô nối được;
+trên màn rộng nằm sẵn cạnh lưới) · **Tạo bộ** · **Soi lỗi** · **Xuất**.
+
+### ⚡ Tạo nhanh từ công thức
+
+Dựng cả bộ 56 ô bằng thuật toán trong vài giây, đẹp sẵn để chỉnh tiếp bằng tay.
+Bên trái là bản đồ xem trước (**Bậc thang · Hang · Đảo bay · Cắt lớp 6 tầng**) có
+trang trí và nhân vật cao đúng ô **🎮 Cỡ trong game**. Bên phải làm theo ba bước:
+
+1. **Công thức** — Đá ấm · cỏ, Cuội rêu · rễ, Hang tinh thể lam, Băng tuyết, Đường làng
+   lát đá, Đá sâu · mạch lam, Linh thạch tím. Mỗi công thức là một bảng **màu theo vai
+   trò** (viền, nền, đá, mặt trên, lớp phủ, linh khí, rễ, hoa) chỉ lấy từ Master Palette.
+2. **Chỉnh** — 5 thanh chính: **Cỡ đá, Mật độ đá, Lớp phủ, Rủ xuống, Linh khí**; chọn kiểu
+   phủ (cỏ, rêu, tuyết, tinh thể) và kiểu rủ (dây rêu, nhũ băng). **🎲** đổi cả bộ, hoặc
+   chỉ một phần: Đá trong · Mặt trên · Phủ & rủ · Linh khí. **Nâng cao**: độ dày mặt trên,
+   vết nứt, sỏi, rễ, kiểu ruột (tảng đá trong nền tối / cuội xếp kín), kiểu mặt (cuội bo
+   tròn / đá phiến), hướng nắng, và đổi màu từng vai trò.
+3. **Đưa vào atlas** — chưa có bộ thì tạo bộ mới; có rồi thì ghi vào bộ đang mở.
+   **Ghi** cho chọn phạm vi (cả 56 ô, chỉ ô có mặt trên, chỉ 4 ô ruột, ô có trần, ô có
+   tường). **Giữ ô đã sửa tay** nhận ra ô nào anh vẽ lại sau lần tạo trước và không đè;
+   **🔒 Khoá** giữ thêm ô đang chọn ở thẻ Bộ ô. Ghi xong app soi lại mối nối của cả atlas.
+
+Vì sao ghép đâu cũng liền: phần ruột là một tấm vân **lặp vòng** đúng bằng một ô, nên đá
+được vắt qua mép ô mà không lộ lưới; mặt trên, tường và trần là dải cuội tính theo
+khoảng cách tới khoảng trống, hai ô kề nhau luôn thấy cùng một dải; biến thể giữ nguyên
+vành 1 px ngoài của ô gốc. Khổ 32 được vẽ thật ở 32 px, không phóng từ 16. Dưới bản đồ
+có các chip soi: màu chỉ từ Master, viền một màu, không pixel lơ lửng, 56 ô nối liền.
+
+**Sáu tầng đất**: tầng 1 là mặt đất, tầng 6 sâu nhất; mỗi tầng một công thức và bộ thông
+số riêng (bấm tầng để chỉnh). **↕ Nội suy tầng 2–5** cho các thanh trượt chuyển đều từ
+tầng 1 xuống tầng 6. Bản đồ **Cắt lớp 6 tầng** xếp chồng cả sáu để xem chỗ chuyển tầng.
+
+Xuất: **Trang trí rời** (cỏ, hoa, mầm, tinh thể, sỏi, nhũ… mỗi thứ một ô, kèm điểm neo
+đáy/đỉnh trong JSON) và **Cả 6 tầng (ZIP)**: mỗi tầng một thư mục `terrain56.png`,
+`trang-tri.png/.json`, `cong-thuc.json`; kèm mapping Godot, layout JSON, ảnh cắt lớp và
+`manifest.json`. Cài đặt của thẻ được nhớ trong trình duyệt.
 
 **Dáng mép**, chọn khi tạo bộ (không đổi được sau đó):
 
@@ -202,13 +236,16 @@ File xuất (JSON layout, Godot, pack, project) ghi `edgeShape` và gợi ý `co
    bấm **Tạo bộ 56 ô** lại và không dựng lại dữ liệu.
 4. Khi sửa tile, **🔒 Điểm nối: khoá** giữ nguyên các pixel connector đã có để tránh
    vô tình khoét thủng mép. Tắt khoá chỉ khi cần sửa connector rồi soi lại.
-5. **Soi mối nối** có 3 chế độ: alpha bắt buộc, màu/vân theo cùng vai trò, hoặc cả hai.
-   **◎ Ô cần sửa** nhảy thẳng đến cặp lỗi gần nhất; cảnh báo màu/vân là gợi ý mềm,
-   không ép style của artist.
+5. **Soi mối nối** có 3 chế độ: alpha bắt buộc, màu/vân, hoặc cả hai. Màu/vân so mỗi ô
+   với các ô **cùng dáng cạnh** (cùng dãy vai trò pixel dọc cạnh, cùng hướng nối): những ô
+   ấy phải vẽ cạnh đó y hệt nhau thì vân mới chạy liền dù ô nào đứng cạnh ô nào. Ô lệch số
+   đông bị báo. **◎ Ô cần sửa** nhảy thẳng đến cặp lỗi gần nhất; cảnh báo màu/vân là gợi ý
+   mềm, không ép style của artist.
 6. Xuất **PNG sạch**, **PNG chú thích**, **JSON layout**, **Godot mapping**,
    **terrain56-pack.json** và **terrain56-project.json**. Project JSON chứa atlas PNG,
    mapping và cấu hình link; mở lại sẽ tự trải đủ 56 frame theo slot `#00–#55`.
-   Chú thích/overlay không được ghi vào tranh.
+   Chú thích/overlay không được ghi vào tranh. PNG sạch chỉ xoá pixel ở hàng/cột biên của
+   vùng "để trong suốt" (chỗ mối nối alpha đòi trống); cỏ mọc, nhũ rủ trong phần thụt được giữ.
 
 Layout riêng, 8 cột × 7 hàng, đánh số từ 0:
 
@@ -232,7 +269,7 @@ topology độc lập. Không giả định cùng thứ tự với tileset của
 mapping theo mask. Tham khảo thuật toán gốc:
 [Autotile-47](https://github.com/Game-Development-Resources/Autotile-47).
 
-Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs tests/pack.mjs`.
+Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs tests/pack.mjs tests/tilegen.mjs`.
 
 ## Đưa lên GitHub Pages
 

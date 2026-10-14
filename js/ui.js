@@ -26,6 +26,7 @@ import { paintDaily, goToNext } from './daily.js';
 import { bindAtlas, importAtlas, syncBar as syncAtlasBar } from './atlas.js';
 import { openMapView, bindMapView } from './mapview.js';
 import { bindTerrain, syncTerrainBar, openTerrain, closeTerrain } from './terrainview.js';
+import { bindTileGen } from './tilegenview.js';
 import { bindSheetImport } from './sheetview.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
@@ -499,6 +500,7 @@ $('#impJson').addEventListener('change', e=>{ if(e.target.files[0]) importJson(e
 bindAtlas();
 bindMapView();
 bindTerrain();
+bindTileGen();
 bindSheetImport();
 const mapPrevBtn = $('#mapPrevBtn');
 if(mapPrevBtn) mapPrevBtn.addEventListener('click', () => openMapView());

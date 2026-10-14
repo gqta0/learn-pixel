@@ -405,6 +405,7 @@
       </header>
       <nav class="tv-tabs" role="tablist" aria-label="Các phần của xưởng Terrain">
         <button role="tab" data-tpane="tiles" aria-selected="true">Bộ ô</button>
+        <button role="tab" data-tpane="quick" aria-selected="false" title="Tạo nhanh cả bộ 56 ô từ một công thức">⚡ <span class="tq-tab-full">Tạo nhanh</span><span class="tq-tab-short">Nhanh</span></button>
         <button role="tab" data-tpane="detail" aria-selected="false" class="tv-narrow">Chi tiết</button>
         <button role="tab" data-tpane="setup" aria-selected="false">Tạo bộ</button>
         <button role="tab" data-tpane="check" aria-selected="false">Soi lỗi<b class="tv-badge" id="terrainIssueBadge" hidden></b></button>
@@ -434,6 +435,94 @@
             <div class="tv-pick-text"><b id="terrainPickTitle"></b><span class="kbd" id="terrainPickMeta"></span></div>
             <button class="btn tiny tv-narrow" id="terrainPickDetail" title="Xem vai trò từng pixel và các ô nối được">ⓘ</button>
             <button class="btn tiny primary" id="terrainEdit" title="Nạp ô đang chọn lên khung vẽ (Enter, hoặc nhấp đúp lên ô)">✎ Vẽ ô này</button>
+          </div>
+        </section>
+
+        <!-- ===== Tạo nhanh từ công thức =====
+             Trái: bản đồ xem trước có nhân vật đúng cỡ. Phải: 6 tầng · ① công thức · ② chỉnh · ③ đưa vào atlas. -->
+        <section class="tv-pane tq" data-tpane="quick" aria-label="Tạo nhanh bộ ô từ công thức">
+          <div class="tq-stage">
+            <div class="tv-row tq-map-bar">
+              <div class="tq-seg" id="tqLayout" role="group" aria-label="Bản đồ xem trước"></div>
+              <label class="tv-check"><input type="checkbox" id="tqDeco" checked> Trang trí</label>
+              <label class="tv-check" title="Cao theo ô “Cỡ trong game” ở dải khung"><input type="checkbox" id="tqHero" checked> Nhân vật</label>
+            </div>
+            <div class="tq-map-wrap"><canvas id="tqMap" aria-label="Bản đồ xem trước bộ ô đang tạo"></canvas></div>
+            <p class="kbd tq-map-note" id="tqMapNote"></p>
+            <div class="tq-lint" id="tqLint" role="status" aria-live="polite"></div>
+          </div>
+          <div class="tq-side">
+            <div class="tv-card">
+              <p class="eyebrow">Sáu tầng đất</p>
+              <p class="kbd">Tầng 1 là mặt đất. Bấm một tầng để chỉnh; vạch màu: lớp phủ xanh · linh khí lam · linh khí tím.</p>
+              <div class="tq-strata" id="tqStrata"></div>
+              <div class="tv-row">
+                <button class="btn tiny" id="tqLerp" title="Thanh trượt tầng 2–5 đổi đều từ tầng 1 xuống tầng 6">↕ Nội suy tầng 2–5</button>
+                <button class="btn tiny" id="tqStrataReset">↺ Về mặc định</button>
+              </div>
+            </div>
+            <div class="tv-card">
+              <p class="eyebrow">① Công thức · <span id="tqStratumName"></span></p>
+              <div class="tq-recipes" id="tqRecipes"></div>
+            </div>
+            <div class="tv-card">
+              <p class="eyebrow">② Chỉnh</p>
+              <div class="tq-sliders" id="tqSliders"></div>
+              <div class="tv-row">
+                <label class="mini" for="tqCrust">Phủ</label><select id="tqCrust"></select>
+                <label class="mini" for="tqDrip">Rủ</label><select id="tqDrip"></select>
+              </div>
+              <div class="tv-row tq-seed">
+                <label class="mini" for="tqSeed">Seed</label>
+                <input type="number" id="tqSeed" min="1" step="1" inputmode="numeric">
+                <button class="btn tiny primary" id="tqDice" title="Đổi ngẫu nhiên toàn bộ">🎲 Đổi hết</button>
+              </div>
+              <div class="tv-row tq-dice" id="tqDiceGroups"></div>
+              <details class="tq-adv">
+                <summary>Nâng cao</summary>
+                <div class="tq-sliders" id="tqAdvSliders"></div>
+                <div class="tv-row">
+                  <label class="mini" for="tqInterior">Ruột</label><select id="tqInterior"></select>
+                </div>
+                <div class="tv-row">
+                  <label class="mini" for="tqCap">Mặt</label><select id="tqCap"></select>
+                  <label class="mini" for="tqLight">Nắng</label>
+                  <select id="tqLight"><option value="tl">Từ trên-trái</option><option value="tr">Từ trên-phải</option></select>
+                </div>
+                <p class="eyebrow">Màu theo vai trò</p>
+                <p class="kbd">Mỗi vai trò chỉ chọn được màu của Master Palette, nên bộ ô luôn nằm trong bảng.</p>
+                <div class="tq-colors" id="tqColors"></div>
+                <button class="btn tiny" id="tqColorsReset">↺ Màu gốc của công thức</button>
+              </details>
+            </div>
+            <div class="tv-card">
+              <p class="eyebrow">③ Đưa vào atlas</p>
+              <div class="tv-row">
+                <label class="mini" for="tqSize">Khổ</label>
+                <select id="tqSize"><option value="16">16×16</option><option value="32">32×32 (vẽ thật, không phóng)</option></select>
+              </div>
+              <div class="tv-row">
+                <label class="mini" for="tqShape">Mép</label>
+                <select id="tqShape"><option value="inset">Thụt mép (chừa chỗ cỏ)</option><option value="flush">Kín sát mép</option></select>
+              </div>
+              <div class="tv-row">
+                <label class="mini" for="tqScope">Ghi</label><select id="tqScope" title="Chỉ thay một nhóm ô; phần còn lại của atlas giữ nguyên"></select>
+              </div>
+              <label class="tv-check" title="Ô nào anh vẽ lại sau lần tạo nhanh trước sẽ không bị ghi đè"><input type="checkbox" id="tqKeepEdited" checked> Giữ ô đã sửa tay</label>
+              <div class="tv-row tq-locks">
+                <span class="kbd" id="tqLocks"></span>
+                <button class="btn tiny" id="tqLockSel" title="Khoá / mở khoá ô đang chọn ở thẻ Bộ ô">🔒 Khoá ô</button>
+              </div>
+              <label class="tv-check"><input type="checkbox" id="tqFrames" checked> Trải 56 ô thành 56 frame để sửa tay</label>
+              <p class="kbd" id="tqTarget"></p>
+              <button class="btn primary wide" id="tqApply">⚡ Tạo bộ 56 ô từ công thức</button>
+              <p class="kbd" id="tqApplyNote" role="status" aria-live="polite"></p>
+            </div>
+            <div class="tv-card">
+              <p class="eyebrow">Xuất</p>
+              <button class="btn wide" id="tqProps" title="Cỏ, hoa, tinh thể, nhũ… mỗi thứ một ô, kèm điểm neo">⬇ Trang trí rời <i>PNG + JSON</i></button>
+              <button class="btn wide" id="tqZip" title="6 atlas Terrain 56, 6 bộ trang trí, mapping Godot, ảnh cắt lớp">⬇ Cả 6 tầng <i>ZIP · atlas, trang trí, Godot</i></button>
+            </div>
           </div>
         </section>
 
