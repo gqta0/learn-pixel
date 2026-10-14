@@ -7,29 +7,68 @@ import { view } from './state.js';
 import { pushUndo } from './history.js';
 import { applyData } from './storage.js';
 import { keepBeforeReplace, saveCurrent, openProject, forgetCurrent } from './library.js';
-import { suggestGrid, pixelizeSheet, medianCut, keyOutBackground, sheetBox, fitRatio, stackSheets } from './sheet.js';
+import { suggestGrid, pixelizeSheet, medianCut, keyOutBackground, sheetBox, fitRatio, stackSheets, stackLayout, spriteHeight, syncRatios, verticalTravel, MAX_SIDE } from './sheet.js';
 import { mountPalettePicker } from './palpick.js';
+import { footCenter as footCenterOf } from './sheet.js';
 
-let sheets=[];        // {id,name,w,h,px,cv,cols,rows,options}
+let sheets=[];        // {id,name,w,h,px,cv,cols,rows,options, scale(%),dx,dy — chỉnh tay khi nhiều tấm}
 let picked=null;      // id tấm đang xem trước
 let previewTimer=null, previewFrame=0, sharedPal=null, sharedKey='', picker=null;
 
 /* Tỉ lệ: số cố định, tự nhập %, hoặc "tự vừa khung". Tự vừa lấy MỘT tỉ lệ cho cả lô — tỉ lệ
    của tấm có hình to nhất — vì mỗi tấm tự vừa riêng thì nhân vật sẽ to nhỏ khác nhau giữa
    các động tác (đòn vung tay làm hộp bao rộng ra, nhân vật bị thu nhỏ theo). */
+/* tỉ lệ tối đa để một tấm vừa khung, và chiều cao nhân vật gốc — nhớ đệm theo cách chia khung */
+function fitOf(s,canvas){
+  const k=s.cols+'x'+s.rows+'|'+canvas+'|'+!!s.inPlace;
+  if(s.fitKey!==k){ s.fitKey=k; s.fit=fitRatio(sheetBox(s.px,s.w,s.h,s.cols,s.rows,!!s.inPlace),canvas); }
+  return s.fit;
+}
+/* Sheet nhảy vẽ sẵn đường bay: đáy hình các khung chênh nhau quá 15% chiều cao nhân vật.
+   Tự bật "nhảy tại chỗ" cho tới khi người dùng tự bấm — game platformer để engine lo độ cao. */
+function detectTravel(s){
+  const k=s.cols+'x'+s.rows;
+  if(s.tKey===k) return s.travel;
+  s.tKey=k; s.travel=verticalTravel(s.px,s.w,s.h,s.cols,s.rows);
+  if(s.inPlaceAuto!==false) s.inPlace = s.travel > heightOf(s)*0.15;
+  return s.travel;
+}
+function heightOf(s){
+  const k=s.cols+'x'+s.rows;
+  if(s.hKey!==k){ s.hKey=k; s.hgt=spriteHeight(s.px,s.w,s.h,s.cols,s.rows); }
+  return s.hgt;
+}
 function ratioNow(){
+  sheets.forEach(detectTravel);
   const v=$('#shRatio').value, canvas=+$('#shCanvas').value;
   if(v==='custom') return {ratio:Math.min(1,Math.max(0.05,(parseFloat($('#shRatioPct').value)||50)/100)),fit:false};
   if(v!=='fit') return {ratio:+v,fit:false};
   if(!sheets.length) return {ratio:1,fit:true};
-  return {ratio:Math.min(...sheets.map(s=>fitRatio(sheetBox(s.px,s.w,s.h,s.cols,s.rows),canvas))),fit:true};
+  return {ratio:Math.min(...sheets.map(s=>fitOf(s,canvas))),fit:true};
 }
+/* Đồng bộ cỡ nhân vật: các tấm thường vẽ ở cỡ khác nhau (tấm chạy nhân vật cao 190 px, tấm đánh
+   chỉ 105 px), nên một tỉ lệ chung làm nhân vật to nhỏ lệch nhau. Đồng bộ đo chiều cao nhân vật
+   từng tấm rồi cho mỗi tấm một tỉ lệ riêng để nhân vật cao bằng nhau. */
+const syncOn=()=>sheets.length>1 && $('#shSize')?.value!=='keep';
+function sizing(){
+  sheets.forEach(detectTravel);
+  const base=ratioNow(), adj=sheets.map(s=>(s.scale||100)/100);
+  if(!syncOn()) return {per:sheets.map((s,i)=>Math.min(1,base.ratio*adj[i])),fit:base.fit&&adj.every(a=>a===1),target:0,short:[]};
+  const canvas=+$('#shCanvas').value, typed=Math.max(0,parseInt($('#shCharH')?.value,10)||0);
+  const hs=sheets.map(heightOf), fits=sheets.map(s=>fitOf(s,canvas));
+  // tỉ lệ chọn tay (không phải tự vừa): tấm đầu danh sách làm mốc, các tấm khác theo cỡ của nó
+  const target=typed || ($('#shRatio').value==='fit' ? 0 : Math.round(base.ratio*hs[0]*adj[0]));
+  const r=syncRatios(hs,adj,fits,target);
+  return {per:r.ratios,fit:!target,target:r.target,short:r.short,heights:hs};
+}
+const ratioFor=s=>{ const z=sizing(), i=sheets.indexOf(s); return {ratio:z.per[i]??1, fit:z.fit}; };
 const opt=()=>({
   ...ratioNow(),
   canvas:+$('#shCanvas').value,
   tight:$('#shTight').checked,
   pal:picker ? picker.value() : {mode:'auto',n:16}
 });
+const alignMode=()=>$('#shAlign')?.value==='box' ? 'box' : 'feet';
 const importMode=()=>sheets.length>1 && document.querySelector('input[name="shMode"]:checked')?.value==='library' ? 'library' : 'layers';
 /* Một bảng màu chung cho cả lô: mỗi tấm tự rút màu riêng thì cùng một nhân vật mà động tác
    này lệch tông động tác kia. Gom mẫu pixel của mọi tấm rồi rút một lần. */
@@ -46,19 +85,20 @@ function batchPalette(){
   return sharedPal;
 }
 function build(s){
-  const o=opt();
-  return pixelizeSheet(s.px,s.w,s.h,{cols:s.cols,rows:s.rows,ratio:o.ratio,fit:o.fit,canvas:o.canvas,tight:o.tight,palette:batchPalette()});
+  const o=opt(), z=ratioFor(s);
+  return pixelizeSheet(s.px,s.w,s.h,{cols:s.cols,rows:s.rows,ratio:z.ratio,fit:z.fit,canvas:o.canvas,tight:o.tight,inPlace:!!s.inPlace,palette:batchPalette()});
 }
 /* kết quả hoặc lý do không nhập được — để thẻ của tấm đó tự nói ra */
 function tryBuild(s){
   // nhớ kết quả theo thiết lập: ô xem trước chạy nhiều lần mỗi giây, không thể pixel hoá lại mỗi nhịp
-  const o=opt(), pal=batchPalette(), key=[s.cols,s.rows,o.ratio,o.canvas,o.tight,o.pal.mode,pal.join('')].join('|');
+  detectTravel(s);
+  const o=opt(), z=ratioFor(s), pal=batchPalette(), key=[s.cols,s.rows,!!s.inPlace,z.ratio,z.fit,o.canvas,o.tight,o.pal.mode,pal.join('')].join('|');
   if(s.cacheKey===key) return s.cache;
   let out;
   if(!pal.length){ s.cacheKey=key; s.cache={error:'Chưa chọn màu nào — bật ít nhất một nhóm màu ở mục Nâng cao.'}; return s.cache; }
   try{
     const r=build(s);
-    out = r.w>128 || r.h>128 ? {error:'Khung '+r.w+'×'+r.h+' vượt 128. Giảm tỉ lệ.'} : {r};
+    out = r.w>MAX_SIDE || r.h>MAX_SIDE ? {error:'Khung '+r.w+'×'+r.h+' vượt '+MAX_SIDE+'. Giảm tỉ lệ.'} : {r};
   }catch(err){ out={error:err.message.charAt(0).toUpperCase()+err.message.slice(1)+'. Giảm tỉ lệ hoặc chọn khung to hơn.'}; }
   s.cacheKey=key; s.cache=out;
   return out;
@@ -67,8 +107,12 @@ function tryBuild(s){
 function addFiles(files){
   const list=[...files].filter(f=>/^image\//.test(f.type));
   if(!list.length) return;
-  let left=list.length;
+  // Ảnh giải mã xong không theo thứ tự chọn; giữ đúng thứ tự người dùng chọn vì tấm đầu là lớp
+  // trên cùng và là mốc cỡ khi chọn tỉ lệ tay.
+  let left=list.length, seq=sheets.reduce((m,x)=>Math.max(m,x.seq||0),0);
+  const done=()=>{ sheets.sort((a,b)=>a.seq-b.seq); if(!picked && sheets.length) picked=sheets[0].id; paint(); };
   list.forEach(file=>{
+    const order=++seq;
     const im=new Image(), url=URL.createObjectURL(file);
     im.onload=()=>{
       const cv=document.createElement('canvas'); cv.width=im.naturalWidth; cv.height=im.naturalHeight;
@@ -77,12 +121,12 @@ function addFiles(files){
       const sug=suggestGrid(keyOutBackground(px,cv.width,cv.height),cv.width,cv.height);
       const s={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
         name:file.name.replace(/\.[^.]+$/,''),w:cv.width,h:cv.height,px,cv,
-        cols:sug.cols,rows:sug.rows,options:sug.colOptions,guess:sug.cols};
-      sheets.push(s); if(!picked) picked=s.id;
+        cols:sug.cols,rows:sug.rows,options:sug.colOptions,guess:sug.cols,scale:100,dx:0,dy:0,seq:order};
+      sheets.push(s);
       URL.revokeObjectURL(url);
-      if(--left===0) paint();
+      if(--left===0) done();
     };
-    im.onerror=()=>{ URL.revokeObjectURL(url); toast('Không đọc được '+file.name); if(--left===0) paint(); };
+    im.onerror=()=>{ URL.revokeObjectURL(url); toast('Không đọc được '+file.name); if(--left===0) done(); };
     im.src=url;
   });
 }
@@ -133,7 +177,9 @@ function sheetCard(s){
   const info=document.createElement('p'); info.className='kbd'+(res.error||odd?' sh-warn':'');
   info.textContent='Ảnh '+s.w+'×'+s.h+' · khung gốc '+cw+'×'+ch+
     (odd?' · chia không hết, dư '+(s.w%s.cols)+' px ngang':'')+
-    (res.error?' · '+res.error:' → '+res.r.frames.length+' khung '+res.r.w+'×'+res.r.h+', hình '+res.r.sprite.w+'×'+res.r.sprite.h);
+    (res.error?' · '+res.error:' → '+res.r.frames.length+' khung '+res.r.w+'×'+res.r.h+', hình '+res.r.sprite.w+'×'+res.r.sprite.h)+
+    (sheets.length>1 && !res.error ? ' · nhân vật cao '+heightOf(s)+' px gốc → tỉ lệ '+Math.round(ratioFor(s).ratio*1000)/10+'%' : '')+
+    (syncOn() && sizing().short[sheets.indexOf(s)] ? ' · ảnh gốc nhỏ hơn cỡ đích, giữ 100% (không phóng to) nên nhân vật thấp hơn các tấm khác' : '');
   s.ok=!res.error;
   // Một tư thế vươn rộng hơn hẳn (đấm, vung kiếm) buộc khung phải chừa chỗ cho nó, nên các khung
   // còn lại trông như bị hở. Nói thẳng khung nào gây ra, để người dùng biết đó không phải lỗi.
@@ -145,12 +191,43 @@ function sheetCard(s){
       why.textContent='Khung '+at+' rộng '+max+' px, các khung khác chừng '+mid+' px. Khung vẽ phải đủ chỗ cho khung '+at+
         ', nên những khung hẹp hơn sẽ trống chừng '+(max-mid)+' px ở bên — đó là chỗ dành cho tư thế vươn ra.';
       card.append(strip,head,grid,chips,info,why);
+      if(s.travel>heightOf(s)*0.05 || s.inPlace) card.append(jumpRow(s));
+      if(sheets.length>1) card.append(tuneRow(s));
       return card;
     }
   }
 
   card.append(strip,head,grid,chips,info);
+  if(s.travel>heightOf(s)*0.05 || s.inPlace) card.append(jumpRow(s));
+  if(sheets.length>1) card.append(tuneRow(s));
   return card;
+}
+function jumpRow(s){
+  const lab=document.createElement('label'); lab.className='tv-check sh-jump';
+  const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!s.inPlace;
+  cb.addEventListener('change',()=>{ s.inPlace=cb.checked; s.inPlaceAuto=false; paint(); });
+  const t=document.createElement('span');
+  t.textContent='Nhảy tại chỗ — hạ chân mọi khung xuống đáy, bỏ đường bay ~'+s.travel+' px vẽ sẵn trong ảnh'+
+    (s.inPlaceAuto!==false && s.inPlace ? ' (tự bật vì phát hiện đường bay; game platformer để engine lo độ cao)' : '');
+  lab.append(cb,t);
+  return lab;
+}
+/* Chỉnh tay từng tấm khi nhập nhiều tấm: cỡ % (khi tóc, vũ khí làm phép đo chiều cao lệch) và
+   độ lệch x/y để chân, thân các lớp chồng khít nhau. */
+function tuneRow(s){
+  const row=document.createElement('div'); row.className='tv-row sh-tune';
+  const field=(label,key,min,max,title)=>{
+    const lab=document.createElement('label'); lab.className='mini'; lab.textContent=label; lab.title=title;
+    const inp=document.createElement('input'); inp.type='number'; inp.min=min; inp.max=max; inp.step=1; inp.value=s[key]; inp.title=title;
+    inp.addEventListener('change',()=>{ const v=parseInt(inp.value,10); s[key]=Math.max(min,Math.min(max,Number.isFinite(v)?v:(key==='scale'?100:0))); paint(); });
+    return [lab,inp];
+  };
+  row.append(...field('Cỡ %','scale',25,300,'Phóng/thu riêng tấm này so với cỡ đồng bộ — dùng khi tóc bay hay vũ khí làm phép đo chiều cao lệch'));
+  if(importMode()==='layers'){
+    row.append(...field('Lệch ←→','dx',-64,64,'Dời ngang lớp này (pixel) để thân các lớp chồng khít nhau'),
+               ...field('↑↓','dy',-64,64,'Dời dọc lớp này (pixel, dương là xuống)'));
+  }
+  return row;
 }
 
 function paint(){
@@ -165,15 +242,26 @@ function paint(){
   const btn=$('#shImport');
   btn.disabled=!ok || ok!==sheets.length;
   const noColor=!!sheets.length && !batchPalette().length;
-  btn.textContent=!sheets.length?'Chọn ảnh trước':noColor?'Chưa chọn màu nào':ok!==sheets.length?'Còn tấm chưa vừa khung':
+  // căn theo chân dời các tấm lệch nhau nên khung chung có thể rộng hơn từng tấm
+  let tooBig='';
+  if(sheets.length>1 && importMode()==='layers' && ok===sheets.length){
+    const L=stackLayout(sheets.map(x=>({r:tryBuild(x).r,dx:x.dx,dy:x.dy})),alignMode());
+    if(L.W>MAX_SIDE || L.H>MAX_SIDE) tooBig='Khung chung '+L.W+'×'+L.H+' vượt '+MAX_SIDE+' — giảm cỡ nhân vật';
+  }
+  if(tooBig) btn.disabled=true;
+  btn.textContent=!sheets.length?'Chọn ảnh trước':noColor?'Chưa chọn màu nào':tooBig?tooBig:ok!==sheets.length?'Còn tấm chưa vừa khung':
     sheets.length===1?'Nhập và trải thành khung hình':
     importMode()==='layers'?'Nhập '+sheets.length+' tấm thành '+sheets.length+' lớp':'Nhập '+sheets.length+' tấm vào thư viện';
   $('#shModeCard').hidden=sheets.length<2;
   const pal=sheets.length?batchPalette():[];
   const o=opt();
   $('#shRatioPct').hidden=$('#shRatio').value!=='custom';
+  $('#shSizeRow').hidden=sheets.length<2;
+  $('#shOverlayRow').hidden=sheets.length<2 || importMode()!=='layers';
+  const z=sizing();
   $('#shInfo').textContent=!sheets.length?'':
-    (o.fit?'Tỉ lệ tự vừa: '+Math.round(o.ratio*1000)/10+'%'+(sheets.length>1?', chung cho cả lô để nhân vật không đổi cỡ giữa các động tác':'')+
+    (syncOn()?'Đồng bộ cỡ: nhân vật cao ~'+z.target+' px ở mọi tấm (mỗi tấm một tỉ lệ riêng). ':
+     o.fit?'Tỉ lệ tự vừa: '+Math.round(o.ratio*1000)/10+'%'+(sheets.length>1?', chung cho cả lô':'')+
       (o.ratio>=1?' (ảnh gốc đã nhỏ hơn khung, không phóng to)':'')+'. ':'')+
     (o.pal.mode==='auto'?'Bảng màu chung: '+pal.length+' màu rút từ '+sheets.length+' tấm.':'Ép về '+o.pal.name+' ('+pal.length+' màu).')+
     (sheets.length>1 && importMode()==='layers' ? ' '+layerInfo() : '');
@@ -184,28 +272,57 @@ function paintPreview(){
   const cv=$('#shPreview'), g=cv.getContext('2d'), s=sheets.find(x=>x.id===picked);
   const res=s && tryBuild(s);
   if(!res || res.error){ cv.width=cv.height=1; $('#shPreviewInfo').textContent=s?res.error:''; return; }
-  const r=res.r, z=Math.max(1,Math.floor(220/Math.max(r.w,r.h)));
-  cv.width=r.w*z; cv.height=r.h*z; cv.style.width=cv.width+'px';
-  const tmp=document.createElement('canvas'); tmp.width=r.w; tmp.height=r.h;
-  const im=tmp.getContext('2d').createImageData(r.w,r.h);
-  new Uint32Array(im.data.buffer).set(r.frames[previewFrame%r.frames.length]);
-  tmp.getContext('2d').putImageData(im,0,0);
-  g.imageSmoothingEnabled=false; g.clearRect(0,0,cv.width,cv.height); g.drawImage(tmp,0,0,cv.width,cv.height);
-  $('#shPreviewInfo').textContent=s.name+' · khung '+(previewFrame%r.frames.length+1)+'/'+r.frames.length+' · ×'+z;
+  const r=res.r;
+  // So cỡ: chồng mờ khung tương ứng của các tấm khác, đặt đúng như khi xếp thành lớp
+  const others=$('#shOverlay')?.checked && !$('#shOverlayRow').hidden ?
+    sheets.filter(x=>x!==s).map(x=>[x,tryBuild(x).r]).filter(([,rr])=>rr) : [];
+  const all=[[s,r],...others];
+  const lay=others.length ? stackLayout(all.map(([x,rr])=>({r:rr,dx:x.dx,dy:x.dy})),alignMode()) : {W:r.w,H:r.h,pos:[{ox:0,oy:0}]};
+  const W=lay.W, H=lay.H;
+  const z=Math.max(1,Math.floor(220/Math.max(W,H)));
+  cv.width=W*z; cv.height=H*z; cv.style.width=cv.width+'px';
+  g.imageSmoothingEnabled=false; g.clearRect(0,0,cv.width,cv.height);
+  const draw=(k,rr,alpha)=>{
+    const tmp=document.createElement('canvas'); tmp.width=rr.w; tmp.height=rr.h;
+    const im=tmp.getContext('2d').createImageData(rr.w,rr.h);
+    new Uint32Array(im.data.buffer).set(rr.frames[previewFrame%rr.frames.length]);
+    tmp.getContext('2d').putImageData(im,0,0);
+    g.globalAlpha=alpha;
+    g.drawImage(tmp,lay.pos[k].ox*z,lay.pos[k].oy*z,rr.w*z,rr.h*z);
+    g.globalAlpha=1;
+  };
+  others.forEach(([,rr],k)=>draw(k+1,rr,0.35));
+  draw(0,r,1);
+  if(others.length && alignMode()==='feet'){          // vạch chân: cột mà mọi tấm cùng đứng lên
+    const fx=(lay.pos[0].ox+footCenterOf(r))*z;
+    g.strokeStyle='rgba(88,213,255,.9)'; g.setLineDash([4,4]); g.beginPath(); g.moveTo(fx,0); g.lineTo(fx,cv.height); g.stroke(); g.setLineDash([]);
+  }
+  $('#shPreviewInfo').textContent=s.name+' · khung '+(previewFrame%r.frames.length+1)+'/'+r.frames.length+' · ×'+z+
+    (others.length?' · mờ phía sau: '+others.map(([x])=>x.name).join(', '):'');
 }
 
 /* cỡ khung chung và số khung khi xếp thành lớp — để người dùng biết trước tấm nào sẽ trống đuôi */
 function layerInfo(){
   const rs=sheets.map(s=>tryBuild(s)).filter(x=>x.r).map(x=>x.r);
   if(rs.length!==sheets.length) return '';
-  const W=Math.max(...rs.map(r=>r.w)), H=Math.max(...rs.map(r=>r.h)), n=Math.max(...rs.map(r=>r.frames.length));
+  const {W,H}=stackLayout(rs.map((r,i)=>({r,dx:sheets[i].dx,dy:sheets[i].dy})),alignMode()), n=Math.max(...rs.map(r=>r.frames.length));
   const short=sheets.filter((s,i)=>rs[i].frames.length<n).map((s,i)=>'“'+s.name+'”');
   return 'Xếp thành '+sheets.length+' lớp, khung chung '+W+'×'+H+', '+n+' khung'+
     (short.length?'; '+short.join(', ')+' có ít khung hơn nên để trống phần đuôi.':'.');
 }
+/* Thông số lúc nhập, lưu vào lớp: lệnh đóng gói bên game không phải suy ngược điểm chân. */
+const round1=v=>Math.round(v*10)/10;
+function srcOf(s,r,pivot){
+  const z=ratioFor(s);
+  return {sheet:s.name, cols:s.cols, rows:s.rows, frames:r.frames.length, cell:r.cell, crop:r.crop,
+    ratio:Math.round(z.ratio*10000)/10000, scale:s.scale||100, dx:s.dx|0, dy:s.dy|0, inPlace:!!s.inPlace,
+    charH:Math.round(heightOf(s)*z.ratio), pivot:{x:round1(pivot.x), y:pivot.y}};
+}
 function toData(s,r){
-  return {name:s.name,w:r.w,h:r.h,layers:[{name:'Gốc',vis:true}],
-    frames:r.frames.map(f=>[Array.from(f)]),palette:r.palette,dur:[],af:0,al:0};
+  const pivot={x:footCenterOf(r), y:r.h}, src=srcOf(s,r,pivot);
+  return {name:s.name,w:r.w,h:r.h,layers:[{name:'Gốc',vis:true,src}],
+    frames:r.frames.map(f=>[Array.from(f)]),palette:r.palette,dur:[],af:0,al:0,
+    anchor:src.pivot, charH:src.charH};
 }
 function importAll(){
   if(!sheets.length || sheets.some(s=>!s.ok)) return;
@@ -213,10 +330,15 @@ function importAll(){
   pushUndo();
   const results=sheets.map(s=>[s,tryBuild(s).r]);
   if(results.length>1 && importMode()==='layers'){
-    const st=stackSheets(results.map(([s,r])=>({name:s.name,r})));
+    const items=results.map(([s,r])=>({name:s.name,r,dx:s.dx,dy:s.dy}));
+    const st=stackSheets(items,alignMode()), lay=stackLayout(items,alignMode());
+    // điểm chân từng lớp trong khung chung; lớp của tấm i nằm ở vị trí ngược (tấm đầu = lớp trên cùng)
+    const srcs=results.map(([s,r],i)=>srcOf(s,r,{x:lay.pos[i].ox+footCenterOf(r), y:lay.pos[i].oy+r.h}));
+    const layers=st.layers.map((L,k)=>({...L,src:srcs[st.layers.length-1-k]}));
     forgetCurrent();
-    applyData({name:results.map(([s])=>s.name).join(' + '),w:st.w,h:st.h,layers:st.layers,
-      frames:st.frames.map(f=>f.map(d=>Array.from(d))),palette:st.palette,dur:[],af:0,al:st.layers.length-1});
+    applyData({name:results.map(([s])=>s.name).join(' + '),w:st.w,h:st.h,layers,
+      frames:st.frames.map(f=>f.map(d=>Array.from(d))),palette:st.palette,dur:[],af:0,al:st.layers.length-1,
+      anchor:srcs[0].pivot, charH:srcs[0].charH});
     toast('Đã nhập '+results.length+' tấm thành '+results.length+' lớp · '+st.count+' khung '+st.w+'×'+st.h+'.',3600);
   }else if(results.length===1){
     forgetCurrent();
@@ -253,7 +375,7 @@ export function bindSheetImport(){
   $('#shOpen')?.addEventListener('click',openSheetImport);
   $('#shClose')?.addEventListener('click',closeSheetImport);
   $('#shFiles')?.addEventListener('change',e=>{ addFiles(e.target.files); e.target.value=''; });
-  ['shRatio','shRatioPct','shCanvas','shTight'].forEach(id=>$('#'+id)?.addEventListener('change',paint));
+  ['shRatio','shRatioPct','shCanvas','shTight','shSize','shCharH','shOverlay','shAlign'].forEach(id=>$('#'+id)?.addEventListener('change',paint));
   document.querySelectorAll('input[name="shMode"]').forEach(r=>r.addEventListener('change',paint));
   if($('#shPalPick')) picker=mountPalettePicker($('#shPalPick'),{auto:true,value:'auto:16',onChange:paint});
   $('#shImport')?.addEventListener('click',importAll);

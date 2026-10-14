@@ -243,19 +243,36 @@ export function checkSeams(pixels,size,shape){
   }
   return issues;
 }
+/* Màu/vân ở mối nối. Vân chạy liền dù ô nào đứng cạnh ô nào khi mọi ô có cùng dáng cạnh
+   (cùng dãy vai trò pixel dọc cạnh đó, cùng hướng nối) vẽ cạnh ấy y hệt nhau — đúng cách
+   các bộ tile liền mạch vẫn làm: cạnh trái của mọi ô = cạnh trái ô giữa. Nên ở đây so từng
+   pixel cạnh với số đông các ô cùng dáng cạnh; ô lệch số đông bị báo, kèm một ô hàng xóm
+   để xem cặp. Bản cũ đòi cột cuối ô A trùng cột đầu ô B — tấm vân lặp vòng nào cũng trượt
+   bài đó, dù ghép lên nhìn liền. */
 export function checkColorSeams(pixels,size,shape){
-  const issues=[];
-  for(const a of TERRAIN_TILES) for(const dir of ['E','S']){
-    const opposite=dir==='E'?'W':'N', ar=tileRoles(a.slot,size,shape);
-    for(const b of neighbors(a.slot,dir)){
-      const br=tileRoles(b,size,shape), positions=[];
+  const issues=[], roles=TERRAIN_TILES.map(t=>tileRoles(t.slot,size,shape));
+  for(const d of DIRECTIONS){
+    const groups=new Map();
+    for(const t of TERRAIN_TILES){
+      if(!(t.mask&d.bit) || !neighbors(t.slot,d.key).length) continue;
+      let sig='';
+      for(let p=0;p<size;p++) sig+=roles[t.slot][edgeIndex(d.key,p,size)];
+      if(!groups.has(sig)) groups.set(sig,[]);
+      groups.get(sig).push(t.slot);
+    }
+    for(const slots of groups.values()){
+      if(slots.length<2) continue;
+      const bad=new Map();
       for(let p=0;p<size;p++){
-        const ai=edgeIndex(dir,p,size),bi=edgeIndex(opposite,p,size);
-        const aa=pixels[a.slot][ai]>>>24,ba=pixels[b][bi]>>>24;
-        // Compare only equal-role, opaque connector pixels. Light/dark role changes are intentional.
-        if(aa===255 && ba===255 && ar[ai]===br[bi] && pixels[a.slot][ai]!==pixels[b][bi]) positions.push(p);
+        const i=edgeIndex(d.key,p,size), count=new Map();
+        for(const s of slots){ const v=pixels[s][i]; if(v>>>24===255) count.set(v,(count.get(v)||0)+1); }
+        if(count.size<2) continue;
+        // số đông; hoà thì ưu tiên màu của ô nhỏ số nhất (ô gốc đứng trước biến thể)
+        let major=null, best=-1;
+        for(const s of slots){ const v=pixels[s][i]; if(v>>>24===255 && count.get(v)>best){ best=count.get(v); major=v; } }
+        for(const s of slots){ const v=pixels[s][i]; if(v>>>24===255 && v!==major){ if(!bad.has(s)) bad.set(s,[]); bad.get(s).push(p); } }
       }
-      if(positions.length) issues.push({a:a.slot,b,direction:dir,positions,kind:'color'});
+      for(const [s,positions] of bad) issues.push({a:s,b:neighbors(s,d.key)[0],direction:d.key,positions,kind:'color'});
     }
   }
   return issues;

@@ -1,28 +1,23 @@
 /* Xuất PNG / spritesheet / .json, mở lại dự án, và lưu tự động vào trình duyệt. */
 import { $, toast } from './dom.js';
-import { doc, view, activeData } from './state.js';
-import { frameToCanvas, invalidateBuf } from './raster.js';
+import { doc, view, activeData, cloneLayer } from './state.js';
+import { frameToCanvas, invalidateBuf, layerLength } from './raster.js';
 import { pushUndo } from './history.js';
 import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
 import { palette, setPalette, paintSwatches } from './palette.js';
 import { doneSet, buildExercises, migrateDone } from './content/exercises.js';
-import { spriteFramesTres, pixelizeImage, medianCut } from './sheet.js';
+import { spriteFramesTres, pixelizeImage, medianCut, MAX_SIDE } from './sheet.js';
 import { syncAll } from './ui.js';
 import { stopEditing } from './atlas.js';
+import { idbAvailable, idbGet, idbSet, idbDel, storageUsage, STORES } from './idb.js';
 
 export function download(name, url){
   const a=document.createElement('a'); a.href=url; a.download=name;
   document.body.appendChild(a); a.click(); a.remove();
 }
-export function sanitizeFilename(name, fallback='ban-ve'){
-  const clean = (name || '').trim()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[đĐ]/g, 'd')
-    .replace(/[^a-zA-Z0-9_\-]+/g, '_')
-    .replace(/^_+|_+$/g, '');
-  return clean || fallback;
-}
+export { sanitizeFilename } from './manifest.js';
+import { sanitizeFilename } from './manifest.js';
 export function exportPng(){
   const s=parseInt($('#expScale').value,10);
   const cv=document.createElement('canvas');
@@ -36,32 +31,38 @@ export function sheetCols(n, pick){
   const c=parseInt(pick,10);
   return c>0 ? Math.min(c,n) : n;
 }
+/* Xuất cả bản vẽ, hoặc chỉ lớp đang chọn với đúng số khung của lớp đó — mỗi lớp là một
+   động tác riêng (chạy 8 khung, đánh 16 khung) thì mỗi lớp ra một sheet riêng cho engine. */
+function sheetPlan(){
+  const only=$('#expLayerOnly')?.checked && doc.layers.length>1 ? doc.al : -1;
+  const n=only>=0 ? Math.max(1,layerLength(only)) : doc.frames.length;
+  const base=sanitizeFilename(doc.name,'spritesheet')+(only>=0 ? '_'+sanitizeFilename(doc.layers[only].name,'lop') : '');
+  return {only,n,base};
+}
 export function exportSheet(scale){
   const s=Number(scale)>0 ? scale : parseInt($('#expScale').value,10);   // nút bấm truyền vào một Event, không phải tỉ lệ
-  const n=doc.frames.length, cols=sheetCols(n, $('#expCols')?.value), rows=Math.ceil(n/cols);
+  const {only,n,base}=sheetPlan(), cols=sheetCols(n, $('#expCols')?.value), rows=Math.ceil(n/cols);
   const cv=document.createElement('canvas');
   cv.width=doc.w*s*cols; cv.height=doc.h*s*rows;
   const c=cv.getContext('2d'); c.imageSmoothingEnabled=false;
   const tmp=document.createElement('canvas');
-  doc.frames.forEach((f,i)=>{
-    frameToCanvas(i,tmp,s);
+  for(let i=0;i<n;i++){
+    frameToCanvas(i,tmp,s,only);
     c.drawImage(tmp, (i%cols)*doc.w*s, Math.floor(i/cols)*doc.h*s);
-  });
-  const base = sanitizeFilename(doc.name, 'spritesheet');
+  }
   download(base+'_'+doc.w+'x'+doc.h+'_'+n+'f'+(rows>1?'_'+cols+'x'+rows:'')+'.png', cv.toDataURL('image/png'));
 }
 /* Godot 4: một file SpriteFrames (.tres) trỏ vào sheet PNG ×1 cùng tên. Luôn xuất ×1 vì
    pixel art phóng trong engine bằng số nguyên, không phóng sẵn trong ảnh. */
 export function exportGodotFrames(){
-  const n=doc.frames.length, cols=sheetCols(n, $('#expCols')?.value), rows=Math.ceil(n/cols);
-  const base=sanitizeFilename(doc.name,'spritesheet');
+  const {n,base}=sheetPlan(), cols=sheetCols(n, $('#expCols')?.value), rows=Math.ceil(n/cols);
   const png=base+'_'+doc.w+'x'+doc.h+'_'+n+'f'+(rows>1?'_'+cols+'x'+rows:'')+'.png';   // khớp tên exportSheet đặt
   let dir=($('#expGodotDir')?.value||'res://').trim()||'res://';
   if(!/^res:\/\//.test(dir)) dir='res://'+dir.replace(/^\/+/,'');
   if(!dir.endsWith('/')) dir+='/';
   const beat=1000/Math.max(1,view.fps||8);
   const tres=spriteFramesTres({name:base,texture:dir+png,fw:doc.w,fh:doc.h,cols,count:n,fps:view.fps||8,
-    loop:$('#expGodotLoop')?.checked!==false,durations:doc.frames.map((_,i)=>doc.dur[i]>0?doc.dur[i]/beat:1)});
+    loop:$('#expGodotLoop')?.checked!==false,durations:doc.frames.slice(0,n).map((_,i)=>doc.dur[i]>0?doc.dur[i]/beat:1)});
   const url=URL.createObjectURL(new Blob([tres],{type:'text/plain'}));
   download(base+'.tres',url); setTimeout(()=>URL.revokeObjectURL(url),1000);
   setTimeout(()=>exportSheet(1),350);          // tải hai file liền nhau; cách một nhịp để trình duyệt không nuốt mất file sau
@@ -95,13 +96,14 @@ export function serialize(){
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers:doc.layers, palette:palette,
     frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur, atlasEdit:doc.atlasEdit, terrainLink:doc.terrainLink,
+    anchor:doc.anchor, charH:doc.charH||0, fps:view.fps,
     done: Array.from(doneSet)
   };
 }
 export function applyData(d){
   const w=Number(d?.w), h=Number(d?.h), layers=d?.layers, frames=d?.frames;
-  if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||w>128||h>128)
-    throw new Error('khổ tranh không hợp lệ (tối đa 128×128)');
+  if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||w>MAX_SIDE||h>MAX_SIDE)
+    throw new Error('khổ tranh không hợp lệ (tối đa '+MAX_SIDE+'×'+MAX_SIDE+')');
   if(!Array.isArray(layers)||!layers.length||layers.some(l=>!l||typeof l!=='object'))
     throw new Error('danh sách lớp không hợp lệ');
   if(!Array.isArray(frames)||!frames.length||frames.some(f=>!Array.isArray(f)||f.length!==layers.length))
@@ -118,12 +120,16 @@ export function applyData(d){
   doc.name = d.name || 'Bản vẽ không tên';
   const nameEl = $('#projName'); if(nameEl) nameEl.value = doc.name;
   doc.w=w; doc.h=h;
-  doc.layers=layers.map((l,i)=>({name:String(l.name||'Lớp '+(i+1)),vis:l.vis!==false}));
+  doc.layers=layers.map((l,i)=>cloneLayer({...l,name:l.name||'Lớp '+(i+1)},decoded.length));
   doc.frames=decoded;
   doc.dur=(d.dur||[]).slice();
   doc.af=Math.max(0,Math.min(Number.isInteger(d.af)?d.af:0,doc.frames.length-1));
   doc.al=Math.max(0,Math.min(Number.isInteger(d.al)?d.al:0,doc.layers.length-1));
   doc.atlasEdit=d.atlasEdit && typeof d.atlasEdit==='object' ? {...d.atlasEdit} : null;
+  const ax=Number(d.anchor?.x), ay=Number(d.anchor?.y);
+  doc.anchor = Number.isFinite(ax)&&Number.isFinite(ay)&&ax>=0&&ax<=w&&ay>=0&&ay<=h ? {x:ax,y:ay} : null;
+  doc.charH = Number(d.charH)>0 ? Math.min(Number(d.charH),h) : 0;
+  if(Number.isInteger(d.fps) && d.fps>=1 && d.fps<=60){ view.fps=d.fps; const f=$('#fps'); if(f) f.value=d.fps; }
   doc.terrainLink=d.terrainLink && typeof d.terrainLink==='object' ? {...d.terrainLink,slots:Array.isArray(d.terrainLink.slots)?d.terrainLink.slots.slice():[]} : null;
   if(d.palette){ setPalette(d.palette); }
   if(d.done) migrateDone(d.done);
@@ -154,33 +160,61 @@ export function importJson(file){
   fr.readAsText(file);
 }
 
-/* ---------------- lưu tự động vào trình duyệt ---------------- */
+/* ---------------- lưu tự động vào trình duyệt ----------------
+   IndexedDB nếu có (không vướng hạn mức ~5 triệu ký tự của localStorage), không thì localStorage.
+   Chưa nạp xong bản lưu cũ thì không ghi: nạp IndexedDB là bất đồng bộ, và lần render đầu tiên
+   của canvas trắng không được phép đè lên tranh của lần trước. */
 export const SAVE_KEY='lo-pixel-save';
-let saveT=null;
-// ponytail: RLE đủ cho pixel art; nếu vẫn vượt quota thì chuyển sang IndexedDB.
+let saveT=null, bootDone=false, useIdb=idbAvailable();
+const hhmm=t=>String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+async function usageNote(){
+  const u=await storageUsage();
+  return u && u.quota ? ' Đang dùng '+u.used.toFixed(1)+' / '+Math.round(u.quota)+' MB.' : '';
+}
 export function autosave(){
   clearTimeout(saveT);
-  saveT=setTimeout(()=>{
+  if(!bootDone) return;
+  saveT=setTimeout(async()=>{
     if(view.drawing) return; // chỉ lưu nét đã kết thúc, không lưu nét sắp bị huỷ bởi pinch
+    const data=serialize();
     try{
-      localStorage.setItem(SAVE_KEY, JSON.stringify(serialize()));
-      const t=new Date();
-      $('#saveInfo').textContent='Đã lưu vào trình duyệt lúc '+
-        String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+
-        ' — mở lại trang là có ngay.';
+      if(useIdb) await idbSet(STORES.kv,SAVE_KEY,data);
+      else localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+      $('#saveInfo').textContent='Đã lưu vào trình duyệt ('+(useIdb?'IndexedDB':'localStorage')+') lúc '+hhmm(new Date())+
+        ' — mở lại trang là có ngay.'+(useIdb ? await usageNote() : '');
     }catch(err){
-      $('#saveInfo').textContent='Không lưu được (trình duyệt hết chỗ). Hãy Lưu dự án .json thủ công.';
+      $('#saveInfo').textContent='Không lưu được ('+(err?.message||'trình duyệt hết chỗ')+'). Hãy Lưu dự án .json thủ công.';
     }
   }, 1200);
 }
-export function loadSave(){
+/* Nạp bản lưu lần trước. Bản cũ trong localStorage được chép sang IndexedDB rồi mới xoá. */
+export async function loadSave(){
+  let data=null, from='';
   try{
-    const raw=localStorage.getItem(SAVE_KEY);
-    if(!raw) return false;
-    applyData(JSON.parse(raw));
-    $('#saveInfo').textContent='Đã mở lại bản lưu lần trước.';
+    if(useIdb){
+      try{ data=await idbGet(STORES.kv,SAVE_KEY); from='IndexedDB'; }
+      catch(_){ useIdb=false; }
+    }
+    if(!data){
+      const raw=localStorage.getItem(SAVE_KEY);
+      if(raw){ data=JSON.parse(raw); from='localStorage'; }
+    }
+    if(!data) return false;
+    applyData(data);
+    if(useIdb && from==='localStorage'){
+      await idbSet(STORES.kv,SAVE_KEY,data);
+      try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
+      from='localStorage → IndexedDB';
+    }
+    $('#saveInfo').textContent='Đã mở lại bản lưu lần trước ('+from+').';
     return true;
   }catch(_){ return false; }
+  finally{ bootDone=true; }
+}
+export async function clearSave(){
+  clearTimeout(saveT); bootDone=false;          // lượt tự lưu đang chờ không được ghi lại ngay trước khi tải lại trang
+  try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
+  if(useIdb){ try{ await idbDel(STORES.kv,SAVE_KEY); }catch(_){} }
 }
 export function loadRef(file){
   const fr=new FileReader();

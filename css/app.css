@@ -839,6 +839,7 @@ body[data-view="terrain"] .col.right{display:none}
 #terrainWrap[data-tpane=setup] .tv-pane[data-tpane=setup],
 #terrainWrap[data-tpane=check] .tv-pane[data-tpane=check],
 #terrainWrap[data-tpane=export] .tv-pane[data-tpane=export]{display:flex}
+#terrainWrap[data-tpane=quick] .tv-pane[data-tpane=quick]{display:grid}
 
 .tv-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tv-row select{min-height:40px;flex:1 1 120px;min-width:0}
@@ -987,3 +988,72 @@ body[data-view="terrain"] .col.right{display:none}
 .pp-strip b{width:9px;height:14px;border-radius:1px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
 .pp-group:has(input:not(:checked)) span,.pp-group:has(input:not(:checked)) .pp-strip{opacity:.4}
 .pp-note:empty{display:none}
+
+/* khung mà lớp đang chọn không có hình (lớp ngắn hơn dải khung chung) */
+.frame.frame-out{opacity:.38}
+.frame.frame-out[aria-current="true"]{opacity:.75}
+.sh-tune{margin-top:6px}
+.sh-tune input{width:64px}
+/* mốc có tên trên khung (rời đất, đỉnh…) */
+.frame{position:relative}
+.frame .frame-mark{position:absolute;left:1px;right:1px;top:1px;font-style:normal;font-size:9px;line-height:1.2;padding:0 2px;
+  background:rgba(255,180,63,.92);color:#1a1206;border-radius:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+
+/* ---------- Terrain · Tạo nhanh từ công thức ----------
+   Màn rộng: bản đồ bên trái chiếm hết chiều cao, cột chỉnh bên phải cuộn riêng.
+   Màn hẹp: bản đồ ở trên (thấp lại), các thẻ chỉnh xếp dưới, cả thẻ cuộn chung. */
+.tq{grid-template-columns:minmax(0,1fr) 380px;min-height:0;overflow:hidden}
+.tq-stage{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;padding:10px 12px;background:var(--ink)}
+.tq-map-bar{flex:0 0 auto}
+.tq-seg{display:flex;gap:4px;flex-wrap:wrap}
+.tq-seg .btn{min-height:36px}
+.tq-seg .btn[aria-pressed=true]{border-color:var(--amber);background:var(--accent-bg);color:var(--text)}
+.tq-map-wrap{flex:1 1 auto;min-height:160px;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  background:repeating-conic-gradient(var(--panel) 0 25%,var(--panel-2) 0 50%) 0 0/16px 16px;border:1px solid var(--line);border-radius:5px}
+#tqMap{image-rendering:pixelated;display:block}
+.tq-map-note{margin:0}
+.tq-lint{display:flex;flex-wrap:wrap;gap:6px;flex:0 0 auto}
+.tq-chip{font:600 11px var(--mono);padding:4px 8px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+.tq-chip.ok{color:#74c77a;border-color:rgba(116,199,122,.35)}
+.tq-chip.warn{color:var(--amber);border-color:rgba(255,180,63,.45)}
+.tq-side{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;border-left:1px solid var(--line);background:var(--panel)}
+.tq-side .tv-card{max-width:none;margin:0}
+.tq-strata{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:6px}
+.tq-stratum,.tq-recipe{display:flex;flex-direction:column;gap:4px;padding:5px;min-width:0;background:var(--panel);color:var(--text);
+  border:1px solid var(--line);border-radius:4px;cursor:pointer;text-align:left;font:12px var(--sans)}
+.tq-stratum[aria-pressed=true],.tq-recipe[aria-pressed=true]{border-color:var(--amber);background:var(--accent-bg)}
+.tq-stratum canvas,.tq-recipe canvas{width:100%;height:auto;image-rendering:pixelated;border-radius:2px;display:block}
+.tq-stratum span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tq-stratum span b{color:var(--amber)}
+.tq-bars{display:flex;flex-direction:column;gap:2px}
+.tq-bars b{display:block;height:3px;border-radius:2px;min-width:2px;background:var(--line)}
+.tq-bars b.veg{background:#7cb759}.tq-bars b.cyan{background:#01cbd3}.tq-bars b.violet{background:#9a7de0}
+.tq-recipes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.tq-recipe span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.tq-recipe span b{font-size:12px}
+.tq-recipe span i{font-style:normal;font-size:10.5px;color:var(--dim);line-height:1.35}
+.tq-sliders{display:flex;flex-direction:column;gap:2px}
+.tq-slider{display:grid;grid-template-columns:110px minmax(0,1fr) 30px;align-items:center;gap:8px;font-size:13px;min-height:38px}
+.tq-slider input{height:32px}
+.tq-slider output{font:11px var(--mono);color:var(--dim);text-align:right}
+.tq-seed input{width:110px;min-height:36px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:3px;padding:0 8px;font:13px var(--mono)}
+.tq-dice .btn{flex:1 1 auto;min-height:34px}
+.tq-adv summary{cursor:pointer;min-height:36px;display:flex;align-items:center;font-size:13px;color:var(--dim)}
+.tq-adv[open]{display:flex;flex-direction:column;gap:6px}
+.tq-color-group{margin:6px 0 0!important;font:600 11px var(--mono);color:var(--dim)}
+.tq-colors{display:flex;flex-direction:column;gap:3px}
+.tq-color{display:grid;grid-template-columns:22px minmax(0,1fr) minmax(0,1.1fr);align-items:center;gap:6px;font-size:12px}
+.tq-color i{width:22px;height:22px;border-radius:3px;border:1px solid var(--line)}
+.tq-color span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tq-color.changed span{color:var(--amber)}
+.tq-color select{min-height:30px;font-size:11px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:3px;min-width:0}
+.tq-locks span{flex:1 1 160px;min-width:0}
+#tqApply{min-height:48px}
+.tq-tab-short{display:none}
+@media (max-width:560px){ .tq-tab-full{display:none} .tq-tab-short{display:inline} .tv-tabs button{font-size:12px;padding:0 3px} }
+@media (max-width:1000px){
+  #terrainWrap[data-tpane=quick] .tv-pane[data-tpane=quick]{display:flex;flex-direction:column;overflow-y:auto}
+  .tq-stage{flex:0 0 auto}
+  .tq-map-wrap{flex:0 0 auto;min-height:0;padding:4px}
+  .tq-side{overflow:visible;border-left:0;border-top:1px solid var(--line)}
+}

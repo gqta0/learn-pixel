@@ -7,7 +7,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 ## Có gì trong này
 
 **Trình vẽ**
-- Khổ chữ nhật tuỳ ý tới 128×128, 12 dụng cụ (bút, xoá, tô loang, hút màu, đường, chữ nhật, ê-líp, dịch lớp, **tô khối theo dải**, **chọn vùng**), gương X/Y, lật ngang/dọc, **khoá alpha**.
+- Khổ chữ nhật tuỳ ý tới 256×256, 12 dụng cụ (bút, xoá, tô loang, hút màu, đường, chữ nhật, ê-líp, dịch lớp, **tô khối theo dải**, **chọn vùng**), gương X/Y, lật ngang/dọc, **khoá alpha**.
 - Nhiều lớp (đổi được thứ tự chồng), nhiều khung hình, **thời lượng riêng cho từng khung**, bóng khung trước và sau (onion skin), xem trước lặp 3×3 cho tile.
 - **Soi bản đồ hang động (Map Preview 24×16)**: cửa sổ xem trước và thử nghiệm bản đồ chuẩn theo đặc tả `genesis.tileset.preview.v1`, hỗ trợ autotile blob 47 ô + đủ bộ 56 ô, **ba chế độ Natural / Coverage 56 / Recipe** để vừa soi seam liền mạch vừa kiểm độ phủ từng slot, **khay chọn & vẽ trực tiếp các tile đang có** (Atlas, Thư viện bản vẽ, Canvas) bằng thao tác kéo rê chuột (Bresenham drag), **tạm giữ mẫu (Snapshot)**, **so sánh nhấp nháy A/B (Flicker compare - phím Space)**, **bóng ma đối chiếu (Ghost overlay)** và ghim tile đối chiếu.
 - Cắt / chép / dán vùng chọn giữa mọi lớp và khung; dán xong vùng chọn ôm đúng mảng vừa dán để kéo đi ngay, chưa chọn gì thì dán về đúng chỗ đã chép.
@@ -37,7 +37,7 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 **Lưu**
 - **Thư viện bản vẽ**: giữ nhiều bức cùng lúc, xem dạng lưới ảnh nhỏ, mở lại bất cứ lúc nào.
   Bấm *Dựng khung* ở một bài tập thì bức đang làm dở tự được cất vào đây thay vì bị xoá.
-- Tự lưu vào trình duyệt (localStorage, nén RLE) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập. Tiến độ lưu theo tên bài nên chèn bài mới không làm lệch.
+- Tự lưu vào trình duyệt (IndexedDB, nén RLE; trình duyệt chặn IndexedDB thì dùng localStorage) — đóng tab mở lại vẫn còn tranh, bảng màu và tiến độ bài tập. Tiến độ lưu theo tên bài nên chèn bài mới không làm lệch.
 - Xuất PNG / PNG spritesheet (1 hàng, 4 cột, 8 cột hoặc lưới vuông) / PNG bảng màu, lưu & mở dự án `.json` (nén RLE).
 
 ## Master Palette 92 — quy tắc dùng màu
@@ -68,13 +68,43 @@ Thẻ **File → 🎞 Nhập sprite sheet…**. Chọn một hay nhiều ảnh s
 1. Mỗi tấm một thẻ. App gợi ý **số khung** từ khổ ảnh và số cụm hình đếm được (★ là gợi ý
    khớp nhất); bạn chốt số thật. Dải ảnh gốc có kẻ vạch chia khung để nhìn là biết đúng chưa.
 2. **Pixel hoá** dùng chung cho cả lô: tỉ lệ (**Tự vừa khung** mặc định, 100% → 20%, hoặc tự nhập %), khung vẽ (vừa khít hoặc
-   32–128), **màu** (tự rút 8–48 màu từ ảnh, hoặc ép về một bảng bất kỳ: bảng đang dùng, bảng dựng sẵn,
+   32–256), **màu** (tự rút 8–48 màu từ ảnh, hoặc ép về một bảng bất kỳ: bảng đang dùng, bảng dựng sẵn,
    bảng của bạn). Ô xem trước chạy hoạt ảnh sau pixel hoá.
 3. **Nhập**: một tấm thì trải thẳng thành khung hình. Nhiều tấm thì chọn:
    - **Mỗi tấm một lớp, chung một bản vẽ** (mặc định): tấm đầu danh sách nằm lớp trên cùng, tên lớp là tên tấm.
      Hợp để vẽ lại style trên lớp riêng, so hai động tác, ghép part. Khung chung lấy cỡ lớn nhất (tấm nhỏ hơn
      đặt chân sát đáy, canh giữa); tấm ít khung hơn để trống phần đuôi — thẻ thông tin báo trước tấm nào.
    - **Mỗi tấm một bản vẽ** trong thư viện 📁, tấm đầu được mở ra.
+
+**Đồng bộ cỡ nhân vật** (nhiều tấm, mặc định): các sheet thường vẽ ở cỡ khác nhau — ví dụ tấm chạy
+nhân vật cao 190 px, tấm đánh chỉ 105 px — nên một tỉ lệ chung cho cả lô làm nhân vật ở động tác này
+to gấp đôi động tác kia. App đo chiều cao nhân vật từng tấm — trung vị chiều cao từng khung,
+chỉ tính các hàng "đặc" (≥ 25% hàng rộng nhất) nên sợi tóc, ruy băng, mép áo hất lên không kéo phép đo
+cao lên — rồi cho mỗi tấm một tỉ lệ riêng để nhân vật cao bằng nhau. Tư thế khác nhau (chạy chúi người,
+đứng thẳng) vẫn có thể lệch vài phần trăm; chỉnh bằng **Cỡ %** và so trên ô xem trước chồng mờ.
+Ô **px** đặt chiều cao đích; để trống thì lấy cỡ lớn nhất mà mọi tấm vẫn vừa khung. Không phóng quá
+100%: tấm có ảnh gốc nhỏ hơn cỡ đích sẽ báo thấp hơn. **Giữ tỉ lệ giữa các ảnh gốc** là cách cũ.
+Mỗi thẻ có **Cỡ %** (chỉnh tay khi tóc, vũ khí làm phép đo lệch) và **Lệch ←→ / ↑↓** (dời lớp cho
+chân, thân chồng khít). Ô xem trước bật **So cỡ: chồng mờ các tấm khác** để so trực tiếp.
+
+**Nhảy tại chỗ**: sheet nhảy hay vẽ sẵn đường bay (nhân vật bay lên trong ảnh), làm hộp bao cao thêm
+hàng chục pixel và kéo cả lô thu nhỏ để vừa khung. App tự nhận ra (đáy hình các khung chênh nhau quá
+15% chiều cao nhân vật) và bật **Nhảy tại chỗ**: mỗi khung được hạ cho chân chạm đáy, game platformer để
+engine lo độ cao. Bỏ tích nếu muốn giữ đường bay trong sprite.
+
+Thứ tự các tấm giữ đúng thứ tự chọn file (tấm đầu là lớp trên cùng và là mốc cỡ khi chọn tỉ lệ tay).
+
+**Căn ngang theo chân** (mặc định): chân mọi tấm luôn sát đáy, và tâm chân (trung bình các pixel
+trong dải đáy của từng khung) của mọi tấm nằm trên cùng một cột — vạch xanh trong ô xem trước. Vạt áo
+bay về sau hay vũ khí vươn ra trước làm hộp bao rộng lệch một phía, nên căn giữa hộp bao (cách cũ,
+vẫn chọn được) sẽ làm nhân vật nhảy sang ngang khi đổi động tác trong game. Khung chung vừa đủ chứa
+mọi tấm sau khi căn; nếu vượt 256 app báo trước.
+
+**Lớp có số khung khác nhau** (ví dụ chạy 8 khung, đánh 16 khung):
+- Dải khung làm mờ những khung lớp đang chọn không có hình, và ghi "Lớp “run”: 8/16 khung".
+- Nút **◧** cạnh ▶ chạy riêng lớp đang chọn, đúng số khung của lớp đó.
+- Thẻ File → Xuất: **Chỉ xuất lớp đang chọn** cho PNG spritesheet và Godot SpriteFrames ra đúng số
+  khung của lớp, tên file thêm tên lớp — mỗi động tác một sheet riêng cho engine.
 
 **Tự vừa khung** lấy tỉ lệ lớn nhất mà hình vẫn nằm trọn trong khung vẽ: chiều dài hơn chạm sát
 mép, chiều kia dư vài pixel vì thu đều hai chiều. Không phóng quá 100%. Nhập nhiều tấm thì cả lô
@@ -108,17 +138,73 @@ hoặc một lớp part đã có (ở khung đang mở). Thẻ Lớp có nhân b
 sheet vào thư mục đã khai rồi gán `.tres` cho `AnimatedSprite2D`. Thời lượng riêng từng khung,
 fps và lặp đều được ghi vào.
 
-Thư viện lưu trong localStorage (~5 MB): một hoạt ảnh 16 khung 64×64 chiếm chừng 220 KB,
-tức khoảng 20 hoạt ảnh; ở 128×128 thì ít hơn nhiều. Hết chỗ app sẽ báo và dừng nhập.
+Thư viện và bản tự lưu nằm trong **IndexedDB** (hạn mức hàng trăm MB đến vài GB tuỳ máy, thẻ Lưu tự
+động ghi số MB đang dùng). Lần đầu mở bản mới, dữ liệu cũ trong localStorage được chép sang rồi mới xoá.
+App xin trình duyệt giữ dữ liệu lâu dài; dù vậy vẫn nên **Xuất cả thư viện (ZIP)** định kỳ để sao lưu.
+
+### Đưa vào game: điểm chân, mốc, gói ZIP
+
+- **Thông số lúc nhập được lưu trong dự án**: mỗi lớp nhập từ sheet giữ tên sheet, số khung, hộp cắt,
+  tỉ lệ, Cỡ %, độ lệch, nhảy tại chỗ và **điểm chân** (pivot: x là cột chân, y là mặt đất, tính bằng
+  pixel trong khung). Canvas hiện **đường mặt đất** và dấu ▼ điểm chân (⋯ Thêm → ⊥ Mặt đất & điểm chân);
+  đổi khổ canvas thì điểm chân dời theo.
+- **Mốc có tên trên khung**: chạm giữ / chuột phải một khung → 🏷 Mốc khung này (rời đất, đỉnh, chạm đất,
+  ra đòn, trúng đòn, hồi chiêu, hoặc tự gõ). Mốc gắn với lớp đang chọn, hiện trên ảnh nhỏ của khung và
+  đi theo khung khi chèn, xoá, dời.
+- **⬇ Gói ZIP** (thẻ File → Xuất) và **⬇ Xuất cả thư viện (ZIP)** (thư viện 📁): sheet PNG ×1, Godot
+  SpriteFrames `.tres` và `manifest.json` — tên, khổ khung, số cột/hàng, số khung, fps, thời lượng từng
+  khung (ms), điểm chân, chiều cao nhân vật, mốc, thông số nhập. Ba cách chia:
+  - *hình đã ghép* — mỗi bản vẽ một sheet;
+  - *mỗi lớp một sheet, đủ khung* — bộ phận (đầu, thân, chân, áo choàng) ghép trong game, mọi sheet cùng khổ và số khung;
+  - *mỗi lớp một sheet, độ dài riêng* — mỗi lớp là một động tác (chạy 8 khung, đánh 16 khung).
+  Lớp ẩn không xuất. Trong Godot: `AnimatedSprite2D.centered = false`, `offset = (-pivot.x, -pivot.y)`.
+- **Bóng khung nối vòng** (⋯ Thêm, bật sẵn): khung đầu thấy bóng khung cuối và ngược lại, theo độ dài
+  của lớp đang chọn — để canh mối nối clip lặp.
+- **🎮 Cỡ trong game** (cạnh nút ▶): thu khung về chiều cao nhân vật trên màn hình (mặc định 56 px, có
+  làm mịn như game), đứng trên hàng gạch 16 px (ô đầu của atlas nếu có).
 
 ## Terrain 56 — template có hướng dẫn pixel
 
 Mở **Terrain** từ thanh Terrain trên tablet, tab File/Atlas hoặc tab Terrain trên thanh
 dưới mobile. Workbench trình bày 56 slot theo nhóm hình học; ID atlas vẫn giữ nguyên.
 
-Màn Terrain chia năm thẻ, mỗi thẻ một việc: **Bộ ô** (chọn ô, ô đang chọn luôn nằm ở
-thanh dưới cùng với nút vẽ) · **Chi tiết** (vai trò pixel, ô nối được; trên màn rộng nằm
-sẵn cạnh lưới) · **Tạo bộ** · **Soi lỗi** · **Xuất**.
+Màn Terrain chia sáu thẻ, mỗi thẻ một việc: **Bộ ô** (chọn ô, ô đang chọn luôn nằm ở
+thanh dưới cùng với nút vẽ) · **⚡ Tạo nhanh** · **Chi tiết** (vai trò pixel, ô nối được;
+trên màn rộng nằm sẵn cạnh lưới) · **Tạo bộ** · **Soi lỗi** · **Xuất**.
+
+### ⚡ Tạo nhanh từ công thức
+
+Dựng cả bộ 56 ô bằng thuật toán trong vài giây, đẹp sẵn để chỉnh tiếp bằng tay.
+Bên trái là bản đồ xem trước (**Bậc thang · Hang · Đảo bay · Cắt lớp 6 tầng**) có
+trang trí và nhân vật cao đúng ô **🎮 Cỡ trong game**. Bên phải làm theo ba bước:
+
+1. **Công thức** — Đá ấm · cỏ, Cuội rêu · rễ, Hang tinh thể lam, Băng tuyết, Đường làng
+   lát đá, Đá sâu · mạch lam, Linh thạch tím. Mỗi công thức là một bảng **màu theo vai
+   trò** (viền, nền, đá, mặt trên, lớp phủ, linh khí, rễ, hoa) chỉ lấy từ Master Palette.
+2. **Chỉnh** — 5 thanh chính: **Cỡ đá, Mật độ đá, Lớp phủ, Rủ xuống, Linh khí**; chọn kiểu
+   phủ (cỏ, rêu, tuyết, tinh thể) và kiểu rủ (dây rêu, nhũ băng). **🎲** đổi cả bộ, hoặc
+   chỉ một phần: Đá trong · Mặt trên · Phủ & rủ · Linh khí. **Nâng cao**: độ dày mặt trên,
+   vết nứt, sỏi, rễ, kiểu ruột (tảng đá trong nền tối / cuội xếp kín), kiểu mặt (cuội bo
+   tròn / đá phiến), hướng nắng, và đổi màu từng vai trò.
+3. **Đưa vào atlas** — chưa có bộ thì tạo bộ mới; có rồi thì ghi vào bộ đang mở.
+   **Ghi** cho chọn phạm vi (cả 56 ô, chỉ ô có mặt trên, chỉ 4 ô ruột, ô có trần, ô có
+   tường). **Giữ ô đã sửa tay** nhận ra ô nào anh vẽ lại sau lần tạo trước và không đè;
+   **🔒 Khoá** giữ thêm ô đang chọn ở thẻ Bộ ô. Ghi xong app soi lại mối nối của cả atlas.
+
+Vì sao ghép đâu cũng liền: phần ruột là một tấm vân **lặp vòng** đúng bằng một ô, nên đá
+được vắt qua mép ô mà không lộ lưới; mặt trên, tường và trần là dải cuội tính theo
+khoảng cách tới khoảng trống, hai ô kề nhau luôn thấy cùng một dải; biến thể giữ nguyên
+vành 1 px ngoài của ô gốc. Khổ 32 được vẽ thật ở 32 px, không phóng từ 16. Dưới bản đồ
+có các chip soi: màu chỉ từ Master, viền một màu, không pixel lơ lửng, 56 ô nối liền.
+
+**Sáu tầng đất**: tầng 1 là mặt đất, tầng 6 sâu nhất; mỗi tầng một công thức và bộ thông
+số riêng (bấm tầng để chỉnh). **↕ Nội suy tầng 2–5** cho các thanh trượt chuyển đều từ
+tầng 1 xuống tầng 6. Bản đồ **Cắt lớp 6 tầng** xếp chồng cả sáu để xem chỗ chuyển tầng.
+
+Xuất: **Trang trí rời** (cỏ, hoa, mầm, tinh thể, sỏi, nhũ… mỗi thứ một ô, kèm điểm neo
+đáy/đỉnh trong JSON) và **Cả 6 tầng (ZIP)**: mỗi tầng một thư mục `terrain56.png`,
+`trang-tri.png/.json`, `cong-thuc.json`; kèm mapping Godot, layout JSON, ảnh cắt lớp và
+`manifest.json`. Cài đặt của thẻ được nhớ trong trình duyệt.
 
 **Dáng mép**, chọn khi tạo bộ (không đổi được sau đó):
 
@@ -150,13 +236,16 @@ File xuất (JSON layout, Godot, pack, project) ghi `edgeShape` và gợi ý `co
    bấm **Tạo bộ 56 ô** lại và không dựng lại dữ liệu.
 4. Khi sửa tile, **🔒 Điểm nối: khoá** giữ nguyên các pixel connector đã có để tránh
    vô tình khoét thủng mép. Tắt khoá chỉ khi cần sửa connector rồi soi lại.
-5. **Soi mối nối** có 3 chế độ: alpha bắt buộc, màu/vân theo cùng vai trò, hoặc cả hai.
-   **◎ Ô cần sửa** nhảy thẳng đến cặp lỗi gần nhất; cảnh báo màu/vân là gợi ý mềm,
-   không ép style của artist.
+5. **Soi mối nối** có 3 chế độ: alpha bắt buộc, màu/vân, hoặc cả hai. Màu/vân so mỗi ô
+   với các ô **cùng dáng cạnh** (cùng dãy vai trò pixel dọc cạnh, cùng hướng nối): những ô
+   ấy phải vẽ cạnh đó y hệt nhau thì vân mới chạy liền dù ô nào đứng cạnh ô nào. Ô lệch số
+   đông bị báo. **◎ Ô cần sửa** nhảy thẳng đến cặp lỗi gần nhất; cảnh báo màu/vân là gợi ý
+   mềm, không ép style của artist.
 6. Xuất **PNG sạch**, **PNG chú thích**, **JSON layout**, **Godot mapping**,
    **terrain56-pack.json** và **terrain56-project.json**. Project JSON chứa atlas PNG,
    mapping và cấu hình link; mở lại sẽ tự trải đủ 56 frame theo slot `#00–#55`.
-   Chú thích/overlay không được ghi vào tranh.
+   Chú thích/overlay không được ghi vào tranh. PNG sạch chỉ xoá pixel ở hàng/cột biên của
+   vùng "để trong suốt" (chỗ mối nối alpha đòi trống); cỏ mọc, nhũ rủ trong phần thụt được giữ.
 
 Layout riêng, 8 cột × 7 hàng, đánh số từ 0:
 
@@ -180,7 +269,7 @@ topology độc lập. Không giả định cùng thứ tự với tileset của
 mapping theo mask. Tham khảo thuật toán gốc:
 [Autotile-47](https://github.com/Game-Development-Resources/Autotile-47).
 
-Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs`.
+Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs tests/pack.mjs tests/tilegen.mjs`.
 
 ## Đưa lên GitHub Pages
 

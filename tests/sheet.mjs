@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {countClusters, suggestCount, suggestGrid, unionBBox, medianCut, keyOutBackground,
-  pixelizeSheet, spriteFramesTres, sheetBox, fitRatio, pixelizeImage, stackSheets} from '../js/sheet.js';
+  pixelizeSheet, spriteFramesTres, sheetBox, fitRatio, pixelizeImage, stackSheets, spriteHeight, syncRatios, footCenter, stackLayout, verticalTravel, MAX_SIDE} from '../js/sheet.js';
 import {groupColors, pickColors} from '../js/palgroups.js';
 
 const rgba=(r,g,b,a=255)=>((a<<24)|(b<<16)|(g<<8)|r)>>>0;
@@ -102,10 +102,11 @@ test('fit ratio fills the canvas on the longer side, never overflows and never u
   assert.equal(fitRatio({w:120,h:123},64),64/123);
   assert.equal(fitRatio({w:200,h:50},64),64/200);
   assert.equal(fitRatio({w:40,h:30},64),1);                 // ảnh gốc nhỏ hơn khung: giữ nguyên, không phóng
-  assert.equal(fitRatio({w:300,h:200},0),128/300);           // không chọn khung thì chặn ở 128
+  assert.equal(fitRatio({w:300,h:200},0),MAX_SIDE/300);      // không chọn khung thì chặn ở trần khổ (256)
+  assert.equal(MAX_SIDE,256);
   const {px,w,h}=sheet(4,125,127);
   const box=sheetBox(px,w,h,4,1);
-  for(const side of [32,48,64,96,128]){
+  for(const side of [32,48,64,96,128,192]){
     const r=pixelizeSheet(px,w,h,{cols:4,rows:1,ratio:fitRatio(box,side),fit:true,canvas:side,colors:4});
     assert.deepEqual([r.w,r.h],[side,side]);
     assert.ok(r.sprite.w<=side && r.sprite.h<=side);
@@ -167,4 +168,72 @@ test('palette groups come from the token table; unknown colours fall into "Khác
   assert.deepEqual(groupColors(hexes,tokens).map(g=>[g.group,g.colors.length]),[['Fire',2],['Grass',1],['Khác',2]]);
   assert.deepEqual(pickColors(hexes,tokens,new Set(['Fire'])),['#00aa00','#ffffff','#123456']);
   assert.deepEqual(pickColors(hexes,tokens,['Fire','Grass','Khác']),[]);
+});
+
+test('character height is the median per-frame height, so one jumping frame does not skew it',()=>{
+  const cw=20,ch=40,cols=3,w=cw*cols,px=new Uint32Array(w*ch);
+  const fill=(c,y0,y1)=>{ for(let y=y0;y<=y1;y++) for(let x=5;x<12;x++) px[y*w+c*cw+x]=rgba(200,40,40); };
+  fill(0,10,39); fill(1,12,39); fill(2,0,20);                 // cao 30, 28, 21 (khung 3 đang nhảy)
+  assert.equal(spriteHeight(px,w,ch,cols,1),28);
+});
+test('sync ratios bring sheets drawn at different sizes to one character height, never upscaling',()=>{
+  // tấm chạy: nhân vật cao 190; tấm đánh: 105. Vừa khung giới hạn tấm chạy ở 25%, tấm đánh ở 40%.
+  const z=syncRatios([190,105],[1,1],[0.25,0.4]);
+  assert.equal(z.target,42);                                   // tấm đánh giới hạn: 105×0,4 = 42 < 190×0,25
+  assert.ok(Math.abs(190*z.ratios[0]-42)<1e-9 && Math.abs(105*z.ratios[1]-42)<1e-9);
+  // chỉnh tay +10% cho tấm thứ hai
+  const t=syncRatios([190,105],[1,1.1],[0.25,0.4]);
+  assert.ok(Math.abs(105*t.ratios[1]-t.target*1.1)<1e-9);
+  // cỡ đích nhập tay lớn hơn ảnh gốc của tấm nhỏ: giữ 100% và báo thấp hơn
+  const u=syncRatios([190,105],[1,1],[1,1],150);
+  assert.equal(u.ratios[1],1); assert.deepEqual(u.short,[false,true]);
+});
+test('stacked layers can be nudged by a few pixels; anything pushed outside the frame is clipped',()=>{
+  const r={w:2,h:2,palette:['#010203'],frames:[new Uint32Array(4).fill(rgba(1,2,3))]};
+  const big={w:4,h:4,palette:[],frames:[new Uint32Array(16)]};
+  const st=stackSheets([{name:'a',r,dx:1,dy:-1},{name:'b',r:big}]);
+  const a=st.frames[0][1];                                     // lớp trên = tấm đầu
+  // mặc định đặt ở x=1..2, y=2..3; lệch (1,-1) → x=2..3, y=1..2
+  assert.notEqual(a[1*4+2],0); assert.notEqual(a[2*4+3],0); assert.equal(a[3*4+1],0);
+  const off=stackSheets([{name:'a',r,dx:9},{name:'b',r:big}]);
+  assert.ok(off.frames[0][1].every(v=>v===0));
+});
+
+test('layers line up on the feet, not on the bounding box, when a cape trails behind',()=>{
+  // tấm A: thân + chân ở x 6..9, vạt áo kéo dài sang trái tới x 0 (chỉ ở nửa trên) → hộp bao lệch trái
+  const mk=(w,h,body,cape)=>{ const f=new Uint32Array(w*h);
+    for(let y=0;y<h;y++) for(let x=body[0];x<=body[1];x++) f[y*w+x]=rgba(9,9,9);
+    if(cape) for(let y=1;y<4;y++) for(let x=0;x<body[0];x++) f[y*w+x]=rgba(200,200,200);
+    return {w,h,sprite:{w,h},palette:[],frames:[f]}; };
+  const A=mk(10,10,[6,9],true), B=mk(4,10,[0,3],false);
+  assert.equal(footCenter(A),8); assert.equal(footCenter(B),2);
+  const feet=stackLayout([{r:A},{r:B}],'feet');
+  assert.equal(feet.pos[0].ox+8, feet.pos[1].ox+2);           // hai tâm chân cùng một cột
+  assert.equal(feet.W,10);
+  const box=stackLayout([{r:A},{r:B}],'box');
+  assert.notEqual(box.pos[0].ox+8, box.pos[1].ox+2);           // căn hộp bao thì lệch
+  const st=stackSheets([{name:'A',r:A},{name:'B',r:B}]);      // mặc định căn theo chân
+  assert.notEqual(st.frames[0][0][6],0); assert.equal(st.frames[0][0][5],0);
+});
+
+test('height ignores thin strands (hair, ribbons) above the body',()=>{
+  const cw=20,ch=40,w=cw,px=new Uint32Array(w*ch);
+  for(let y=10;y<40;y++) for(let x=4;x<14;x++) px[y*w+x]=rgba(30,30,30);   // thân 10 px rộng, cao 30
+  for(let y=0;y<10;y++) px[y*w+8]=rgba(200,0,0);                          // sợi ruy băng 1 px dựng lên
+  assert.equal(spriteHeight(px,w,ch,1,1),30);
+  assert.equal(spriteHeight(px,w,ch,1,1,0),40);                           // dense=0: đo cả hộp bao
+});
+test('a jump sheet with the arc drawn in can be pixelized in place: every frame lands on the floor',()=>{
+  // 3 khung 20×40; khối 6×10 ở đáy, giữa không trung, rồi lại đáy
+  const cw=20,ch=40,cols=3,w=cw*cols,px=new Uint32Array(w*ch);
+  const put=(c,y0)=>{ for(let y=y0;y<y0+10;y++) for(let x=7;x<13;x++) px[y*w+c*cw+x]=rgba(30,30,200); };
+  put(0,30); put(1,5); put(2,30);
+  assert.equal(verticalTravel(px,w,ch,cols,1),25);
+  assert.equal(sheetBox(px,w,ch,cols,1).h,35);                             // giữ đường bay: cao 35
+  assert.equal(sheetBox(px,w,ch,cols,1,true).h,10);                        // tại chỗ: chỉ cao bằng nhân vật
+  const r=pixelizeSheet(px,w,ch,{cols,rows:1,ratio:1,tight:true,inPlace:true,palette:['#1e1ec8']});
+  assert.equal(r.h,10);
+  r.frames.forEach(f=>assert.ok(f.every(v=>v!==0)));                       // mọi khung lấp đầy khung 6×10
+  const keep=pixelizeSheet(px,w,ch,{cols,rows:1,ratio:1,tight:true,palette:['#1e1ec8']});
+  assert.equal(keep.h,35); assert.equal(keep.frames[1][0],rgba(0x1e,0x1e,0xc8)); assert.equal(keep.frames[0][0],0);
 });

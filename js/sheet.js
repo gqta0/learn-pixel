@@ -2,7 +2,10 @@
    Thuần tính toán trên mảng pixel (Uint32Array ABGR) — không DOM, nên kiểm thử được. */
 
 const A=p=>p>>>24, R=p=>p&255, G=p=>(p>>>8)&255, B=p=>(p>>>16)&255;
-const OPAQUE=128;                                   // alpha từ ngưỡng này trở lên coi là có pixel
+const OPAQUE=128;
+/* Trần khổ canvas. Bảy clip nhân vật ~128 px cần khung cao ~176 (tóc, áo bay khi nhảy), nên lấy 256.
+   Lưu nằm trong IndexedDB nên khổ to không còn vướng hạn mức ~5 triệu ký tự của localStorage. */
+export const MAX_SIDE=256;                                   // alpha từ ngưỡng này trở lên coi là có pixel
 
 /* Sheet nền đặc (không trong suốt): nếu bốn góc cùng một màu đặc thì coi màu đó là nền và khoét đi. */
 export function keyOutBackground(px,w,h,tol=24){
@@ -68,16 +71,83 @@ export function unionBBox(px,w,cols,rows,cw,ch){
   return x1<0 ? {x:0,y:0,w:cw,h:ch} : {x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
 }
 
-/* hộp bao hình của một tấm sau khi chia khung — đầu vào để tính tỉ lệ vừa khung */
-export function sheetBox(src,w,h,cols,rows){
+/* Chiều cao nhân vật của một tấm: trung vị chiều cao TỪNG khung (không phải hộp bao chung), và chỉ
+   tính những hàng "đặc" — hàng có số pixel ≥ dense × hàng rộng nhất của khung đó. Sợi tóc, dải ruy
+   băng, mép áo hất lên chỉ là vài pixel mỗi hàng nên không kéo phép đo cao lên: hai tấm vẽ cùng
+   cỡ (đứng đánh, nhảy) đo ra gần bằng nhau. dense=0 là đo cả hộp bao như cũ. */
+export function spriteHeight(src,w,h,cols,rows,dense=0.25){
   cols=Math.max(1,cols|0); rows=Math.max(1,rows|0);
-  return unionBBox(keyOutBackground(src,w,h),w,cols,rows,Math.floor(w/cols),Math.floor(h/rows));
+  const px=keyOutBackground(src,w,h), cw=Math.floor(w/cols), ch=Math.floor(h/rows), hs=[];
+  const cnt=new Uint16Array(ch);
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    let mx=0;
+    for(let y=0;y<ch;y++){
+      let n=0;
+      for(let x=0;x<cw;x++) if(A(px[(r*ch+y)*w+c*cw+x])>=OPAQUE) n++;
+      cnt[y]=n; if(n>mx) mx=n;
+    }
+    if(!mx) continue;
+    let y0=-1,y1=-1;
+    for(let y=0;y<ch;y++) if(cnt[y] && cnt[y]>=mx*dense){ if(y0<0) y0=y; y1=y; }
+    hs.push(y1-y0+1);
+  }
+  if(!hs.length) return 0;
+  hs.sort((a,b)=>a-b);
+  return hs[hs.length>>1];
+}
+/* Đáy hình của từng khung (toạ độ trong ô), -1 nếu khung trống. */
+function frameBottoms(px,w,cols,rows,cw,ch){
+  const out=[];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    let bot=-1;
+    for(let y=ch-1;y>=0 && bot<0;y--) for(let x=0;x<cw;x++) if(A(px[(r*ch+y)*w+c*cw+x])>=OPAQUE){ bot=y; break; }
+    out.push(bot);
+  }
+  return out;
+}
+/* Độ cao nhân vật bay lên trong ảnh: chênh lệch đáy hình giữa khung thấp nhất và cao nhất.
+   Sheet nhảy thường vẽ sẵn đường bay; game platformer thì engine lo độ cao, sprite nên nhảy tại chỗ. */
+export function verticalTravel(src,w,h,cols,rows){
+  cols=Math.max(1,cols|0); rows=Math.max(1,rows|0);
+  const px=keyOutBackground(src,w,h), b=frameBottoms(px,w,cols,rows,Math.floor(w/cols),Math.floor(h/rows)).filter(v=>v>=0);
+  return b.length ? Math.max(...b)-Math.min(...b) : 0;
+}
+/* Hộp bao khi nhảy tại chỗ: mỗi khung được hạ xuống cho đáy hình chạm đáy chung, rồi mới gộp. */
+function inPlaceBox(px,w,cols,rows,cw,ch){
+  const bots=frameBottoms(px,w,cols,rows,cw,ch), B=Math.max(...bots);
+  const u=unionBBox(px,w,cols,rows,cw,ch);
+  let top=B;
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const f=r*cols+c; if(bots[f]<0) continue;
+    for(let y=0;y<ch;y++){
+      let any=false; for(let x=0;x<cw && !any;x++) any=A(px[(r*ch+y)*w+c*cw+x])>=OPAQUE;
+      if(any){ top=Math.min(top,y+B-bots[f]); break; }
+    }
+  }
+  return {box:B<0?u:{x:u.x,y:top,w:u.w,h:B-top+1}, shifts:bots.map(b=>b<0?0:B-b)};
+}
+/* Tỉ lệ cho từng tấm để mọi nhân vật cao bằng nhau. heights: chiều cao gốc từng tấm,
+   adj: hệ số chỉnh tay từng tấm (1 = không chỉnh), fits: tỉ lệ tối đa để tấm đó vừa khung.
+   target>0: chiều cao đích người dùng nhập; không thì lấy cỡ lớn nhất mà mọi tấm đều vừa khung.
+   Không phóng quá 100%: tấm nào phải phóng to mới đạt cỡ đích thì giữ 100% và báo thấp hơn. */
+export function syncRatios(heights,adj,fits,target=0){
+  const T=target>0 ? target :
+    Math.floor(Math.min(...heights.map((h,i)=>h>0 ? Math.min(fits[i],1)*h/adj[i] : Infinity)));
+  const ratios=heights.map((h,i)=>h>0 ? Math.min(1,T*adj[i]/h) : 1);
+  return {target:T, ratios, short:heights.map((h,i)=>h>0 && T*adj[i]/h>1)};
+}
+
+/* hộp bao hình của một tấm sau khi chia khung — đầu vào để tính tỉ lệ vừa khung */
+export function sheetBox(src,w,h,cols,rows,inPlace=false){
+  cols=Math.max(1,cols|0); rows=Math.max(1,rows|0);
+  const px=keyOutBackground(src,w,h), cw=Math.floor(w/cols), ch=Math.floor(h/rows);
+  return inPlace ? inPlaceBox(px,w,cols,rows,cw,ch).box : unionBBox(px,w,cols,rows,cw,ch);
 }
 /* Tỉ lệ lớn nhất để hình nằm trọn trong khung vuông cạnh `side` (0 = không giới hạn khung,
-   chỉ chặn ở 128). Không phóng quá 100%: phóng to ảnh rồi mới pixel hoá chỉ ra pixel to nhỏ
+   chỉ chặn ở MAX_SIDE). Không phóng quá 100%: phóng to ảnh rồi mới pixel hoá chỉ ra pixel to nhỏ
    không đều. Thu đều hai chiều nên chiều dài hơn chạm sát mép, chiều kia có thể dư vài pixel. */
 export function fitRatio(box,side){
-  const limit=side>0?side:128;
+  const limit=side>0?side:MAX_SIDE;
   return Math.min(1, limit/box.w, limit/box.h);
 }
 
@@ -148,7 +218,9 @@ export function pixelizeSheet(src,w,h,opt){
   const px=keyOutBackground(src,w,h);
   const cols=Math.max(1,opt.cols|0), rows=Math.max(1,opt.rows|0);
   const cw=Math.floor(w/cols), ch=Math.floor(h/rows);
-  const box=unionBBox(px,w,cols,rows,cw,ch);
+  // inPlace: hạ từng khung cho chân chạm đáy chung — bỏ đường bay vẽ sẵn trong sheet nhảy
+  const ip=opt.inPlace ? inPlaceBox(px,w,cols,rows,cw,ch) : null;
+  const box=ip ? ip.box : unionBBox(px,w,cols,rows,cw,ch);
   const ratio=Math.min(1,Math.max(0.01,opt.ratio||1));
   const side=opt.canvas|0;
   const cap=v=>opt.fit&&side ? Math.min(side,v) : v;      // tỉ lệ tự vừa: sai số làm tròn không được tràn khung
@@ -164,7 +236,7 @@ export function pixelizeSheet(src,w,h,opt){
   const votes=new Uint16Array(palette.length);
   const frames=[];
   for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
-    const out=new Uint32Array(W*H);
+    const out=new Uint32Array(W*H), shift=ip ? ip.shifts[r*cols+c] : 0;
     let any=false, minX=W, maxX=-1;
     for(let y=0;y<dh;y++){
       const sy0=box.y+Math.floor(y*box.h/dh), sy1=Math.max(sy0+1,box.y+Math.floor((y+1)*box.h/dh));
@@ -173,7 +245,9 @@ export function pixelizeSheet(src,w,h,opt){
         votes.fill(0);
         let solid=0,total=0;
         for(let sy=sy0;sy<sy1;sy++) for(let sx=sx0;sx<sx1;sx++){
-          const p=px[(r*ch+sy)*w+c*cw+sx]; total++;
+          total++;
+          const yy=sy-shift; if(yy<0||yy>=ch) continue;   // khung đã hạ xuống: phần trên rơi ra ngoài ô thì trống
+          const p=px[(r*ch+yy)*w+c*cw+sx];
           if(A(p)>=OPAQUE){ solid++; votes[near(p)]++; }
         }
         if(solid*2<total) continue;                 // quá nửa ô nguồn trong suốt thì để trong suốt
@@ -236,19 +310,50 @@ export function pixelizeImage(src,w,h,W,H,palette){
 }
 
 /* ---------------- nhiều sheet → nhiều lớp của một bản vẽ ----------------
-   items: [{name, r}] với r là kết quả pixelizeSheet. Tấm đầu danh sách nằm ở lớp TRÊN CÙNG,
-   đúng thứ tự người dùng nhìn thấy trong danh sách lớp. Khung chung lấy cỡ lớn nhất; tấm nhỏ hơn
-   đặt chân sát đáy, canh giữa — cùng mốc với pixelizeSheet. Tấm ít khung hơn để trống phần đuôi. */
-export function stackSheets(items){
+   Tâm chân của một tấm đã pixel hoá: trung bình x của các pixel nằm trong dải đáy (12% chiều cao
+   hình, tối thiểu 2 hàng) tính từ pixel thấp nhất của TỪNG khung, gộp mọi khung. Vạt áo bay về sau
+   hay vũ khí vươn ra trước làm hộp bao rộng lệch một phía, nhưng chân thì vẫn ở dưới thân —
+   căn theo chân thì các động tác đứng đúng một chỗ khi đổi qua lại trong game. */
+export function footCenter(r){
+  const band=Math.max(2,Math.round((r.sprite?.h||r.h)*0.12));
+  let sx=0,n=0;
+  for(const f of r.frames){
+    let bot=-1;
+    for(let y=r.h-1;y>=0 && bot<0;y--) for(let x=0;x<r.w;x++) if(f[y*r.w+x]){ bot=y; break; }
+    for(let y=Math.max(0,bot-band+1);bot>=0 && y<=bot;y++) for(let x=0;x<r.w;x++) if(f[y*r.w+x]){ sx+=x+0.5; n++; }
+  }
+  return n ? sx/n : r.w/2;
+}
+/* Vị trí từng tấm trong khung chung. align 'feet': mọi tấm có tâm chân trùng một cột; 'box': canh
+   giữa hộp bao (cách cũ). Chân luôn sát đáy. dx/dy là chỉnh tay. Khung chung vừa đủ chứa mọi tấm. */
+export function stackLayout(items,align='feet'){
+  const H=Math.max(...items.map(it=>it.r.h));
+  let pos;
+  if(align==='feet'){
+    const fx=items.map(it=>footCenter(it.r)), left=Math.max(...fx);
+    pos=items.map((it,i)=>({ox:Math.round(left-fx[i]),oy:H-it.r.h}));
+  }else{
+    const W0=Math.max(...items.map(it=>it.r.w));
+    pos=items.map(it=>({ox:Math.floor((W0-it.r.w)/2),oy:H-it.r.h}));
+  }
+  const W=Math.max(...items.map((it,i)=>pos[i].ox+it.r.w));
+  return {W,H,pos:pos.map((p,i)=>({ox:p.ox+(items[i].dx|0),oy:p.oy+(items[i].dy|0)}))};
+}
+/* items: [{name, r, dx, dy}] với r là kết quả pixelizeSheet, dx/dy là độ lệch chỉnh tay (pixel,
+   phần ra ngoài khung bị cắt). Tấm đầu danh sách nằm ở lớp TRÊN CÙNG, đúng thứ tự người dùng nhìn
+   thấy trong danh sách lớp. Tấm ít khung hơn để trống phần đuôi. */
+export function stackSheets(items,align='feet'){
   if(!items.length) throw new Error('chưa có tấm nào');
-  const W=Math.max(...items.map(it=>it.r.w)), H=Math.max(...items.map(it=>it.r.h));
+  const {W,H,pos}=stackLayout(items,align);
   const count=Math.max(...items.map(it=>it.r.frames.length));
-  const order=items.slice().reverse();                       // lớp 0 là lớp dưới cùng
-  const frames=Array.from({length:count},(_,f)=>order.map(({r})=>{
+  const order=items.map((it,i)=>({...it,p:pos[i]})).reverse();   // lớp 0 là lớp dưới cùng
+  const frames=Array.from({length:count},(_,f)=>order.map(({r,p})=>{
     const out=new Uint32Array(W*H), src=r.frames[f];
     if(!src) return out;
-    const ox=Math.floor((W-r.w)/2), oy=H-r.h;
-    for(let y=0;y<r.h;y++) out.set(src.subarray(y*r.w,(y+1)*r.w),(oy+y)*W+ox);
+    for(let y=0;y<r.h;y++){
+      const ty=p.oy+y; if(ty<0||ty>=H) continue;
+      for(let x=0;x<r.w;x++){ const tx=p.ox+x, v=src[y*r.w+x]; if(v && tx>=0 && tx<W) out[ty*W+tx]=v; }
+    }
     return out;
   }));
   const palette=[...new Set(items.flatMap(it=>it.r.palette))];

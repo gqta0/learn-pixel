@@ -432,6 +432,37 @@ function applyGenerated(list){
   terrainDirty=false;
   paintThumbs();render();syncTerrainBar();paint();
 }
+/* ---- cho bộ Tạo nhanh (tilegenview.js) ---- */
+export const terrainTarget=()=>terrainAtlas();
+export const selectedTerrainSlot=()=>selected;
+export const showTerrainPane=name=>setPane(name);
+export const terrainFramesLinked=()=>{ const a=terrainAtlas(); return !!(a && doc.terrainLink?.atlasId===a.id && linkedTerrainFrameIndex(0)>=0); };
+/* ghi các ô vừa sinh vào atlas đang mở (list: [[slot, Uint32Array]]) — ô đang vẽ dở được ghi trước */
+export function writeGeneratedTiles(list,linkFrames=false){
+  const a=terrainAtlas(); if(!a || !list.length) return false;
+  saveCurrentTerrainTile();
+  applyGenerated(list);
+  if(linkFrames && !terrainFramesLinked()){
+    if(!hasDocumentArt() || confirm('Trải 56 ô thành 56 frame sẽ thay các frame hiện tại. Hãy lưu dự án trước nếu cần giữ. Tiếp tục?')) linkFramesToTerrain(a.tw);
+  }
+  return true;
+}
+/* dựng atlas mới từ 56 ô vừa sinh */
+export function createTerrainFromTiles(n,shapeName,pixels,linkFrames){
+  if(linkFrames && hasDocumentArt() && !confirm('Trải 56 ô thành 56 frame sẽ thay bộ frame hiện tại. Hãy lưu dự án trước nếu cần giữ. Tiếp tục?')) return false;
+  const cv=document.createElement('canvas');cv.width=n*8;cv.height=n*7;
+  const g=cv.getContext('2d');
+  TERRAIN_TILES.forEach(t=>g.drawImage(canvas(pixels[t.slot],n),(t.slot%8)*n,Math.floor(t.slot/8)*n));
+  if(!createTerrainAtlas(cv,n,false,shapeName)) return false;
+  if(linkFrames) linkFramesToTerrain(n); else doc.terrainLink=null;
+  seamIssues=[];inspectedPair=null;
+  $('#terrainSeams').textContent='Bộ vừa tạo nhanh từ công thức. Bấm “Soi mối nối” để kiểm lại sau khi sửa tay.';
+  syncTerrainBar();render();paint();
+  return true;
+}
+/* tranh hiện có của 56 ô trong atlas đang mở */
+export const terrainTilePixels=()=>terrainAtlas()?pixelsOf(tiles()):null;
+
 function composeFromCore(){
   if(!terrainAtlas()) return alert('Hãy tạo bộ 56 ô trước.');
   if(!confirm('Ghép 34 ô từ 13 ô lõi?\n\n34 ô không phải lõi sẽ bị ghi đè bằng bản ghép. 13 ô lõi và 9 biến thể giữ nguyên.')) return;
@@ -573,9 +604,14 @@ function cleanTerrainCanvas(){
   cv.width=n*8;cv.height=n*7;
   const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,cv.width,cv.height);g.drawImage(source,0,0);
   const im=g.getImageData(0,0,cv.width,cv.height),data=im.data;
+  // Chỉ dọn pixel "để trong suốt" nằm ở hàng/cột biên ô — đó là chỗ mối nối alpha đòi trống.
+  // Phần thụt bên trong (cỏ mọc lên, nhũ rủ xuống) là chỗ dành để vẽ, không được xoá.
   TERRAIN_TILES.forEach(t=>{
     const roles=tileRoles(t.slot,n,shape()),ox=(t.slot%8)*n,oy=Math.floor(t.slot/8)*n;
-    for(let i=0;i<roles.length;i++) if(!roles[i]) data[((oy+Math.floor(i/n))*cv.width+ox+i%n)*4+3]=0;
+    for(let i=0;i<roles.length;i++){
+      const x=i%n,y=Math.floor(i/n);
+      if(!roles[i] && (x===0||y===0||x===n-1||y===n-1)) data[((oy+y)*cv.width+ox+x)*4+3]=0;
+    }
   });
   g.putImageData(im,0,0);
   return cv;
@@ -773,6 +809,8 @@ export function bindTerrain(){
   window.addEventListener('keydown', e=>{
     if(document.body.dataset.view==='terrain'){
       if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA') return;
+      // phím điều hướng ô chỉ dành cho thẻ Bộ ô / Chi tiết; đang đứng trên một nút thì Enter/Space là bấm nút đó
+      if(!['tiles','detail'].includes($('#terrainWrap')?.dataset.tpane) || e.target.closest?.('button,summary,a')) return;
       if(e.key==='ArrowRight'){ e.preventDefault(); select((selected+1)%56); }
       else if(e.key==='ArrowLeft'){ e.preventDefault(); select((selected+55)%56); }
       else if(e.key==='ArrowDown'){ e.preventDefault(); select((selected+8)%56); }

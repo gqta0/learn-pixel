@@ -1,11 +1,11 @@
 /* Hoàn tác / làm lại: chụp lại toàn bộ tài liệu, giữ 80 bước gần nhất. */
-import { doc, view } from './state.js';
+import { doc, view, cloneLayer } from './state.js';
 import { syncAll } from './ui.js';
 
 /* Mỗi bước hoàn tác là một bản chụp cả tài liệu, nên phải chặn theo DUNG LƯỢNG
    chứ không theo số bước: 128×128 với 6 lớp × 8 khung là 3 MB một bản chụp,
    80 bước sẽ thành 250 MB. Khổ nhỏ thì vẫn đủ 80 bước như cũ. */
-const MAX_STEPS=80, MAX_BYTES=64*1024*1024;
+const MAX_STEPS=80, MAX_BYTES=160*1024*1024;      // khổ 256: 3 lớp × 16 khung ≈ 12 MB một bản chụp, vẫn giữ được ~13 bước
 const undoStack=[], redoStack=[];
 let bytes=0;
 const sizeOf = s => s.frames.length * s.layers.length * s.w * s.h * 4;
@@ -16,21 +16,23 @@ function trim(){
 export function captureUndo(){
   return {
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
-    layers: doc.layers.map(l=>({name:l.name, vis:l.vis})),
+    layers: doc.layers.map(l=>cloneLayer(l)),
     frames: doc.frames.map(f=>f.map(d=>d.slice())),
     dur: doc.dur.slice(), sel:view.sel ? {...view.sel} : null,
     atlasEdit:doc.atlasEdit ? {...doc.atlasEdit} : null,
-    terrainLink:doc.terrainLink ? {...doc.terrainLink,slots:doc.terrainLink.slots?.slice()||[]} : null
+    terrainLink:doc.terrainLink ? {...doc.terrainLink,slots:doc.terrainLink.slots?.slice()||[]} : null,
+    anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0     // đổi khổ dời điểm chân: hoàn tác phải trả về cùng lúc
   };
 }
 function restore(s){
   doc.w=s.w; doc.h=s.h; doc.af=s.af; doc.al=s.al;
-  doc.layers=s.layers.map(l=>({name:l.name,vis:l.vis}));
+  doc.layers=s.layers.map(l=>cloneLayer(l));
   doc.frames=s.frames.map(f=>f.map(d=>d.slice()));
   doc.dur=(s.dur||[]).slice();
   view.sel=s.sel ? {...s.sel} : null;
   doc.atlasEdit=s.atlasEdit ? {...s.atlasEdit} : null;
   doc.terrainLink=s.terrainLink ? {...s.terrainLink,slots:s.terrainLink.slots?.slice()||[]} : null;
+  doc.anchor=s.anchor ? {...s.anchor} : null; doc.charH=s.charH||0;
 }
 export function pushUndo(s=captureUndo()){
   undoStack.push(s); bytes+=sizeOf(s);

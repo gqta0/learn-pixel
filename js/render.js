@@ -1,7 +1,7 @@
 /* Vẽ tài liệu lên canvas chính: ảnh mẫu, bóng khung trước, lưới, ô ngắm, trục giữa. */
 import { $ } from './dom.js';
 import { doc, view, TH } from './state.js';
-import { buf, compositeToBuf, inside, clampSel } from './raster.js';
+import { buf, compositeToBuf, inside, clampSel, layerLength } from './raster.js';
 import { autosave } from './storage.js';
 import { paintTerrainGuide } from './terrain.js';
 
@@ -49,8 +49,15 @@ export function render(){
   }
   // ponytail: hai khung kề chỉ khác nhau độ mờ, chưa nhuộm màu — đủ để canh vòng lặp
   if(view.onion){
-    if(doc.af>0){ compositeToBuf(doc.af-1); ctx.globalAlpha=0.30; ctx.drawImage(buf,0,0,W,H); }
-    if(doc.af<doc.frames.length-1){ compositeToBuf(doc.af+1); ctx.globalAlpha=0.16; ctx.drawImage(buf,0,0,W,H); }
+    // nối vòng: khung đầu thấy bóng khung cuối và ngược lại — để canh mối nối của clip lặp (chạy, bay).
+    // Lớp đang chọn ngắn hơn dải khung thì "khung cuối" là khung cuối của lớp đó.
+    const n=doc.frames.length, len=layerLength(doc.al);
+    const last = doc.layers.length>1 && len>1 && len<n && doc.af<len ? len-1 : n-1;
+    const loop = view.onionWrap && last>=2;
+    const prev = doc.af>0 ? doc.af-1 : (loop ? last : -1);
+    const next = doc.af<last ? doc.af+1 : (loop ? 0 : -1);
+    if(prev>=0 && prev!==doc.af){ compositeToBuf(prev); ctx.globalAlpha=0.30; ctx.drawImage(buf,0,0,W,H); }
+    if(next>=0 && next!==doc.af && next!==prev){ compositeToBuf(next); ctx.globalAlpha=0.16; ctx.drawImage(buf,0,0,W,H); }
     ctx.globalAlpha=1;
   }
   compositeToBuf(doc.af);
@@ -73,6 +80,18 @@ export function render(){
     for(let x=gs;x<doc.w;x+=gs){ ctx.moveTo(x*z+lw/2,0); ctx.lineTo(x*z+lw/2,H); }
     for(let y=gs;y<doc.h;y+=gs){ ctx.moveTo(0,y*z+lw/2); ctx.lineTo(W,y*z+lw/2); }
     ctx.stroke();
+  }
+  // mặt đất và điểm chân lúc nhập sheet: vẽ thêm vẫn đúng chỗ đứng, game đặt nhân vật theo điểm này
+  const pv=doc.layers[doc.al]?.src?.pivot || doc.anchor;
+  if(view.showGround && pv){
+    // chân thường nằm ngay hàng đáy: vẽ đường và dấu phía TRÊN mặt đất để không bị mép canvas cắt mất
+    const t=2*lw, gy=Math.min(H,Math.round(pv.y*z))-t/2, gx=Math.round(pv.x*z);
+    ctx.strokeStyle='rgba(255,180,63,0.9)'; ctx.lineWidth=t;
+    ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke();
+    ctx.lineWidth=lw; ctx.setLineDash([3*lw,3*lw]); ctx.beginPath(); ctx.moveTo(gx,gy); ctx.lineTo(gx,Math.max(0,gy-6*z)); ctx.stroke(); ctx.setLineDash([]);
+    const r=Math.max(4*lw,Math.min(z*0.8,9*lw));
+    ctx.fillStyle='rgba(255,180,63,0.95)';
+    ctx.beginPath(); ctx.moveTo(gx-r,gy-r*1.6); ctx.lineTo(gx+r,gy-r*1.6); ctx.lineTo(gx,gy); ctx.closePath(); ctx.fill();
   }
   if(view.hover && inside(view.hover.x,view.hover.y)){
     const bs=view.brushEff||view.brush, o=Math.floor((bs-1)/2);
