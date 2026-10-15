@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {TERRAIN_TILES, checkSeams, checkColorSeams, edgeIndex, terrainPixels, variantBase} from '../js/terrain.js';
+import {TERRAIN_TILES, checkSeams, checkColorSeams, edgeIndex, terrainPixels, variantBase, maskToCr31} from '../js/terrain.js';
 import {GEN_RECIPES, GEN_RECIPE_ORDER, GEN_STRATA, GEN_PARAMS, GEN_ROLE_KEYS, makeSpec, lerpParams,
   generateTerrain, generateTerrainRoles, generateProps, colorize, previewLayout, renderPreview, heroSprite,
   lintTerrain, hexToRgba} from '../js/tilegen.js';
@@ -29,6 +29,18 @@ test('every recipe has a Genesis and a Master colour set, each colour (and previ
   for(const s of GEN_STRATA) assert.ok(GEN_RECIPES[s.recipe],s.title);
 });
 
+test('generated tiles show their cr31 blob index: land exactly at the yellow edges/corners, centre always land',()=>{
+  const W={N:1,NE:2,E:4,SE:8,S:16,SW:32,W:64,NW:128};
+  for(const id of GEN_RECIPE_ORDER) for(const n of [16,32]){
+    const tiles=generateTerrainRoles(makeSpec(id,{seed:11}),n,'inset');
+    for(let slot=0;slot<56;slot++){
+      const i=maskToCr31(TERRAIN_TILES[slot].mask), R=tiles[slot], a=(x,y)=>R[y*n+x]!==0, h=n>>1, e=n-1;
+      const got={N:a(h,0),NE:a(e,0),E:a(e,h),SE:a(e,e),S:a(h,e),SW:a(0,e),W:a(0,h),NW:a(0,0)};
+      for(const k in W) assert.equal(got[k],!!(i&W[k]),`${id} ${n}px slot ${slot} cr31 ${i} ${k}`);
+      assert.ok(a(h,h),`${id} ${n}px slot ${slot} tâm`);
+    }
+  }
+});
 test('every recipe tiles seamlessly at 16 and 32 px, both edge shapes, with and without a crust, in both palettes',()=>{
   for(const id of GEN_RECIPE_ORDER) for(const n of [16,32]) for(const shape of ['inset','flush']) for(const crustType of [undefined,'none']){
     for(const [seed,palette] of [[7,'genesis'],[1701,'master']]){
