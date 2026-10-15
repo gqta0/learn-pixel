@@ -7,10 +7,10 @@ import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
 import { sanitizeFilename } from './manifest.js';
 import { PALETTES, COLOR_TOKENS, MASTER_NAME, DEFAULT_PAL_NAME } from './palette.js';
-import { TERRAIN_TILES, terrainManifest, terrainGodotManifest, terrainGodotTres, checkSeams, checkColorSeams } from './terrain.js';
+import { TERRAIN_TILES, terrainManifest, terrainGodotManifest, terrainGodotTres, terrainLayoutJson, checkSeams, checkColorSeams } from './terrain.js';
 import { GEN_RECIPES, GEN_RECIPE_ORDER, GEN_PARAMS, GEN_CRUSTS, GEN_DRIPS, GEN_INTERIORS, GEN_CAPS, GEN_SEED_GROUPS,
   GEN_STRATA, GEN_ROLE_GROUPS, GEN_ROLE_LABELS, GEN_PALETTES, PREVIEW_LAYOUTS,
-  makeSpec, makeSeeds, randomSeed, lerpParams, generateTerrainRoles, colorize, generateProps, previewLayout,
+  makeSpec, makeSeeds, randomSeed, lerpParams, generateTerrainRoles, colorize, generateProps, generateMacro, previewLayout,
   renderPreview, lintTerrain } from './tilegen.js';
 import { terrainTarget, selectedTerrainSlot, writeGeneratedTiles, createTerrainFromTiles, terrainTilePixels,
   refreshTerrain, toolPaletteKey } from './terrainview.js';
@@ -33,7 +33,7 @@ function defaultStratum(i){
 }
 function defaults(){
   return {v:2,palette:'genesis',stratum:0,strata:GEN_STRATA.map((_,i)=>defaultStratum(i)),layout:'stairs',deco:true,hero:true,
-    size:16,shape:'inset',scope:'all',keepEdited:true,frames:true};
+    size:16,shape:'inset',scope:'all',keepEdited:true,frames:true,macro:true};
 }
 function load(){
   try{
@@ -61,11 +61,13 @@ function build(s,n,shape){
     if(cache.size>30) cache.clear();
     const tiles=colorize(generateTerrainRoles(spec,n,shape),spec.colors);
     const props=generateProps(spec,n).map(p=>({...p,px:colorize([p.roles],spec.colors)[0]}));
-    cache.set(key,{spec,tiles,props});
+    // tấm vân lớn chỉ sinh khi cần (bật xem trước hoặc lúc xuất)
+    let macro=null;
+    cache.set(key,{spec,tiles,props,get macro(){ return macro||(macro=generateMacro(spec,n,3)); }});
   }
   return cache.get(key);
 }
-const setsFor=list=>list.map(x=>({tiles:x.tiles,props:x.props,sky:x.spec.sky}));
+const setsFor=(list,macro=st.macro)=>list.map(x=>({tiles:x.tiles,props:x.props,sky:x.spec.sky,macro:macro?x.macro:null}));
 
 /* ---------------- vẽ ra canvas ---------------- */
 function putImage(cv,img){
@@ -234,7 +236,7 @@ function syncControls(){
   $('#tqPalette').value=st.palette;
   $('#tqSize').value=String(st.size); $('#tqShape').value=st.shape; $('#tqScope').value=st.scope;
   $('#tqKeepEdited').checked=st.keepEdited; $('#tqFrames').checked=st.frames;
-  $('#tqDeco').checked=st.deco; $('#tqHero').checked=st.hero;
+  $('#tqDeco').checked=st.deco; $('#tqHero').checked=st.hero; $('#tqMacro').checked=st.macro!==false;
   document.querySelectorAll('#tqLayout button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.layout===st.layout));
   syncRecipeCards(); paintColors(); syncTarget();
 }
@@ -373,9 +375,11 @@ function exportStrata(){
     for(let i=0;i<6;i++){
       const s=st.strata[i], x=build(s,n,shape), folder='tang-'+(i+1)+'-'+sanitizeFilename(GEN_STRATA[i].title,'tang')+'/';
       const atlas=atlasImage(x.tiles,n), props=propsImage(x.props,n), name='Tầng '+(i+1)+' · '+GEN_STRATA[i].title;
-      const src={texture:dir+folder+'terrain56.png',name,color:tone(x)};
+      const macroFile='macro_'+(i+1)+'.png';
+      const src={texture:dir+folder+'terrain56.png',name,color:tone(x),macro:{texture:dir+macroFile,size:x.macro.size}};
       sources.push(src);
       files.push({name:root+folder+'terrain56.png',data:rgbaPngBytes(atlas.w,atlas.h,atlas.px)});
+      files.push({name:root+macroFile,data:rgbaPngBytes(x.macro.w,x.macro.w,x.macro.px)});
       files.push({name:root+folder+'tileset.tres',data:terrainGodotTres(n,shape,[src])});
       files.push({name:root+folder+'trang-tri.png',data:rgbaPngBytes(props.w,props.h,props.px)});
       files.push({name:root+folder+'trang-tri.json',data:JSON.stringify(propsJson(x.props,n,'trang-tri.png'),null,2)});
@@ -387,11 +391,14 @@ function exportStrata(){
     const img=renderPreview(previewLayout('strata',7),setsFor(st.strata.map(s=>build(s,n,shape))),
       {n,shape,deco:.5,heroH:view.gameH,seed:7,palette:st.palette});
     files.push({name:root+'xem-truoc-6-tang.png',data:rgbaPngBytes(img.w,img.h,img.px)});
+    files.push({name:root+'layout.json',data:JSON.stringify(terrainLayoutJson(n,shape,{
+      layers:Object.fromEntries(strata.map(s=>[String(s.index),s.terrain.slice(root.length)])),
+      macroSize:3,macroFiles:Object.fromEntries(strata.map(s=>[String(s.index),'macro_'+s.index+'.png']))}),null,2)});
     files.push({name:root+'terrain56-godot-mapping.json',data:JSON.stringify(terrainGodotManifest(n,shape),null,2)});
     files.push({name:root+'terrain56-layout.json',data:JSON.stringify(terrainManifest(n,shape),null,2)});
     files.push({name:root+'manifest.json',data:JSON.stringify({app:'lo-pixel',format:'lo-pixel-strata.v2',exported:new Date().toISOString(),
       tileSize:n,edgeShape:shape,palette:GEN_PALETTES[st.palette],godotDir:dir,
-      note:'Giải nén ZIP vào '+godotDir()+' (đúng ô “Thư mục Godot”). Mỗi tầng có tileset.tres dùng ngay; terrain-6-tang.tres gộp cả 6, mỗi tầng một terrain trong terrain set 0 (Match Corners and Sides). Tầng 1 là mặt đất.',
+      note:'Giải nén ZIP vào '+godotDir()+' (đúng ô “Thư mục Godot”). Mỗi tầng có tileset.tres dùng ngay (nguồn 0: atlas 56 ô có terrain; nguồn 100: vân lớn 3×3); terrain-6-tang.tres gộp cả 6, mỗi tầng một terrain trong terrain set 0 (Match Corners and Sides), vân lớn ở nguồn 100–105. layout.json: layout 2 + bảng biến thể + vân lớn cho game đọc. Tầng 1 là mặt đất.',
       strata},null,2)});
     offerDownload(makeZip(files),'terrain-6-tang-'+n+'.zip','application/zip',note);
   });
@@ -447,6 +454,7 @@ function mount(){
   $('#tqFrames').addEventListener('change',e=>{ st.frames=e.target.checked; save(); });
   $('#tqDeco').addEventListener('change',e=>{ st.deco=e.target.checked; save(); schedule(); });
   $('#tqHero').addEventListener('change',e=>{ st.hero=e.target.checked; save(); schedule(); });
+  $('#tqMacro').addEventListener('change',e=>{ st.macro=e.target.checked; save(); schedule(true); });
   $('#tqLockSel').addEventListener('click',toggleLock);
   $('#tqApply').addEventListener('click',apply);
   $('#tqProps').addEventListener('click',exportProps);

@@ -459,14 +459,17 @@ function cobbleTexture(n,P,spec,pts,field){
   return px;
 }
 /* ---------------- đá khối xếp so le (kiểu tile "sạch") ----------------
-   Mỗi hàng gạch cao courseH, hàng cuối là mạch vữa. Mạch đứng chỉ nằm trong khoảng [5, n-6]:
+   Mỗi hàng gạch cao courseH, hàng cuối là mạch vữa. Mạch đứng chỉ nằm cách cột biên ≥ 5–6 px (blockJointRange):
    cột biên của ô luôn rơi vào giữa một viên đá nên mọi ô cùng chung một cột biên. Hàng gạch
    đầu (chạm hàng biên trên) giữ nguyên ở mọi biến thể; các hàng dưới thì xếp lại tự do.
    Đổ sáng chỉ sát mạch như ảnh mẫu: mép trên + mép trái sáng một đoạn ngắn, mép phải + đáy tối,
    bốn góc viên bo bằng màu vữa. Mặt viên là một màu phẳng. */
+/* mạch đứng chỉ được nằm cách cột biên hơn đoạn sáng/bóng sát mạch (3 px ở khổ 16, 4 px ở khổ 32),
+   để cột biên luôn là mặt viên phẳng — ô nào, tấm vân lớn nào cũng chung một vành */
+const blockJointRange=n=>{ const hl=n>=32?4:3; return [hl+2, n-hl-3]; };
 function blockCourseH(n,P){ return n>=32 && (P.size??.5)<.35 ? 8 : n/2; }
 function blockLayout(n,P,seed,keep=null){
-  const R=rng(seed), H=blockCourseH(n,P), courses=n/H, lo=5, hi=n-6, gap=Math.max(6,Math.round(6*n/16));
+  const R=rng(seed), H=blockCourseH(n,P), courses=n/H, [lo,hi]=blockJointRange(n), gap=Math.max(6,Math.round(6*n/16));
   const bw=(6+(P.size??.5)*10)*(n/16), want=clamp(Math.round(n/bw),1,Math.floor((hi-lo)/gap)+1);
   const out=[];
   for(let c=0;c<courses;c++){
@@ -484,17 +487,17 @@ function blockLayout(n,P,seed,keep=null){
   }
   return {H,courses:out};
 }
-function blockTexture(n,spec,layout){
-  const px=new Uint8Array(n*n), flip=spec.light==='tr', {H,courses}=layout, hl=n>=32?4:3;
-  for(let y=0;y<n;y++){
+function blockTexture(n,spec,layout,W=n,Ht=n){
+  const px=new Uint8Array(W*Ht), flip=spec.light==='tr', {H,courses}=layout, hl=n>=32?4:3;
+  for(let y=0;y<Ht;y++){
     const c=Math.floor(y/H), v=y%H, J=courses[c], last=H-2;   // v = H-1 là hàng vữa
-    for(let x=0;x<n;x++){
-      const i=y*n+x;
+    for(let x=0;x<W;x++){
+      const i=y*W+x;
       if(v===H-1 || J.includes(x)){ px[i]=INK; continue; }
       let jl=-Infinity, jr=Infinity;
       for(const j of J){ if(j<x) jl=Math.max(jl,j); if(j>x) jr=Math.min(jr,j); }
-      if(jl===-Infinity) jl=J[J.length-1]-n;
-      if(jr===Infinity) jr=J[0]+n;
+      if(jl===-Infinity) jl=J[J.length-1]-W;
+      if(jr===Infinity) jr=J[0]+W;
       const w=jr-jl-1; let u=x-jl-1;
       if(flip) u=w-1-u;
       let t=R1;
@@ -533,10 +536,10 @@ function blockDetails(px,n,spec,v,layout){
     }
   }
 }
-function interiorTextures(n,spec){
+function interiorTextures(n,spec,extra=0){
   const P=spec.params, S=spec.seeds, L=spec.light==='tr'?[.6,-.8]:[-.6,-.8];
   const win=[2,n-2], moss=spec.crustType==='moss'?.12:0, sc=n/16;
-  const glowOk=P.glow>=.4, out={base:null,variants:[],plain:[]};
+  const glowOk=P.glow>=.4, out={base:null,variants:[],plain:[],more:[]};
   /* gân và đốm sáng chỉ nằm trong biến thể (không ở ô gốc): ô gốc là tấm nền êm nhất, lặp nhiều
      nhất; nét sáng đặt ở đó sẽ thành hoa văn đều tăm tắp */
   const glowDetails=(tex,v,plain)=>{
@@ -602,12 +605,15 @@ function interiorTextures(n,spec){
     };
   }
   for(let v=1;v<=3;v++){
-    const tex=texOf(v), plain=tex.slice();
+    // tấm cho ô mép dùng hạt riêng: khác cả ô gốc lẫn biến thể ruột, để vân lớn có đủ 9 ô con khác nhau
+    const tex=texOf(v), plain=texOf(v+10);
     glowDetails(plain,v,true); out.plain.push(plain);
     extraDetails(tex,v); glowDetails(tex,v,false); rareFeature(tex,n,spec,v,win,glowOk); out.variants.push(tex);
   }
+  // thêm tấm cho vân lớn (macro): cùng vành, chi tiết riêng, không có nét hiếm
+  for(let v=4;v<4+extra;v++){ const tex=texOf(v); extraDetails(tex,v); glowDetails(tex,v,false); out.more.push(tex); }
   // lưới an toàn: vành 1 px của biến thể luôn y hệt ô gốc
-  for(const tex of [...out.variants,...out.plain]) for(let i=0;i<n;i++) for(const k of [i,(n-1)*n+i,i*n,i*n+n-1]) tex[k]=out.base[k];
+  for(const tex of [...out.variants,...out.plain,...out.more]) for(let i=0;i<n;i++) for(const k of [i,(n-1)*n+i,i*n,i*n+n-1]) tex[k]=out.base[k];
   return out;
 }
 /* chi tiết riêng của biến thể kiểu cuội xếp kín: ở khổ 16 viên nào cũng chạm vành nên không
@@ -884,6 +890,61 @@ export function generateTerrain(spec,n=16,shape='inset'){
   return colorize(generateTerrainRoles(spec,n,shape),spec.colors);
 }
 
+/* ---------------- vân lớn (macro) ----------------
+   Tấm size×size ô (mặc định 3×3 = 48×48 ở khổ 16) cho các ô đặc mask 255: game lấy ô con
+   (x mod size, y mod size) thay cho #46–#49, nên mặt đá lớn không còn nhịp lặp mỗi ô.
+   Tấm lặp vòng bốn phía. Vành 1 px của MỖI ô con trùng vành ô ruột #46, để chỗ vân lớn gặp
+   ô có mép (sàn, tường, trần) vẫn liền như hai ô ruột cạnh nhau.
+   - Đá khối: viên đá được dài vắt qua ranh ô con (cột biên luôn là giữa viên), hàng gạch đầu
+     của mỗi hàng ô con theo ô gốc; các hàng dưới xếp lại trên cả bề rộng 3 ô.
+   - Kiểu khác: 9 ô con là 9 tấm ruột khác nhau cùng vành (ô gốc, 3 biến thể, 3 ô mép, 2 tấm thêm).
+   Trả về Uint8Array (size·n)² chỉ số vai trò. */
+export function generateMacroRoles(spec,n=16,size=3){
+  const W=size*n, P=spec.params, S=spec.seeds;
+  if(spec.interior==='block'){
+    const base=blockLayout(n,P,S.rock), H=base.H, per=n/H, R=rng(S.rock^0x6d6163);
+    const gap=Math.max(6,Math.round(6*n/16)), bw=(6+(P.size??.5)*10)*(n/16)*1.5, want=Math.max(2,Math.round(W/bw));
+    const [jlo,jhi]=blockJointRange(n), ok=x=>{ const m=((x%n)+n)%n; return m>=jlo && m<=jhi; };
+    const dist=(a,b)=>{ const d=Math.abs(a-b)%W; return Math.min(d,W-d); };
+    const courses=[];
+    for(let c=0;c<size*per;c++){
+      if(c%per===0){ courses.push(Array.from({length:size},(_,k)=>base.courses[0].map(j=>j+k*n)).flat().sort((a,b)=>a-b)); continue; }
+      // số mạch mỗi hàng thay đổi: có hàng viên dài vắt qua hai ô con, có hàng viên ngắn
+      const prev=courses[c-1], J=[], wantC=Math.max(1,want-1+Math.floor(R()*3));
+      for(let t=0;t<400 && J.length<wantC;t++){
+        const x=Math.floor(R()*W);
+        if(!ok(x) || prev.some(j=>dist(j,x)<3) || J.some(j=>dist(j,x)<gap)) continue;
+        J.push(x);
+      }
+      if(!J.length) J.push(jlo);
+      courses.push(J.sort((a,b)=>a-b));
+    }
+    const px=blockTexture(n,spec,{H,courses},W,W);
+    // vài ô con có thêm vết nứt / mẻ góc / rêu (chỉ trong lòng ô con)
+    const order=[0,1,2,3,4,5,6,7,8].sort(()=>R()-.5).slice(0,6);
+    order.forEach((cell,k)=>{
+      const ox=(cell%size)*n, oy=Math.floor(cell/size)*n, t=new Uint8Array(n*n);
+      for(let y=0;y<n;y++) for(let x=0;x<n;x++) t[y*n+x]=px[(oy+y)*W+ox+x];
+      blockDetails(t,n,{...spec,seeds:{...S,rock:S.rock+k*977}},1+k%3,{H});
+      for(let y=0;y<n;y++) for(let x=0;x<n;x++) px[(oy+y)*W+ox+x]=t[y*n+x];
+    });
+    return px;
+  }
+  const tex=interiorTextures(n,spec,Math.max(0,size*size-7));
+  const pool=[tex.base,...tex.variants,...tex.plain,...tex.more];
+  const R=rng(S.rock^0x4d41), order=pool.map((_,i)=>i).sort(()=>R()-.5);
+  const px=new Uint8Array(W*W);
+  for(let c=0;c<size*size;c++){
+    const t=pool[order[c%pool.length]], ox=(c%size)*n, oy=Math.floor(c/size)*n;
+    for(let y=0;y<n;y++) px.set(t.subarray(y*n,y*n+n),(oy+y)*W+ox);
+  }
+  return px;
+}
+export function generateMacro(spec,n=16,size=3){
+  const lut=colorLut(spec.colors);
+  return {size,n,w:size*n,px:Uint32Array.from(generateMacroRoles(spec,n,size),v=>lut[v])};
+}
+
 /* ---------------- trang trí rời (props) ----------------
    Cỏ, hoa, mầm, tinh thể, sỏi, nhũ… vẽ thành ô riêng để game rải lên mặt đất. Ô đặt lên
    đất thì neo đáy (anchor bottom), ô treo dưới trần thì neo đỉnh (anchor top). */
@@ -1060,7 +1121,13 @@ export function renderPreview(map,sets,{n=16,shape='inset',deco=.5,heroH=0,seed=
   };
   for(let y=0;y<map.h;y++) for(let x=0;x<map.w;x++){
     const c=map.cells[y*map.w+x]; if(!c) continue;
-    const set=sets[Math.min(sets.length,c)-1], slot=terrainSlot(cellMask(map,x,y),x,y,56,seed);
+    const set=sets[Math.min(sets.length,c)-1], mask=cellMask(map,x,y);
+    if(mask===255 && set.macro){                          // ô đặc lấy ô con của tấm vân lớn theo toạ độ
+      const M=set.macro, ox=(x%M.size)*n, oy=(y%M.size)*n;
+      for(let yy=0;yy<n;yy++) for(let xx=0;xx<n;xx++){ const v=M.px[(oy+yy)*M.w+ox+xx]; if(v>>>24) img[(y*n+yy)*W+x*n+xx]=v; }
+      continue;
+    }
+    const slot=terrainSlot(mask,x,y,56,seed);
     if(slot>=0) blit(set.tiles[slot],n,n,x*n,y*n);
   }
   // trang trí: mặt đất có khoảng trống phía trên, trần có khoảng trống phía dưới

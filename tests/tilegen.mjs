@@ -151,3 +151,24 @@ test('clean stone blocks: staggered courses, joints never on the tile border, fi
     for(const s of [47,48,49]) for(let i=0;i<H0*n;i++) assert.equal(roles[s][i],t[i],'#'+s+' đổi hàng gạch đầu');
   }
 });
+
+test('macro 3×3: every sub-tile keeps the #46 ring, so it joins edge tiles with no seam; sub-tiles differ',async()=>{
+  const {generateMacroRoles}=await import('../js/tilegen.js');
+  for(const id of GEN_RECIPE_ORDER) for(const n of [16,32]){
+    const spec=makeSpec(id,{seed:5}), roles=generateTerrainRoles(spec,n,'inset'), M=generateMacroRoles(spec,n,3), W=3*n;
+    assert.equal(M.length,W*W);
+    const cells=[];
+    for(let c=0;c<9;c++){
+      const ox=(c%3)*n, oy=Math.floor(c/3)*n, t=new Uint8Array(n*n);
+      for(let y=0;y<n;y++) for(let x=0;x<n;x++) t[y*n+x]=M[(oy+y)*W+ox+x];
+      for(const d of ['N','E','S','W']) for(let p=0;p<n;p++)
+        assert.equal(t[edgeIndex(d,p,n)],roles[46][edgeIndex(d,p,n)],id+' '+n+' ô con '+c+' vành '+d+p);
+      // đặt ô con vào chỗ #46: cả bộ vẫn nối liền
+      const tiles=colorize(roles.map((r,s)=>s===46?t:r),spec.colors);
+      assert.deepEqual(checkSeams(tiles,n,'inset'),[],id+' '+n+' ô con '+c);
+      assert.deepEqual(checkColorSeams(tiles,n,'inset'),[],id+' '+n+' ô con '+c);
+      cells.push(t.join());
+    }
+    assert.ok(new Set(cells).size>=(id==='cleanBlock'&&n===16?5:8),id+' '+n+': ô con trùng nhau quá nhiều');
+  }
+});

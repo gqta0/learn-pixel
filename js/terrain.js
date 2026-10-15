@@ -314,15 +314,19 @@ export function terrainGodotManifest(size,shape='inset'){
 /* Godot 4 TileSet (.tres) dùng được ngay: mỗi atlas Terrain 56 là một nguồn (TileSetAtlasSource),
    đồng thời là một terrain trong terrain set 0 (Match Corners and Sides). Đủ 8 peering bit,
    xác suất cho biến thể, và hộp va chạm vuông thu vào ở cạnh hở theo dáng mép (thụt mép).
-   sources: [{texture:'res://…/terrain56.png', name, color:'#rrggbb'}] */
+   sources: [{texture:'res://…/terrain56.png', name, color:'#rrggbb', macro?:{texture, size}}]
+   Nguồn vân lớn (macro) nằm ở id 100+i: lưới size×size ô đặc, va chạm kín ô, không gắn terrain
+   (game đặt ô con theo toạ độ, không qua terrain painting). */
 const GODOT_PEERING=[[1,'top_side'],[2,'right_side'],[4,'bottom_side'],[8,'left_side'],
   [16,'top_right_corner'],[32,'bottom_right_corner'],[64,'bottom_left_corner'],[128,'top_left_corner']];
 export function terrainGodotTres(size,shape='inset',sources=[{texture:'res://terrain56.png',name:'Terrain',color:'#63c74d'}]){
   const m=terrainGodotManifest(size,shape), h=size/2, ins=shapeInset(shape,size);
   const q=t=>'"'+String(t).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"';
   const col=hex=>{ const v=[1,3,5].map(i=>(parseInt(hex.slice(i,i+2),16)/255).toFixed(3).replace(/\.?0+$/,'')||'0'); return 'Color('+v.join(', ')+', 1)'; };
-  const L=['[gd_resource type="TileSet" load_steps='+(sources.length*2+1)+' format=3]',''];
+  const macros=sources.map((s,i)=>s.macro?{...s.macro,i}:null).filter(Boolean);
+  const L=['[gd_resource type="TileSet" load_steps='+((sources.length+macros.length)*2+1)+' format=3]',''];
   sources.forEach((s,i)=>L.push('[ext_resource type="Texture2D" path='+q(s.texture)+' id="'+(i+1)+'_tex"]'));
+  macros.forEach(m=>L.push('[ext_resource type="Texture2D" path='+q(m.texture)+' id="'+(m.i+1)+'_macro"]'));
   L.push('');
   sources.forEach((s,i)=>{
     L.push('[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_'+(i+1)+'"]',
@@ -338,10 +342,36 @@ export function terrainGodotTres(size,shape='inset',sources=[{texture:'res://ter
     }
     L.push('');
   });
+  macros.forEach(m=>{
+    L.push('[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_macro_'+(m.i+1)+'"]',
+      'texture = ExtResource("'+(m.i+1)+'_macro")','texture_region_size = Vector2i('+size+', '+size+')');
+    for(let y=0;y<m.size;y++) for(let x=0;x<m.size;x++){
+      const k=x+':'+y+'/0';
+      L.push(k+' = 0',k+'/physics_layer_0/polygon_0/points = PackedVector2Array('+[-h,-h,h,-h,h,h,-h,h].join(', ')+')');
+    }
+    L.push('');
+  });
   L.push('[resource]','tile_size = Vector2i('+size+', '+size+')','physics_layer_0/collision_layer = 1','terrain_set_0/mode = 0');
   sources.forEach((s,i)=>L.push('terrain_set_0/terrain_'+i+'/name = '+q(s.name),'terrain_set_0/terrain_'+i+'/color = '+col(s.color||'#63c74d')));
   sources.forEach((s,i)=>L.push('sources/'+i+' = SubResource("TileSetAtlasSource_'+(i+1)+'")'));
+  macros.forEach(m=>L.push('sources/'+(100+m.i)+' = SubResource("TileSetAtlasSource_macro_'+(m.i+1)+'")'));
   return L.join('\n')+'\n';
+}
+/* layout.json cho game đọc layout 2 từ dữ liệu, không viết cứng: ô gốc, biến thể ruột, biến thể
+   mép theo mask, mask của 47 ô blob, và (nếu có) tấm vân lớn size×size cho ô đặc mask 255.
+   layers / macroFiles: { "1": "đường dẫn tương đối", … } */
+export function terrainLayoutJson(size,shape='inset',{layers=null,macroSize=0,macroFiles=null}={}){
+  const out={schema:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,tile_size:size,columns:8,rows:7,edge_shape:shape,
+    bit_order:{N:1,E:2,S:4,W:8,NE:16,SE:32,SW:64,NW:128},
+    blob_masks:BLOB_47_MASKS.slice(),
+    base_center_slot:BLOB_47_MASKS.indexOf(255),
+    center_variant_slots:TERRAIN_TILES.filter(t=>t.kind==='center').map(t=>t.slot),
+    edge_variant_masks:Object.fromEntries(TERRAIN_TILES.filter(t=>t.kind==='edge').map(t=>[String(t.slot),t.mask])),
+    selection:'mask 255: ô gốc + 3 biến thể chia đều; mask 110 (sàn): ô gốc + 3 biến thể chia đều; mask chỉ có 1 biến thể (155 trần, 55 tường trái, 205 tường phải): biến thể 1/4 cơ hội.'};
+  if(layers) out.layers=layers;
+  if(macroSize && macroFiles) out.macro={size:macroSize,files:macroFiles,
+    note:'Ô đặc mask 255 lấy ô con (posmod(x, world_width) % size, posmod(y, size)) thay cho 46–49. Vành 1 px của mọi ô con trùng vành ô 46, nên ghép với ô có mép không lộ mối.'};
+  return out;
 }
 /* màu gần nhất trong bảng (khoảng cách RGB có trọng số theo độ đỏ — đủ tốt để bắt về đúng bậc) */
 export function nearestHex(hex,list){

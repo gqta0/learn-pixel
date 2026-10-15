@@ -4,7 +4,7 @@ import {BLOB_47_MASKS, TERRAIN_TILES, normalizeMask, tileRoles, terrainPixels,
   neighbors, canConnect, terrainSlot, checkSeams, checkColorSeams, edgeIndex,
   terrainConnectorIndices, terrainManifest, terrainGodotManifest,
   TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER,
-  CORE_SLOTS, composeTile, variantBase, terrainGodotTres, nearestHex} from '../js/terrain.js';
+  CORE_SLOTS, composeTile, variantBase, terrainGodotTres, nearestHex, terrainLayoutJson} from '../js/terrain.js';
 
 test('256 neighborhoods reduce to exactly 47 unique canonical topologies',()=>{
   assert.equal(BLOB_47_MASKS.length,47);
@@ -181,4 +181,21 @@ test('Godot 4 TileSet .tres: one atlas source and one terrain per layer, 8 peeri
   // biến thể có xác suất riêng
   assert.match(tres,/\/0\/probability = /);
   assert.equal(nearestHex('#5f5f80',['#251c24','#5e5572','#806f95']),'#5e5572');
+});
+
+test('layout.json for the game: layout 2 tables read from data, macro block optional; .tres gets macro sources at 100+',()=>{
+  const lay=terrainLayoutJson(16,'inset',{layers:{'1':'a.png'},macroSize:3,macroFiles:{'1':'macro_1.png'}});
+  assert.equal(lay.layout,2);
+  assert.equal(lay.base_center_slot,46);
+  assert.deepEqual(lay.center_variant_slots,[47,48,49]);
+  assert.deepEqual(lay.edge_variant_masks,{'50':110,'51':110,'52':110,'53':155,'54':55,'55':205});
+  assert.deepEqual(lay.blob_masks,BLOB_47_MASKS);
+  assert.deepEqual(lay.macro.files,{'1':'macro_1.png'});
+  assert.equal(terrainLayoutJson(16).macro,undefined);
+  // bảng trong layout.json khớp bảng TERRAIN_TILES
+  for(const [slot,mask] of Object.entries(lay.edge_variant_masks)) assert.equal(TERRAIN_TILES[+slot].mask,mask);
+  const tres=terrainGodotTres(16,'flush',[{texture:'res://a.png',name:'A',color:'#63c74d',macro:{texture:'res://m.png',size:3}}]);
+  assert.match(tres,/sources\/100 = SubResource\("TileSetAtlasSource_macro_1"\)/);
+  assert.equal((tres.match(/^[0-2]:[0-2]\/0 = 0$/gm)||[]).length,9+9);   // 9 ô con + 9 ô atlas đầu trùng toạ độ 0–2
+  assert.match(tres,/load_steps=5/);
 });

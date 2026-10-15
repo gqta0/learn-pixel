@@ -215,7 +215,11 @@ Godot” ở thẻ Xuất của khung vẽ): `terrain-6-tang/tang-N-…/terrain5
 (Godot 4 TileSet dùng ngay: terrain set Match Corners and Sides, đủ 8 peering bit, xác suất
 biến thể, hộp va chạm thu theo dáng mép), `trang-tri.png/.json`, `cong-thuc.json`; cùng
 `terrain-6-tang.tres` gộp cả 6 tầng (mỗi tầng một terrain), mapping JSON, ảnh cắt lớp và
-`manifest.json`. PNG được mã hoá ngay trong lúc bấm nên trình duyệt trên máy tính bảng không
+`manifest.json`. Kèm **vân lớn 3×3** `macro_N.png` (48×48 ở khổ 16: ô đặc lấy ô con theo toạ độ,
+hết nhịp lặp mỗi ô; vành từng ô con trùng ô #46 nên ghép với ô có mép không lộ mối; nguồn
+100–105 trong `.tres`) và **`layout.json`** cho game đọc layout 2 từ dữ liệu. Bộ đọc phía game
+(GDScript, có test chạy trên Godot 4.3) ở [`godot/terrain56/`](godot/terrain56/README.md).
+Công tắc **Vân lớn 3×3** trên bản đồ xem trước cho thấy đúng cách game sẽ đặt. PNG được mã hoá ngay trong lúc bấm nên trình duyệt trên máy tính bảng không
 chặn lượt tải; dưới nút luôn có link tải lại. Cài đặt của thẻ được nhớ trong trình duyệt.
 
 **Dáng mép**, chọn khi tạo bộ (không đổi được sau đó):
