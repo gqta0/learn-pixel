@@ -4,7 +4,8 @@ import {BLOB_47_MASKS, TERRAIN_TILES, normalizeMask, tileRoles, terrainPixels,
   neighbors, canConnect, terrainSlot, checkSeams, checkColorSeams, edgeIndex,
   terrainConnectorIndices, terrainManifest, terrainGodotManifest,
   TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER,
-  CORE_SLOTS, composeTile, variantBase, terrainGodotTres, nearestHex, terrainLayoutJson} from '../js/terrain.js';
+  CORE_SLOTS, composeTile, variantBase, terrainGodotTres, nearestHex, terrainLayoutJson,
+  CR31_BLOB_GRID, maskToCr31, cr31ToMask} from '../js/terrain.js';
 
 test('256 neighborhoods reduce to exactly 47 unique canonical topologies',()=>{
   assert.equal(BLOB_47_MASKS.length,47);
@@ -99,6 +100,72 @@ test('atlas follows the cr31 blob 7×7 sheet + a 3×3 variant block: unique cell
   assert.equal(godot.format,'godot4-terrain-set-handoff');
   assert.equal(godot.tiles.length,56);
   assert.deepEqual(godot.tiles[46].atlasCoords,[4,4]);              // ruột nằm giữa lưới cr31
+});
+/* Đối chiếu tài liệu "Blob Tileset" của cr31 (Guy Walker; bản lưu
+   boristhebrave.com/permanent/24/06/cr31/stagecast/wang/blob.html) và tấm 7×7 của Caeles
+   (opengameart.org/content/seamless-tileset-template-ii). Số liệu chép nguyên từ tài liệu —
+   lệch thì sửa code cho khớp tài liệu, không sửa các bảng này. */
+const CR31_DOC={0:[],1:[4,16,64],5:[20,80,65],7:[28,112,193],17:[68],21:[84,81,69],23:[92,113,197],29:[116,209,71],
+  31:[124,241,199],85:[],87:[93,117,213],95:[125,245,215],119:[221],127:[253,247,223],255:[]};
+const CR31_DOC_7X7=[[0,4,92,124,116,80,0],[16,20,87,223,241,21,64],[29,117,85,71,221,125,112],[31,253,113,28,127,247,209],
+  [23,199,213,95,255,245,81],[5,84,93,119,215,193,17],[0,1,7,197,69,68,65]];
+const CR31_W={N:1,NE:2,E:4,SE:8,S:16,SW:32,W:64,NW:128};
+const cr31Has=(i,k)=>!!(i&CR31_W[k]);
+test('cr31 doc: 47 blob indices = 15 base tiles + their 90° rotations (×4 mod 255), corner ⇒ both edges',()=>{
+  const doc=new Set(Object.entries(CR31_DOC).flatMap(([k,v])=>[+k,...v]));
+  assert.equal(doc.size,47);
+  const rot=i=>((i<<2)|(i>>>6))&255;                       // "multiply by 4 … subtract 256"
+  for(const [k,v] of Object.entries(CR31_DOC)){
+    const r=[rot(+k),rot(rot(+k)),rot(rot(rot(+k)))].filter((x,j,a)=>x!==+k&&a.indexOf(x)===j);
+    assert.deepEqual(r,v,'xoay ô '+k);
+  }
+  // "no tile has a blue edge between two yellow corners… if either corner is yellow then the edge centre is yellow"
+  const rule=i=>[['NE','N','E'],['SE','E','S'],['SW','S','W'],['NW','W','N']].every(([c,a,b])=>!cr31Has(i,c)||(cr31Has(i,a)&&cr31Has(i,b)));
+  assert.deepEqual([...Array(256).keys()].filter(rule),[...doc].sort((a,b)=>a-b));
+  // app: 47 mask ↔ đúng 47 chỉ số đó, trọng số đúng tài liệu
+  assert.deepEqual(BLOB_47_MASKS.map(maskToCr31).sort((a,b)=>a-b),[...doc].sort((a,b)=>a-b));
+  for(const m of BLOB_47_MASKS) assert.equal(cr31ToMask(maskToCr31(m)),m);
+  const app={N:1,E:2,S:4,W:8,NE:16,SE:32,SW:64,NW:128};
+  for(const k in CR31_W) assert.equal(maskToCr31(app[k]),CR31_W[k],k);
+  assert.equal(maskToCr31(app.N|app.NE|app.E|app.W),71);   // ví dụ trong tài liệu
+});
+test('cr31 doc: the 7×7 minimum packing — same sheet as the doc, 3 copies of tile-0, every neighbour pair matches',()=>{
+  assert.deepEqual(CR31_BLOB_GRID,CR31_DOC_7X7);
+  const G=CR31_DOC_7X7, flat=G.flat();
+  assert.equal(new Set(flat).size,47);
+  assert.equal(flat.filter(i=>i===0).length,3);
+  const hz=(a,b)=>cr31Has(a,'E')===cr31Has(b,'W')&&cr31Has(a,'NE')===cr31Has(b,'NW')&&cr31Has(a,'SE')===cr31Has(b,'SW');
+  const vt=(a,b)=>cr31Has(a,'S')===cr31Has(b,'N')&&cr31Has(a,'SW')===cr31Has(b,'NW')&&cr31Has(a,'SE')===cr31Has(b,'NE');
+  for(let r=0;r<7;r++) for(let c=0;c<7;c++){            // kể cả cuộn vòng: tấm 7×7 lặp liền
+    assert.ok(hz(G[r][c],G[r][(c+1)%7]),`ngang ${c},${r}`);
+    assert.ok(vt(G[r][c],G[(r+1)%7][c]),`dọc ${c},${r}`);
+  }
+});
+test('cr31 doc: Method 2 (edge = both centres, corner = all four centres) picks the same tile as the app',()=>{
+  let seed=99;const rnd=()=>((seed=Math.imul(seed^(seed>>>15),2246822519)+1013904223|0)>>>0)/4294967296;
+  const seen=new Set();
+  for(let t=0;t<60;t++){
+    const w=14,h=10,cells=Array.from({length:w*h},()=>rnd()<.55?1:0);
+    const s=(x,y)=>x<0||y<0||x>=w||y>=h?0:cells[y*w+x];
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){ if(!s(x,y)) continue;
+      const e=(dx,dy)=>s(x+dx,y+dy), c=(dx,dy)=>s(x+dx,y)&&s(x,y+dy)&&s(x+dx,y+dy)?1:0;
+      const idx=e(0,-1)+2*c(1,-1)+4*e(1,0)+8*c(1,1)+16*e(0,1)+32*c(-1,1)+64*e(-1,0)+128*c(-1,-1);
+      const raw=s(x,y-1)|s(x+1,y)<<1|s(x,y+1)<<2|s(x-1,y)<<3|s(x+1,y-1)<<4|s(x+1,y+1)<<5|s(x-1,y+1)<<6|s(x-1,y-1)<<7;
+      assert.equal(maskToCr31(normalizeMask(raw)),idx);seen.add(idx);
+    }
+  }
+  assert.equal(seen.size,47);
+});
+test('cr31 doc: every template tile shows its index — land at each yellow edge/corner, clear at each blue one, centre always land',()=>{
+  const m=terrainManifest(16);
+  for(const n of [16,32]){
+    for(const t of m.tiles.filter(t=>t.slot<47)){
+      const R=tileRoles(t.slot,n,'inset'), a=(x,y)=>R[y*n+x]!==0, h=n>>1, e=n-1;
+      const got={N:a(h,0),NE:a(e,0),E:a(e,h),SE:a(e,e),S:a(h,e),SW:a(0,e),W:a(0,h),NW:a(0,0)};
+      for(const k in CR31_W) assert.equal(got[k],cr31Has(t.cr31,k),`${n}px cr31 ${t.cr31} ${k}`);
+      assert.ok(a(h,h),'tâm ô cr31 '+t.cr31);
+    }
+  }
 });
 test('layout 2 spends the nine variants where the player looks: 3 centers, 3 floors, ceiling, two walls',()=>{
   assert.deepEqual(TERRAIN_TILES.slice(47).map(t=>t.mask),[255,255,255,110,110,110,155,55,205]);
