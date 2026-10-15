@@ -1,0 +1,92 @@
+{
+  "schema": "lo-pixel.terrain56.v1",
+  "layout": 2,
+  "tile_size": 16,
+  "columns": 8,
+  "rows": 7,
+  "edge_shape": "inset",
+  "bit_order": {
+    "N": 1,
+    "E": 2,
+    "S": 4,
+    "W": 8,
+    "NE": 16,
+    "SE": 32,
+    "SW": 64,
+    "NW": 128
+  },
+  "blob_masks": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    19,
+    23,
+    27,
+    31,
+    38,
+    39,
+    46,
+    47,
+    55,
+    63,
+    76,
+    77,
+    78,
+    79,
+    95,
+    110,
+    111,
+    127,
+    137,
+    139,
+    141,
+    143,
+    155,
+    159,
+    175,
+    191,
+    205,
+    207,
+    223,
+    239,
+    255
+  ],
+  "base_center_slot": 46,
+  "center_variant_slots": [
+    47,
+    48,
+    49
+  ],
+  "edge_variant_masks": {
+    "50": 110,
+    "51": 110,
+    "52": 110,
+    "53": 155,
+    "54": 55,
+    "55": 205
+  },
+  "selection": "mask 255: ô gốc + 3 biến thể chia đều; mask 110 (sàn): ô gốc + 3 biến thể chia đều; mask chỉ có 1 biến thể (155 trần, 55 tường trái, 205 tường phải): biến thể 1/4 cơ hội.",
+  "layers": {
+    "1": "tang-1-Mat_dat/terrain56.png"
+  },
+  "macro": {
+    "size": 3,
+    "files": {
+      "1": "macro_1.png"
+    },
+    "note": "Ô đặc mask 255 lấy ô con (posmod(x, world_width) % size, posmod(y, size)) thay cho 46–49. Vành 1 px của mọi ô con trùng vành ô 46, nên ghép với ô có mép không lộ mối."
+  }
+}

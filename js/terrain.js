@@ -189,7 +189,10 @@ const shade=(hex,f)=>{
 };
 export function terrainPixels(slot,size,colors,shape){
   const roles=tileRoles(slot,size,shape), tile=TERRAIN_TILES[slot];
-  const art=colors ? [0,rgba(colors.base),rgba(colors.edge),rgba(shade(colors.edge,.55)),rgba(shade(colors.edge,.75)),rgba(shade(colors.edge,1.1)),rgba(shade(colors.edge,.55))] :
+  // colors.palette: các bậc sáng/tối suy ra từ màu cạnh được bắt về màu gần nhất trong bảng,
+  // để khối nền mẫu không sinh màu lạ ngoài bảng anh đang dùng
+  const snap=h=>colors?.palette?.length ? nearestHex(h,colors.palette) : h;
+  const art=colors ? [0,rgba(colors.base),rgba(colors.edge),rgba(snap(shade(colors.edge,.55))),rgba(snap(shade(colors.edge,.75))),rgba(snap(shade(colors.edge,1.1))),rgba(snap(shade(colors.edge,.55)))] :
     [0,rgba('#5e788c'),rgba('#b4c5d1'),rgba('#2e4659'),rgba('#435d73'),rgba('#99b0bf'),rgba('#2e4659')];
   const pixels=Uint32Array.from(roles,r=>art[r]);
   if(tile.kind==='center'){
@@ -307,6 +310,75 @@ export function terrainGodotManifest(size,shape='inset'){
         probability:group===1?1:group===2?(t.slot<47?2:1):1,
         peeringBits:Object.fromEntries(GODOT_BITS.map(([k,bit])=>[k,t.mask&bit?0:-1]))};
     })};
+}
+/* Godot 4 TileSet (.tres) dùng được ngay: mỗi atlas Terrain 56 là một nguồn (TileSetAtlasSource),
+   đồng thời là một terrain trong terrain set 0 (Match Corners and Sides). Đủ 8 peering bit,
+   xác suất cho biến thể, và hộp va chạm vuông thu vào ở cạnh hở theo dáng mép (thụt mép).
+   sources: [{texture:'res://…/terrain56.png', name, color:'#rrggbb', macro?:{texture, size}}]
+   Nguồn vân lớn (macro) nằm ở id 100+i: lưới size×size ô đặc, va chạm kín ô, không gắn terrain
+   (game đặt ô con theo toạ độ, không qua terrain painting). */
+const GODOT_PEERING=[[1,'top_side'],[2,'right_side'],[4,'bottom_side'],[8,'left_side'],
+  [16,'top_right_corner'],[32,'bottom_right_corner'],[64,'bottom_left_corner'],[128,'top_left_corner']];
+export function terrainGodotTres(size,shape='inset',sources=[{texture:'res://terrain56.png',name:'Terrain',color:'#63c74d'}]){
+  const m=terrainGodotManifest(size,shape), h=size/2, ins=shapeInset(shape,size);
+  const q=t=>'"'+String(t).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"';
+  const col=hex=>{ const v=[1,3,5].map(i=>(parseInt(hex.slice(i,i+2),16)/255).toFixed(3).replace(/\.?0+$/,'')||'0'); return 'Color('+v.join(', ')+', 1)'; };
+  const macros=sources.map((s,i)=>s.macro?{...s.macro,i}:null).filter(Boolean);
+  const L=['[gd_resource type="TileSet" load_steps='+((sources.length+macros.length)*2+1)+' format=3]',''];
+  sources.forEach((s,i)=>L.push('[ext_resource type="Texture2D" path='+q(s.texture)+' id="'+(i+1)+'_tex"]'));
+  macros.forEach(m=>L.push('[ext_resource type="Texture2D" path='+q(m.texture)+' id="'+(m.i+1)+'_macro"]'));
+  L.push('');
+  sources.forEach((s,i)=>{
+    L.push('[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_'+(i+1)+'"]',
+      'texture = ExtResource("'+(i+1)+'_tex")','texture_region_size = Vector2i('+size+', '+size+')');
+    for(const t of m.tiles){
+      const k=t.atlasCoords[0]+':'+t.atlasCoords[1]+'/0';
+      L.push(k+' = 0');
+      if(t.probability!==1) L.push(k+'/probability = '+t.probability);
+      L.push(k+'/terrain_set = 0',k+'/terrain = '+i);
+      for(const [bit,name] of GODOT_PEERING) if(t.mask&bit) L.push(k+'/terrains_peering_bit/'+name+' = '+i);
+      const x0=t.mask&8?-h:-h+ins, x1=t.mask&2?h:h-ins, y0=t.mask&1?-h:-h+ins, y1=t.mask&4?h:h-ins;
+      L.push(k+'/physics_layer_0/polygon_0/points = PackedVector2Array('+[x0,y0,x1,y0,x1,y1,x0,y1].join(', ')+')');
+    }
+    L.push('');
+  });
+  macros.forEach(m=>{
+    L.push('[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_macro_'+(m.i+1)+'"]',
+      'texture = ExtResource("'+(m.i+1)+'_macro")','texture_region_size = Vector2i('+size+', '+size+')');
+    for(let y=0;y<m.size;y++) for(let x=0;x<m.size;x++){
+      const k=x+':'+y+'/0';
+      L.push(k+' = 0',k+'/physics_layer_0/polygon_0/points = PackedVector2Array('+[-h,-h,h,-h,h,h,-h,h].join(', ')+')');
+    }
+    L.push('');
+  });
+  L.push('[resource]','tile_size = Vector2i('+size+', '+size+')','physics_layer_0/collision_layer = 1','terrain_set_0/mode = 0');
+  sources.forEach((s,i)=>L.push('terrain_set_0/terrain_'+i+'/name = '+q(s.name),'terrain_set_0/terrain_'+i+'/color = '+col(s.color||'#63c74d')));
+  sources.forEach((s,i)=>L.push('sources/'+i+' = SubResource("TileSetAtlasSource_'+(i+1)+'")'));
+  macros.forEach(m=>L.push('sources/'+(100+m.i)+' = SubResource("TileSetAtlasSource_macro_'+(m.i+1)+'")'));
+  return L.join('\n')+'\n';
+}
+/* layout.json cho game đọc layout 2 từ dữ liệu, không viết cứng: ô gốc, biến thể ruột, biến thể
+   mép theo mask, mask của 47 ô blob, và (nếu có) tấm vân lớn size×size cho ô đặc mask 255.
+   layers / macroFiles: { "1": "đường dẫn tương đối", … } */
+export function terrainLayoutJson(size,shape='inset',{layers=null,macroSize=0,macroFiles=null}={}){
+  const out={schema:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,tile_size:size,columns:8,rows:7,edge_shape:shape,
+    bit_order:{N:1,E:2,S:4,W:8,NE:16,SE:32,SW:64,NW:128},
+    blob_masks:BLOB_47_MASKS.slice(),
+    base_center_slot:BLOB_47_MASKS.indexOf(255),
+    center_variant_slots:TERRAIN_TILES.filter(t=>t.kind==='center').map(t=>t.slot),
+    edge_variant_masks:Object.fromEntries(TERRAIN_TILES.filter(t=>t.kind==='edge').map(t=>[String(t.slot),t.mask])),
+    selection:'mask 255: ô gốc + 3 biến thể chia đều; mask 110 (sàn): ô gốc + 3 biến thể chia đều; mask chỉ có 1 biến thể (155 trần, 55 tường trái, 205 tường phải): biến thể 1/4 cơ hội.'};
+  if(layers) out.layers=layers;
+  if(macroSize && macroFiles) out.macro={size:macroSize,files:macroFiles,
+    note:'Ô đặc mask 255 lấy ô con (posmod(x, world_width) % size, posmod(y, size)) thay cho 46–49. Vành 1 px của mọi ô con trùng vành ô 46, nên ghép với ô có mép không lộ mối.'};
+  return out;
+}
+/* màu gần nhất trong bảng (khoảng cách RGB có trọng số theo độ đỏ — đủ tốt để bắt về đúng bậc) */
+export function nearestHex(hex,list){
+  const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+  const [r,g,b]=p(hex); let best=list[0], bd=Infinity;
+  for(const c of list){ const [R,G,B]=p(c), rm=(r+R)/2, d=(2+rm/256)*(r-R)**2+4*(g-G)**2+(2+(255-rm)/256)*(b-B)**2; if(d<bd){ bd=d; best=c; } }
+  return best;
 }
 export function paintTerrainGuide(ctx,slot,size,scale,mode='wireframe',shape){
   const roles=tileRoles(slot,size,shape);

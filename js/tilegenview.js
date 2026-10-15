@@ -3,17 +3,17 @@
    Phần vẽ nằm ở tilegen.js (thuần dữ liệu); ở đây chỉ có giao diện, lưu cài đặt và xuất file. */
 import { $, toast } from './dom.js';
 import { view } from './state.js';
-import { download } from './storage.js';
 import { makeZip } from './zip.js';
+import { rgbaPngBytes, offerDownload } from './savefile.js';
 import { sanitizeFilename } from './manifest.js';
-import { PALETTES, COLOR_TOKENS, MASTER_NAME } from './palette.js';
-import { TERRAIN_TILES, terrainManifest, terrainGodotManifest, checkSeams, checkColorSeams } from './terrain.js';
+import { PALETTES, COLOR_TOKENS, MASTER_NAME, DEFAULT_PAL_NAME } from './palette.js';
+import { TERRAIN_TILES, terrainManifest, terrainGodotManifest, terrainGodotTres, terrainLayoutJson, checkSeams, checkColorSeams } from './terrain.js';
 import { GEN_RECIPES, GEN_RECIPE_ORDER, GEN_PARAMS, GEN_CRUSTS, GEN_DRIPS, GEN_INTERIORS, GEN_CAPS, GEN_SEED_GROUPS,
-  GEN_STRATA, GEN_ROLE_GROUPS, GEN_ROLE_LABELS, PREVIEW_LAYOUTS,
-  makeSpec, makeSeeds, randomSeed, lerpParams, generateTerrainRoles, colorize, generateProps, previewLayout,
+  GEN_STRATA, GEN_ROLE_GROUPS, GEN_ROLE_LABELS, GEN_PALETTES, PREVIEW_LAYOUTS,
+  makeSpec, makeSeeds, randomSeed, lerpParams, generateTerrainRoles, colorize, generateProps, generateMacro, previewLayout,
   renderPreview, lintTerrain } from './tilegen.js';
 import { terrainTarget, selectedTerrainSlot, writeGeneratedTiles, createTerrainFromTiles, terrainTilePixels,
-  refreshTerrain } from './terrainview.js';
+  refreshTerrain, toolPaletteKey } from './terrainview.js';
 
 const KEY='lo-pixel-tilegen', STAMP='lo-pixel-tilegen-stamp';
 /* phạm vi ghi: chỉ thay một nhóm ô, phần còn lại của atlas giữ nguyên */
@@ -32,21 +32,24 @@ function defaultStratum(i){
     interior:null,capStyle:null,light:'tl',seed:1701+i*97,seeds:null};
 }
 function defaults(){
-  return {v:1,stratum:0,strata:GEN_STRATA.map((_,i)=>defaultStratum(i)),layout:'stairs',deco:true,hero:true,
-    size:16,shape:'inset',scope:'all',keepEdited:true,frames:true};
+  return {v:2,palette:'genesis',stratum:0,strata:GEN_STRATA.map((_,i)=>defaultStratum(i)),layout:'stairs',deco:true,hero:true,
+    size:16,shape:'inset',scope:'all',keepEdited:true,frames:true,macro:true};
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem(KEY));
-    if(d?.v===1 && Array.isArray(d.strata) && d.strata.length===6 && d.strata.every(s=>GEN_RECIPES[s?.recipe])) return {...defaults(),...d};
+    if(d?.v===2 && Array.isArray(d.strata) && d.strata.length===6 && d.strata.every(s=>GEN_RECIPES[s?.recipe])) return {...defaults(),...d};
+    // bản cài đặt cũ (màu Master): giữ lựa chọn bản đồ, khổ, dáng mép; 6 tầng về công thức mới, màu Genesis
+    if(d?.v===1){ const keep={}; for(const k of ['layout','deco','hero','size','shape','scope','keepEdited','frames']) if(k in d) keep[k]=d[k]; return {...defaults(),...keep}; }
   }catch(_){}
   return defaults();
 }
 let st=load();
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(_){} }
 const cur=()=>st.strata[st.stratum];
+const palName=()=>st.palette==='master'?MASTER_NAME:DEFAULT_PAL_NAME;
 function specOf(s){
-  return makeSpec(s.recipe,{seed:s.seed,seeds:s.seeds||undefined,params:s.params,colors:s.colors,light:s.light,
+  return makeSpec(s.recipe,{palette:st.palette,seed:s.seed,seeds:s.seeds||undefined,params:s.params,colors:s.colors,light:s.light,
     crustType:s.crustType||undefined,dripType:s.dripType||undefined,interior:s.interior||undefined,capStyle:s.capStyle||undefined});
 }
 
@@ -58,11 +61,13 @@ function build(s,n,shape){
     if(cache.size>30) cache.clear();
     const tiles=colorize(generateTerrainRoles(spec,n,shape),spec.colors);
     const props=generateProps(spec,n).map(p=>({...p,px:colorize([p.roles],spec.colors)[0]}));
-    cache.set(key,{spec,tiles,props});
+    // tấm vân lớn chỉ sinh khi cần (bật xem trước hoặc lúc xuất)
+    let macro=null;
+    cache.set(key,{spec,tiles,props,get macro(){ return macro||(macro=generateMacro(spec,n,3)); }});
   }
   return cache.get(key);
 }
-const setsFor=list=>list.map(x=>({tiles:x.tiles,props:x.props,sky:x.spec.sky}));
+const setsFor=(list,macro=st.macro)=>list.map(x=>({tiles:x.tiles,props:x.props,sky:x.spec.sky,macro:macro?x.macro:null}));
 
 /* ---------------- vẽ ra canvas ---------------- */
 function putImage(cv,img){
@@ -73,7 +78,7 @@ function putImage(cv,img){
 /* bản đồ con cho hình thu nhỏ: một bậc, một gờ, có cả mép trên lẫn tường */
 const MINI={w:6,h:4,cells:Uint8Array.from([1,1,0,0,0,0, 1,1,1,1,0,0, 1,1,1,1,1,1, 1,1,1,1,1,1])};
 function thumb(cv,x,n=16){
-  putImage(cv,renderPreview(MINI,setsFor([x]),{n,shape:st.shape,deco:x.spec.params.deco,seed:3}));
+  putImage(cv,renderPreview(MINI,setsFor([x]),{n,shape:st.shape,deco:x.spec.params.deco,seed:3,palette:st.palette}));
 }
 function fitMap(){
   const cv=$('#tqMap'), box=cv?.parentElement; if(!cv||!box) return;
@@ -97,7 +102,7 @@ function paintPreview(){
   const map=previewLayout(st.layout,7);
   const list=st.layout==='strata' ? st.strata.map(s=>build(s,n,shape)) : [build(cur(),n,shape)];
   const img=renderPreview(map,setsFor(list),{n,shape,deco:st.deco?build(cur(),n,shape).spec.params.deco:0,
-    heroH:st.hero?view.gameH:0,seed:cur().seed});
+    heroH:st.hero?view.gameH:0,seed:cur().seed,palette:st.palette});
   putImage($('#tqMap'),img);
   fitMap();
   $('#tqMapNote').textContent=(st.layout==='strata'?'6 tầng xếp chồng · ':'Tầng '+(st.stratum+1)+' · '+GEN_RECIPES[cur().recipe].title+' · ')+
@@ -108,10 +113,10 @@ function chip(ok,text,title=''){
   const s=document.createElement('span'); s.className='tq-chip '+(ok?'ok':'warn'); s.textContent=(ok?'✓ ':'⚠ ')+text; s.title=title; return s;
 }
 function paintLint(x){
-  const n=st.size, L=lintTerrain(x.tiles,n,st.shape,PALETTES[MASTER_NAME]), box=$('#tqLint');
+  const n=st.size, L=lintTerrain(x.tiles,n,st.shape,PALETTES[palName()]), box=$('#tqLint');
   box.replaceChildren(
-    chip(!L.offPalette.length,L.offPalette.length?L.offPalette.length+' màu ngoài Master':'100% màu Master · '+L.colors+' màu','Mọi pixel lấy từ bảng màu vai trò, mà bảng vai trò chỉ chọn được màu của Master Palette'),
-    chip(true,'viền một màu (ink-950)','Viền đá, tinh thể, khe cuội đều dùng một màu mực duy nhất'),
+    chip(!L.offPalette.length,L.offPalette.length?L.offPalette.length+' màu ngoài '+GEN_PALETTES[st.palette]:'100% màu '+GEN_PALETTES[st.palette]+' · '+L.colors+' màu','Mọi pixel lấy từ bảng màu vai trò, mà bảng vai trò chỉ chọn được màu của bảng gốc đang chọn'),
+    chip(true,'viền một màu','Viền đá, tinh thể, khe cuội, mạch vữa đều dùng một màu viền duy nhất'),
     chip(!L.floating,L.floating?L.floating+' pixel lơ lửng':'không pixel lơ lửng','Pixel có màu mà bốn ô kề đều trống'),
     chip(!L.alpha&&!L.color,L.alpha||L.color?L.alpha+' lỗi alpha · '+L.color+' lệch màu/vân':'56 ô nối liền mọi cặp','Cùng phép soi với thẻ Soi lỗi')
   );
@@ -181,18 +186,19 @@ function fillSelect(sel,map,recipeValue){
   const def=document.createElement('option'); def.value=''; def.textContent='Theo công thức · '+map[recipeValue]; sel.append(def);
   for(const [k,v] of Object.entries(map)){ const o=document.createElement('option'); o.value=k; o.textContent=v; sel.append(o); }
 }
-const masterGroups=(()=>{
+/* màu của bảng gốc đang chọn, chia theo nhóm token (Genesis: Tím xám, Lục…; Master: Rock, Grass…) */
+function paletteGroups(){
   const groups=new Map();
-  for(const hex of PALETTES[MASTER_NAME]){
-    const g=COLOR_TOKENS[hex]?.group||'Khác';
+  for(const hex of PALETTES[palName()]){
+    const g=(COLOR_TOKENS[hex]?.group||'Khác').replace(/^Genesis · /,'');
     if(!groups.has(g)) groups.set(g,[]);
     groups.get(g).push(hex);
   }
   return groups;
-})();
+}
 function paintColors(){
   const box=$('#tqColors'); box.replaceChildren();
-  const spec=specOf(cur()), base=GEN_RECIPES[cur().recipe].colors;
+  const spec=specOf(cur()), base=GEN_RECIPES[cur().recipe].palettes[st.palette].colors, groups=paletteGroups();
   for(const [title,keys] of GEN_ROLE_GROUPS){
     const h=document.createElement('p'); h.className='tq-color-group'; h.textContent=title; box.append(h);
     for(const k of keys){
@@ -200,9 +206,9 @@ function paintColors(){
       const sw=document.createElement('i'); sw.style.background=spec.colors[k];
       const name=document.createElement('span'); name.textContent=GEN_ROLE_LABELS[k];
       const sel=document.createElement('select'); sel.setAttribute('aria-label','Màu cho vai trò '+GEN_ROLE_LABELS[k]);
-      for(const [g,list] of masterGroups){
+      for(const [g,list] of groups){
         const og=document.createElement('optgroup'); og.label=g;
-        list.forEach(hex=>{ const o=document.createElement('option'); o.value=hex; o.textContent=(COLOR_TOKENS[hex]?.token||hex)+' · '+hex; og.append(o); });
+        list.forEach(hex=>{ const o=document.createElement('option'); o.value=hex; o.textContent=(st.palette==='master'?(COLOR_TOKENS[hex]?.token||hex)+' · ':'')+hex; og.append(o); });
         sel.append(og);
       }
       sel.value=spec.colors[k];
@@ -227,9 +233,10 @@ function syncControls(){
   $('#tqLight').value=s.light;
   $('#tqSeed').value=s.seed;
   $('#tqStratumName').textContent='Tầng '+(st.stratum+1)+' · '+GEN_STRATA[st.stratum].title;
+  $('#tqPalette').value=st.palette;
   $('#tqSize').value=String(st.size); $('#tqShape').value=st.shape; $('#tqScope').value=st.scope;
   $('#tqKeepEdited').checked=st.keepEdited; $('#tqFrames').checked=st.frames;
-  $('#tqDeco').checked=st.deco; $('#tqHero').checked=st.hero;
+  $('#tqDeco').checked=st.deco; $('#tqHero').checked=st.hero; $('#tqMacro').checked=st.macro!==false;
   document.querySelectorAll('#tqLayout button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.layout===st.layout));
   syncRecipeCards(); paintColors(); syncTarget();
 }
@@ -317,11 +324,6 @@ function apply(){
 }
 
 /* ---------------- xuất ---------------- */
-async function pngBytes(w,h,px){
-  const cv=document.createElement('canvas'); putImage(cv,{w,h,px});
-  const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));
-  return new Uint8Array(await blob.arrayBuffer());
-}
 function atlasImage(tiles,n){
   const W=n*8, px=new Uint32Array(W*n*7);
   tiles.forEach((t,s)=>{ const ox=(s%8)*n, oy=Math.floor(s/8)*n; for(let y=0;y<n;y++) px.set(t.subarray(y*n,y*n+n),(oy+y)*W+ox); });
@@ -335,41 +337,71 @@ function propsImage(props,n){
 const propsJson=(props,n,file)=>({format:'lo-pixel-props.v1',file,tileSize:n,count:props.length,
   note:'anchor bottom: đặt đáy ô lên mặt đất (hàng trống ngay trên mặt sàn). anchor top: treo đỉnh ô dưới trần.',
   props:props.map((p,i)=>({index:i,kind:p.kind,name:p.name,anchor:p.anchor,x:i*n,y:0,w:n,h:n}))});
-const recipeJson=x=>({format:'lo-pixel-tilegen-recipe.v1',recipe:x.spec.recipe,title:GEN_RECIPES[x.spec.recipe].title,
+const recipeJson=x=>({format:'lo-pixel-tilegen-recipe.v1',recipe:x.spec.recipe,palette:GEN_PALETTES[x.spec.palette],title:GEN_RECIPES[x.spec.recipe].title,
   seed:x.spec.seed,seeds:x.spec.seeds,params:x.spec.params,crustType:x.spec.crustType,dripType:x.spec.dripType,
   interior:x.spec.interior,capStyle:x.spec.capStyle,light:x.spec.light,colors:x.spec.colors});
-function saveZip(files,name){
-  const url=URL.createObjectURL(new Blob([makeZip(files)],{type:'application/zip'}));
-  download(name,url); setTimeout(()=>URL.revokeObjectURL(url),4000);
+/* thư mục Godot nơi anh sẽ giải nén ZIP — lấy từ ô "Thư mục Godot" ở thẻ Xuất của khung vẽ */
+function godotDir(){
+  let dir=(document.querySelector('#expGodotDir')?.value||'res://').trim()||'res://';
+  if(!/^res:\/\//.test(dir)) dir='res://'+dir.replace(/^\/+/,'');
+  return dir.endsWith('/') ? dir : dir+'/';
 }
-async function exportProps(){
-  const n=st.size, x=build(cur(),n,st.shape), img=propsImage(x.props,n);
-  saveZip([{name:'trang-tri.png',data:await pngBytes(img.w,img.h,img.px)},
-    {name:'trang-tri.json',data:JSON.stringify(propsJson(x.props,n,'trang-tri.png'),null,2)}],
-    'trang-tri-'+sanitizeFilename(GEN_STRATA[st.stratum].title,'tang')+'-'+n+'.zip');
-}
-async function exportStrata(){
-  const n=st.size, shape=st.shape, files=[], strata=[];
-  const btn=$('#tqZip'); btn.disabled=true;
-  try{
-    for(let i=0;i<6;i++){
-      const s=st.strata[i], x=build(s,n,shape), dir='tang-'+(i+1)+'-'+sanitizeFilename(GEN_STRATA[i].title,'tang')+'/';
-      const atlas=atlasImage(x.tiles,n), props=propsImage(x.props,n);
-      files.push({name:dir+'terrain56.png',data:await pngBytes(atlas.w,atlas.h,atlas.px)});
-      files.push({name:dir+'trang-tri.png',data:await pngBytes(props.w,props.h,props.px)});
-      files.push({name:dir+'trang-tri.json',data:JSON.stringify(propsJson(x.props,n,'trang-tri.png'),null,2)});
-      files.push({name:dir+'cong-thuc.json',data:JSON.stringify(recipeJson(x),null,2)});
-      strata.push({index:i+1,title:GEN_STRATA[i].title,recipe:s.recipe,folder:dir,terrain:dir+'terrain56.png',props:dir+'trang-tri.png'});
-    }
-    const map=previewLayout('strata',7);
-    const img=renderPreview(map,setsFor(st.strata.map(s=>build(s,n,shape))),{n,shape,deco:.5,heroH:view.gameH,seed:7});
-    files.push({name:'xem-truoc-6-tang.png',data:await pngBytes(img.w,img.h,img.px)});
-    files.push({name:'terrain56-godot-mapping.json',data:JSON.stringify(terrainGodotManifest(n,shape),null,2)});
-    files.push({name:'terrain56-layout.json',data:JSON.stringify(terrainManifest(n,shape),null,2)});
-    files.push({name:'manifest.json',data:JSON.stringify({app:'lo-pixel',format:'lo-pixel-strata.v1',exported:new Date().toISOString(),
-      tileSize:n,edgeShape:shape,note:'Mỗi tầng một atlas Terrain 56 cùng bố cục; mapping Godot dùng chung cho cả 6. Tầng 1 là mặt đất.',strata},null,2)});
-    saveZip(files,'terrain-6-tang-'+n+'.zip');
+/* chạy đồng bộ từ đầu tới cuối: cú tải phải xảy ra khi lượt chạm của người dùng còn hiệu lực */
+function runExport(btn,label,work){
+  const note=$('#tqExportNote');
+  btn.disabled=true; note.textContent='Đang dựng '+label+'…';
+  try{ work(note); }
+  catch(err){
+    console.error(err);
+    note.textContent='⚠ Không xuất được '+label+': '+(err?.message||err)+'. Thử lại, hoặc chọn khổ 16 nếu máy yếu.';
+    toast('Xuất '+label+' bị lỗi — xem dòng ghi chú dưới nút.',3200);
   } finally { btn.disabled=false; }
+}
+function exportProps(){
+  runExport($('#tqProps'),'trang trí',note=>{
+    const n=st.size, x=build(cur(),n,st.shape), img=propsImage(x.props,n);
+    const zip=makeZip([{name:'trang-tri.png',data:rgbaPngBytes(img.w,img.h,img.px)},
+      {name:'trang-tri.json',data:JSON.stringify(propsJson(x.props,n,'trang-tri.png'),null,2)}]);
+    offerDownload(zip,'trang-tri-'+sanitizeFilename(GEN_STRATA[st.stratum].title,'tang')+'-'+n+'.zip','application/zip',note);
+  });
+}
+/* Cả 6 tầng trong một ZIP, giải nén thẳng vào thư mục Godot:
+   terrain-6-tang/tang-1-…/terrain56.png, tileset.tres (TileSet dùng ngay), trang-tri.png/.json, cong-thuc.json
+   terrain-6-tang/terrain-6-tang.tres — một TileSet chung, mỗi tầng một terrain; cộng mapping JSON, ảnh cắt lớp. */
+function exportStrata(){
+  runExport($('#tqZip'),'6 tầng',note=>{
+    const n=st.size, shape=st.shape, root='terrain-6-tang/', dir=godotDir()+root, files=[], strata=[], sources=[];
+    const tone=x=>x.spec.colors.k1||x.spec.colors.c2;
+    for(let i=0;i<6;i++){
+      const s=st.strata[i], x=build(s,n,shape), folder='tang-'+(i+1)+'-'+sanitizeFilename(GEN_STRATA[i].title,'tang')+'/';
+      const atlas=atlasImage(x.tiles,n), props=propsImage(x.props,n), name='Tầng '+(i+1)+' · '+GEN_STRATA[i].title;
+      const macroFile='macro_'+(i+1)+'.png';
+      const src={texture:dir+folder+'terrain56.png',name,color:tone(x),macro:{texture:dir+macroFile,size:x.macro.size}};
+      sources.push(src);
+      files.push({name:root+folder+'terrain56.png',data:rgbaPngBytes(atlas.w,atlas.h,atlas.px)});
+      files.push({name:root+macroFile,data:rgbaPngBytes(x.macro.w,x.macro.w,x.macro.px)});
+      files.push({name:root+folder+'tileset.tres',data:terrainGodotTres(n,shape,[src])});
+      files.push({name:root+folder+'trang-tri.png',data:rgbaPngBytes(props.w,props.h,props.px)});
+      files.push({name:root+folder+'trang-tri.json',data:JSON.stringify(propsJson(x.props,n,'trang-tri.png'),null,2)});
+      files.push({name:root+folder+'cong-thuc.json',data:JSON.stringify(recipeJson(x),null,2)});
+      strata.push({index:i+1,title:GEN_STRATA[i].title,recipe:s.recipe,folder:root+folder,terrain:root+folder+'terrain56.png',
+        tileset:root+folder+'tileset.tres',props:root+folder+'trang-tri.png'});
+    }
+    files.push({name:root+'terrain-6-tang.tres',data:terrainGodotTres(n,shape,sources)});
+    const img=renderPreview(previewLayout('strata',7),setsFor(st.strata.map(s=>build(s,n,shape))),
+      {n,shape,deco:.5,heroH:view.gameH,seed:7,palette:st.palette});
+    files.push({name:root+'xem-truoc-6-tang.png',data:rgbaPngBytes(img.w,img.h,img.px)});
+    files.push({name:root+'layout.json',data:JSON.stringify(terrainLayoutJson(n,shape,{
+      layers:Object.fromEntries(strata.map(s=>[String(s.index),s.terrain.slice(root.length)])),
+      macroSize:3,macroFiles:Object.fromEntries(strata.map(s=>[String(s.index),'macro_'+s.index+'.png']))}),null,2)});
+    files.push({name:root+'terrain56-godot-mapping.json',data:JSON.stringify(terrainGodotManifest(n,shape),null,2)});
+    files.push({name:root+'terrain56-layout.json',data:JSON.stringify(terrainManifest(n,shape),null,2)});
+    files.push({name:root+'manifest.json',data:JSON.stringify({app:'lo-pixel',format:'lo-pixel-strata.v2',exported:new Date().toISOString(),
+      tileSize:n,edgeShape:shape,palette:GEN_PALETTES[st.palette],godotDir:dir,
+      note:'Giải nén ZIP vào '+godotDir()+' (đúng ô “Thư mục Godot”). Mỗi tầng có tileset.tres dùng ngay (nguồn 0: atlas 56 ô có terrain; nguồn 100: vân lớn 3×3); terrain-6-tang.tres gộp cả 6, mỗi tầng một terrain trong terrain set 0 (Match Corners and Sides), vân lớn ở nguồn 100–105. layout.json: layout 2 + bảng biến thể + vân lớn cho game đọc. Tầng 1 là mặt đất.',
+      strata},null,2)});
+    offerDownload(makeZip(files),'terrain-6-tang-'+n+'.zip','application/zip',note);
+  });
 }
 function lerpStrata(){
   if(!confirm('Nội suy thông số tầng 2–5 cho chuyển đều từ tầng 1 xuống tầng 6?\n\nCông thức và màu của từng tầng giữ nguyên; chỉ các thanh trượt đổi.')) return;
@@ -403,6 +435,14 @@ function mount(){
   for(const [k,v] of Object.entries(SCOPES)){ const o=document.createElement('option'); o.value=k; o.textContent=v.label; scope.append(o); }
   const pick=(id,key)=>$(id).addEventListener('change',e=>{ cur()[key]=e.target.value||null; save(); schedule(true); });
   pick('#tqCrust','crustType'); pick('#tqDrip','dripType'); pick('#tqInterior','interior'); pick('#tqCap','capStyle');
+  const pal=$('#tqPalette');
+  for(const [k,v] of Object.entries(GEN_PALETTES)){ const o=document.createElement('option'); o.value=k; o.textContent=v+(k==='genesis'?' (mặc định)':''); pal.append(o); }
+  pal.addEventListener('change',e=>{
+    const edited=st.strata.some(s=>Object.keys(s.colors||{}).length);
+    if(edited && !confirm('Đổi bảng gốc sẽ bỏ các màu vai trò anh đã đổi tay ở 6 tầng (vì đó là màu của bảng cũ). Tiếp tục?')){ e.target.value=st.palette; return; }
+    st.palette=e.target.value; st.strata.forEach(s=>{ s.colors={}; });
+    save(); syncControls(); paintRecipes(); schedule(true);
+  });
   $('#tqLight').addEventListener('change',e=>{ cur().light=e.target.value; save(); schedule(true); });
   $('#tqSeed').addEventListener('change',e=>{ const v=parseInt(e.target.value,10); if(v>0){ cur().seed=v; cur().seeds=null; save(); schedule(true); } });
   $('#tqDice').addEventListener('click',rollAll);
@@ -414,6 +454,7 @@ function mount(){
   $('#tqFrames').addEventListener('change',e=>{ st.frames=e.target.checked; save(); });
   $('#tqDeco').addEventListener('change',e=>{ st.deco=e.target.checked; save(); schedule(); });
   $('#tqHero').addEventListener('change',e=>{ st.hero=e.target.checked; save(); schedule(); });
+  $('#tqMacro').addEventListener('change',e=>{ st.macro=e.target.checked; save(); schedule(true); });
   $('#tqLockSel').addEventListener('click',toggleLock);
   $('#tqApply').addEventListener('click',apply);
   $('#tqProps').addEventListener('click',exportProps);

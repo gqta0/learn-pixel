@@ -10,27 +10,34 @@ import {readFileSync} from 'node:fs';
 const src=readFileSync(new URL('../js/palette.js',import.meta.url),'utf8');
 const block=src.slice(src.indexOf('[MASTER_NAME]: ['),src.indexOf('],',src.indexOf('[MASTER_NAME]: [')));
 const MASTER=new Set(block.match(/#[0-9a-f]{6}/gi).map(h=>h.toLowerCase()));
+const gblock=src.slice(src.indexOf('[GENESIS_NAME]: ['),src.indexOf('],',src.indexOf('[GENESIS_NAME]: [')));
+const GENESIS=new Set(gblock.match(/#[0-9a-f]{6}/gi).map(h=>h.toLowerCase()));
+const SETS={genesis:GENESIS,master:MASTER};
 
-test('every recipe colour (and preview sky) comes from the Master Palette',()=>{
+test('every recipe has a Genesis and a Master colour set, each colour (and preview sky) from that palette',()=>{
   assert.equal(GEN_RECIPE_ORDER.length,Object.keys(GEN_RECIPES).length);
+  assert.equal(GENESIS.size,69);
   for(const id of GEN_RECIPE_ORDER){
     const r=GEN_RECIPES[id];
-    for(const k of GEN_ROLE_KEYS) assert.ok(MASTER.has(r.colors[k]),id+'.'+k+' '+r.colors[k]+' không có trong Master');
-    assert.ok(MASTER.has(r.sky),id+'.sky');
+    for(const [pal,set] of Object.entries(SETS)){
+      const c=r.palettes[pal];
+      for(const k of GEN_ROLE_KEYS) assert.ok(set.has(c.colors[k]),id+'.'+pal+'.'+k+' '+c.colors[k]+' không có trong bảng');
+      assert.ok(set.has(c.sky),id+'.'+pal+'.sky');
+    }
     for(const p of GEN_PARAMS) assert.ok(r.params[p.key]>=0 && r.params[p.key]<=1,id+'.'+p.key);
   }
   for(const s of GEN_STRATA) assert.ok(GEN_RECIPES[s.recipe],s.title);
 });
 
-test('every recipe tiles seamlessly at 16 and 32 px, both edge shapes, with and without a crust',()=>{
+test('every recipe tiles seamlessly at 16 and 32 px, both edge shapes, with and without a crust, in both palettes',()=>{
   for(const id of GEN_RECIPE_ORDER) for(const n of [16,32]) for(const shape of ['inset','flush']) for(const crustType of [undefined,'none']){
-    for(const seed of [7,1701]){
-      const spec=makeSpec(id,{seed,crustType}), tiles=generateTerrain(spec,n,shape);
-      const tag=[id,n,shape,crustType||'crust',seed].join(' ');
+    for(const [seed,palette] of [[7,'genesis'],[1701,'master']]){
+      const spec=makeSpec(id,{seed,crustType,palette}), tiles=generateTerrain(spec,n,shape);
+      const tag=[id,n,shape,crustType||'crust',seed,palette].join(' ');
       assert.equal(tiles.length,56,tag);
       assert.deepEqual(checkSeams(tiles,n,shape),[],'alpha '+tag);
       assert.deepEqual(checkColorSeams(tiles,n,shape),[],'màu/vân '+tag);
-      const L=lintTerrain(tiles,n,shape,[...MASTER]);
+      const L=lintTerrain(tiles,n,shape,[...SETS[palette]]);
       assert.equal(L.floating,0,'pixel lơ lửng '+tag);
       assert.deepEqual(L.offPalette,[],'màu ngoài bảng '+tag);
     }
@@ -86,7 +93,7 @@ test('props: one tile per recipe entry, ground props sit on the bottom row, hang
     }
     // màu của trang trí cũng nằm trong bảng
     for(const px of colorize(props.map(p=>p.roles),spec.colors)) for(const v of px)
-      if(v>>>24) assert.ok([...MASTER].some(h=>hexToRgba(h)===v));
+      if(v>>>24) assert.ok([...GENESIS].some(h=>hexToRgba(h)===v));
   }
 });
 
@@ -98,7 +105,7 @@ test('preview maps render every layout, and the hero always has room to stand',(
     const map=previewLayout(kind,7), sets=Array.from({length:kind==='strata'?6:1},()=>({tiles,props,sky:spec.sky}));
     const img=renderPreview(map,sets,{n,heroH:56});
     assert.equal(img.w,map.w*n); assert.equal(img.h,map.h*n);
-    const skin=hexToRgba('#e8ad83');
+    const skin=hexToRgba('#f3bfa2');                 // da của nhân vật mẫu theo Genesis
     let top=-1; for(let i=0;i<img.px.length&&top<0;i++) if(img.px[i]===skin) top=Math.floor(i/img.w);
     assert.ok(top>0,kind+': không thấy nhân vật');
     assert.ok(top>=Math.round(hero.h*.3)-hero.h*.3,kind);   // đầu nhân vật không bị cắt ở mép trên
@@ -121,4 +128,47 @@ test('the colour/texture seam check now follows edge siblings, not raw neighbour
   assert.ok(checkColorSeams(bad,16).some(i=>i.a===24&&i.direction==='E'&&i.positions.includes(7)));
   // mẫu phẳng mặc định vẫn sạch
   assert.deepEqual(checkColorSeams(TERRAIN_TILES.map(t=>terrainPixels(t.slot,16)),16),[]);
+});
+
+test('clean stone blocks: staggered courses, joints never on the tile border, first course shared by every variant',()=>{
+  for(const n of [16,32]){
+    const spec=makeSpec('cleanBlock',{seed:21}), roles=generateTerrainRoles(spec,n,'flush');
+    const INK=GEN_ROLE_KEYS.indexOf('ink')+1, R1=GEN_ROLE_KEYS.indexOf('r1')+1;
+    const t=roles[46];
+    // mặt viên phẳng: phần lớn pixel là một màu đá, viền là màu vữa
+    const fill=[...t].filter(v=>v===R1).length;
+    assert.ok(fill>n*n*.5,'mặt đá phải phẳng, ít nhiễu');
+    // hàng cuối là mạch vữa liền
+    for(let x=0;x<n;x++) assert.equal(t[(n-1)*n+x],INK);
+    // cột biên là giữa viên đá: không có mạch đứng ở cột 0 / n-1 ngoài các hàng vữa
+    const H0=n>=32?n/2:8;
+    for(let y=0;y<n;y++){
+      if(y%H0===H0-1) continue;                                   // hàng vữa
+      assert.notEqual(t[y*n],INK,'mạch đứng ở cột 0, hàng '+y);
+      assert.notEqual(t[y*n+n-1],INK,'mạch đứng ở cột '+(n-1)+', hàng '+y);
+    }
+    // biến thể giữ nguyên hàng gạch đầu (chạm hàng biên trên)
+    for(const s of [47,48,49]) for(let i=0;i<H0*n;i++) assert.equal(roles[s][i],t[i],'#'+s+' đổi hàng gạch đầu');
+  }
+});
+
+test('macro 3×3: every sub-tile keeps the #46 ring, so it joins edge tiles with no seam; sub-tiles differ',async()=>{
+  const {generateMacroRoles}=await import('../js/tilegen.js');
+  for(const id of GEN_RECIPE_ORDER) for(const n of [16,32]){
+    const spec=makeSpec(id,{seed:5}), roles=generateTerrainRoles(spec,n,'inset'), M=generateMacroRoles(spec,n,3), W=3*n;
+    assert.equal(M.length,W*W);
+    const cells=[];
+    for(let c=0;c<9;c++){
+      const ox=(c%3)*n, oy=Math.floor(c/3)*n, t=new Uint8Array(n*n);
+      for(let y=0;y<n;y++) for(let x=0;x<n;x++) t[y*n+x]=M[(oy+y)*W+ox+x];
+      for(const d of ['N','E','S','W']) for(let p=0;p<n;p++)
+        assert.equal(t[edgeIndex(d,p,n)],roles[46][edgeIndex(d,p,n)],id+' '+n+' ô con '+c+' vành '+d+p);
+      // đặt ô con vào chỗ #46: cả bộ vẫn nối liền
+      const tiles=colorize(roles.map((r,s)=>s===46?t:r),spec.colors);
+      assert.deepEqual(checkSeams(tiles,n,'inset'),[],id+' '+n+' ô con '+c);
+      assert.deepEqual(checkColorSeams(tiles,n,'inset'),[],id+' '+n+' ô con '+c);
+      cells.push(t.join());
+    }
+    assert.ok(new Set(cells).size>=(id==='cleanBlock'&&n===16?5:8),id+' '+n+': ô con trùng nhau quá nhiều');
+  }
 });

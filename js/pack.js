@@ -5,10 +5,13 @@ import { blendOver } from './raster.js';
 import { spriteFramesTres } from './sheet.js';
 import { makeZip } from './zip.js';
 import { decodeProject, planSheets, manifestEntry, sheetBaseName, sanitizeFilename } from './manifest.js';
-import { sheetCols, download } from './storage.js';
+import { sheetCols } from './storage.js';
+import { canvasPngBytes, offerDownload } from './savefile.js';
 
-/* Ghép đúng các lớp của một sheet, xếp khung theo số cột, ra PNG ×1 (Uint8Array). */
-async function sheetPng(p, plan, cols){
+/* Ghép đúng các lớp của một sheet, xếp khung theo số cột, ra PNG ×1 (Uint8Array).
+   Mã hoá đồng bộ: cả gói phải xong trong lúc lượt chạm còn hiệu lực, không thì máy tính bảng
+   chặn lượt tải (xem savefile.js). */
+function sheetPng(p, plan, cols){
   const rows=Math.ceil(plan.count/cols), W=p.w*cols, H=p.h*rows;
   const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
   const g=cv.getContext('2d'), im=g.createImageData(W,H), out=new Uint32Array(im.data.buffer);
@@ -23,8 +26,7 @@ async function sheetPng(p, plan, cols){
     }
   }
   g.putImageData(im,0,0);
-  const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));
-  return new Uint8Array(await blob.arrayBuffer());
+  return canvasPngBytes(cv);
 }
 function godotDir(){
   let dir=($('#expGodotDir')?.value||'res://').trim()||'res://';
@@ -41,7 +43,7 @@ export async function packProjects(projects, mode, zipName){
     for(const plan of planSheets(p,mode)){
       const cols=sheetCols(plan.count,colPick), base=unique(sheetBaseName(p,plan));
       const png=base+'.png', tres=base+'.tres';
-      files.push({name:png, data:await sheetPng(p,plan,cols)});
+      files.push({name:png, data:sheetPng(p,plan,cols)});
       const beat=1000/p.fps;
       files.push({name:tres, data:spriteFramesTres({name:base,texture:dir+png,fw:p.w,fh:p.h,cols,count:plan.count,fps:p.fps,loop,
         durations:Array.from({length:plan.count},(_,i)=>p.dur[i]>0?p.dur[i]/beat:1)})});
@@ -53,9 +55,6 @@ export async function packProjects(projects, mode, zipName){
     note:'pivot: điểm chân trong khung (pixel, gốc trên-trái, y là mặt đất). Godot: AnimatedSprite2D centered=false, offset=(-pivot.x, -pivot.y).',
     sheets};
   files.push({name:'manifest.json', data:JSON.stringify(manifest,null,2)});
-  const zip=makeZip(files);
-  const url=URL.createObjectURL(new Blob([zip],{type:'application/zip'}));
-  download(sanitizeFilename(zipName,'lo-pixel')+'.zip', url);
-  setTimeout(()=>URL.revokeObjectURL(url),4000);
+  offerDownload(makeZip(files), sanitizeFilename(zipName,'lo-pixel')+'.zip', 'application/zip', $('#packNote'));
   return sheets.length;
 }

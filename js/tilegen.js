@@ -16,86 +16,127 @@
 import { TERRAIN_TILES, tileRoles, terrainHash, terrainSlot, shapeInset, checkSeams, checkColorSeams, variantBase } from './terrain.js';
 
 /* ---------------- vai trò màu ---------------- */
-export const GEN_ROLE_KEYS=['ink','m0','m1','m2','r0','r1','r2','r3','c0','c1','c2','c3','k0','k1','k2','g0','g1','g2','w0','w1','f0','f1'];
+export const GEN_ROLE_KEYS=['ink','m0','m1','m2','r0','r1','r2','r3','c0','c1','c2','c3','kd','k0','k1','k2','g0','g1','g2','w0','w1','f0','f1'];
 export const GEN_ROLE_LABELS={
   ink:'Viền — màu viền duy nhất', m0:'Nền · khe tối', m1:'Nền', m2:'Nền · hạt',
   r0:'Đá · bóng', r1:'Đá · thân', r2:'Đá · sáng', r3:'Đá · điểm sáng',
   c0:'Mặt trên · bóng', c1:'Mặt trên · thân', c2:'Mặt trên · sáng', c3:'Mặt trên · bắt nắng',
-  k0:'Lớp phủ · tối', k1:'Lớp phủ', k2:'Lớp phủ · sáng',
+  kd:'Lớp phủ · mép dưới', k0:'Lớp phủ · tối', k1:'Lớp phủ', k2:'Lớp phủ · sáng',
   g0:'Linh khí · quầng', g1:'Linh khí', g2:'Linh khí · lõi',
   w0:'Rễ · tối', w1:'Rễ', f0:'Hoa', f1:'Nhuỵ hoa'
 };
 export const GEN_ROLE_GROUPS=[
   ['Viền & nền',['ink','m0','m1','m2']], ['Đá trong nền',['r0','r1','r2','r3']],
-  ['Mặt trên / tường / trần',['c0','c1','c2','c3']], ['Lớp phủ',['k0','k1','k2']],
+  ['Mặt trên / tường / trần',['c0','c1','c2','c3']], ['Lớp phủ',['kd','k0','k1','k2']],
   ['Linh khí',['g0','g1','g2']], ['Rễ & hoa',['w0','w1','f0','f1']]
 ];
 const RI={}; GEN_ROLE_KEYS.forEach((k,i)=>{ RI[k]=i+1; });
 const {ink:INK,m0:M0,m1:M1,m2:M2,r0:R0,r1:R1,r2:R2,r3:R3,c0:C0,c1:C1,c2:C2,c3:C3,
-  k0:K0,k1:K1,k2:K2,g0:G0,g1:G1,g2:G2,w0:W0,w1:W1,f0:F0,f1:F1}=RI;
+  kd:KD,k0:K0,k1:K1,k2:K2,g0:G0,g1:G1,g2:G2,w0:W0,w1:W1,f0:F0,f1:F1}=RI;
 const CAP=[C0,C1,C2,C3], ROCK=[R0,R1,R2,R3];
 /* bậc tối hơn một nấc trên cùng dải — đổ bóng dưới gờ, đá tối, mặt tường khuất */
 const DARKER=new Uint8Array(GEN_ROLE_KEYS.length+1);
 [[INK,INK],[M0,INK],[M1,M0],[M2,M0],[R0,M0],[R1,R0],[R2,R1],[R3,R2],[C0,R0],[C1,C0],[C2,C1],[C3,C2],
- [K0,M0],[K1,K0],[K2,K1],[G0,M0],[G1,G0],[G2,G1],[W0,INK],[W1,W0],[F0,F0],[F1,F1]].forEach(([a,b])=>{ DARKER[a]=b; });
+ [KD,M0],[K0,KD],[K1,K0],[K2,K1],[G0,M0],[G1,G0],[G2,G1],[W0,INK],[W1,W0],[F0,F0],[F1,F1]].forEach(([a,b])=>{ DARKER[a]=b; });
 const BACKGROUND=new Set([M0,M1,M2]);
 
 /* ---------------- công thức ----------------
-   Mỗi công thức = bảng vai trò màu (chỉ lấy từ Master Palette) + kiểu vẽ + thông số mặc định.
-   ref: ảnh tham khảo anh gửi mà công thức bám theo. */
-const INK950='#0d171f';
+   Mỗi công thức = kiểu vẽ + thông số mặc định + bảng vai trò màu cho TỪNG bảng màu gốc:
+   genesis (Genesis v1, mặc định) và master (Master Palette). Màu nào cũng lấy đúng mã trong
+   bảng đó, nên bộ ô sinh ra luôn nằm trọn trong bảng anh đang vẽ. */
+export const GEN_PALETTES={genesis:'Genesis v1',master:'Master Palette'};
+const G_INK='#423d52', M_INK='#0d171f';
 export const GEN_RECIPES={
+  cleanBlock:{title:'Đá khối sạch · cỏ',note:'Khối đá xếp so le, mạch vữa rõ, cỏ phủ mép trên — sạch, ít nhiễu',
+    interior:'block',capStyle:'block',crustType:'grass',dripType:'none',hangType:'vine',
+    params:{size:.5,density:.5,crust:.5,drip:0,glow:0,capH:.5,cracks:.25,pebbles:0,roots:0,deco:.35},
+    props:['tuft','sprout','flower','tuft','pebble','sprout','hang','hang'],
+    palettes:{
+      genesis:{sky:'#25232f',colors:{ink:G_INK,m0:'#25232f',m1:'#3b2c3e',m2:'#5c4763',r0:'#968daa',r1:'#b4b0bf',r2:'#ddd1e0',r3:'#f1edf2',
+        c0:'#968daa',c1:'#b4b0bf',c2:'#ddd1e0',c3:'#f1edf2',kd:'#284d3b',k0:'#3b894b',k1:'#63c74d',k2:'#abdc4c',
+        g0:'#1d5a5a',g1:'#3fd0a6',g2:'#9ef2cf',w0:'#492d27',w1:'#6f433a',f0:'#fcc8da',f1:'#ffd900'}},
+      master:{sky:'#162331',colors:{ink:'#2e4659',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#7a95a7',r1:'#99b0bf',r2:'#b4c5d1',r3:'#d0dde4',
+        c0:'#7a95a7',c1:'#99b0bf',c2:'#b4c5d1',c3:'#d0dde4',kd:'#245c2c',k0:'#4a873c',k1:'#7cb759',k2:'#b1dc74',
+        g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#ec89ae',f1:'#f5cb53'}}}},
   warmLedge:{title:'Đá ấm · cỏ',note:'Gờ cuội ấm, cỏ non; đá tảng nằm trong nền tối',
     interior:'boulder',capStyle:'cobble',crustType:'grass',dripType:'vine',hangType:'stalactite',
-    colors:{ink:INK950,m0:'#0d171f',m1:'#162331',m2:'#413e49',r0:'#5f4b4e',r1:'#7c6d6c',r2:'#ac9c8d',r3:'#cabcad',
-      c0:'#7c6d6c',c1:'#ac9c8d',c2:'#cabcad',c3:'#e6e0d3',k0:'#4a873c',k1:'#7cb759',k2:'#b1dc74',
-      g0:'#14866a',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#f4efe3',f1:'#f5cb53'},
-    sky:'#223344',params:{size:.65,density:.3,crust:.4,drip:.25,glow:0,capH:.5,cracks:.35,pebbles:.55,roots:0,deco:.55},
-    props:['tuft','tuft','flower','sprout','pebble','tuft','flower','hang']},
+    params:{size:.65,density:.3,crust:.4,drip:.25,glow:0,capH:.5,cracks:.35,pebbles:.55,roots:0,deco:.55},
+    props:['tuft','tuft','flower','sprout','pebble','tuft','flower','hang'],
+    palettes:{
+      genesis:{sky:'#25232f',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#3b2c3e',r0:'#6f433a',r1:'#965b4f',r2:'#b1957c',r3:'#d8a597',
+        c0:'#965b4f',c1:'#b1957c',c2:'#d8a597',c3:'#e8d7d4',kd:'#284d3b',k0:'#3b894b',k1:'#63c74d',k2:'#abdc4c',
+        g0:'#1d5a5a',g1:'#22917f',g2:'#9ef2cf',w0:'#492d27',w1:'#6f433a',f0:'#f1edf2',f1:'#ffd900'}},
+      master:{sky:'#223344',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#413e49',r0:'#5f4b4e',r1:'#7c6d6c',r2:'#ac9c8d',r3:'#cabcad',
+        c0:'#7c6d6c',c1:'#ac9c8d',c2:'#cabcad',c3:'#e6e0d3',kd:'#245c2c',k0:'#4a873c',k1:'#7cb759',k2:'#b1dc74',
+        g0:'#14866a',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#f4efe3',f1:'#f5cb53'}}}},
   mossCobble:{title:'Cuội rêu · rễ',note:'Đá cuội xếp kín, rêu xanh rủ, rễ cây đâm xuống',
     interior:'cobble',capStyle:'cobble',crustType:'moss',dripType:'vine',hangType:'vine',
-    colors:{ink:INK950,m0:'#0d171f',m1:'#223344',m2:'#2e4659',r0:'#435d73',r1:'#5e788c',r2:'#7a95a7',r3:'#99b0bf',
-      c0:'#435d73',c1:'#5e788c',c2:'#7a95a7',c3:'#99b0bf',k0:'#4a873c',k1:'#7cb759',k2:'#b1dc74',
-      g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#ec89ae',f1:'#f5cb53'},
-    sky:'#0d171f',params:{size:.55,density:.6,crust:.55,drip:.6,glow:0,capH:.45,cracks:.2,pebbles:.3,roots:.5,deco:.5},
-    props:['sprout','sprout','tuft','tuft','flower','pebble','hang','hang']},
+    params:{size:.55,density:.6,crust:.55,drip:.6,glow:0,capH:.45,cracks:.2,pebbles:.3,roots:.5,deco:.5},
+    props:['sprout','sprout','tuft','tuft','flower','pebble','hang','hang'],
+    palettes:{
+      genesis:{sky:'#251c24',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#4f7277',r1:'#6d8f96',r2:'#97b3b6',r3:'#c3d4d6',
+        c0:'#4f7277',c1:'#6d8f96',c2:'#97b3b6',c3:'#c3d4d6',kd:'#284d3b',k0:'#3b894b',k1:'#63c74d',k2:'#abdc4c',
+        g0:'#1d5a5a',g1:'#22917f',g2:'#9ef2cf',w0:'#492d27',w1:'#6f433a',f0:'#ec7fa9',f1:'#ffd900'}},
+      master:{sky:'#0d171f',colors:{ink:M_INK,m0:'#0d171f',m1:'#223344',m2:'#2e4659',r0:'#435d73',r1:'#5e788c',r2:'#7a95a7',r3:'#99b0bf',
+        c0:'#435d73',c1:'#5e788c',c2:'#7a95a7',c3:'#99b0bf',kd:'#245c2c',k0:'#4a873c',k1:'#7cb759',k2:'#b1dc74',
+        g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#ec89ae',f1:'#f5cb53'}}}},
   crystalCave:{title:'Hang tinh thể lam',note:'Nền hang sẫm, cuội xám, băng tinh thể và gân linh khí lam',
     interior:'boulder',capStyle:'cobble',crustType:'crystal',dripType:'icicle',hangType:'icicle',
-    colors:{ink:INK950,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#5e788c',r1:'#7a95a7',r2:'#99b0bf',r3:'#b4c5d1',
-      c0:'#7a95a7',c1:'#99b0bf',c2:'#b4c5d1',c3:'#d0dde4',k0:'#08919b',k1:'#01cbd3',k2:'#6cf2ff',
-      g0:'#004264',g1:'#01cbd3',g2:'#6cf2ff',w0:'#41261c',w1:'#694635',f0:'#6cf2ff',f1:'#d9efff'},
-    sky:'#223344',params:{size:.55,density:.35,crust:.3,drip:.45,glow:.75,capH:.4,cracks:.25,pebbles:.35,roots:0,deco:.5},
-    props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang']},
+    params:{size:.55,density:.35,crust:.3,drip:.45,glow:.75,capH:.4,cracks:.25,pebbles:.35,roots:0,deco:.5},
+    props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang'],
+    palettes:{
+      genesis:{sky:'#25232f',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#4f7277',r1:'#6d8f96',r2:'#97b3b6',r3:'#c3d4d6',
+        c0:'#6d8f96',c1:'#97b3b6',c2:'#c3d4d6',c3:'#e6fff4',kd:'#2c4d8f',k0:'#5b98e6',k1:'#87c8cf',k2:'#bfe0f8',
+        g0:'#2c4d8f',g1:'#86bdf0',g2:'#e6fff4',w0:'#492d27',w1:'#6f433a',f0:'#87c8cf',f1:'#ffffff'}},
+      master:{sky:'#223344',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#5e788c',r1:'#7a95a7',r2:'#99b0bf',r3:'#b4c5d1',
+        c0:'#7a95a7',c1:'#99b0bf',c2:'#b4c5d1',c3:'#d0dde4',kd:'#004264',k0:'#08919b',k1:'#01cbd3',k2:'#6cf2ff',
+        g0:'#004264',g1:'#01cbd3',g2:'#6cf2ff',w0:'#41261c',w1:'#694635',f0:'#6cf2ff',f1:'#d9efff'}}}},
   snowIce:{title:'Băng tuyết',note:'Cuội trắng lạnh xếp kín, tuyết phủ dày, nhũ băng',
     interior:'cobble',capStyle:'cobble',crustType:'snow',dripType:'icicle',hangType:'icicle',
-    colors:{ink:INK950,m0:'#435d73',m1:'#5e788c',m2:'#7a95a7',r0:'#7a95a7',r1:'#99b0bf',r2:'#b4c5d1',r3:'#d0dde4',
-      c0:'#7a95a7',c1:'#b4c5d1',c2:'#d0dde4',c3:'#d9efff',k0:'#99b0bf',k1:'#d0dde4',k2:'#f4efe3',
-      g0:'#53accc',g1:'#91d2ec',g2:'#d9efff',w0:'#41261c',w1:'#694635',f0:'#d9efff',f1:'#91d2ec'},
-    sky:'#0d171f',params:{size:.5,density:.7,crust:.6,drip:.35,glow:.1,capH:.5,cracks:.4,pebbles:.2,roots:0,deco:.35},
-    props:['snow','snow','shard','pebble','snow','pebble','hang','hang']},
+    params:{size:.5,density:.7,crust:.6,drip:.35,glow:.1,capH:.5,cracks:.4,pebbles:.2,roots:0,deco:.35},
+    props:['snow','snow','shard','pebble','snow','pebble','hang','hang'],
+    palettes:{
+      genesis:{sky:'#25232f',colors:{ink:'#25232f',m0:'#4f7277',m1:'#6d8f96',m2:'#97b3b6',r0:'#6d8f96',r1:'#97b3b6',r2:'#c3d4d6',r3:'#f1edf2',
+        c0:'#97b3b6',c1:'#c3d4d6',c2:'#e6fff4',c3:'#ffffff',kd:'#97b3b6',k0:'#c3d4d6',k1:'#f1edf2',k2:'#ffffff',
+        g0:'#5b98e6',g1:'#86bdf0',g2:'#bfe0f8',w0:'#492d27',w1:'#6f433a',f0:'#bfe0f8',f1:'#86bdf0'}},
+      master:{sky:'#0d171f',colors:{ink:M_INK,m0:'#435d73',m1:'#5e788c',m2:'#7a95a7',r0:'#7a95a7',r1:'#99b0bf',r2:'#b4c5d1',r3:'#d0dde4',
+        c0:'#7a95a7',c1:'#b4c5d1',c2:'#d0dde4',c3:'#d9efff',kd:'#7a95a7',k0:'#99b0bf',k1:'#d0dde4',k2:'#f4efe3',
+        g0:'#53accc',g1:'#91d2ec',g2:'#d9efff',w0:'#41261c',w1:'#694635',f0:'#d9efff',f1:'#91d2ec'}}}},
   villagePath:{title:'Đường làng lát đá',note:'Mặt đường đá phiến lớn, nền đất tối, cỏ và dây leo',
     interior:'boulder',capStyle:'slab',crustType:'grass',dripType:'vine',hangType:'vine',
-    colors:{ink:INK950,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#162331',r1:'#223344',r2:'#2e4659',r3:'#435d73',
-      c0:'#5e788c',c1:'#7a95a7',c2:'#99b0bf',c3:'#b4c5d1',k0:'#245c2c',k1:'#4a873c',k2:'#7cb759',
-      g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#f4efe3',f1:'#f5cb53'},
-    sky:'#6faeef',params:{size:.75,density:.55,crust:.25,drip:.45,glow:0,capH:.6,cracks:.15,pebbles:.2,roots:.2,deco:.6},
-    props:['tuft','flower','tuft','sprout','pebble','flower','hang','hang']},
+    params:{size:.75,density:.55,crust:.25,drip:.45,glow:0,capH:.6,cracks:.15,pebbles:.2,roots:.2,deco:.6},
+    props:['tuft','flower','tuft','sprout','pebble','flower','hang','hang'],
+    palettes:{
+      genesis:{sky:'#5b98e6',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#3b2c3e',r0:'#25232f',r1:'#3b2c3e',r2:'#423d52',r3:'#5c4763',
+        c0:'#806f95',c1:'#968daa',c2:'#b4b0bf',c3:'#ddd1e0',kd:'#284d3b',k0:'#2a5a42',k1:'#3b894b',k2:'#63c74d',
+        g0:'#1d5a5a',g1:'#22917f',g2:'#9ef2cf',w0:'#492d27',w1:'#6f433a',f0:'#f1edf2',f1:'#ffd900'}},
+      master:{sky:'#6faeef',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#162331',r1:'#223344',r2:'#2e4659',r3:'#435d73',
+        c0:'#5e788c',c1:'#7a95a7',c2:'#99b0bf',c3:'#b4c5d1',kd:'#173d2a',k0:'#245c2c',k1:'#4a873c',k2:'#7cb759',
+        g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#f4efe3',f1:'#f5cb53'}}}},
   deepStone:{title:'Đá sâu · mạch lam',note:'Đá lạnh tối, rêu xám, mạch linh khí lam mảnh',
     interior:'boulder',capStyle:'cobble',crustType:'moss',dripType:'vine',hangType:'stalactite',
-    colors:{ink:INK950,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',
-      c0:'#435d73',c1:'#5e788c',c2:'#7a95a7',c3:'#99b0bf',k0:'#3a5647',k1:'#527059',k2:'#6e896f',
-      g0:'#004264',g1:'#08919b',g2:'#01cbd3',w0:'#41261c',w1:'#694635',f0:'#c4f0de',f1:'#5dffc0'},
-    sky:'#0d171f',params:{size:.55,density:.55,crust:.25,drip:.3,glow:.35,capH:.45,cracks:.45,pebbles:.4,roots:.15,deco:.35},
-    props:['pebble','sprout','shard','pebble','crystal','tuft','hang','hang']},
+    params:{size:.55,density:.55,crust:.25,drip:.3,glow:.35,capH:.45,cracks:.45,pebbles:.4,roots:.15,deco:.35},
+    props:['pebble','sprout','shard','pebble','crystal','tuft','hang','hang'],
+    palettes:{
+      genesis:{sky:'#251c24',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#423d52',r1:'#5e5572',r2:'#806f95',r3:'#968daa',
+        c0:'#5e5572',c1:'#806f95',c2:'#968daa',c3:'#b4b0bf',kd:'#284d3b',k0:'#2a5a42',k1:'#4d6b53',k2:'#7a9a72',
+        g0:'#1d5a5a',g1:'#22917f',g2:'#3fd0a6',w0:'#492d27',w1:'#6f433a',f0:'#9ef2cf',f1:'#3fd0a6'}},
+      master:{sky:'#0d171f',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',
+        c0:'#435d73',c1:'#5e788c',c2:'#7a95a7',c3:'#99b0bf',kd:'#283b3a',k0:'#3a5647',k1:'#527059',k2:'#6e896f',
+        g0:'#004264',g1:'#08919b',g2:'#01cbd3',w0:'#41261c',w1:'#694635',f0:'#c4f0de',f1:'#5dffc0'}}}},
   violetSpirit:{title:'Linh thạch tím',note:'Đá xanh than, tinh thể và gân linh khí tím',
     interior:'boulder',capStyle:'cobble',crustType:'crystal',dripType:'icicle',hangType:'icicle',
-    colors:{ink:INK950,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',
-      c0:'#5e788c',c1:'#7a95a7',c2:'#99b0bf',c3:'#b4c5d1',k0:'#5e419e',k1:'#7c5bc4',k2:'#b99cff',
-      g0:'#5e419e',g1:'#9a7de0',g2:'#b99cff',w0:'#41261c',w1:'#694635',f0:'#b99cff',f1:'#ffd0df'},
-    sky:'#162331',params:{size:.5,density:.5,crust:.3,drip:.4,glow:.85,capH:.4,cracks:.3,pebbles:.3,roots:0,deco:.5},
-    props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang']}
+    params:{size:.5,density:.5,crust:.3,drip:.4,glow:.85,capH:.4,cracks:.3,pebbles:.3,roots:0,deco:.5},
+    props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang'],
+    palettes:{
+      genesis:{sky:'#251c24',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#3b2c3e',r0:'#3b2c3e',r1:'#5c4763',r2:'#806f95',r3:'#9886a7',
+        c0:'#5e5572',c1:'#806f95',c2:'#9886a7',c3:'#bba9c6',kd:'#43137c',k0:'#681ab7',k1:'#c955e7',k2:'#e187f8',
+        g0:'#51154a',g1:'#c955e7',g2:'#e187f8',w0:'#492d27',w1:'#6f433a',f0:'#fcc8da',f1:'#ffd900'}},
+      master:{sky:'#162331',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',
+        c0:'#5e788c',c1:'#7a95a7',c2:'#99b0bf',c3:'#b4c5d1',kd:'#5e419e',k0:'#5e419e',k1:'#7c5bc4',k2:'#b99cff',
+        g0:'#5e419e',g1:'#9a7de0',g2:'#b99cff',w0:'#41261c',w1:'#694635',f0:'#b99cff',f1:'#ffd0df'}}}}
 };
-export const GEN_RECIPE_ORDER=['warmLedge','mossCobble','crystalCave','snowIce','villagePath','deepStone','violetSpirit'];
+export const GEN_RECIPE_ORDER=['cleanBlock','warmLedge','mossCobble','crystalCave','snowIce','villagePath','deepStone','violetSpirit'];
 
 /* thanh trượt: 5 thanh chính + mục Nâng cao. Mọi giá trị trong khoảng 0..1. */
 export const GEN_PARAMS=[
@@ -112,14 +153,14 @@ export const GEN_PARAMS=[
 ];
 export const GEN_CRUSTS={grass:'Cỏ',moss:'Rêu',snow:'Tuyết',crystal:'Tinh thể',none:'Không phủ'};
 export const GEN_DRIPS={vine:'Rêu / dây leo',icicle:'Nhũ băng',none:'Không rủ'};
-export const GEN_INTERIORS={boulder:'Tảng đá trong nền tối',cobble:'Cuội xếp kín'};
-export const GEN_CAPS={cobble:'Cuội bo tròn',slab:'Đá phiến vuông'};
+export const GEN_INTERIORS={block:'Đá khối xếp so le (sạch)',boulder:'Tảng đá trong nền tối',cobble:'Cuội xếp kín'};
+export const GEN_CAPS={block:'Không viền — khối đá chạy thẳng lên mặt',cobble:'Cuội bo tròn',slab:'Đá phiến vuông'};
 export const GEN_SEED_GROUPS=[['rock','Đá trong'],['cap','Mặt trên'],['crust','Phủ & rủ'],['vein','Linh khí']];
 
 /* ---------------- sáu tầng đất ----------------
    Tầng 1 là mặt đất, tầng 6 sâu nhất. Đi xuống: cỏ mỏng dần, linh khí đậm dần, lam rồi tím. */
 export const GEN_STRATA=[
-  {title:'Mặt đất',recipe:'warmLedge',params:{crust:.5,glow:0,drip:.25}},
+  {title:'Mặt đất',recipe:'cleanBlock',params:{crust:.5,glow:0}},
   {title:'Tầng rễ',recipe:'mossCobble',params:{crust:.45,roots:.6,drip:.55,glow:0}},
   {title:'Đá sâu',recipe:'deepStone',params:{crust:.2,glow:.25,roots:.1}},
   {title:'Mạch linh thạch',recipe:'crystalCave',params:{crust:.2,glow:.5,drip:.3}},
@@ -133,16 +174,17 @@ export function makeSeeds(seed){
 }
 /* công thức + phần chỉnh → bản thông số đầy đủ để sinh */
 export function makeSpec(recipeId, patch={}){
-  const r=GEN_RECIPES[recipeId]||GEN_RECIPES.warmLedge;
+  const r=GEN_RECIPES[recipeId]||GEN_RECIPES.cleanBlock;
   const seed=Number.isInteger(patch.seed)?patch.seed:1701;
+  const palette=patch.palette==='master'?'master':'genesis', base=r.palettes[palette];
   return {
-    recipe:GEN_RECIPES[recipeId]?recipeId:'warmLedge',
+    recipe:GEN_RECIPES[recipeId]?recipeId:'cleanBlock', palette,
     interior:patch.interior||r.interior, capStyle:patch.capStyle||r.capStyle,
     crustType:patch.crustType||r.crustType, dripType:patch.dripType||r.dripType, hangType:r.hangType,
     light:patch.light==='tr'?'tr':'tl',
     params:{...r.params,...(patch.params||{})},
-    colors:{...r.colors,...(patch.colors||{})},
-    sky:patch.sky||r.sky,
+    colors:{...base.colors,...(patch.colors||{})},
+    sky:patch.sky||base.sky,
     props:r.props.slice(),
     seed, seeds:{...makeSeeds(seed),...(patch.seeds||{})}
   };
@@ -416,10 +458,88 @@ function cobbleTexture(n,P,spec,pts,field){
   }
   return px;
 }
-function interiorTextures(n,spec){
+/* ---------------- đá khối xếp so le (kiểu tile "sạch") ----------------
+   Mỗi hàng gạch cao courseH, hàng cuối là mạch vữa. Mạch đứng chỉ nằm cách cột biên ≥ 5–6 px (blockJointRange):
+   cột biên của ô luôn rơi vào giữa một viên đá nên mọi ô cùng chung một cột biên. Hàng gạch
+   đầu (chạm hàng biên trên) giữ nguyên ở mọi biến thể; các hàng dưới thì xếp lại tự do.
+   Đổ sáng chỉ sát mạch như ảnh mẫu: mép trên + mép trái sáng một đoạn ngắn, mép phải + đáy tối,
+   bốn góc viên bo bằng màu vữa. Mặt viên là một màu phẳng. */
+/* mạch đứng chỉ được nằm cách cột biên hơn đoạn sáng/bóng sát mạch (3 px ở khổ 16, 4 px ở khổ 32),
+   để cột biên luôn là mặt viên phẳng — ô nào, tấm vân lớn nào cũng chung một vành */
+const blockJointRange=n=>{ const hl=n>=32?4:3; return [hl+2, n-hl-3]; };
+function blockCourseH(n,P){ return n>=32 && (P.size??.5)<.35 ? 8 : n/2; }
+function blockLayout(n,P,seed,keep=null){
+  const R=rng(seed), H=blockCourseH(n,P), courses=n/H, [lo,hi]=blockJointRange(n), gap=Math.max(6,Math.round(6*n/16));
+  const bw=(6+(P.size??.5)*10)*(n/16), want=clamp(Math.round(n/bw),1,Math.floor((hi-lo)/gap)+1);
+  const out=[];
+  for(let c=0;c<courses;c++){
+    if(keep && keep[c]){ out.push(keep[c]); continue; }
+    const prev=out[c-1], joints=[];
+    for(let t=0;t<80 && joints.length<want;t++){
+      let x=lo+Math.floor(R()*(hi-lo+1));
+      // so le với hàng trên: tránh đặt mạch ngay dưới mạch cũ
+      if(prev && prev.some(j=>Math.abs(j-x)<3)) continue;
+      if(joints.some(j=>Math.abs(j-x)<gap)) continue;
+      joints.push(x);
+    }
+    if(!joints.length) joints.push(prev && Math.abs(prev[0]-lo)<3 ? hi : lo);
+    out.push(joints.sort((a,b)=>a-b));
+  }
+  return {H,courses:out};
+}
+function blockTexture(n,spec,layout,W=n,Ht=n){
+  const px=new Uint8Array(W*Ht), flip=spec.light==='tr', {H,courses}=layout, hl=n>=32?4:3;
+  for(let y=0;y<Ht;y++){
+    const c=Math.floor(y/H), v=y%H, J=courses[c], last=H-2;   // v = H-1 là hàng vữa
+    for(let x=0;x<W;x++){
+      const i=y*W+x;
+      if(v===H-1 || J.includes(x)){ px[i]=INK; continue; }
+      let jl=-Infinity, jr=Infinity;
+      for(const j of J){ if(j<x) jl=Math.max(jl,j); if(j>x) jr=Math.min(jr,j); }
+      if(jl===-Infinity) jl=J[J.length-1]-W;
+      if(jr===Infinity) jr=J[0]+W;
+      const w=jr-jl-1; let u=x-jl-1;
+      if(flip) u=w-1-u;
+      let t=R1;
+      if((v===0||v===last) && (u===0||u===w-1)) t=INK;                 // góc bo
+      else if(v===0 && u<=hl) t=R3;                                     // mép trên sáng
+      else if(u===0 && v<=last-3) t=R3;                                 // mép trái sáng
+      else if(u===w-1 && v>=Math.floor(last/2)) t=R0;                   // mép phải tối
+      else if(v===last && u>=w-1-hl) t=R0;                              // đáy tối
+      px[i]=t;
+    }
+  }
+  return px;
+}
+/* chi tiết riêng của biến thể đá khối: vết nứt, mẻ góc, viên sáng hơn, rêu trên mép — chỉ ở hàng
+   gạch thứ hai trở đi và cách biên ≥ 2 px, để vành ô y hệt ô gốc */
+function blockDetails(px,n,spec,v,layout){
+  const R=rng(spec.seeds.rock+v*6113), {H}=layout, y0=H, green=['grass','moss'].includes(spec.crustType);
+  const inner=(x,y)=>x>=2&&y>=y0&&x<n-2&&y<n-2;
+  const pick=test=>{ for(let t=0;t<80;t++){ const x=2+Math.floor(R()*(n-4)), y=y0+Math.floor(R()*(n-y0-2)); if(inner(x,y)&&test(x,y)) return [x,y]; } return null; };
+  const jobs=v===1?['crack','chip']:v===2?['moss','crack']:['light','chip'];
+  for(const job of jobs){
+    if(job==='crack'){
+      const s=pick((x,y)=>px[y*n+x]===R1 && px[(y+1)*n+x]===R1); if(!s) continue;
+      let [x,y]=s; const dir=R()<.5?1:-1;
+      for(let k=0;k<Math.round(3+R()*2)*(n/16);k++){ if(!inner(x,y)||px[y*n+x]!==R1) break; px[y*n+x]=R0; y++; if(R()<.6) x+=dir; }
+    } else if(job==='chip'){
+      const s=pick((x,y)=>px[y*n+x]===R3 && px[(y-1)*n+x]===INK); if(s) px[s[1]*n+s[0]]=INK;
+    } else if(job==='moss'){
+      for(let y=y0;y<n-2;y++) for(let x=2;x<n-2;x++){ const i=y*n+x; if((px[i]===R3||px[i]===R1) && px[i-n]===INK && R()<.5) px[i]=green?K1:R0; }
+    } else if(job==='light'){
+      const s=pick((x,y)=>px[y*n+x]===R1); if(!s) continue;
+      // tô sáng cả viên chứa điểm này (loang trong mặt viên, không qua mạch)
+      const stack=[s], seen=new Set();
+      while(stack.length){ const [x,y]=stack.pop(), k=y*n+x; if(seen.has(k)||!inner(x,y)||px[k]!==R1) continue; seen.add(k); px[k]=R2;
+        stack.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]); }
+    }
+  }
+}
+function interiorTextures(n,spec,extra=0){
   const P=spec.params, S=spec.seeds, L=spec.light==='tr'?[.6,-.8]:[-.6,-.8];
   const win=[2,n-2], moss=spec.crustType==='moss'?.12:0, sc=n/16;
-  const glowOk=P.glow>=.4, out={base:null,variants:[],plain:[]};
+  const glowOk=P.glow>=.4, out={base:null,variants:[],plain:[],more:[]};
   /* gân và đốm sáng chỉ nằm trong biến thể (không ở ô gốc): ô gốc là tấm nền êm nhất, lặp nhiều
      nhất; nét sáng đặt ở đó sẽ thành hoa văn đều tăm tắp */
   const glowDetails=(tex,v,plain)=>{
@@ -428,8 +548,15 @@ function interiorTextures(n,spec){
     if(!plain && v>=2 || plain && v===2 && P.glow>.45) vein(tex,n,P,S.vein+v*17,win);
     sparkles(tex,n,sp,S.vein+v*29,win);
   };
-  let texOf;
-  if(spec.interior==='cobble'){
+  let texOf, extraDetails=()=>{};
+  if(spec.interior==='block'){
+    const base=blockLayout(n,P,S.rock);
+    out.base=blockTexture(n,spec,base);
+    // ô mép chỉ đổi chỗ mạch (sạch); vết nứt, mẻ góc, rêu là nét riêng của biến thể ruột
+    const lays={};
+    texOf=v=>{ lays[v]=blockLayout(n,P,S.rock+v*7919,{0:base.courses[0]}); return blockTexture(n,spec,lays[v]); };
+    extraDetails=(tex,v)=>blockDetails(tex,n,spec,v,lays[v]);
+  } else if(spec.interior==='cobble'){
     const base=cobblePoints(n,P,S.rock);
     const bf=cobbleField(n,base);
     out.base=cobbleTexture(n,P,spec,base,bf);
@@ -478,12 +605,15 @@ function interiorTextures(n,spec){
     };
   }
   for(let v=1;v<=3;v++){
-    const tex=texOf(v), plain=tex.slice();
+    // tấm cho ô mép dùng hạt riêng: khác cả ô gốc lẫn biến thể ruột, để vân lớn có đủ 9 ô con khác nhau
+    const tex=texOf(v), plain=texOf(v+10);
     glowDetails(plain,v,true); out.plain.push(plain);
-    glowDetails(tex,v,false); rareFeature(tex,n,spec,v,win,glowOk); out.variants.push(tex);
+    extraDetails(tex,v); glowDetails(tex,v,false); rareFeature(tex,n,spec,v,win,glowOk); out.variants.push(tex);
   }
+  // thêm tấm cho vân lớn (macro): cùng vành, chi tiết riêng, không có nét hiếm
+  for(let v=4;v<4+extra;v++){ const tex=texOf(v); extraDetails(tex,v); glowDetails(tex,v,false); out.more.push(tex); }
   // lưới an toàn: vành 1 px của biến thể luôn y hệt ô gốc
-  for(const tex of [...out.variants,...out.plain]) for(let i=0;i<n;i++) for(const k of [i,(n-1)*n+i,i*n,i*n+n-1]) tex[k]=out.base[k];
+  for(const tex of [...out.variants,...out.plain,...out.more]) for(let i=0;i<n;i++) for(const k of [i,(n-1)*n+i,i*n,i*n+n-1]) tex[k]=out.base[k];
   return out;
 }
 /* chi tiết riêng của biến thể kiểu cuội xếp kín: ở khổ 16 viên nào cũng chạm vành nên không
@@ -596,11 +726,14 @@ export function generateTerrainRoles(spec,n=16,shape='inset'){
   const ceilParts=[0,1].map(v=>partition(n,S.cap^0x5bd1,wMin,wMax,v));
   const wallParts=[0,1].map(v=>partition(n,S.cap^0x2c9b,Math.max(3,wMin-1),wMax,v));
   const crustOn=spec.crustType!=='none' && P.crust>.02;
-  const kBase=crustOn?Math.max(1,Math.round(P.crust*T*(spec.crustType==='snow'?.6:.42))):0;
+  // kiểu sạch: không dải cuội, khối đá chạy thẳng lên mặt; lớp phủ là một dải đều 3 bậc + giọt mép
+  const clean=spec.capStyle==='block';
+  const kBase=!crustOn?0:clean?Math.max(2,Math.round(P.crust*n*.36)):Math.max(1,Math.round(P.crust*T*(spec.crustType==='snow'?.6:.42)));
   // lớp phủ dày theo từng cột; biến thể sàn chỉ đổi các cột giữa
   const colSeed=(x,variant)=>variant && x>=2 && x<=n-3 ? S.crust+variant*911 : S.crust;
   const crustK=(x,variant)=>{
     if(!crustOn) return 0;
+    if(clean) return kBase;
     const h=h01(x,0,colSeed(x,variant));
     let k=kBase+(h>.78?1:0);
     if(spec.crustType==='snow'){ const [u,w]=capParts[0][x]; k=kBase+(u>0&&u<w-1?1:0)+(h>.85?1:0); }
@@ -632,6 +765,14 @@ export function generateTerrainRoles(spec,n=16,shape='inset'){
       const i=y*n+x; if(!G.roles[i]) continue;
       const u=G.dU[i], d=G.dD[i], l=G.dL[i], rr=G.dR[i];
       let v=texture[i];
+      if(clean){
+        // mép hở: trên và phía nắng sáng một hàng, phía khuất và đáy là màu vữa
+        if(u===0) v=C3;
+        if(l===0) v=flip?INK:C3;
+        if(rr===0) v=flip?C3:INK;
+        if(d===0) v=INK;
+        out[i]=v; continue;
+      }
       if(u===T) v=INK; else if(u===T+1) v=DARKER[v];
       if(d===Ct) v=INK;
       if(l===Wt||rr===Wt) v=v===INK?INK:DARKER[v];
@@ -660,6 +801,13 @@ export function generateTerrainRoles(spec,n=16,shape='inset'){
     if(crustOn) for(let y=0;y<n;y++) for(let x=0;x<n;x++){
       const i=y*n+x; if(!G.roles[i]) continue;
       const u=G.dU[i], k=crustK(x,floorVar);
+      if(clean){
+        const h=h01(x,y,S.crust^0x3d);
+        if(u<k) out[i]=u===0?(h<.35?K2:K1):u===k-1?KD:(h<.18?K1:K0);
+        else if(u===k && h01(x,9,colSeed(x,floorVar))<.3) out[i]=KD;                 // giọt rủ một pixel
+        else if(n>=32 && u===k+1 && h01(x,9,colSeed(x,floorVar))<.12) out[i]=KD;
+        continue;
+      }
       if(u<k){
         if(spec.crustType==='crystal') out[i]=u===0?(h01(x,y,S.crust^8)<.3?K2:K1):h01(x,y,S.crust)<.5?K0:out[i];
         else out[i]=u===0?K2:u===k-1?K0:K1;
@@ -703,6 +851,7 @@ export function generateTerrainRoles(spec,n=16,shape='inset'){
       const i=y*n+x; if(G.roles[i]) continue;
       let h=1; while(y+h<n && !G.roles[(y+h)*n+x] && h<=r) h++;
       if(y+h<n && G.roles[(y+h)*n+x] && G.dU[(y+h)*n+x]===0 && !clear[(y+h)*n+x] && crustOn){
+        if(clean) continue;                    // kiểu sạch: không cọng cỏ lơ thơ trong phần thụt
         const s=colSeed(x,floorVar), want=Math.floor(h01(x,7,s)*(r)*Math.min(1,P.crust*1.6+.2));
         if(spec.crustType==='grass'||spec.crustType==='moss'){ if(h<=want) out[i]=h===want?K2:K1; }
         else if(spec.crustType==='crystal'){ if(h<=want && h01(x,8,s)<.45) out[i]=h===want?K2:K1; }
@@ -739,6 +888,61 @@ export function colorize(roleTiles,colors){
 }
 export function generateTerrain(spec,n=16,shape='inset'){
   return colorize(generateTerrainRoles(spec,n,shape),spec.colors);
+}
+
+/* ---------------- vân lớn (macro) ----------------
+   Tấm size×size ô (mặc định 3×3 = 48×48 ở khổ 16) cho các ô đặc mask 255: game lấy ô con
+   (x mod size, y mod size) thay cho #46–#49, nên mặt đá lớn không còn nhịp lặp mỗi ô.
+   Tấm lặp vòng bốn phía. Vành 1 px của MỖI ô con trùng vành ô ruột #46, để chỗ vân lớn gặp
+   ô có mép (sàn, tường, trần) vẫn liền như hai ô ruột cạnh nhau.
+   - Đá khối: viên đá được dài vắt qua ranh ô con (cột biên luôn là giữa viên), hàng gạch đầu
+     của mỗi hàng ô con theo ô gốc; các hàng dưới xếp lại trên cả bề rộng 3 ô.
+   - Kiểu khác: 9 ô con là 9 tấm ruột khác nhau cùng vành (ô gốc, 3 biến thể, 3 ô mép, 2 tấm thêm).
+   Trả về Uint8Array (size·n)² chỉ số vai trò. */
+export function generateMacroRoles(spec,n=16,size=3){
+  const W=size*n, P=spec.params, S=spec.seeds;
+  if(spec.interior==='block'){
+    const base=blockLayout(n,P,S.rock), H=base.H, per=n/H, R=rng(S.rock^0x6d6163);
+    const gap=Math.max(6,Math.round(6*n/16)), bw=(6+(P.size??.5)*10)*(n/16)*1.5, want=Math.max(2,Math.round(W/bw));
+    const [jlo,jhi]=blockJointRange(n), ok=x=>{ const m=((x%n)+n)%n; return m>=jlo && m<=jhi; };
+    const dist=(a,b)=>{ const d=Math.abs(a-b)%W; return Math.min(d,W-d); };
+    const courses=[];
+    for(let c=0;c<size*per;c++){
+      if(c%per===0){ courses.push(Array.from({length:size},(_,k)=>base.courses[0].map(j=>j+k*n)).flat().sort((a,b)=>a-b)); continue; }
+      // số mạch mỗi hàng thay đổi: có hàng viên dài vắt qua hai ô con, có hàng viên ngắn
+      const prev=courses[c-1], J=[], wantC=Math.max(1,want-1+Math.floor(R()*3));
+      for(let t=0;t<400 && J.length<wantC;t++){
+        const x=Math.floor(R()*W);
+        if(!ok(x) || prev.some(j=>dist(j,x)<3) || J.some(j=>dist(j,x)<gap)) continue;
+        J.push(x);
+      }
+      if(!J.length) J.push(jlo);
+      courses.push(J.sort((a,b)=>a-b));
+    }
+    const px=blockTexture(n,spec,{H,courses},W,W);
+    // vài ô con có thêm vết nứt / mẻ góc / rêu (chỉ trong lòng ô con)
+    const order=[0,1,2,3,4,5,6,7,8].sort(()=>R()-.5).slice(0,6);
+    order.forEach((cell,k)=>{
+      const ox=(cell%size)*n, oy=Math.floor(cell/size)*n, t=new Uint8Array(n*n);
+      for(let y=0;y<n;y++) for(let x=0;x<n;x++) t[y*n+x]=px[(oy+y)*W+ox+x];
+      blockDetails(t,n,{...spec,seeds:{...S,rock:S.rock+k*977}},1+k%3,{H});
+      for(let y=0;y<n;y++) for(let x=0;x<n;x++) px[(oy+y)*W+ox+x]=t[y*n+x];
+    });
+    return px;
+  }
+  const tex=interiorTextures(n,spec,Math.max(0,size*size-7));
+  const pool=[tex.base,...tex.variants,...tex.plain,...tex.more];
+  const R=rng(S.rock^0x4d41), order=pool.map((_,i)=>i).sort(()=>R()-.5);
+  const px=new Uint8Array(W*W);
+  for(let c=0;c<size*size;c++){
+    const t=pool[order[c%pool.length]], ox=(c%size)*n, oy=Math.floor(c/size)*n;
+    for(let y=0;y<n;y++) px.set(t.subarray(y*n,y*n+n),(oy+y)*W+ox);
+  }
+  return px;
+}
+export function generateMacro(spec,n=16,size=3){
+  const lut=colorLut(spec.colors);
+  return {size,n,w:size*n,px:Uint32Array.from(generateMacroRoles(spec,n,size),v=>lut[v])};
 }
 
 /* ---------------- trang trí rời (props) ----------------
@@ -879,10 +1083,13 @@ function cellMask(map,x,y){
   return N|E<<1|S<<2|W<<3|(N&&E&&solid(x+1,y-1))<<4|(S&&E&&solid(x+1,y+1))<<5|(S&&W&&solid(x-1,y+1))<<6|(N&&W&&solid(x-1,y-1))<<7;
 }
 /* nhân vật mẫu để so tỉ lệ — vẽ bằng khối, cao đúng chiều cao nhân vật trong game */
-export function heroSprite(H){
+const HERO_COLORS={
+  genesis:{hair:'#251c24',skin:'#f3bfa2',skinD:'#d8a597',robe:'#f1edf2',robeD:'#ddd1e0',belt:'#ca4949',pants:'#423d52',ink:'#251c24'},
+  master:{hair:'#1f1e1c',skin:'#e8ad83',skinD:'#d08a66',robe:'#d8d1c2',robeD:'#b5aea1',belt:'#c2362c',pants:'#4c4944',ink:M_INK}
+};
+export function heroSprite(H,palette='genesis'){
   const h=Math.max(16,Math.round(H)), w=Math.max(9,Math.round(h*.46)), px=new Uint32Array(w*h);
-  const C={hair:hexToRgba('#1f1e1c'),skin:hexToRgba('#e8ad83'),skinD:hexToRgba('#d08a66'),robe:hexToRgba('#d8d1c2'),
-    robeD:hexToRgba('#b5aea1'),belt:hexToRgba('#c2362c'),pants:hexToRgba('#4c4944'),ink:hexToRgba(INK950)};
+  const C=Object.fromEntries(Object.entries(HERO_COLORS[palette]||HERO_COLORS.genesis).map(([k,v])=>[k,hexToRgba(v)]));
   const rect=(x0,y0,x1,y1,c)=>{ for(let y=Math.max(0,y0);y<Math.min(h,y1);y++) for(let x=Math.max(0,x0);x<Math.min(w,x1);x++) px[y*w+x]=c; };
   const headH=Math.round(h*.3), bodyT=headH, legT=Math.round(h*.76), cx=Math.floor(w/2), hw=Math.round(w*.36);
   rect(cx-hw,1,cx+hw+1,headH,C.skin);
@@ -905,7 +1112,7 @@ export function heroSprite(H){
   return {w,h,px:out};
 }
 /* sets: [{tiles: 56 Uint32Array, props:[{anchor,px}], sky}] → ảnh RGBA của cả bản đồ */
-export function renderPreview(map,sets,{n=16,shape='inset',deco=.5,heroH=0,seed=1701}={}){
+export function renderPreview(map,sets,{n=16,shape='inset',deco=.5,heroH=0,seed=1701,palette='genesis'}={}){
   const W=map.w*n, H=map.h*n, img=new Uint32Array(W*H).fill(hexToRgba(sets[0].sky||'#162331'));
   const r=shapeInset(shape,n);
   const blit=(src,sw,sh,dx,dy)=>{
@@ -914,7 +1121,13 @@ export function renderPreview(map,sets,{n=16,shape='inset',deco=.5,heroH=0,seed=
   };
   for(let y=0;y<map.h;y++) for(let x=0;x<map.w;x++){
     const c=map.cells[y*map.w+x]; if(!c) continue;
-    const set=sets[Math.min(sets.length,c)-1], slot=terrainSlot(cellMask(map,x,y),x,y,56,seed);
+    const set=sets[Math.min(sets.length,c)-1], mask=cellMask(map,x,y);
+    if(mask===255 && set.macro){                          // ô đặc lấy ô con của tấm vân lớn theo toạ độ
+      const M=set.macro, ox=(x%M.size)*n, oy=(y%M.size)*n;
+      for(let yy=0;yy<n;yy++) for(let xx=0;xx<n;xx++){ const v=M.px[(oy+yy)*M.w+ox+xx]; if(v>>>24) img[(y*n+yy)*W+x*n+xx]=v; }
+      continue;
+    }
+    const slot=terrainSlot(mask,x,y,56,seed);
     if(slot>=0) blit(set.tiles[slot],n,n,x*n,y*n);
   }
   // trang trí: mặt đất có khoảng trống phía trên, trần có khoảng trống phía dưới
@@ -929,7 +1142,7 @@ export function renderPreview(map,sets,{n=16,shape='inset',deco=.5,heroH=0,seed=
   }
   if(heroH>0 && map.hero){
     // đứng trên mặt đất có đủ khoảng trống phía trên cho cả người, gần cột đã định nhất
-    const hero=heroSprite(heroH), need=Math.ceil((hero.h-r)/n);
+    const hero=heroSprite(heroH,palette), need=Math.ceil((hero.h-r)/n);
     let best=null;
     for(let x=0;x<map.w;x++) for(let y=1;y<map.h;y++){
       if(!map.cells[y*map.w+x] || map.cells[(y-1)*map.w+x]) continue;

@@ -4,7 +4,7 @@ import {BLOB_47_MASKS, TERRAIN_TILES, normalizeMask, tileRoles, terrainPixels,
   neighbors, canConnect, terrainSlot, checkSeams, checkColorSeams, edgeIndex,
   terrainConnectorIndices, terrainManifest, terrainGodotManifest,
   TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER,
-  CORE_SLOTS, composeTile, variantBase} from '../js/terrain.js';
+  CORE_SLOTS, composeTile, variantBase, terrainGodotTres, nearestHex, terrainLayoutJson} from '../js/terrain.js';
 
 test('256 neighborhoods reduce to exactly 47 unique canonical topologies',()=>{
   assert.equal(BLOB_47_MASKS.length,47);
@@ -160,4 +160,42 @@ test('flush shape fills every cell yet keeps all 47 topologies distinct and seam
   assert.deepEqual(tileRoles(31,16),tileRoles(31,16,'inset'));
   assert.equal(terrainManifest(16,'flush').collision.shape,'full');
   assert.equal(terrainGodotManifest(16).collision.insetPx,2);
+});
+
+test('Godot 4 TileSet .tres: one atlas source and one terrain per layer, 8 peering bits, inset collision',()=>{
+  const tres=terrainGodotTres(16,'inset',[{texture:'res://t/a.png',name:'A',color:'#63c74d'},{texture:'res://t/b.png',name:'B "x"',color:'#5b98e6'}]);
+  assert.match(tres,/^\[gd_resource type="TileSet" load_steps=5 format=3\]/);
+  assert.equal((tres.match(/\[ext_resource type="Texture2D"/g)||[]).length,2);
+  assert.equal((tres.match(/\[sub_resource type="TileSetAtlasSource"/g)||[]).length,2);
+  assert.equal((tres.match(/^\d+:\d+\/0 = 0$/gm)||[]).length,112);
+  assert.match(tres,/terrain_set_0\/mode = 0/);
+  assert.match(tres,/terrain_set_0\/terrain_1\/name = "B \\"x\\""/);
+  // ô giữa #46 ở (6,5): đủ 8 peering bit, va chạm kín ô
+  const mid=tres.split('\n').filter(l=>l.startsWith('6:5/0/'));
+  assert.equal(mid.filter(l=>l.includes('terrains_peering_bit')).length,16);
+  assert.ok(mid.includes('6:5/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)'));
+  // khối rời #00: không peering bit, va chạm thu vào 2px mỗi cạnh (thụt mép)
+  const lone=tres.split('\n').filter(l=>l.startsWith('0:0/0/'));
+  assert.ok(!lone.some(l=>l.includes('peering')));
+  assert.ok(lone.includes('0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-6, -6, 6, -6, 6, 6, -6, 6)'));
+  // biến thể có xác suất riêng
+  assert.match(tres,/\/0\/probability = /);
+  assert.equal(nearestHex('#5f5f80',['#251c24','#5e5572','#806f95']),'#5e5572');
+});
+
+test('layout.json for the game: layout 2 tables read from data, macro block optional; .tres gets macro sources at 100+',()=>{
+  const lay=terrainLayoutJson(16,'inset',{layers:{'1':'a.png'},macroSize:3,macroFiles:{'1':'macro_1.png'}});
+  assert.equal(lay.layout,2);
+  assert.equal(lay.base_center_slot,46);
+  assert.deepEqual(lay.center_variant_slots,[47,48,49]);
+  assert.deepEqual(lay.edge_variant_masks,{'50':110,'51':110,'52':110,'53':155,'54':55,'55':205});
+  assert.deepEqual(lay.blob_masks,BLOB_47_MASKS);
+  assert.deepEqual(lay.macro.files,{'1':'macro_1.png'});
+  assert.equal(terrainLayoutJson(16).macro,undefined);
+  // bảng trong layout.json khớp bảng TERRAIN_TILES
+  for(const [slot,mask] of Object.entries(lay.edge_variant_masks)) assert.equal(TERRAIN_TILES[+slot].mask,mask);
+  const tres=terrainGodotTres(16,'flush',[{texture:'res://a.png',name:'A',color:'#63c74d',macro:{texture:'res://m.png',size:3}}]);
+  assert.match(tres,/sources\/100 = SubResource\("TileSetAtlasSource_macro_1"\)/);
+  assert.equal((tres.match(/^[0-2]:[0-2]\/0 = 0$/gm)||[]).length,9+9);   // 9 ô con + 9 ô atlas đầu trùng toạ độ 0–2
+  assert.match(tres,/load_steps=5/);
 });

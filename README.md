@@ -183,14 +183,17 @@ Dựng cả bộ 56 ô bằng thuật toán trong vài giây, đẹp sẵn để
 Bên trái là bản đồ xem trước (**Bậc thang · Hang · Đảo bay · Cắt lớp 6 tầng**) có
 trang trí và nhân vật cao đúng ô **🎮 Cỡ trong game**. Bên phải làm theo ba bước:
 
-1. **Công thức** — Đá ấm · cỏ, Cuội rêu · rễ, Hang tinh thể lam, Băng tuyết, Đường làng
-   lát đá, Đá sâu · mạch lam, Linh thạch tím. Mỗi công thức là một bảng **màu theo vai
-   trò** (viền, nền, đá, mặt trên, lớp phủ, linh khí, rễ, hoa) chỉ lấy từ Master Palette.
+1. **Công thức** — **Đá khối sạch · cỏ** (khối đá xếp so le, mạch vữa rõ, mặt phẳng, cỏ 3 bậc
+   + giọt mép — kiểu tile sạch), Đá ấm · cỏ, Cuội rêu · rễ, Hang tinh thể lam, Băng tuyết,
+   Đường làng lát đá, Đá sâu · mạch lam, Linh thạch tím. Ô **Bảng** chọn bảng gốc: **Genesis v1**
+   (mặc định) hoặc Master Palette — mỗi công thức có sẵn bảng **màu theo vai trò** (viền, nền,
+   đá, mặt trên, lớp phủ, linh khí, rễ, hoa) lấy đúng mã trong bảng đó.
 2. **Chỉnh** — 5 thanh chính: **Cỡ đá, Mật độ đá, Lớp phủ, Rủ xuống, Linh khí**; chọn kiểu
    phủ (cỏ, rêu, tuyết, tinh thể) và kiểu rủ (dây rêu, nhũ băng). **🎲** đổi cả bộ, hoặc
    chỉ một phần: Đá trong · Mặt trên · Phủ & rủ · Linh khí. **Nâng cao**: độ dày mặt trên,
-   vết nứt, sỏi, rễ, kiểu ruột (tảng đá trong nền tối / cuội xếp kín), kiểu mặt (cuội bo
-   tròn / đá phiến), hướng nắng, và đổi màu từng vai trò.
+   vết nứt, sỏi, rễ, kiểu ruột (đá khối xếp so le / tảng đá trong nền tối / cuội xếp kín),
+   kiểu mặt (không viền — khối đá chạy thẳng lên mặt / cuội bo tròn / đá phiến), hướng nắng,
+   và đổi màu từng vai trò (chỉ chọn được màu của bảng gốc).
 3. **Đưa vào atlas** — chưa có bộ thì tạo bộ mới; có rồi thì ghi vào bộ đang mở.
    **Ghi** cho chọn phạm vi (cả 56 ô, chỉ ô có mặt trên, chỉ 4 ô ruột, ô có trần, ô có
    tường). **Giữ ô đã sửa tay** nhận ra ô nào anh vẽ lại sau lần tạo trước và không đè;
@@ -207,9 +210,17 @@ số riêng (bấm tầng để chỉnh). **↕ Nội suy tầng 2–5** cho cá
 tầng 1 xuống tầng 6. Bản đồ **Cắt lớp 6 tầng** xếp chồng cả sáu để xem chỗ chuyển tầng.
 
 Xuất: **Trang trí rời** (cỏ, hoa, mầm, tinh thể, sỏi, nhũ… mỗi thứ một ô, kèm điểm neo
-đáy/đỉnh trong JSON) và **Cả 6 tầng (ZIP)**: mỗi tầng một thư mục `terrain56.png`,
-`trang-tri.png/.json`, `cong-thuc.json`; kèm mapping Godot, layout JSON, ảnh cắt lớp và
-`manifest.json`. Cài đặt của thẻ được nhớ trong trình duyệt.
+đáy/đỉnh trong JSON) và **Cả 6 tầng (ZIP)**, giải nén thẳng vào thư mục Godot (ô “Thư mục
+Godot” ở thẻ Xuất của khung vẽ): `terrain-6-tang/tang-N-…/terrain56.png`, **`tileset.tres`**
+(Godot 4 TileSet dùng ngay: terrain set Match Corners and Sides, đủ 8 peering bit, xác suất
+biến thể, hộp va chạm thu theo dáng mép), `trang-tri.png/.json`, `cong-thuc.json`; cùng
+`terrain-6-tang.tres` gộp cả 6 tầng (mỗi tầng một terrain), mapping JSON, ảnh cắt lớp và
+`manifest.json`. Kèm **vân lớn 3×3** `macro_N.png` (48×48 ở khổ 16: ô đặc lấy ô con theo toạ độ,
+hết nhịp lặp mỗi ô; vành từng ô con trùng ô #46 nên ghép với ô có mép không lộ mối; nguồn
+100–105 trong `.tres`) và **`layout.json`** cho game đọc layout 2 từ dữ liệu. Bộ đọc phía game
+(GDScript, có test chạy trên Godot 4.3) ở [`godot/terrain56/`](godot/terrain56/README.md).
+Công tắc **Vân lớn 3×3** trên bản đồ xem trước cho thấy đúng cách game sẽ đặt. PNG được mã hoá ngay trong lúc bấm nên trình duyệt trên máy tính bảng không
+chặn lượt tải; dưới nút luôn có link tải lại. Cài đặt của thẻ được nhớ trong trình duyệt.
 
 **Dáng mép**, chọn khi tạo bộ (không đổi được sau đó):
 
@@ -231,7 +242,8 @@ File xuất (JSON layout, Godot, pack, project) ghi `edgeShape` và gợi ý `co
 
 1. Chọn 16×16 hoặc 32×32, bấm **Tạo bộ 56 ô**. App dựng khối nền đá để vẽ tiếp;
    có thể chọn nhanh preset **Đá lạnh / Đá ấm / Đất / Blue Qi / Qi xanh dương / Sky/Water / Qi Violet** hoặc chọn **Nền** và
-   **Cạnh** trực tiếp từ palette hiện tại trước khi tạo. Nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
+   **Cạnh** trực tiếp từ bảng đang vẽ (Genesis v1 mặc định; đang dùng Master thì theo Master). Các bậc sáng/tối
+   của khối nền được bắt về màu gần nhất trong bảng. Nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
 2. Chọn tile để đọc vai trò pixel, cạnh hở, góc lồi/lõm và các tile nối hợp lệ theo
    N/E/S/W. Khối cơ bản được xếp thành sơ đồ 3×3; các nhóm góc lõm, khối rời và biến thể
    đi theo thứ tự hình học. Bấm mã tile hàng xóm để chuyển thẳng sang tile đó và xem hai ô ghép cạnh nhau.
