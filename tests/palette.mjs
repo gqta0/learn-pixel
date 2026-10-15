@@ -43,12 +43,15 @@ test('the Warm stone ramp rises in lightness and shares its ledge colour with Si
   assert.equal(ramp[6], '#d8d1c2');
   assert.equal(tokens['#d8d1c2'].group, 'Silk');
 });
-test('every Terrain create preset uses colours from the Master palette',()=>{
+test('Terrain create presets: the Genesis set uses Genesis colours, the Master set Master colours',()=>{
   const tv=readFileSync(new URL('../js/terrainview.js', import.meta.url),'utf8');
-  const block=tv.split('const TERRAIN_CREATE_PRESETS={')[1].split('};')[0];
-  const used=[...block.matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
-  assert.ok(used.includes('#7c6d6c'), 'warm stone preset present');
-  for(const c of used) assert.ok(master.includes(c), c+' is not in the Master palette');
+  const block=tv.split('const TERRAIN_CREATE_PRESETS={')[1].split('\n};')[0];
+  const part=k=>[...block.split(k+':{')[1].split('\n  }')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
+  const genesis=[...src.split('[GENESIS_NAME]: [')[1].split('],')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
+  assert.ok(part('master').includes('#7c6d6c'), 'warm stone preset present');
+  for(const c of part('master')) assert.ok(master.includes(c), c+' is not in the Master palette');
+  assert.equal(part('genesis').length,14);
+  for(const c of part('genesis')) assert.ok(genesis.includes(c), c+' is not in Genesis v1');
 });
 
 const gen=[...src.split('[GENESIS_NAME]: [')[1].split('],')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);

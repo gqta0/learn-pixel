@@ -360,6 +360,7 @@
             </select>
           </div>
           <button class="btn wide primary" id="expPack" style="margin-top:6px" title="Một file ZIP: sheet PNG ×1, Godot SpriteFrames .tres và manifest.json (khổ, số khung, fps, thời lượng từng khung, điểm chân, mốc). Lớp ẩn không xuất.">⬇ Gói ZIP: sheet + Godot + bảng kê</button>
+          <p class="kbd" id="packNote" role="status" aria-live="polite" style="margin:4px 0 0"></p>
           <div class="grid2" style="margin-top:6px">
             <button class="btn primary" id="expJson">Lưu dự án .json</button>
             <label class="btn filelabel" style="text-align:center">Mở .json<input type="file" id="impJson" accept=".json"></label>
@@ -464,6 +465,7 @@
             </div>
             <div class="tv-card">
               <p class="eyebrow">① Công thức · <span id="tqStratumName"></span></p>
+              <div class="tv-row"><label class="mini" for="tqPalette">Bảng</label><select id="tqPalette" title="Bảng màu gốc của mọi công thức: màu nào cũng lấy đúng mã trong bảng này"></select></div>
               <div class="tq-recipes" id="tqRecipes"></div>
             </div>
             <div class="tv-card">
@@ -522,7 +524,8 @@
             <div class="tv-card">
               <p class="eyebrow">Xuất</p>
               <button class="btn wide" id="tqProps" title="Cỏ, hoa, tinh thể, nhũ… mỗi thứ một ô, kèm điểm neo">⬇ Trang trí rời <i>PNG + JSON</i></button>
-              <button class="btn wide" id="tqZip" title="6 atlas Terrain 56, 6 bộ trang trí, mapping Godot, ảnh cắt lớp">⬇ Cả 6 tầng <i>ZIP · atlas, trang trí, Godot</i></button>
+              <button class="btn wide" id="tqZip" title="6 atlas Terrain 56, TileSet .tres cho Godot, 6 bộ trang trí, ảnh cắt lớp">⬇ Cả 6 tầng <i>ZIP · atlas, TileSet Godot, trang trí</i></button>
+              <p class="kbd" id="tqExportNote" role="status" aria-live="polite">Đường dẫn ảnh trong file .tres theo ô “Thư mục Godot” ở thẻ Xuất của khung vẽ.</p>
             </div>
           </div>
         </section>

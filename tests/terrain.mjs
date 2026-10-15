@@ -4,7 +4,7 @@ import {BLOB_47_MASKS, TERRAIN_TILES, normalizeMask, tileRoles, terrainPixels,
   neighbors, canConnect, terrainSlot, checkSeams, checkColorSeams, edgeIndex,
   terrainConnectorIndices, terrainManifest, terrainGodotManifest,
   TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER,
-  CORE_SLOTS, composeTile, variantBase} from '../js/terrain.js';
+  CORE_SLOTS, composeTile, variantBase, terrainGodotTres, nearestHex} from '../js/terrain.js';
 
 test('256 neighborhoods reduce to exactly 47 unique canonical topologies',()=>{
   assert.equal(BLOB_47_MASKS.length,47);
@@ -160,4 +160,25 @@ test('flush shape fills every cell yet keeps all 47 topologies distinct and seam
   assert.deepEqual(tileRoles(31,16),tileRoles(31,16,'inset'));
   assert.equal(terrainManifest(16,'flush').collision.shape,'full');
   assert.equal(terrainGodotManifest(16).collision.insetPx,2);
+});
+
+test('Godot 4 TileSet .tres: one atlas source and one terrain per layer, 8 peering bits, inset collision',()=>{
+  const tres=terrainGodotTres(16,'inset',[{texture:'res://t/a.png',name:'A',color:'#63c74d'},{texture:'res://t/b.png',name:'B "x"',color:'#5b98e6'}]);
+  assert.match(tres,/^\[gd_resource type="TileSet" load_steps=5 format=3\]/);
+  assert.equal((tres.match(/\[ext_resource type="Texture2D"/g)||[]).length,2);
+  assert.equal((tres.match(/\[sub_resource type="TileSetAtlasSource"/g)||[]).length,2);
+  assert.equal((tres.match(/^\d+:\d+\/0 = 0$/gm)||[]).length,112);
+  assert.match(tres,/terrain_set_0\/mode = 0/);
+  assert.match(tres,/terrain_set_0\/terrain_1\/name = "B \\"x\\""/);
+  // ô giữa #46 ở (6,5): đủ 8 peering bit, va chạm kín ô
+  const mid=tres.split('\n').filter(l=>l.startsWith('6:5/0/'));
+  assert.equal(mid.filter(l=>l.includes('terrains_peering_bit')).length,16);
+  assert.ok(mid.includes('6:5/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)'));
+  // khối rời #00: không peering bit, va chạm thu vào 2px mỗi cạnh (thụt mép)
+  const lone=tres.split('\n').filter(l=>l.startsWith('0:0/0/'));
+  assert.ok(!lone.some(l=>l.includes('peering')));
+  assert.ok(lone.includes('0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-6, -6, 6, -6, 6, 6, -6, 6)'));
+  // biến thể có xác suất riêng
+  assert.match(tres,/\/0\/probability = /);
+  assert.equal(nearestHex('#5f5f80',['#251c24','#5e5572','#806f95']),'#5e5572');
 });

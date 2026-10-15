@@ -189,7 +189,10 @@ const shade=(hex,f)=>{
 };
 export function terrainPixels(slot,size,colors,shape){
   const roles=tileRoles(slot,size,shape), tile=TERRAIN_TILES[slot];
-  const art=colors ? [0,rgba(colors.base),rgba(colors.edge),rgba(shade(colors.edge,.55)),rgba(shade(colors.edge,.75)),rgba(shade(colors.edge,1.1)),rgba(shade(colors.edge,.55))] :
+  // colors.palette: các bậc sáng/tối suy ra từ màu cạnh được bắt về màu gần nhất trong bảng,
+  // để khối nền mẫu không sinh màu lạ ngoài bảng anh đang dùng
+  const snap=h=>colors?.palette?.length ? nearestHex(h,colors.palette) : h;
+  const art=colors ? [0,rgba(colors.base),rgba(colors.edge),rgba(snap(shade(colors.edge,.55))),rgba(snap(shade(colors.edge,.75))),rgba(snap(shade(colors.edge,1.1))),rgba(snap(shade(colors.edge,.55)))] :
     [0,rgba('#5e788c'),rgba('#b4c5d1'),rgba('#2e4659'),rgba('#435d73'),rgba('#99b0bf'),rgba('#2e4659')];
   const pixels=Uint32Array.from(roles,r=>art[r]);
   if(tile.kind==='center'){
@@ -307,6 +310,45 @@ export function terrainGodotManifest(size,shape='inset'){
         probability:group===1?1:group===2?(t.slot<47?2:1):1,
         peeringBits:Object.fromEntries(GODOT_BITS.map(([k,bit])=>[k,t.mask&bit?0:-1]))};
     })};
+}
+/* Godot 4 TileSet (.tres) dùng được ngay: mỗi atlas Terrain 56 là một nguồn (TileSetAtlasSource),
+   đồng thời là một terrain trong terrain set 0 (Match Corners and Sides). Đủ 8 peering bit,
+   xác suất cho biến thể, và hộp va chạm vuông thu vào ở cạnh hở theo dáng mép (thụt mép).
+   sources: [{texture:'res://…/terrain56.png', name, color:'#rrggbb'}] */
+const GODOT_PEERING=[[1,'top_side'],[2,'right_side'],[4,'bottom_side'],[8,'left_side'],
+  [16,'top_right_corner'],[32,'bottom_right_corner'],[64,'bottom_left_corner'],[128,'top_left_corner']];
+export function terrainGodotTres(size,shape='inset',sources=[{texture:'res://terrain56.png',name:'Terrain',color:'#63c74d'}]){
+  const m=terrainGodotManifest(size,shape), h=size/2, ins=shapeInset(shape,size);
+  const q=t=>'"'+String(t).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"';
+  const col=hex=>{ const v=[1,3,5].map(i=>(parseInt(hex.slice(i,i+2),16)/255).toFixed(3).replace(/\.?0+$/,'')||'0'); return 'Color('+v.join(', ')+', 1)'; };
+  const L=['[gd_resource type="TileSet" load_steps='+(sources.length*2+1)+' format=3]',''];
+  sources.forEach((s,i)=>L.push('[ext_resource type="Texture2D" path='+q(s.texture)+' id="'+(i+1)+'_tex"]'));
+  L.push('');
+  sources.forEach((s,i)=>{
+    L.push('[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_'+(i+1)+'"]',
+      'texture = ExtResource("'+(i+1)+'_tex")','texture_region_size = Vector2i('+size+', '+size+')');
+    for(const t of m.tiles){
+      const k=t.atlasCoords[0]+':'+t.atlasCoords[1]+'/0';
+      L.push(k+' = 0');
+      if(t.probability!==1) L.push(k+'/probability = '+t.probability);
+      L.push(k+'/terrain_set = 0',k+'/terrain = '+i);
+      for(const [bit,name] of GODOT_PEERING) if(t.mask&bit) L.push(k+'/terrains_peering_bit/'+name+' = '+i);
+      const x0=t.mask&8?-h:-h+ins, x1=t.mask&2?h:h-ins, y0=t.mask&1?-h:-h+ins, y1=t.mask&4?h:h-ins;
+      L.push(k+'/physics_layer_0/polygon_0/points = PackedVector2Array('+[x0,y0,x1,y0,x1,y1,x0,y1].join(', ')+')');
+    }
+    L.push('');
+  });
+  L.push('[resource]','tile_size = Vector2i('+size+', '+size+')','physics_layer_0/collision_layer = 1','terrain_set_0/mode = 0');
+  sources.forEach((s,i)=>L.push('terrain_set_0/terrain_'+i+'/name = '+q(s.name),'terrain_set_0/terrain_'+i+'/color = '+col(s.color||'#63c74d')));
+  sources.forEach((s,i)=>L.push('sources/'+i+' = SubResource("TileSetAtlasSource_'+(i+1)+'")'));
+  return L.join('\n')+'\n';
+}
+/* màu gần nhất trong bảng (khoảng cách RGB có trọng số theo độ đỏ — đủ tốt để bắt về đúng bậc) */
+export function nearestHex(hex,list){
+  const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+  const [r,g,b]=p(hex); let best=list[0], bd=Infinity;
+  for(const c of list){ const [R,G,B]=p(c), rm=(r+R)/2, d=(2+rm/256)*(r-R)**2+4*(g-G)**2+(2+(255-rm)/256)*(b-B)**2; if(d<bd){ bd=d; best=c; } }
+  return best;
 }
 export function paintTerrainGuide(ctx,slot,size,scale,mode='wireframe',shape){
   const roles=tileRoles(slot,size,shape);

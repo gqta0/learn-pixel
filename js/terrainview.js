@@ -11,7 +11,7 @@ import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, wr
   migrateTerrainLayout, closeAtlas, linkedTerrainFrameIndex } from './atlas.js';
 import { openMapView } from './mapview.js';
 import { setView } from './tools.js';
-import { PALETTES, COLOR_TOKENS, MASTER_NAME } from './palette.js';
+import { PALETTES, COLOR_TOKENS, MASTER_NAME, DEFAULT_PAL_NAME, palette as appPalette, paletteNameOf } from './palette.js';
 import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
   TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER, tileRoles, terrainPixels, describeMask, neighbors, checkSeams, checkColorSeams,
   terrainManifest, terrainGodotManifest, paintTerrainGuide,
@@ -44,22 +44,37 @@ function setPane(name){
   $$('.tv-tabs [role=tab]').forEach(t=>t.setAttribute('aria-selected',t.dataset.tpane===name));
 }
 const showDetail=()=>setPane('detail');
+/* Màu tạo bộ theo bảng đang dùng: đang vẽ bằng Master thì lấy Master, còn lại (mặc định) là Genesis v1. */
+export function toolPaletteKey(){ return paletteNameOf(appPalette)===MASTER_NAME ? 'master' : 'genesis'; }
+const toolPaletteName=()=>toolPaletteKey()==='master'?MASTER_NAME:DEFAULT_PAL_NAME;
 const TERRAIN_CREATE_PRESETS={
-  stone:{base:'#5e788c',edge:'#b4c5d1'},
-  warmStone:{base:'#7c6d6c',edge:'#cabcad'},
-  soil:{base:'#765640',edge:'#d7aa6b'},
-  blueQi:{base:'#1e789c',edge:'#6cf2ff'},
-  qiBlue:{base:'#08919b',edge:'#6cf2ff'},
-  skyWater:{base:'#3973ad',edge:'#91d2ec'},
-  qi:{base:'#5e419e',edge:'#b99cff'}
+  genesis:{
+    stone:{base:'#806f95',edge:'#ddd1e0'},
+    warmStone:{base:'#965b4f',edge:'#d8a597'},
+    soil:{base:'#6f433a',edge:'#b3783d'},
+    blueQi:{base:'#2c4d8f',edge:'#87c8cf'},
+    qiBlue:{base:'#22917f',edge:'#9ef2cf'},
+    skyWater:{base:'#5b98e6',edge:'#bfe0f8'},
+    qi:{base:'#681ab7',edge:'#e187f8'}
+  },
+  master:{
+    stone:{base:'#5e788c',edge:'#b4c5d1'},
+    warmStone:{base:'#7c6d6c',edge:'#cabcad'},
+    soil:{base:'#765640',edge:'#d7aa6b'},
+    blueQi:{base:'#1e789c',edge:'#6cf2ff'},
+    qiBlue:{base:'#08919b',edge:'#6cf2ff'},
+    skyWater:{base:'#3973ad',edge:'#91d2ec'},
+    qi:{base:'#5e419e',edge:'#b99cff'}
+  }
 };
-const TERRAIN_CREATE_DEFAULTS={base:'#5e788c',edge:'#b4c5d1'};
+const createPresets=()=>TERRAIN_CREATE_PRESETS[toolPaletteKey()];
+const createDefaults=()=>createPresets().stone;
 function terrainColorGroups(){
-  const colors=[...new Set(PALETTES[MASTER_NAME].map(h=>h.toLowerCase()))];
+  const colors=[...new Set(PALETTES[toolPaletteName()].map(h=>h.toLowerCase()))];
   const groups=new Map();
   colors.forEach(hex=>{
     const meta=COLOR_TOKENS[hex],group=meta?.group||'Chung';
-    if(['Skin','Silk','Cinnabar'].includes(group)) return;      // dải nhân vật không phải màu đất đá
+    if(['Skin','Silk','Cinnabar','Genesis · Da sáng'].includes(group)) return;      // dải nhân vật không phải màu đất đá
     if(!groups.has(group))groups.set(group,[]);
     groups.get(group).push({hex,meta});
   });
@@ -99,18 +114,19 @@ function fillTerrainCreateColors(){
       const option=document.createElement('option');
       option.value=group;option.textContent=`${group} · ${items.length}`;groupSel.append(option);
     });
-    const defaultColor=TERRAIN_CREATE_DEFAULTS[key.toLowerCase()];
+    const defaultColor=createDefaults()[key.toLowerCase()];
     const defaultGroup=[...groups].find(([,items])=>items.some(item=>item.hex===defaultColor))?.[0];
     groupSel.value=oldColorGroup|| (groups.has(oldGroup)?oldGroup:null) || defaultGroup || groups.keys().next().value || '';
     fillTerrainColorOptions(key,groups,oldColor||defaultColor);
   });
 }
+/* luôn trả màu đã chọn kèm bảng gốc: các bậc sáng/tối của khối nền được bắt về màu trong bảng */
 function terrainCreateColors(){
   const base=$('#terrainCreateBase')?.value,edge=$('#terrainCreateEdge')?.value;
-  return base&&edge && (base.toLowerCase()!==TERRAIN_CREATE_DEFAULTS.base||edge.toLowerCase()!==TERRAIN_CREATE_DEFAULTS.edge) ? {base,edge}:undefined;
+  return base&&edge ? {base,edge,palette:PALETTES[toolPaletteName()]} : undefined;
 }
 function applyTerrainCreatePreset(key){
-  const p=TERRAIN_CREATE_PRESETS[key];if(!p)return;
+  const p=createPresets()[key];if(!p)return;
   const groups=terrainColorGroups();
   [['Base',p.base],['Edge',p.edge]].forEach(([role,hex])=>{
     const group=[...groups].find(([,items])=>items.some(item=>item.hex===hex))?.[0];
@@ -728,6 +744,16 @@ export function bindTerrain(){
   $('#terrainSyncFrames')?.addEventListener('click',syncTerrainFramesNow);
   $('#terrainCreatePreset')?.addEventListener('change',e=>applyTerrainCreatePreset(e.target.value));
   fillTerrainCreateColors();
+  // đổi bảng màu đang vẽ (Genesis ↔ Master) thì bảng chọn màu tạo bộ đổi theo
+  let lastKey=toolPaletteKey();
+  window.addEventListener('palettechange',()=>{
+    if(toolPaletteKey()===lastKey) return;
+    lastKey=toolPaletteKey();
+    $('#terrainCreateBase').value='';$('#terrainCreateEdge').value='';
+    fillTerrainCreateColors();
+    const preset=$('#terrainCreatePreset'); if(preset && createPresets()[preset.value]) applyTerrainCreatePreset(preset.value);
+    else if(!terrainAtlas()) paint();
+  });
   ['Base','Edge'].forEach(key=>{
     $('#terrainCreate'+key+'Group')?.addEventListener('change',()=>chooseTerrainColorGroup(key));
     $('#terrainCreate'+key)?.addEventListener('change',()=>chooseTerrainColor(key));
