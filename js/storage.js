@@ -5,7 +5,7 @@ import { frameToCanvas, invalidateBuf, layerLength } from './raster.js';
 import { pushUndo } from './history.js';
 import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
-import { palette, setPalette, paintSwatches } from './palette.js';
+import { palette, setPalette, paintSwatches, fillPalSelect, paletteNameOf, PALETTES, MASTER_NAME, DEFAULT_PAL_NAME } from './palette.js';
 import { doneSet, buildExercises, migrateDone } from './content/exercises.js';
 import { spriteFramesTres, pixelizeImage, medianCut, MAX_SIDE } from './sheet.js';
 import { syncAll } from './ui.js';
@@ -132,6 +132,7 @@ export function applyData(d){
   if(Number.isInteger(d.fps) && d.fps>=1 && d.fps<=60){ view.fps=d.fps; const f=$('#fps'); if(f) f.value=d.fps; }
   doc.terrainLink=d.terrainLink && typeof d.terrainLink==='object' ? {...d.terrainLink,slots:Array.isArray(d.terrainLink.slots)?d.terrainLink.slots.slice():[]} : null;
   if(d.palette){ setPalette(d.palette); }
+  syncPalSelect();
   if(d.done) migrateDone(d.done);
   invalidateBuf(); fitZoom(); buildExercises(); syncAll();
 }
@@ -174,20 +175,39 @@ async function usageNote(){
 export function autosave(){
   clearTimeout(saveT);
   if(!bootDone) return;
-  saveT=setTimeout(async()=>{
-    if(view.drawing) return; // chỉ lưu nét đã kết thúc, không lưu nét sắp bị huỷ bởi pinch
-    const data=serialize();
-    try{
-      if(useIdb) await idbSet(STORES.kv,SAVE_KEY,data);
-      else localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-      $('#saveInfo').textContent='Đã lưu vào trình duyệt ('+(useIdb?'IndexedDB':'localStorage')+') lúc '+hhmm(new Date())+
-        ' — mở lại trang là có ngay.'+(useIdb ? await usageNote() : '');
-    }catch(err){
-      $('#saveInfo').textContent='Không lưu được ('+(err?.message||'trình duyệt hết chỗ')+'). Hãy Lưu dự án .json thủ công.';
-    }
-  }, 1200);
+  saveT=setTimeout(()=>{ if(!view.drawing) writeSave(); }, 1200);   // chỉ lưu nét đã kết thúc, không lưu nét sắp bị huỷ bởi pinch
+}
+async function writeSave(){
+  const data=serialize();
+  try{
+    if(useIdb) await idbSet(STORES.kv,SAVE_KEY,data);
+    else localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    $('#saveInfo').textContent='Đã lưu vào trình duyệt ('+(useIdb?'IndexedDB':'localStorage')+') lúc '+hhmm(new Date())+
+      ' — mở lại trang là có ngay.'+(useIdb ? await usageNote() : '');
+  }catch(err){
+    $('#saveInfo').textContent='Không lưu được ('+(err?.message||'trình duyệt hết chỗ')+'). Hãy Lưu dự án .json thủ công.';
+  }
 }
 /* Nạp bản lưu lần trước. Bản cũ trong localStorage được chép sang IndexedDB rồi mới xoá. */
+/* ô chọn bảng màu chỉ đúng tên bảng khi các màu trùng y; bảng đã chỉnh tay thì giữ nguyên ô chọn */
+function syncPalSelect(){
+  const name=paletteNameOf(palette);
+  if(name && $('#palSel')) fillPalSelect(name);
+}
+/* Bảng mặc định đổi sang Genesis v1: bản tự lưu nào còn đúng nguyên Master (bảng mặc định cũ,
+   chưa chỉnh màu nào) thì chuyển sang Genesis — một lần duy nhất. Pixel trong tranh không đổi;
+   bảng đã chỉnh tay hay bảng khác thì giữ nguyên. */
+const DEFAULT_PAL_KEY='lo-pixel-default-pal';
+function adoptDefaultPalette(){
+  try{
+    if(localStorage.getItem(DEFAULT_PAL_KEY)===DEFAULT_PAL_NAME) return;
+    localStorage.setItem(DEFAULT_PAL_KEY,DEFAULT_PAL_NAME);
+  }catch(_){ return; }
+  if(paletteNameOf(palette)!==MASTER_NAME) return;
+  setPalette(PALETTES[DEFAULT_PAL_NAME]);
+  syncPalSelect(); paintSwatches();
+  writeSave();          // ghi ngay, không chờ nhịp tự lưu: lỡ đóng trang sớm thì lần mở sau vẫn còn Master
+}
 export async function loadSave(){
   let data=null, from='';
   try{
@@ -199,8 +219,9 @@ export async function loadSave(){
       const raw=localStorage.getItem(SAVE_KEY);
       if(raw){ data=JSON.parse(raw); from='localStorage'; }
     }
-    if(!data) return false;
+    if(!data){ adoptDefaultPalette(); return false; }
     applyData(data);
+    adoptDefaultPalette();
     if(useIdb && from==='localStorage'){
       await idbSet(STORES.kv,SAVE_KEY,data);
       try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
