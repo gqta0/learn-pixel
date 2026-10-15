@@ -10,7 +10,7 @@ import { download } from './storage.js';
 import { getAtlas, editAtlasSlot } from './atlas.js';
 import { getLibraryItems, renderLibraryProject } from './library.js';
 import { setView } from './tools.js';
-import { BLOB_47_MASKS, TERRAIN_TILES, describeMask, terrainPixels, terrainSlot } from './terrain.js';
+import { BLOB_47_MASKS, TERRAIN_TILES, describeMask, terrainPixels, terrainSlot, ATLAS_COLS, ATLAS_ROWS, terrainSlotCell } from './terrain.js';
 export { BLOB_47_MASKS };
 
 // Cấu hình lát cắt hang động chuẩn theo đặc tả genesis.tileset.preview.v1
@@ -488,7 +488,9 @@ function drawTerrainSlot(g, slot, im, tw, th, pad, off, cols, rows, z, dx, dy) {
     g.drawImage(fallback, 0, 0, tw, tw, dx, dy, tw * z, th * z);
     return;
   }
-  const sc = slot % cols, sr = Math.floor(slot / cols);
+  // atlas Terrain 10×7 (lưới cr31 + biến thể 3×3): slot nằm theo bảng bố cục, không theo thứ tự
+  const terrainSheet = cols === ATLAS_COLS && rows === ATLAS_ROWS && !pad && !off && slot < 56;
+  const [sc, sr] = terrainSheet ? terrainSlotCell(slot) : [slot % cols, Math.floor(slot / cols)];
   const sx = off + sc * (tw + pad);
   const sy = off + sr * (th + pad);
   g.drawImage(im, sx, sy, tw, th, dx, dy, tw * z, th * z);

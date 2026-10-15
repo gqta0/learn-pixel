@@ -6,13 +6,17 @@
 ##   "layout": 2, "center_variant_slots": [47,48,49],
 ##   "edge_variant_masks": {"50":110,"51":110,"52":110,"53":155,"54":55,"55":205},
 ##   "macro": {"size": 3, "files": {"1": "macro_1.png", ...}}   (tuỳ chọn)
+## Layout 3 (Lò Pixel hiện tại) giữ nguyên nghĩa slot của layout 2, chỉ đổi chỗ đặt trong ảnh:
+## lưới 7×7 chuẩn cr31 "blob" cho 47 ô + khối 3×3 biến thể bên phải (ảnh 10×7 ô), khai trong
+##   "layout": 3, "columns": 10, "rows": 7, "atlas_cells": {"0": [0, 0], ..., "46": [4, 4], ...}
+## File layout 2 (không có atlas_cells) vẫn đọc được: ảnh 8×7, slot xếp theo thứ tự.
 ##
 ## Dùng:
 ##   var lay := Terrain56Layout.new()
 ##   if not lay.load_layout("res://.../layout.json"): push_warning(lay.errors)   # sai thì vẫn chạy bằng ô gốc
 ##   var slot := lay.slot_for(mask, hash_value)        # hash_value: hàm băm toạ độ sẵn có của game
 ##   var cell := lay.cell_for(mask, x, y, hash_value, world_width, layer)
-##   # cell = {"macro": bool, "slot": int, "coords": Vector2i}  → (nguồn atlas hay nguồn vân lớn, toạ độ)
+##   # cell = {"macro": bool, "slot": int, "coords": Vector2i}  → (nguồn atlas hay nguồn vân lớn, toạ độ ô trong ảnh)
 ##
 ## Chọn ô (tất định theo hash): mask có ≥ 2 biến thể (255, 110) → ô gốc và các biến thể chia đều;
 ## mask có 1 biến thể (155, 55, 205) → biến thể 1/4 cơ hội. Không có biến thể → ô gốc.
@@ -29,6 +33,9 @@ var edge_variants: Dictionary = {}      # mask -> PackedInt32Array các slot bi�
 var variant_mask: Dictionary = {}       # slot biến thể -> mask
 var macro_size := 0
 var macro_files: Dictionary = {}        # "tầng" (String) -> đường dẫn ảnh, tương đối với layout.json
+var atlas_cells: Dictionary = {}        # slot -> Vector2i ô trong ảnh atlas (layout 3); trống → thứ tự 8 cột
+var atlas_columns := COLUMNS
+var copy_cells: Dictionary = {}        # Vector2i ô bản sao trong ảnh (atlas_copies, vd. ô trống ở 3 góc cr31) -> slot
 var errors: PackedStringArray = PackedStringArray()
 var loaded := false
 
@@ -81,8 +88,13 @@ func load_layout(path: String) -> bool:
 ## Nạp và kiểm hợp lệ. Sai chỗ nào thì từ chối cả bảng biến thể (chỉ dùng ô gốc) và ghi lý do vào errors.
 func load_dict(data: Dictionary) -> bool:
 	_reset()
-	if int(data.get("layout", 0)) != 2:
-		return _fail("cần \"layout\": 2 (Lò Pixel layout 2), gặp " + str(data.get("layout")))
+	var layout := int(data.get("layout", 0))
+	if layout != 2 and layout != 3:
+		return _fail("cần \"layout\": 2 hoặc 3 (Lò Pixel), gặp " + str(data.get("layout")))
+	# chỗ đặt trong ảnh: đọc trước, giữ lại kể cả khi bảng biến thể bên dưới bị từ chối
+	if layout == 3 or data.has("atlas_cells"):
+		if not _load_cells(data):
+			return false
 	if data.has("blob_masks"):
 		var bm = data["blob_masks"]
 		if typeof(bm) != TYPE_ARRAY or bm.size() != 47:
@@ -140,6 +152,41 @@ func load_dict(data: Dictionary) -> bool:
 	return true
 
 
+func _load_cells(data: Dictionary) -> bool:
+	var cells = data.get("atlas_cells")
+	var cols := int(data.get("columns", 0))
+	var rows := int(data.get("rows", 0))
+	if typeof(cells) != TYPE_DICTIONARY or cells.size() != SLOT_COUNT or cols < 1 or rows < 1:
+		return _fail("layout 3 cần atlas_cells đủ %d slot cùng columns/rows" % SLOT_COUNT, true)
+	var seen := {}
+	var out := {}
+	for s in SLOT_COUNT:
+		var c = cells.get(str(s))
+		if typeof(c) != TYPE_ARRAY or c.size() != 2:
+			return _fail("atlas_cells thiếu slot %d" % s, true)
+		var v := Vector2i(int(c[0]), int(c[1]))
+		if v.x < 0 or v.y < 0 or v.x >= cols or v.y >= rows:
+			return _fail("atlas_cells[%d] = %s nằm ngoài ảnh %d×%d" % [s, str(v), cols, rows], true)
+		if seen.has(v):
+			return _fail("atlas_cells: slot %d và %d cùng ô %s" % [seen[v], s, str(v)], true)
+		seen[v] = s
+		out[s] = v
+	var copies := {}
+	var ac = data.get("atlas_copies", [])
+	if typeof(ac) == TYPE_ARRAY:
+		for e in ac:
+			if typeof(e) != TYPE_DICTIONARY or typeof(e.get("cell")) != TYPE_ARRAY or e["cell"].size() != 2:
+				continue
+			var s := int(e.get("slot", -1))
+			var v := Vector2i(int(e["cell"][0]), int(e["cell"][1]))
+			if s >= 0 and s < SLOT_COUNT and not seen.has(v) and v.x >= 0 and v.y >= 0 and v.x < cols and v.y < rows:
+				copies[v] = s
+	atlas_cells = out
+	copy_cells = copies
+	atlas_columns = cols
+	return true
+
+
 func _check_slot(s: int, used: Dictionary) -> bool:
 	if s < 0 or s >= SLOT_COUNT:
 		return _fail("slot %d nằm ngoài 0–%d" % [s, SLOT_COUNT - 1])
@@ -151,8 +198,12 @@ func _check_slot(s: int, used: Dictionary) -> bool:
 	return true
 
 
-func _fail(msg: String) -> bool:
+func _fail(msg: String, cells_too: bool = false) -> bool:
 	errors.append(msg)
+	if cells_too:
+		atlas_cells = {}
+		copy_cells = {}
+		atlas_columns = COLUMNS
 	push_warning("Terrain56Layout: " + msg + " — dùng ô gốc, bỏ biến thể.")
 	center_variants = PackedInt32Array()
 	edge_variants = {}
@@ -165,6 +216,8 @@ func _fail(msg: String) -> bool:
 
 func _reset() -> void:
 	errors = PackedStringArray()
+	atlas_cells = {}
+	atlas_columns = COLUMNS
 	center_variants = PackedInt32Array()
 	edge_variants = {}
 	variant_mask = {}
@@ -205,8 +258,26 @@ func mask_for_slot(slot: int) -> int:
 	return int(variant_mask.get(slot, -1))
 
 
-static func slot_coords(slot: int) -> Vector2i:
+## Ô trong ảnh atlas của một slot: theo atlas_cells (layout 3), không có thì thứ tự 8 cột (layout 1–2).
+func atlas_coords(slot: int) -> Vector2i:
+	if atlas_cells.has(slot):
+		return atlas_cells[slot]
+	return legacy_coords(slot)
+
+
+static func legacy_coords(slot: int) -> Vector2i:
 	return Vector2i(slot % COLUMNS, int(slot / float(COLUMNS)))
+
+
+## Ô trong ảnh → slot (ô trống / ô bản sao → -1).
+func slot_at_coords(coords: Vector2i) -> int:
+	if atlas_cells.is_empty():
+		var s := coords.y * COLUMNS + coords.x
+		return s if coords.x >= 0 and coords.x < COLUMNS and s >= 0 and s < SLOT_COUNT else -1
+	for s in atlas_cells:
+		if atlas_cells[s] == coords:
+			return s
+	return copy_cells.get(coords, -1)
 
 
 func has_macro(layer = null) -> bool:
@@ -233,4 +304,4 @@ func cell_for(mask: int, x: int, y: int, hash_value: int, world_width: int = 0, 
 	if normalize_mask(mask) == CENTER_MASK and has_macro(layer):
 		return {"macro": true, "slot": -1, "coords": macro_cell(x, y, world_width)}
 	var s := slot_for(mask, hash_value)
-	return {"macro": false, "slot": s, "coords": slot_coords(s)}
+	return {"macro": false, "slot": s, "coords": atlas_coords(s)}

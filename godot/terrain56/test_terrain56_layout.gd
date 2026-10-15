@@ -17,7 +17,8 @@ func check(cond: bool, what: String) -> void:
 func _init() -> void:
 	here = get_script().resource_path.get_base_dir()
 	test_masks()
-	test_layout2()
+	test_layout()
+	test_layout2_file()
 	test_distribution()
 	test_bad_layouts()
 	test_macro()
@@ -35,7 +36,7 @@ func test_masks() -> void:
 	check(bm.size() == 47 and bm[0] == 0 and bm[46] == 255 and bm[31] == 110, "bảng 47 mask tăng dần, #31 = 110, #46 = 255")
 
 
-func test_layout2() -> void:
+func test_layout() -> void:
 	var lay := Layout.new()
 	check(lay.load_layout(here + "/fixtures/layout.json"), "đọc layout.json của Lò Pixel: " + str(lay.errors))
 	check(lay.center_variants == PackedInt32Array([47, 48, 49]), "ruột 47–49")
@@ -45,6 +46,21 @@ func test_layout2() -> void:
 		check(lay.mask_for_slot(pair[0]) == pair[1], "mask_for_slot(%d) = %d" % pair)
 	check(lay.mask_for_slot(56) == -1, "slot 56 không có")
 	check(lay.has_macro("1") and lay.macro_size == 3, "đọc macro size 3")
+	# layout 3: lưới cr31 7×7 + khối biến thể 3×3
+	for pair in [[0, Vector2i(0, 0)], [46, Vector2i(4, 4)], [31, Vector2i(3, 0)], [47, Vector2i(7, 0)], [52, Vector2i(9, 1)], [55, Vector2i(9, 2)]]:
+		check(lay.atlas_coords(pair[0]) == pair[1], "atlas_coords(%d) = %s" % [pair[0], str(pair[1])])
+	check(lay.slot_at_coords(Vector2i(4, 4)) == 46 and lay.slot_at_coords(Vector2i(6, 0)) == 0 and lay.slot_at_coords(Vector2i(0, 6)) == 0 and lay.slot_at_coords(Vector2i(7, 3)) == -1, "ô → slot (ô bản sao → 0, ô trống → -1)")
+
+
+## file layout 2 cũ: không có atlas_cells → ảnh 8×7 theo thứ tự slot
+func test_layout2_file() -> void:
+	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(here + "/fixtures/layout.json"))
+	d["layout"] = 2
+	d.erase("atlas_cells")
+	var lay := Layout.new()
+	check(lay.load_dict(d), "đọc layout 2 cũ: " + str(lay.errors))
+	check(lay.atlas_coords(46) == Vector2i(6, 5) and lay.atlas_coords(55) == Vector2i(7, 6), "layout 2: thứ tự 8 cột")
+	check(lay.center_variants.size() == 3, "layout 2: vẫn đủ biến thể")
 
 
 func test_distribution() -> void:
@@ -82,6 +98,9 @@ func test_bad_layouts() -> void:
 		"mask không thuộc 47": func(d): d["edge_variant_masks"]["53"] = 16,
 		"ruột khai ở mép": func(d): d["edge_variant_masks"]["53"] = 255,
 		"blob_masks sai": func(d): d["blob_masks"][5] = 99,
+		"layout 3 thiếu atlas_cells": func(d): d.erase("atlas_cells"),
+		"atlas_cells trùng ô": func(d): d["atlas_cells"]["5"] = [4, 4],
+		"atlas_cells ngoài ảnh": func(d): d["atlas_cells"]["5"] = [12, 0],
 	}
 	for name in cases:
 		var d: Dictionary = good.duplicate(true)
@@ -120,7 +139,9 @@ func test_macro() -> void:
 	check(not lay.cell_for(110, 7, 5, 0, w, "1")["macro"], "ô sàn vẫn dùng blob")
 	var old := lay.cell_for(255, 7, 5, 0, w, "4")
 	check(not old["macro"] and old["slot"] >= 46 and old["slot"] <= 49, "tầng thiếu macro → 46–49: " + str(old))
-	check(Layout.slot_coords(46) == Vector2i(6, 5) and Layout.slot_coords(55) == Vector2i(7, 6), "toạ độ atlas 8 cột")
+	check(Layout.legacy_coords(46) == Vector2i(6, 5) and Layout.legacy_coords(55) == Vector2i(7, 6), "toạ độ cũ 8 cột")
+	var cf := lay.cell_for(110, 3, 0, 1, w, "1")
+	check(cf["coords"] == lay.atlas_coords(cf["slot"]), "cell_for trả ô theo atlas_cells")
 
 
 func test_hash() -> void:

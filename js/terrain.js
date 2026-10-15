@@ -28,10 +28,12 @@ export function describeMask(mask){
     exposed.length===1?exposed[0].label:outer.length?'Góc ngoài':'Góc lõm';
   return {title,exposed,inner,outer};
 }
-/* Layout 2: 3 ruột + 3 sàn + 1 trần + 2 tường. Trong game nhìn ngang, mặt sàn là
-   thứ người chơi nhìn nhiều nhất nên nó được nhiều biến thể nhất. Slot 52–55 giữ
-   nguyên nghĩa so với layout 1; chỉ #50 và #51 đổi từ ruột sang sàn. */
-export const TERRAIN_LAYOUT=2;
+/* Nghĩa của slot (layout 2): 3 ruột + 3 sàn + 1 trần + 2 tường. Trong game nhìn ngang, mặt sàn
+   là thứ người chơi nhìn nhiều nhất nên nó được nhiều biến thể nhất. Slot 52–55 giữ nguyên nghĩa
+   so với layout 1; chỉ #50 và #51 đổi từ ruột sang sàn.
+   Layout 3 giữ nguyên nghĩa slot đó, chỉ đổi CHỖ ĐẶT trong ảnh atlas: lưới 7×7 chuẩn cr31 "blob"
+   (Seamless Tileset Template II) cho 47 ô, cộng khối 3×3 biến thể bên phải → ảnh 10×7 ô. */
+export const TERRAIN_LAYOUT=3;
 export const TERRAIN_TILES=[
   ...BLOB_47_MASKS.map((mask,slot)=>({slot,mask,kind:'blob',variant:0,title:describeMask(mask).title})),
   ...['Vân thưa','Nứt ngắn','Hạt nhỏ'].map((title,i)=>({slot:47+i,mask:255,kind:'center',variant:i+1,title:'Ruột · '+title})),
@@ -39,6 +41,44 @@ export const TERRAIN_TILES=[
   ...[[53,155,'trần'],[54,55,'tường trái'],[55,205,'tường phải']].map(([slot,mask,name])=>
     ({slot,mask,kind:'edge',variant:1,title:'Mép biến thể · '+name}))
 ].sort((a,b)=>a.slot-b.slot);
+/* ---------------- chỗ đặt trong ảnh atlas (layout 3) ----------------
+   Lưới cr31: số trong ô là mask theo trọng số cr31 (N=1, NE=2, E=4, SE=8, S=16, SW=32, W=64, NW=128,
+   theo chiều kim đồng hồ). Ô 0 (khối rời) có mặt ở ba góc: góc trên-trái là ô chính, hai góc kia là
+   bản sao để tấm template trọn hình. Bên phải: hàng 1 ba biến thể ruột, hàng 2 ba biến thể sàn,
+   hàng 3 trần · tường trái · tường phải. */
+export const CR31_BLOB_GRID=[
+  [  0,   4,  92, 124, 116,  80,   0],
+  [ 16,  20,  87, 223, 241,  21,  64],
+  [ 29, 117,  85,  71, 221, 125, 112],
+  [ 31, 253, 113,  28, 127, 247, 209],
+  [ 23, 199, 213,  95, 255, 245,  81],
+  [  5,  84,  93, 119, 215, 193,  17],
+  [  0,   1,   7, 197,  69,  68,  65]
+];
+export const ATLAS_COLS=10, ATLAS_ROWS=7;
+export const ATLAS_ARRANGEMENT='cr31-blob-7x7+variants-3x3';
+export const cr31ToMask=c=>((c&1)?1:0)|((c&4)?2:0)|((c&16)?4:0)|((c&64)?8:0)|((c&2)?16:0)|((c&8)?32:0)|((c&32)?64:0)|((c&128)?128:0);
+export const maskToCr31=m=>((m&1)?1:0)|((m&16)?2:0)|((m&2)?4:0)|((m&32)?8:0)|((m&4)?16:0)|((m&64)?32:0)|((m&8)?64:0)|((m&128)?128:0);
+const VARIANT_CELLS={47:[7,0],48:[8,0],49:[9,0],50:[7,1],51:[8,1],52:[9,1],53:[7,2],54:[8,2],55:[9,2]};
+/* ô chính của từng slot [cột, hàng] và các ô bản sao */
+export const TERRAIN_CELLS=[];
+export const TERRAIN_COPY_CELLS=[];
+CR31_BLOB_GRID.forEach((row,r)=>row.forEach((c,col)=>{
+  const slot=BLOB_47_MASKS.indexOf(cr31ToMask(c));
+  if(TERRAIN_CELLS[slot]) TERRAIN_COPY_CELLS.push({slot,cell:[col,r]});
+  else TERRAIN_CELLS[slot]=[col,r];
+}));
+for(const [slot,cell] of Object.entries(VARIANT_CELLS)) TERRAIN_CELLS[+slot]=cell;
+export const terrainSlotCell=slot=>TERRAIN_CELLS[slot];
+/* mọi ô trong ảnh mang tranh của slot này (ô chính + bản sao) — ghi tranh thì ghi đủ */
+export const terrainSlotCells=slot=>[TERRAIN_CELLS[slot],...TERRAIN_COPY_CELLS.filter(c=>c.slot===slot).map(c=>c.cell)];
+/* ô [cột, hàng] → slot (chỉ ô chính; ô bản sao và ô trống → -1) */
+export function terrainCellSlot(c,r){
+  return TERRAIN_CELLS.findIndex(cell=>cell && cell[0]===c && cell[1]===r);
+}
+/* layout 1–2 xếp slot theo thứ tự trong lưới 8 cột */
+export const legacyTerrainCell=slot=>[slot%8,Math.floor(slot/8)];
+
 /* ô gốc của một biến thể — cùng mask, nằm trong 47 ô blob */
 export const variantBase=slot=>BLOB_47_MASKS.indexOf(TERRAIN_TILES[slot].mask);
 /* Presentation order is separate from atlas slot order. Stable #slot IDs stay
@@ -286,10 +326,11 @@ const collisionHint=(shape,size)=>shape==='flush'
   : {shape:'inset',insetPx:shapeInset(shape,size),note:'Mép hở thụt '+shapeInset(shape,size)+'px trong suốt: thu hộp va chạm vào chừng đó ở các cạnh hở, nếu không nhân vật sẽ đứng lơ lửng.'};
 export function terrainManifest(size,shape='inset'){
   return {schema:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,edgeShape:shape,collision:collisionHint(shape,size),
-    columns:8,rows:7,tileWidth:size,tileHeight:size,
+    columns:ATLAS_COLS,rows:ATLAS_ROWS,arrangement:ATLAS_ARRANGEMENT,tileWidth:size,tileHeight:size,
     bitOrder:{N:1,E:2,S:4,W:8,NE:16,SE:32,SW:64,NW:128},
-    note:'Custom ascending-mask layout; map by mask, not by engine tile index. Guides are not artwork.',
-    tiles:TERRAIN_TILES.map(t=>({...t,x:(t.slot%8)*size,y:Math.floor(t.slot/8)*size,
+    note:'Ảnh atlas: lưới 7×7 chuẩn cr31 blob (47 ô; ô 0 lặp ở hai góc dưới-trái và trên-phải làm bản sao) + khối 3×3 biến thể bên phải. Map theo mask, không theo chỉ số ô của engine. Guides are not artwork.',
+    copies:TERRAIN_COPY_CELLS.map(c=>({slot:c.slot,x:c.cell[0]*size,y:c.cell[1]*size})),
+    tiles:TERRAIN_TILES.map(t=>({...t,x:TERRAIN_CELLS[t.slot][0]*size,y:TERRAIN_CELLS[t.slot][1]*size,cr31:t.slot<47?maskToCr31(t.mask):null,
       connects:Object.fromEntries(DIRECTIONS.map(d=>[d.key,neighbors(t.slot,d.key)]))}))};
 }
 /* Godot 4 cần đủ 8 bit (Match Corners and Sides). Chỉ 4 bit cạnh thì 47 ô rút còn
@@ -300,13 +341,13 @@ export function terrainGodotManifest(size,shape='inset'){
   return {schema:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,edgeShape:shape,collision:collisionHint(shape,size),
     format:'godot4-terrain-set-handoff',terrainSet:0,terrain:0,
     terrainMode:'MATCH_CORNERS_AND_SIDES',
-    tileSize:[size,size],columns:8,rows:7,
+    tileSize:[size,size],columns:ATLAS_COLS,rows:ATLAS_ROWS,arrangement:ATLAS_ARRANGEMENT,
     godotPeeringNames:Object.fromEntries(GODOT_BITS.map(([k,,name])=>[k,name])),
     note:'TileSet → Terrain Set 0, Mode = Match Corners and Sides. peeringBits 0 = nối terrain 0, -1 = hở. '+
       'Ô có probability < 1 là biến thể mỹ thuật của ô cùng peeringBits.',
     tiles:TERRAIN_TILES.map(t=>{
       const group=TERRAIN_TILES.filter(o=>o.mask===t.mask).length;
-      return {slot:t.slot,atlasCoords:[t.slot%8,Math.floor(t.slot/8)],mask:t.mask,kind:t.kind,title:t.title,
+      return {slot:t.slot,atlasCoords:TERRAIN_CELLS[t.slot].slice(),mask:t.mask,kind:t.kind,title:t.title,
         probability:group===1?1:group===2?(t.slot<47?2:1):1,
         peeringBits:Object.fromEntries(GODOT_BITS.map(([k,bit])=>[k,t.mask&bit?0:-1]))};
     })};
@@ -361,7 +402,10 @@ export function terrainGodotTres(size,shape='inset',sources=[{texture:'res://ter
    mép theo mask, mask của 47 ô blob, và (nếu có) tấm vân lớn size×size cho ô đặc mask 255.
    layers / macroFiles: { "1": "đường dẫn tương đối", … } */
 export function terrainLayoutJson(size,shape='inset',{layers=null,macroSize=0,macroFiles=null}={}){
-  const out={schema:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,tile_size:size,columns:8,rows:7,edge_shape:shape,
+  const out={schema:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,slot_layout:2,tile_size:size,columns:ATLAS_COLS,rows:ATLAS_ROWS,edge_shape:shape,
+    arrangement:ATLAS_ARRANGEMENT,
+    atlas_cells:Object.fromEntries(TERRAIN_CELLS.map((c,s)=>[String(s),c.slice()])),
+    atlas_copies:TERRAIN_COPY_CELLS.map(c=>({slot:c.slot,cell:c.cell.slice()})),
     bit_order:{N:1,E:2,S:4,W:8,NE:16,SE:32,SW:64,NW:128},
     blob_masks:BLOB_47_MASKS.slice(),
     base_center_slot:BLOB_47_MASKS.indexOf(255),

@@ -58,6 +58,41 @@ export const GEN_RECIPES={
       master:{sky:'#162331',colors:{ink:'#2e4659',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#7a95a7',r1:'#99b0bf',r2:'#b4c5d1',r3:'#d0dde4',
         c0:'#7a95a7',c1:'#99b0bf',c2:'#b4c5d1',c3:'#d0dde4',kd:'#245c2c',k0:'#4a873c',k1:'#7cb759',k2:'#b1dc74',
         g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#ec89ae',f1:'#f5cb53'}}}},
+  cleanMoss:{title:'Đá khối rêu · rễ',note:'Khối đá nâu đất, rêu phủ mép, dây rêu rủ và rễ luồn qua mạch vữa',
+    interior:'block',capStyle:'block',crustType:'moss',dripType:'vine',hangType:'vine',
+    params:{size:.5,density:.5,crust:.45,drip:.35,glow:0,capH:.5,cracks:.3,pebbles:0,roots:.45,deco:.4},
+    props:['sprout','tuft','flower','sprout','pebble','tuft','hang','hang'],
+    palettes:{
+      genesis:{sky:'#251c24',colors:{ink:'#25232f',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#6f433a',r1:'#965b4f',r2:'#b1957c',r3:'#d8a597',c0:'#6f433a',c1:'#965b4f',c2:'#b1957c',c3:'#e8d7d4',kd:'#284d3b',k0:'#2a5a42',k1:'#3b894b',k2:'#63c74d',g0:'#1d5a5a',g1:'#22917f',g2:'#9ef2cf',w0:'#492d27',w1:'#6f433a',f0:'#ec7fa9',f1:'#ffd900'}},
+      master:{sky:'#0d171f',colors:{ink:'#223344',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#5f4b4e',r1:'#7c6d6c',r2:'#ac9c8d',r3:'#cabcad',c0:'#5f4b4e',c1:'#7c6d6c',c2:'#ac9c8d',c3:'#e6e0d3',kd:'#173d2a',k0:'#245c2c',k1:'#4a873c',k2:'#7cb759',g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#ec89ae',f1:'#f5cb53'}}}},
+  cleanDeep:{title:'Đá khối sâu · mạch ngọc',note:'Khối đá tím than tối, rêu xám mỏng, mạch vữa ánh linh khí ngọc',
+    interior:'block',capStyle:'block',crustType:'moss',dripType:'vine',hangType:'stalactite',
+    params:{size:.5,density:.5,crust:.3,drip:.15,glow:.35,capH:.5,cracks:.4,pebbles:0,roots:.1,deco:.3},
+    props:['pebble','sprout','shard','pebble','crystal','tuft','hang','hang'],
+    palettes:{
+      genesis:{sky:'#251c24',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#423d52',r1:'#5e5572',r2:'#806f95',r3:'#968daa',c0:'#423d52',c1:'#5e5572',c2:'#806f95',c3:'#968daa',kd:'#2a5a42',k0:'#4d6b53',k1:'#7a9a72',k2:'#c3d4d6',g0:'#1d5a5a',g1:'#22917f',g2:'#3fd0a6',w0:'#492d27',w1:'#6f433a',f0:'#9ef2cf',f1:'#3fd0a6'}},
+      master:{sky:'#0d171f',colors:{ink:'#0d171f',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',c0:'#2e4659',c1:'#435d73',c2:'#5e788c',c3:'#7a95a7',kd:'#283b3a',k0:'#3a5647',k1:'#527059',k2:'#6e896f',g0:'#004264',g1:'#08919b',g2:'#01cbd3',w0:'#41261c',w1:'#694635',f0:'#c4f0de',f1:'#5dffc0'}}}},
+  cleanQi:{title:'Đá khối mạch lam',note:'Khối đá xám lam, băng tinh thể trên mép, mạch vữa sáng linh khí lam',
+    interior:'block',capStyle:'block',crustType:'crystal',dripType:'icicle',hangType:'icicle',
+    params:{size:.5,density:.5,crust:.3,drip:.25,glow:.55,capH:.5,cracks:.3,pebbles:0,roots:0,deco:.4},
+    props:['crystal','shard','crystal','pebble','shard','crystal','hang','hang'],
+    palettes:{
+      genesis:{sky:'#25232f',colors:{ink:'#25232f',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#4f7277',r1:'#6d8f96',r2:'#97b3b6',r3:'#c3d4d6',c0:'#4f7277',c1:'#6d8f96',c2:'#97b3b6',c3:'#e6fff4',kd:'#2c4d8f',k0:'#5b98e6',k1:'#87c8cf',k2:'#bfe0f8',g0:'#2c4d8f',g1:'#5b98e6',g2:'#bfe0f8',w0:'#492d27',w1:'#6f433a',f0:'#87c8cf',f1:'#ffffff'}},
+      master:{sky:'#223344',colors:{ink:'#0d171f',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#5e788c',r1:'#7a95a7',r2:'#99b0bf',r3:'#b4c5d1',c0:'#5e788c',c1:'#7a95a7',c2:'#99b0bf',c3:'#d0dde4',kd:'#004264',k0:'#08919b',k1:'#01cbd3',k2:'#6cf2ff',g0:'#004264',g1:'#01cbd3',g2:'#6cf2ff',w0:'#41261c',w1:'#694635',f0:'#6cf2ff',f1:'#d9efff'}}}},
+  cleanCrystal:{title:'Đá khối hang tinh thể',note:'Khối đá lam tối, cụm tinh thể mọc xiên, mạch vữa rực linh khí',
+    interior:'block',capStyle:'block',crustType:'crystal',dripType:'icicle',hangType:'icicle',
+    params:{size:.5,density:.5,crust:.35,drip:.35,glow:.85,capH:.5,cracks:.25,pebbles:0,roots:0,deco:.5},
+    props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang'],
+    palettes:{
+      genesis:{sky:'#25232f',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#423d52',r1:'#4f7277',r2:'#6d8f96',r3:'#97b3b6',c0:'#423d52',c1:'#4f7277',c2:'#6d8f96',c3:'#c3d4d6',kd:'#2c4d8f',k0:'#5b98e6',k1:'#86bdf0',k2:'#e6fff4',g0:'#2c4d8f',g1:'#86bdf0',g2:'#e6fff4',w0:'#492d27',w1:'#6f433a',f0:'#86bdf0',f1:'#ffffff'}},
+      master:{sky:'#223344',colors:{ink:'#0d171f',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',c0:'#2e4659',c1:'#435d73',c2:'#5e788c',c3:'#b4c5d1',kd:'#004264',k0:'#08919b',k1:'#01cbd3',k2:'#6cf2ff',g0:'#004264',g1:'#01cbd3',g2:'#6cf2ff',w0:'#41261c',w1:'#694635',f0:'#6cf2ff',f1:'#d9efff'}}}},
+  cleanViolet:{title:'Đá khối linh thạch tím',note:'Khối đá tím than, tinh thể tím mọc xiên, mạch vữa sáng linh khí tím',
+    interior:'block',capStyle:'block',crustType:'crystal',dripType:'icicle',hangType:'icicle',
+    params:{size:.5,density:.5,crust:.35,drip:.3,glow:.9,capH:.5,cracks:.25,pebbles:0,roots:0,deco:.5},
+    props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang'],
+    palettes:{
+      genesis:{sky:'#251c24',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#3b2c3e',r1:'#5c4763',r2:'#806f95',r3:'#9886a7',c0:'#3b2c3e',c1:'#5c4763',c2:'#806f95',c3:'#bba9c6',kd:'#43137c',k0:'#681ab7',k1:'#c955e7',k2:'#e187f8',g0:'#51154a',g1:'#c955e7',g2:'#e187f8',w0:'#492d27',w1:'#6f433a',f0:'#fcc8da',f1:'#ffd900'}},
+      master:{sky:'#162331',colors:{ink:'#0d171f',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',c0:'#2e4659',c1:'#435d73',c2:'#5e788c',c3:'#b4c5d1',kd:'#5e419e',k0:'#7c5bc4',k1:'#9a7de0',k2:'#b99cff',g0:'#5e419e',g1:'#9a7de0',g2:'#b99cff',w0:'#41261c',w1:'#694635',f0:'#b99cff',f1:'#ffd0df'}}}},
   warmLedge:{title:'Đá ấm · cỏ',note:'Gờ cuội ấm, cỏ non; đá tảng nằm trong nền tối',
     interior:'boulder',capStyle:'cobble',crustType:'grass',dripType:'vine',hangType:'stalactite',
     params:{size:.65,density:.3,crust:.4,drip:.25,glow:0,capH:.5,cracks:.35,pebbles:.55,roots:0,deco:.55},
@@ -136,7 +171,7 @@ export const GEN_RECIPES={
         c0:'#5e788c',c1:'#7a95a7',c2:'#99b0bf',c3:'#b4c5d1',kd:'#5e419e',k0:'#5e419e',k1:'#7c5bc4',k2:'#b99cff',
         g0:'#5e419e',g1:'#9a7de0',g2:'#b99cff',w0:'#41261c',w1:'#694635',f0:'#b99cff',f1:'#ffd0df'}}}}
 };
-export const GEN_RECIPE_ORDER=['cleanBlock','warmLedge','mossCobble','crystalCave','snowIce','villagePath','deepStone','violetSpirit'];
+export const GEN_RECIPE_ORDER=['cleanBlock','cleanMoss','cleanDeep','cleanQi','cleanCrystal','cleanViolet','warmLedge','mossCobble','crystalCave','snowIce','villagePath','deepStone','violetSpirit'];
 
 /* thanh trượt: 5 thanh chính + mục Nâng cao. Mọi giá trị trong khoảng 0..1. */
 export const GEN_PARAMS=[
@@ -161,11 +196,11 @@ export const GEN_SEED_GROUPS=[['rock','Đá trong'],['cap','Mặt trên'],['crus
    Tầng 1 là mặt đất, tầng 6 sâu nhất. Đi xuống: cỏ mỏng dần, linh khí đậm dần, lam rồi tím. */
 export const GEN_STRATA=[
   {title:'Mặt đất',recipe:'cleanBlock',params:{crust:.5,glow:0}},
-  {title:'Tầng rễ',recipe:'mossCobble',params:{crust:.45,roots:.6,drip:.55,glow:0}},
-  {title:'Đá sâu',recipe:'deepStone',params:{crust:.2,glow:.25,roots:.1}},
-  {title:'Mạch linh thạch',recipe:'crystalCave',params:{crust:.2,glow:.5,drip:.3}},
-  {title:'Hang tinh thể',recipe:'crystalCave',params:{crust:.35,glow:.85,drip:.5}},
-  {title:'Linh thạch tím',recipe:'violetSpirit',params:{glow:.9}}
+  {title:'Tầng rễ',recipe:'cleanMoss',params:{}},
+  {title:'Đá sâu',recipe:'cleanDeep',params:{}},
+  {title:'Mạch linh thạch',recipe:'cleanQi',params:{}},
+  {title:'Hang tinh thể',recipe:'cleanCrystal',params:{}},
+  {title:'Linh thạch tím',recipe:'cleanViolet',params:{}}
 ];
 
 export function randomSeed(){ return (Math.random()*0x7fffffff)>>>0 || 1; }
@@ -375,15 +410,21 @@ function sparkles(px,n,count,seed,win){
 }
 /* cụm tinh thể cắm trong đá: hai ba lăng trụ nhọn, mặt trái sáng, viền mực */
 function crystalCluster(px,n,cx,base,h,R,wrapIt=false){
-  const sc=n/16, layer=new Map();
-  const prisms=[{dx:0,h:h,w:Math.max(3,Math.round(3*sc)|1)},{dx:-Math.round(2.5*sc),h:Math.round(h*.62),w:Math.max(3,Math.round(2.5*sc)|1)},
-    {dx:Math.round(2.5*sc),h:Math.round(h*.72),w:Math.max(3,Math.round(2.5*sc)|1)}];
+  /* tinh thể mọc xiên: cây giữa hơi lệch, hai cây bên xoè ra hai phía như mọc từ một gốc.
+     Mỗi cây là một lăng trụ bị trượt ngang theo độ dốc s (x lệch round(j·s) ở hàng j) —
+     nét nghiêng kiểu bậc thang, giữ được pixel sắc. Mặt trái sáng, giữa trung, phải tối. */
+  const sc=n/16, layer=new Map(), lean=R()<.5?-1:1;
+  const wMain=Math.max(3,Math.round(3*sc)|1), wSide=Math.max(3,Math.round(2.5*sc)|1);
+  const prisms=[
+    {dx:0,h:h,w:wMain,s:lean*(.18+R()*.17)},
+    {dx:-Math.round(1.5*sc),h:Math.round(h*.62),w:wSide,s:-(.5+R()*.25)},
+    {dx:Math.round(1.5*sc),h:Math.round(h*.72),w:wSide,s:.5+R()*.25}];
   const order=[prisms[1],prisms[2],prisms[0]];
   for(const p of order){
     if(R()<.15 && p!==prisms[0]) continue;
-    const half=(p.w-1)/2, x0=cx+p.dx-half;
+    const half=(p.w-1)/2;
     for(let j=0;j<p.h;j++){
-      const y=base-j, tip=p.h-1-j;
+      const y=base-j, tip=p.h-1-j, x0=cx+p.dx-half+Math.round(j*p.s);
       for(let i=0;i<p.w;i++){
         if(tip<half && Math.abs(i-half)>tip) continue;   // đầu nhọn
         const v=i<half?G2:i===half?(j%3===1?G2:G1):G0;
@@ -511,13 +552,35 @@ function blockTexture(n,spec,layout,W=n,Ht=n){
   }
   return px;
 }
+/* mạch vữa phát sáng: một đoạn mạch (màu viền) đổi sang màu linh khí, chạy theo đường vữa,
+   đầu đoạn mờ dần — kiểu đá khối sạch không có nền tối để vẽ gân, nên linh khí đi trong vữa */
+function glowSeam(px,n,P,seed,win){
+  const R=rng(seed), sc=n/16, isM=(x,y)=>x>=win[0]&&y>=win[0]&&x<win[1]&&y<win[1]&&px[y*n+x]===INK;
+  let cur=null;
+  for(let t=0;t<120 && !cur;t++){ const x=win[0]+Math.floor(R()*(win[1]-win[0])), y=win[0]+Math.floor(R()*(win[1]-win[0])); if(isM(x,y)) cur=[x,y]; }
+  if(!cur) return;
+  const len=Math.round((4+(P.glow??.5)*9)*sc), path=[], seen=new Set();
+  let dir=[1,0];
+  for(let k=0;k<len && cur;k++){
+    path.push(cur); seen.add(cur+'');
+    const opts=[dir,[dir[1],dir[0]],[-dir[1],-dir[0]],[-dir[0],-dir[1]]].filter(([dx,dy])=>isM(cur[0]+dx,cur[1]+dy)&&!seen.has([cur[0]+dx,cur[1]+dy]+''));
+    if(!opts.length) break;
+    dir=R()<.75?opts[0]:opts[Math.floor(R()*opts.length)];
+    cur=[cur[0]+dir[0],cur[1]+dir[1]];
+  }
+  path.forEach(([x,y],k)=>{ px[y*n+x]=k===0||k===path.length-1?G0:R()<.25?G2:G1; });
+}
 /* chi tiết riêng của biến thể đá khối: vết nứt, mẻ góc, viên sáng hơn, rêu trên mép — chỉ ở hàng
    gạch thứ hai trở đi và cách biên ≥ 2 px, để vành ô y hệt ô gốc */
 function blockDetails(px,n,spec,v,layout){
   const R=rng(spec.seeds.rock+v*6113), {H}=layout, y0=H, green=['grass','moss'].includes(spec.crustType);
   const inner=(x,y)=>x>=2&&y>=y0&&x<n-2&&y<n-2;
   const pick=test=>{ for(let t=0;t<80;t++){ const x=2+Math.floor(R()*(n-4)), y=y0+Math.floor(R()*(n-y0-2)); if(inner(x,y)&&test(x,y)) return [x,y]; } return null; };
+  const P=spec.params;
   const jobs=v===1?['crack','chip']:v===2?['moss','crack']:['light','chip'];
+  // biến thể thêm theo tầng: dây rêu rủ (tầng nông), mạch vữa phát sáng (tầng có linh khí)
+  if(green && (P.drip??0)>.15) jobs.push('vine');
+  if((P.glow??0)>.15) jobs.push('seam');
   for(const job of jobs){
     if(job==='crack'){
       const s=pick((x,y)=>px[y*n+x]===R1 && px[(y+1)*n+x]===R1); if(!s) continue;
@@ -527,6 +590,13 @@ function blockDetails(px,n,spec,v,layout){
       const s=pick((x,y)=>px[y*n+x]===R3 && px[(y-1)*n+x]===INK); if(s) px[s[1]*n+s[0]]=INK;
     } else if(job==='moss'){
       for(let y=y0;y<n-2;y++) for(let x=2;x<n-2;x++){ const i=y*n+x; if((px[i]===R3||px[i]===R1) && px[i-n]===INK && R()<.5) px[i]=green?K1:R0; }
+    } else if(job==='vine'){
+      // dây rêu rủ từ một hàng vữa xuống, lá so le hai bên
+      const s=pick((x,y)=>px[y*n+x]===INK && px[(y+1)*n+x]!==INK && y<n-5); if(!s) continue;
+      let [x,y]=s; const len=Math.round((3+R()*4)*(n/16));
+      for(let k=1;k<=len && y+k<n-2;k++){ const i=(y+k)*n+x; px[i]=k%2?K0:K1; if(k%3===2){ const sx=x+(k%2?1:-1); if(sx>=2&&sx<n-2) px[(y+k)*n+sx]=K1; } }
+    } else if(job==='seam'){
+      glowSeam(px,n,P,spec.seeds.vein+v*131,[2,n-2]);
     } else if(job==='light'){
       const s=pick((x,y)=>px[y*n+x]===R1); if(!s) continue;
       // tô sáng cả viên chứa điểm này (loang trong mặt viên, không qua mạch)
@@ -544,6 +614,7 @@ function interiorTextures(n,spec,extra=0){
      nhất; nét sáng đặt ở đó sẽ thành hoa văn đều tăm tắp */
   const glowDetails=(tex,v,plain)=>{
     if(P.glow<.08) return;
+    if(spec.interior==='block'){ if(plain && v===2 && P.glow>.45) glowSeam(tex,n,P,S.vein+v*71,win); return; }
     const sp=Math.round(P.glow*P.glow*(plain?1.2:3)*sc*sc);
     if(!plain && v>=2 || plain && v===2 && P.glow>.45) vein(tex,n,P,S.vein+v*17,win);
     sparkles(tex,n,sp,S.vein+v*29,win);
@@ -667,7 +738,9 @@ function boulderDetails(px,n,spec,v){
 function rareFeature(px,n,spec,v,win,glowOk){
   const P=spec.params, R=rng(spec.seeds.rock+v*31337), sc=n/16;
   if(v===1 && glowOk){
-    const h=Math.round(n*(.5+P.glow*.12)), cx=Math.round(n/2+(R()-.5)*n*.15), base=Math.round(n*.68+R()*n*.08);
+    const h=Math.round(n*(.5+P.glow*.12)), cx=Math.round(n/2+(R()-.5)*n*.15);
+    // đá khối: cụm tinh thể mọc từ mạch vữa dưới, xiên lên trên mặt viên
+    const base=spec.interior==='block' ? n-3 : Math.round(n*.68+R()*n*.08);
     crystalCluster(px,n,cx,Math.min(base,win[1]-2),Math.min(h,base-win[0]-1),R);
   } else if(v===2 && P.roots>0){
     rootFragment(px,n,[win[0]+1,win[1]-1],R);
@@ -995,8 +1068,9 @@ function propRoles(kind,n,spec,seed){
     return px;
   }
   if(kind==='shard'){
-    const x=Math.round(n/2+(R()-.5)*n*.3), h=Math.round(n*(.25+R()*.18));
-    for(let j=0;j<h;j++){ set(x,B-1-j,j===h-1?G2:K2); if(j<h-2) set(x+1,B-1-j,K1); }
+    // mảnh tinh thể mọc xiên về một phía
+    const x=Math.round(n/2+(R()-.5)*n*.2), h=Math.round(n*(.25+R()*.18)), sl=(R()<.5?-1:1)*(.45+R()*.25);
+    for(let j=0;j<h;j++){ const xx=x+Math.round(j*sl); set(xx,B-1-j,j===h-1?G2:K2); if(j<h-2) set(xx+1,B-1-j,K1); }
     set(x-1,B-1,K1); set(x+2,B-1,K0);
   }
   if(kind==='pebble'){

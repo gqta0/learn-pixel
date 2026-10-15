@@ -8,14 +8,15 @@ import { paintLayers } from './layers.js';
 import { pushUndo } from './history.js';
 import { download } from './storage.js';
 import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, writeTerrainSlot, writeTerrainPixels,
-  migrateTerrainLayout, closeAtlas, linkedTerrainFrameIndex } from './atlas.js';
+  migrateTerrainLayout, isTerrainSheet, isLegacyTerrainSheet, closeAtlas, linkedTerrainFrameIndex } from './atlas.js';
 import { openMapView } from './mapview.js';
 import { setView } from './tools.js';
 import { PALETTES, COLOR_TOKENS, MASTER_NAME, DEFAULT_PAL_NAME, palette as appPalette, paletteNameOf } from './palette.js';
 import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
   TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER, tileRoles, terrainPixels, describeMask, neighbors, checkSeams, checkColorSeams,
   terrainManifest, terrainGodotManifest, paintTerrainGuide,
-  TERRAIN_LAYOUT, CORE_SLOTS, composeTile, composeSources, variantBase, TERRAIN_SHAPES } from './terrain.js';
+  TERRAIN_LAYOUT, CORE_SLOTS, composeTile, composeSources, variantBase, TERRAIN_SHAPES,
+  ATLAS_COLS, ATLAS_ROWS, terrainSlotCell, terrainSlotCells, maskToCr31 } from './terrain.js';
 
 let selected=46, seamIssues=[], inspectedPair=null, terrainDirty=false;
 /* 'full' = vẽ tay cả 56 ô · 'core' = vẽ 13 ô lõi rồi bấm Ghép. Chỉ đổi cách trình bày và
@@ -150,7 +151,7 @@ function chooseTerrainColor(key){
 function terrainAtlas(){
   const a=getAtlas();
   return a?.terrain===TERRAIN_SCHEMA && [16,32].includes(a.tw) && a.th===a.tw &&
-    !a.pad && !a.off && a.cv.width===a.tw*8 && a.cv.height===a.th*7 ? a : null;
+    !a.pad && !a.off && isTerrainSheet(a.cv,a.tw) ? a : null;
 }
 const size=()=>terrainAtlas()?.tw || +$('#terrainSize').value;
 /* dáng mép: của atlas đang mở; chưa có atlas thì theo lựa chọn ở thẻ Tạo bộ */
@@ -159,6 +160,13 @@ const shape=()=>terrainAtlas()?.shape || pickedShape();
 function linkedTerrainSlot(){
   const slot=doc.terrainLink?.slots?.[doc.af];
   return Number.isInteger(slot) && linkedTerrainFrameIndex(slot)>=0 ? slot : null;
+}
+/* dựng ảnh atlas 10×7 từ tranh từng slot: ô chính theo lưới cr31, cộng các ô bản sao */
+function sheetCanvas(n,tileOf){
+  const cv=document.createElement('canvas');cv.width=n*ATLAS_COLS;cv.height=n*ATLAS_ROWS;
+  const g=cv.getContext('2d');
+  TERRAIN_TILES.forEach(t=>{ const tile=tileOf(t.slot); for(const [c,r] of terrainSlotCells(t.slot)) g.drawImage(tile,c*n,r*n); });
+  return cv;
 }
 function canvas(pixels,n){
   const cv=document.createElement('canvas');cv.width=cv.height=n;
@@ -171,7 +179,8 @@ function tiles(){
     if(a && editingSlot===t.slot){const cv=document.createElement('canvas');return frameToCanvas(doc.af,cv,1);}
     if(!a) return canvas(terrainPixels(t.slot,n,terrainCreateColors(),shape()),n);
     const cv=document.createElement('canvas');cv.width=cv.height=n;
-    cv.getContext('2d').drawImage(a.cv,(t.slot%8)*n,Math.floor(t.slot/8)*n,n,n,0,0,n,n);return cv;
+    const [c,r]=terrainSlotCell(t.slot);
+    cv.getContext('2d').drawImage(a.cv,c*n,r*n,n,n,0,0,n,n);return cv;
   });
 }
 function pixelsOf(cvs){return cvs.map(cv=>new Uint32Array(cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data.buffer));}
@@ -308,7 +317,8 @@ export function syncTerrainBar(){
 function drawDetail(cvs){
   const n=size(), t=TERRAIN_TILES[selected], s=describeMask(t.mask);
   $('#terrainTitle').textContent=id(selected)+' · '+t.title;
-  $('#terrainMeta').textContent='Mask '+t.mask+' · ô ('+(selected%8)+','+Math.floor(selected/8)+') · '+n+'×'+n+' px';
+  const [cc,cr]=terrainSlotCell(selected);
+  $('#terrainMeta').textContent='Mask '+t.mask+(selected<47?' · cr31 '+maskToCr31(t.mask):'')+' · ô ('+cc+','+cr+') · '+n+'×'+n+' px';
   const cv=$('#terrainDetail'),z=192/n;cv.width=cv.height=192;
   const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(cvs[selected],0,0,192,192);
   if($('#terrainGuides').checked) paintTerrainGuide(g,selected,n,z,'wireframe',shape());
@@ -466,9 +476,7 @@ export function writeGeneratedTiles(list,linkFrames=false){
 /* dựng atlas mới từ 56 ô vừa sinh */
 export function createTerrainFromTiles(n,shapeName,pixels,linkFrames){
   if(linkFrames && hasDocumentArt() && !confirm('Trải 56 ô thành 56 frame sẽ thay bộ frame hiện tại. Hãy lưu dự án trước nếu cần giữ. Tiếp tục?')) return false;
-  const cv=document.createElement('canvas');cv.width=n*8;cv.height=n*7;
-  const g=cv.getContext('2d');
-  TERRAIN_TILES.forEach(t=>g.drawImage(canvas(pixels[t.slot],n),(t.slot%8)*n,Math.floor(t.slot/8)*n));
+  const cv=sheetCanvas(n,slot=>canvas(pixels[slot],n));
   if(!createTerrainAtlas(cv,n,false,shapeName)) return false;
   if(linkFrames) linkFramesToTerrain(n); else doc.terrainLink=null;
   seamIssues=[];inspectedPair=null;
@@ -569,11 +577,9 @@ function create(){
   if(![16,32].includes(n)) return false;
   const wantsFrames=$('#terrainCreateFrames')?.checked;
   if(wantsFrames && hasDocumentArt() && !confirm('Tạo 56 frame Terrain sẽ thay bộ frame hiện tại. Hãy lưu dự án trước nếu cần giữ. Tiếp tục?')) return false;
-  const cv=document.createElement('canvas');cv.width=n*8;cv.height=n*7;
-  const g=cv.getContext('2d');
   const colors=terrainCreateColors();
   const sh=pickedShape();
-  TERRAIN_TILES.forEach(t=>g.drawImage(canvas(terrainPixels(t.slot,n,colors,sh),n),(t.slot%8)*n,Math.floor(t.slot/8)*n));
+  const cv=sheetCanvas(n,slot=>canvas(terrainPixels(slot,n,colors,sh),n));
   if(!createTerrainAtlas(cv,n,false,sh)) return false;
   if(wantsFrames) linkFramesToTerrain(n);
   else doc.terrainLink=null;
@@ -610,39 +616,39 @@ function syncIssueBadge(){
   b.hidden=!seamIssues.length; b.textContent=seamIssues.length>99?'99+':String(seamIssues.length);
 }
 function templateAtlasCanvas(n){
-  const cv=document.createElement('canvas');cv.width=n*8;cv.height=n*7;
-  const g=cv.getContext('2d');
-  TERRAIN_TILES.forEach(t=>g.drawImage(canvas(terrainPixels(t.slot,n,undefined,shape()),n),(t.slot%8)*n,Math.floor(t.slot/8)*n));
-  return cv;
+  return sheetCanvas(n,slot=>canvas(terrainPixels(slot,n,undefined,shape()),n));
 }
 function cleanTerrainCanvas(){
   const n=size(),source=terrainAtlas()?.cv||templateAtlasCanvas(n),cv=document.createElement('canvas');
-  cv.width=n*8;cv.height=n*7;
+  cv.width=n*ATLAS_COLS;cv.height=n*ATLAS_ROWS;
   const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,cv.width,cv.height);g.drawImage(source,0,0);
   const im=g.getImageData(0,0,cv.width,cv.height),data=im.data;
   // Chỉ dọn pixel "để trong suốt" nằm ở hàng/cột biên ô — đó là chỗ mối nối alpha đòi trống.
   // Phần thụt bên trong (cỏ mọc lên, nhũ rủ xuống) là chỗ dành để vẽ, không được xoá.
   TERRAIN_TILES.forEach(t=>{
-    const roles=tileRoles(t.slot,n,shape()),ox=(t.slot%8)*n,oy=Math.floor(t.slot/8)*n;
-    for(let i=0;i<roles.length;i++){
-      const x=i%n,y=Math.floor(i/n);
-      if(!roles[i] && (x===0||y===0||x===n-1||y===n-1)) data[((oy+y)*cv.width+ox+x)*4+3]=0;
+    const roles=tileRoles(t.slot,n,shape());
+    for(const [c,r] of terrainSlotCells(t.slot)){
+      const ox=c*n,oy=r*n;
+      for(let i=0;i<roles.length;i++){
+        const x=i%n,y=Math.floor(i/n);
+        if(!roles[i] && (x===0||y===0||x===n-1||y===n-1)) data[((oy+y)*cv.width+ox+x)*4+3]=0;
+      }
     }
   });
   g.putImageData(im,0,0);
   return cv;
 }
 function annotationDataUrl(){
-  const cvs=tiles(),cv=document.createElement('canvas');cv.width=1440;cv.height=1320;
+  const cvs=tiles(),cv=document.createElement('canvas');cv.width=180*ATLAS_COLS;cv.height=88+174*ATLAS_ROWS;
   const g=cv.getContext('2d');g.fillStyle='#101018';g.fillRect(0,0,cv.width,cv.height);
-  g.fillStyle='#e8e8f2';g.font='bold 24px sans-serif';g.fillText('TERRAIN 56 · 47 topology + 3 ruột + 3 sàn + trần + 2 tường',24,34);
+  g.fillStyle='#e8e8f2';g.font='bold 24px sans-serif';g.fillText('TERRAIN 56 · lưới cr31 blob 7×7 (47 ô) + biến thể 3×3: 3 ruột · 3 sàn · trần + 2 tường',24,34);
   g.font='14px sans-serif';g.fillText('Cyan: nối liền · Hồng mờ: trong suốt · Vàng: sàn · Tím: tường · Cam: góc lõm · Hồng: góc lồi',24,62);
   TERRAIN_TILES.forEach(t=>{
-    const x=(t.slot%8)*180,y=88+Math.floor(t.slot/8)*174;
+    const [cc,cr]=terrainSlotCell(t.slot), x=cc*180,y=88+cr*174;
     g.strokeStyle='#434360';g.strokeRect(x+4,y,172,166);
     g.imageSmoothingEnabled=false;g.drawImage(cvs[t.slot],x+10,y+8,80,80);
     g.save();g.translate(x+10,y+8);paintTerrainGuide(g,t.slot,size(),80/size(),'wireframe',shape());g.restore();
-    g.fillStyle='#e8e8f2';g.font='bold 13px sans-serif';g.fillText(id(t.slot)+' mask '+t.mask,x+10,y+108);
+    g.fillStyle='#e8e8f2';g.font='bold 13px sans-serif';g.fillText(id(t.slot)+' mask '+t.mask+(t.slot<47?' · cr31 '+maskToCr31(t.mask):''),x+10,y+108);
     g.font='12px sans-serif';g.fillText(t.title,x+10,y+127,157);
     g.fillText('Nối: '+(DIRECTIONS.filter(d=>t.mask&d.bit).map(d=>d.key).join(' ')||'không'),x+10,y+147,157);
   });
@@ -692,11 +698,13 @@ function importTerrainProject(file){
       if(hasDocumentArt() && !confirm('Mở project Terrain 56 sẽ thay frame đang vẽ bằng 56 frame của project. Tiếp tục?')) return;
       const im=new Image();
       im.onload=()=>{
-        if(im.width!==n*8 || im.height!==n*7){alert('Atlas Terrain phải đúng khổ '+(n*8)+'×'+(n*7)+' px.');return;}
-        const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;
+        const legacy=im.width===n*8 && im.height===n*7, fresh=im.width===n*ATLAS_COLS && im.height===n*ATLAS_ROWS;
+        if(!legacy && !fresh){alert('Atlas Terrain phải đúng khổ '+(n*ATLAS_COLS)+'×'+(n*ATLAS_ROWS)+' px (hoặc '+(n*8)+'×'+(n*7)+' px của bố cục cũ).');return;}
+        let cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;
         const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(im,0,0);
-        const old=d.layout!==TERRAIN_LAYOUT;
-        if(old) migrateTerrainLayout(cv,n);        // dự án cũ: #50, #51 là ruột → chép sàn gốc vào
+        const fromLayout=d.layout||1, old=fromLayout<2;
+        // dự án bố cục cũ 8×7: chuyển sang lưới cr31 (layout 1 còn chép sàn gốc vào #50, #51)
+        if(legacy) cv=migrateTerrainLayout(cv,n,fromLayout);
         if(!createTerrainAtlas(cv,n,true,d.edgeShape||d.manifest?.edgeShape)) return;
         const opts=d.link||{};
         ['labels','live','autoSave'].forEach(key=>{const el=$('#terrainFrame'+key[0].toUpperCase()+key.slice(1));if(el)el.checked=opts[key]!==false;});
@@ -705,7 +713,8 @@ function importTerrainProject(file){
         $('#terrainSize').value=String(n);
         seamIssues=[];inspectedPair=null;
         $('#terrainSeams').textContent='Đã mở project Terrain 56 · 56 frame đã được trải lại theo slot #00–#55.'+
-          (old?' Dự án dùng bố cục biến thể cũ: #50 và #51 nay là biến thể sàn, đã chép ô sàn gốc #31 vào.':'');
+          (old?' Dự án dùng bố cục biến thể cũ: #50 và #51 nay là biến thể sàn, đã chép ô sàn gốc #31 vào.':'')+
+          (legacy?' Ảnh atlas đã xếp lại theo lưới cr31 7×7 + biến thể 3×3.':'');
         setView('terrain');setPane('tiles');refreshTerrain();
       };
       im.onerror=()=>alert('Không đọc được atlas PNG trong project Terrain 56.');
