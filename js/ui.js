@@ -11,7 +11,7 @@ import { paintThumbs, paintPreview, togglePlay } from './frames.js';
 import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.js';
 import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches, paintRamp, syncColors, rampCols,
          attachPalettePopup, openQuickPalette, palByName, isUserPal, savePaletteAs, deleteUserPal,
-         fillPalSelect, addCurrentColor, sortPalette, prunePalette, paletteFromArt, rampFromCurrent } from './palette.js';
+         fillPalSelect, importPaletteText, addCurrentColor, sortPalette, prunePalette, paletteFromArt, rampFromCurrent } from './palette.js';
 import { mountPalettePicker } from './palpick.js';
 import { setTool, setTheme, setView, syncFingerBtn, syncPixelPerfectBtn, attachMods } from './tools.js';
 import { SAVE_KEY, clearSave, exportPng, exportSheet, exportPalettePng, exportJson, importJson, exportGodotFrames,
@@ -187,6 +187,15 @@ $('#palFromArt').addEventListener('click', ()=>{
 $('#palSave').addEventListener('click', ()=>{
   const n=savePaletteAs();
   if(n) $('#palInfo').textContent='Đã lưu bảng màu "'+n+'" vào máy.';
+});
+$('#palImport').addEventListener('change', e=>{
+  const f=e.target.files[0]; e.target.value='';
+  if(!f) return;
+  f.text().then(t=>{
+    const n=importPaletteText(f.name,t);
+    if(n) syncColors();
+    $('#palInfo').textContent = n ? 'Đã nhập '+n+' màu từ '+f.name+' và lưu vào “Của bạn”.' : 'Không tìm thấy mã màu nào trong '+f.name+'.';
+  });
 });
 $('#palDel').addEventListener('click', ()=>{
   const n=$('#palSel').value;

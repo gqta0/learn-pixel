@@ -50,3 +50,23 @@ test('every Terrain create preset uses colours from the Master palette',()=>{
   assert.ok(used.includes('#7c6d6c'), 'warm stone preset present');
   for(const c of used) assert.ok(master.includes(c), c+' is not in the Master palette');
 });
+
+const gen=[...src.split('[GENESIS_NAME]: [')[1].split('],')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
+test('Genesis v1 is the default palette, 69 unique colours in the order of genesis-v1.hex, every colour grouped',()=>{
+  assert.equal(src.match(/export const GENESIS_NAME = '([^']+)'/)[1], `Genesis v1 (${gen.length} màu)`);
+  assert.equal(gen.length, 69);
+  assert.equal(new Set(gen).size, 69);
+  assert.deepEqual([gen[0],gen[10],gen[55],gen[68]], ['#251c24','#f1edf2','#ffffff','#fcc8da']);
+  assert.match(src, /export const DEFAULT_PAL_NAME = GENESIS_NAME;/);
+  assert.match(src, /export let palette = PALETTES\[DEFAULT_PAL_NAME\]\.slice\(\);/);
+  const grouped=[...src.split('const GENESIS_GROUPS = [')[1].split('];')[0].matchAll(/'([0-9a-f ]{6,})'\]/g)].flatMap(m=>m[1].split(' ').map(h=>'#'+h));
+  assert.deepEqual(grouped, gen);
+  for(const c of gen) assert.ok(!master.includes(c), c+' trùng mã Master — token Master sẽ đè nhóm Genesis');
+});
+test('palette files: Lospec .hex, GIMP .gpl and loose #hex text all parse, duplicates dropped',async()=>{
+  const {parsePaletteText}=await import('../js/palgroups.js');
+  assert.deepEqual(parsePaletteText('251c24\r\n25232F\n\n251c24\n'), ['#251c24','#25232f']);
+  assert.deepEqual(parsePaletteText('GIMP Palette\nName: x\nColumns: 4\n#\n 37  28  36\tdark\n255 255 255 white\n'), ['#251c24','#ffffff']);
+  assert.deepEqual(parsePaletteText('; comment\nbg = #0d171fff, fg #E6E0D3'), ['#0d171f','#e6e0d3']);
+  assert.deepEqual(parsePaletteText(readFileSync(new URL('../palettes/genesis-v1.hex', import.meta.url),'utf8')), gen);
+});

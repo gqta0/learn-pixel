@@ -4,6 +4,7 @@ import { view, doc } from './state.js';
 import { MATERIALS, buildRamp, hexToInt, intToHex, intToCss, rgbToHsl } from './color.js';
 import { autosave } from './storage.js';
 import { onLongPress, popover } from './popup.js';
+import { parsePaletteText } from './palgroups.js';
 
 /* Mã cũ của Master 88 → mã thay thế trong Master 85. Dùng để chuyển tranh đã vẽ sang bảng mới
    và để tranh cũ vẫn hiện đúng nhóm màu. #8fcfb8 (sương cũ) bị bỏ, không có màu thay. */
@@ -135,11 +136,48 @@ export const COLOR_TOKENS = {
 for(const [cu,moi] of Object.entries(MASTER_REMAP))
   if(!COLOR_TOKENS[cu]) COLOR_TOKENS[cu]={...COLOR_TOKENS[moi], legacy:true, desc:'màu cũ của Master 88 → nay là '+moi};
 
+/* Genesis v1 — bảng mặc định khi mở app (nhập từ genesis-v1.hex, giữ nguyên thứ tự file).
+   Master vẫn là bảng có token vai trò cho Terrain và bộ Tạo nhanh. */
+export const GENESIS_NAME = 'Genesis v1 (69 màu)';
+export const DEFAULT_PAL_NAME = GENESIS_NAME;
+/* nhóm theo dải trong file .hex, để "Phân loại nhóm" và bộ chọn nhóm màu khi pixel hoá chia được */
+const GENESIS_GROUPS = [
+  ['Tím xám','251c24 25232f 423d52 5e5572 806f95 9886a7 968daa b4b0bf bba9c6 ddd1e0 f1edf2'],
+  ['Da & đất đỏ','492d27 6f433a 965b4f a76558 c37669 d8a597 e8d7d4'],
+  ['Da sáng','b8886b b1957c f3bfa2 fde2cf'],
+  ['Tím than','3b2c3e 5c4763'],
+  ['Vàng cam','875208 c67f0c b3783d d1732e e6ac55 ffa600 ffd900 e5bd82 f5e7a0'],
+  ['Đỏ','532828 763232 a1514a ca4949 da0205'],
+  ['Lục','284d3b 2a5a42 3b894b 63c74d abdc4c 4d6b53 7a9a72'],
+  ['Ngọc','1d5a5a 22917f 3fd0a6 9ef2cf e6fff4'],
+  ['Lam','2c4d8f 5b98e6 87c8cf 86bdf0 bfe0f8 ffffff'],
+  ['Xám lam','4f7277 6d8f96 97b3b6 c3d4d6'],
+  ['Tím hồng','51154a 43137c 681ab7 c955e7 e187f8 d8368a ec7fa9 f8b4cb fcc8da'],
+];
+let genesisStep=0;
+for(const [group,list] of GENESIS_GROUPS) list.split(' ').forEach((h,i)=>{
+  genesisStep++;
+  if(!COLOR_TOKENS['#'+h]) COLOR_TOKENS['#'+h]={ group:'Genesis · '+group, token:'genesis-'+String(genesisStep).padStart(2,'0'), desc:group+' · bậc '+(i+1) };
+});
+
 /* Tên bảng chủ — đổi số màu thì chỉ sửa ở đây. Bảng lưu trước đó theo tên cũ vẫn mở được
    vì ô chọn tự rơi về bảng chủ khi không tìm thấy tên. */
 export const MASTER_NAME = 'Master Palette (92 màu)';
 
 export const PALETTES = {
+  [GENESIS_NAME]: [
+    '#251c24','#25232f','#423d52','#5e5572','#806f95','#9886a7','#968daa','#b4b0bf','#bba9c6','#ddd1e0','#f1edf2',  /* Tím xám */
+    '#492d27','#6f433a','#965b4f','#a76558','#c37669','#d8a597','#e8d7d4',  /* Da & đất đỏ */
+    '#b8886b','#b1957c','#f3bfa2','#fde2cf',  /* Da sáng */
+    '#3b2c3e','#5c4763',  /* Tím than */
+    '#875208','#c67f0c','#b3783d','#d1732e','#e6ac55','#ffa600','#ffd900','#e5bd82','#f5e7a0',  /* Vàng cam */
+    '#532828','#763232','#a1514a','#ca4949','#da0205',  /* Đỏ */
+    '#284d3b','#2a5a42','#3b894b','#63c74d','#abdc4c','#4d6b53','#7a9a72',  /* Lục */
+    '#1d5a5a','#22917f','#3fd0a6','#9ef2cf','#e6fff4',  /* Ngọc */
+    '#2c4d8f','#5b98e6','#87c8cf','#86bdf0','#bfe0f8','#ffffff',  /* Lam */
+    '#4f7277','#6d8f96','#97b3b6','#c3d4d6',  /* Xám lam */
+    '#51154a','#43137c','#681ab7','#c955e7','#e187f8','#d8368a','#ec7fa9','#f8b4cb','#fcc8da'   /* Tím hồng */
+  ],
   [MASTER_NAME]: [
     '#0d171f','#162331','#223344',                                    /* Ink */
     '#2e4659','#435d73','#5e788c','#7a95a7','#99b0bf','#b4c5d1','#d0dde4', /* Rock */
@@ -176,7 +214,7 @@ export const PALETTES = {
                            '#a8791f','#dcae35','#ffe07a','#8f4a20','#c26e33','#e59c5e','#c2c3c7','#eef0f5'],
   'Xám 8 bậc (luyện khối)': ['#0d0d12','#1f1f28','#33333f','#4c4c5b','#6b6b7c','#8f8fa0','#b8b8c6','#f0f0f6']
 };
-export let palette = PALETTES[MASTER_NAME].slice();
+export let palette = PALETTES[DEFAULT_PAL_NAME].slice();
 export function setPalette(a){ palette = a.slice(); if(typeof window!=='undefined') window.dispatchEvent?.(new Event('palettechange')); }
 
 /* ---------------- thư viện bảng màu của bạn ----------------
@@ -200,12 +238,18 @@ function group(sel,label,keys){
   keys.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; g.appendChild(o); });
   sel.appendChild(g);
 }
+/* tên bảng (dựng sẵn hoặc của bạn) có đúng y các màu này, theo đúng thứ tự — '' nếu không có */
+export function paletteNameOf(list){
+  const key=list.map(h=>h.toLowerCase()).join();
+  const all={...PALETTES,...userPals};
+  return Object.keys(all).find(n=>all[n].map(h=>h.toLowerCase()).join()===key) || '';
+}
 export function fillPalSelect(keep){
-  const sel=$('#palSel'), cur = keep || sel.value || MASTER_NAME;
+  const sel=$('#palSel'), cur = keep || sel.value || DEFAULT_PAL_NAME;
   sel.innerHTML='';
   group(sel,'Dựng sẵn', Object.keys(PALETTES));
   group(sel,'Của bạn',  Object.keys(userPals));
-  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : MASTER_NAME;
+  sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : DEFAULT_PAL_NAME;
   $('#palDel').style.display = isUserPal(sel.value) ? '' : 'none';
 
   const m=$('#matSel');
@@ -226,6 +270,19 @@ export function savePaletteAs(){
   writeLib();
   fillPalSelect(n);
   return n;
+}
+/* nhập file bảng màu (.hex của Lospec, .gpl của GIMP/Aseprite, .txt) thành một bảng của bạn,
+   rồi chuyển sang dùng luôn. Trả về số màu, 0 nếu file không có màu nào. */
+export function importPaletteText(fileName,text){
+  const colors=parsePaletteText(text);
+  if(!colors.length) return 0;
+  let n=(fileName||'Bảng nhập').replace(/\.[^.]+$/,'').trim()||'Bảng nhập';
+  if(PALETTES[n]) n+=' (nhập)';
+  userPals[n]=colors;
+  writeLib();
+  setPalette(colors);
+  fillPalSelect(n);
+  return colors.length;
 }
 export function deleteUserPal(n){
   if(!isUserPal(n)) return false;

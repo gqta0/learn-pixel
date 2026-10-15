@@ -17,7 +17,12 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 **Màu**
 - Panel sinh dải màu lệch tông theo **chất liệu** (kim loại, gỗ, đá, da người, lá, vải, thuỷ tinh, vàng, lửa).
-- 7 bảng màu dựng sẵn (Master Palette 92 màu cho thế giới tu tiên, chia 20 dải: Ink, Rock, Moss stone, Warm stone (đá xám ấm), Grass, Jade, Spirit, Sky, Water, Qi cyan, Qi violet, Blossom, Soil, Wood, Brass, Fire, Skin, Silk thuỷ mặc, Cinnabar chu sa, Status; kèm PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động, Xám 8 bậc).
+- Bảng mặc định **Genesis v1** (69 màu, nhập từ `palettes/genesis-v1.hex`, chia 11 nhóm: Tím xám, Da & đất đỏ,
+  Da sáng, Tím than, Vàng cam, Đỏ, Lục, Ngọc, Lam, Xám lam, Tím hồng). Bản tự lưu nào còn đúng nguyên Master
+  (bảng mặc định cũ) được chuyển sang Genesis một lần; tranh không đổi pixel, bảng đã chỉnh tay giữ nguyên.
+- **⬆ Nhập .hex** (khung Màu): nhập bảng màu từ file `.hex` của Lospec, `.gpl` của GIMP/Aseprite hoặc `.txt` có
+  mã `#RRGGBB`, lưu vào “Của bạn” và dùng luôn.
+- 7 bảng màu dựng sẵn khác (Master Palette 92 màu — vẫn là bảng có token vai trò cho Terrain và ⚡ Tạo nhanh cho thế giới tu tiên, chia 20 dải: Ink, Rock, Moss stone, Warm stone (đá xám ấm), Grass, Jade, Spirit, Sky, Water, Qi cyan, Qi violet, Blossom, Soil, Wood, Brass, Fire, Skin, Silk thuỷ mặc, Cinnabar chu sa, Status; kèm PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động, Xám 8 bậc).
 - **Thư viện bảng màu của bạn**: lưu bảng màu vào máy và dùng lại cho dự án sau, tách khỏi file tranh.
 - Sửa / bỏ / sắp xếp từng ô màu, bỏ màu thừa, rút bảng màu từ chính bức tranh hoặc từ một ảnh mẫu, thay màu hàng loạt (palette swap).
 - Ô màu chưa dùng ở khung hiện tại thì mờ đi, nên nhìn ra ngay bảng màu đang thừa chỗ nào.
