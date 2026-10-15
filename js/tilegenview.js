@@ -5,9 +5,8 @@ import { $, toast } from './dom.js';
 import { view } from './state.js';
 import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
-import { sanitizeFilename } from './manifest.js';
 import { PALETTES, COLOR_TOKENS, MASTER_NAME, DEFAULT_PAL_NAME } from './palette.js';
-import { TERRAIN_TILES, terrainManifest, terrainGodotManifest, terrainGodotTres, terrainLayoutJson, checkSeams, checkColorSeams,
+import { TERRAIN_TILES, terrainGodotTres, checkSeams, checkColorSeams,
   ATLAS_COLS, ATLAS_ROWS, terrainSlotCells } from './terrain.js';
 import { GEN_RECIPES, GEN_RECIPE_ORDER, GEN_PARAMS, GEN_CRUSTS, GEN_DRIPS, GEN_INTERIORS, GEN_CAPS, GEN_SEED_GROUPS,
   GEN_STRATA, GEN_ROLE_GROUPS, GEN_ROLE_LABELS, GEN_PALETTES, PREVIEW_LAYOUTS,
@@ -235,7 +234,7 @@ function syncControls(){
   $('#tqLight').value=s.light;
   $('#tqSeed').value=s.seed;
   $('#tqStratumName').textContent='Tầng '+(st.stratum+1)+' · '+GEN_STRATA[st.stratum].title;
-  $('#tqPalette').value=st.palette;
+  $('#tqPalette').textContent='Bảng: '+GEN_PALETTES[st.palette]+' · theo bảng màu đang vẽ';
   $('#tqSize').value=String(st.size); $('#tqShape').value=st.shape; $('#tqScope').value=st.scope;
   $('#tqKeepEdited').checked=st.keepEdited; $('#tqFrames').checked=st.frames;
   $('#tqDeco').checked=st.deco; $('#tqHero').checked=st.hero; $('#tqMacro').checked=st.macro!==false;
@@ -337,12 +336,6 @@ function propsImage(props,n){
   props.forEach((p,i)=>{ for(let y=0;y<n;y++) px.set(p.px.subarray(y*n,y*n+n),y*W+i*n); });
   return {w:W,h:n,px};
 }
-const propsJson=(props,n,file)=>({format:'lo-pixel-props.v1',file,tileSize:n,count:props.length,
-  note:'anchor bottom: đặt đáy ô lên mặt đất (hàng trống ngay trên mặt sàn). anchor top: treo đỉnh ô dưới trần.',
-  props:props.map((p,i)=>({index:i,kind:p.kind,name:p.name,anchor:p.anchor,x:i*n,y:0,w:n,h:n}))});
-const recipeJson=x=>({format:'lo-pixel-tilegen-recipe.v1',recipe:x.spec.recipe,palette:GEN_PALETTES[x.spec.palette],title:GEN_RECIPES[x.spec.recipe].title,
-  seed:x.spec.seed,seeds:x.spec.seeds,params:x.spec.params,crustType:x.spec.crustType,dripType:x.spec.dripType,
-  interior:x.spec.interior,capStyle:x.spec.capStyle,light:x.spec.light,colors:x.spec.colors});
 /* thư mục Godot nơi anh sẽ giải nén ZIP — lấy từ ô "Thư mục Godot" ở thẻ Xuất của khung vẽ */
 function godotDir(){
   let dir=(document.querySelector('#expGodotDir')?.value||'res://').trim()||'res://';
@@ -363,47 +356,26 @@ function runExport(btn,label,work){
 function exportProps(){
   runExport($('#tqProps'),'trang trí',note=>{
     const n=st.size, x=build(cur(),n,st.shape), img=propsImage(x.props,n);
-    const zip=makeZip([{name:'trang-tri.png',data:rgbaPngBytes(img.w,img.h,img.px)},
-      {name:'trang-tri.json',data:JSON.stringify(propsJson(x.props,n,'trang-tri.png'),null,2)}]);
-    offerDownload(zip,'trang-tri-'+sanitizeFilename(GEN_STRATA[st.stratum].title,'tang')+'-'+n+'.zip','application/zip',note);
+    offerDownload(rgbaPngBytes(img.w,img.h,img.px),'decor.png','image/png',note);
   });
 }
-/* Cả 6 tầng trong một ZIP, giải nén thẳng vào thư mục Godot:
-   terrain-6-tang/tang-1-…/terrain56.png, tileset.tres (TileSet dùng ngay), trang-tri.png/.json, cong-thuc.json
-   terrain-6-tang/terrain-6-tang.tres — một TileSet chung, mỗi tầng một terrain; cộng mapping JSON, ảnh cắt lớp. */
+/* Cả 6 tầng trong một ZIP, giải nén thẳng vào thư mục Godot. Mỗi tầng một thư mục, đúng 4 file:
+   layer_N/blob_tileset.png (atlas 10×7), decor.png (trang trí), macro.png (vân lớn 3×3),
+   tileset.tres (TileSet dùng ngay: nguồn 0 = atlas có terrain, nguồn 100 = vân lớn). */
 function exportStrata(){
   runExport($('#tqZip'),'6 tầng',note=>{
-    const n=st.size, shape=st.shape, root='terrain-6-tang/', dir=godotDir()+root, files=[], strata=[], sources=[];
+    const n=st.size, shape=st.shape, dir=godotDir(), files=[];
     const tone=x=>x.spec.colors.k1||x.spec.colors.c2;
     for(let i=0;i<6;i++){
-      const s=st.strata[i], x=build(s,n,shape), folder='tang-'+(i+1)+'-'+sanitizeFilename(GEN_STRATA[i].title,'tang')+'/';
+      const x=build(st.strata[i],n,shape), folder='layer_'+(i+1)+'/';
       const atlas=atlasImage(x.tiles,n), props=propsImage(x.props,n), name='Tầng '+(i+1)+' · '+GEN_STRATA[i].title;
-      const macroFile='macro_'+(i+1)+'.png';
-      const src={texture:dir+folder+'terrain56.png',name,color:tone(x),macro:{texture:dir+macroFile,size:x.macro.size}};
-      sources.push(src);
-      files.push({name:root+folder+'terrain56.png',data:rgbaPngBytes(atlas.w,atlas.h,atlas.px)});
-      files.push({name:root+macroFile,data:rgbaPngBytes(x.macro.w,x.macro.w,x.macro.px)});
-      files.push({name:root+folder+'tileset.tres',data:terrainGodotTres(n,shape,[src])});
-      files.push({name:root+folder+'trang-tri.png',data:rgbaPngBytes(props.w,props.h,props.px)});
-      files.push({name:root+folder+'trang-tri.json',data:JSON.stringify(propsJson(x.props,n,'trang-tri.png'),null,2)});
-      files.push({name:root+folder+'cong-thuc.json',data:JSON.stringify(recipeJson(x),null,2)});
-      strata.push({index:i+1,title:GEN_STRATA[i].title,recipe:s.recipe,folder:root+folder,terrain:root+folder+'terrain56.png',
-        tileset:root+folder+'tileset.tres',props:root+folder+'trang-tri.png'});
+      const src={texture:dir+folder+'blob_tileset.png',name,color:tone(x),macro:{texture:dir+folder+'macro.png',size:x.macro.size}};
+      files.push({name:folder+'blob_tileset.png',data:rgbaPngBytes(atlas.w,atlas.h,atlas.px)});
+      files.push({name:folder+'decor.png',data:rgbaPngBytes(props.w,props.h,props.px)});
+      files.push({name:folder+'macro.png',data:rgbaPngBytes(x.macro.w,x.macro.w,x.macro.px)});
+      files.push({name:folder+'tileset.tres',data:terrainGodotTres(n,shape,[src])});
     }
-    files.push({name:root+'terrain-6-tang.tres',data:terrainGodotTres(n,shape,sources)});
-    const img=renderPreview(previewLayout('strata',7),setsFor(st.strata.map(s=>build(s,n,shape))),
-      {n,shape,deco:.5,heroH:view.gameH,seed:7,palette:st.palette});
-    files.push({name:root+'xem-truoc-6-tang.png',data:rgbaPngBytes(img.w,img.h,img.px)});
-    files.push({name:root+'layout.json',data:JSON.stringify(terrainLayoutJson(n,shape,{
-      layers:Object.fromEntries(strata.map(s=>[String(s.index),s.terrain.slice(root.length)])),
-      macroSize:3,macroFiles:Object.fromEntries(strata.map(s=>[String(s.index),'macro_'+s.index+'.png']))}),null,2)});
-    files.push({name:root+'terrain56-godot-mapping.json',data:JSON.stringify(terrainGodotManifest(n,shape),null,2)});
-    files.push({name:root+'terrain56-layout.json',data:JSON.stringify(terrainManifest(n,shape),null,2)});
-    files.push({name:root+'manifest.json',data:JSON.stringify({app:'lo-pixel',format:'lo-pixel-strata.v2',exported:new Date().toISOString(),
-      tileSize:n,edgeShape:shape,palette:GEN_PALETTES[st.palette],godotDir:dir,
-      note:'Giải nén ZIP vào '+godotDir()+' (đúng ô “Thư mục Godot”). Mỗi tầng có tileset.tres dùng ngay (nguồn 0: atlas 56 ô có terrain; nguồn 100: vân lớn 3×3); terrain-6-tang.tres gộp cả 6, mỗi tầng một terrain trong terrain set 0 (Match Corners and Sides), vân lớn ở nguồn 100–105. layout.json: layout 2 + bảng biến thể + vân lớn cho game đọc. Tầng 1 là mặt đất.',
-      strata},null,2)});
-    offerDownload(makeZip(files),'terrain-6-tang-'+n+'.zip','application/zip',note);
+    offerDownload(makeZip(files),'layers-'+n+'.zip','application/zip',note);
   });
 }
 function lerpStrata(){
@@ -438,14 +410,6 @@ function mount(){
   for(const [k,v] of Object.entries(SCOPES)){ const o=document.createElement('option'); o.value=k; o.textContent=v.label; scope.append(o); }
   const pick=(id,key)=>$(id).addEventListener('change',e=>{ cur()[key]=e.target.value||null; save(); schedule(true); });
   pick('#tqCrust','crustType'); pick('#tqDrip','dripType'); pick('#tqInterior','interior'); pick('#tqCap','capStyle');
-  const pal=$('#tqPalette');
-  for(const [k,v] of Object.entries(GEN_PALETTES)){ const o=document.createElement('option'); o.value=k; o.textContent=v+(k==='genesis'?' (mặc định)':''); pal.append(o); }
-  pal.addEventListener('change',e=>{
-    const edited=st.strata.some(s=>Object.keys(s.colors||{}).length);
-    if(edited && !confirm('Đổi bảng gốc sẽ bỏ các màu vai trò anh đã đổi tay ở 6 tầng (vì đó là màu của bảng cũ). Tiếp tục?')){ e.target.value=st.palette; return; }
-    st.palette=e.target.value; st.strata.forEach(s=>{ s.colors={}; });
-    save(); syncControls(); paintRecipes(); schedule(true);
-  });
   $('#tqLight').addEventListener('change',e=>{ cur().light=e.target.value; save(); schedule(true); });
   $('#tqSeed').addEventListener('change',e=>{ const v=parseInt(e.target.value,10); if(v>0){ cur().seed=v; cur().seeds=null; save(); schedule(true); } });
   $('#tqDice').addEventListener('click',rollAll);
@@ -469,8 +433,20 @@ function mount(){
 }
 const isOpen=()=>$('#terrainWrap')?.dataset.tpane==='quick' && document.body.dataset.view==='terrain';
 /* mở thẻ: atlas đang mở quyết định khổ và dáng mép mặc định, để ghi thẳng vào được */
+/* bảng gốc của bộ ô = bảng màu đang vẽ (như thẻ Tạo bộ). Đổi bảng thì màu vai trò anh đã chọn tay
+   chỉ giữ lại màu nào có trong bảng mới. Trả về true nếu bảng vừa đổi. */
+function syncPalette(){
+  const k=toolPaletteKey();
+  if(st.palette===k) return false;
+  st.palette=k;
+  const inPal=new Set(PALETTES[palName()].map(h=>h.toLowerCase()));
+  for(const s of st.strata) for(const [role,hex] of Object.entries(s.colors||{})) if(!inPal.has(String(hex).toLowerCase())) delete s.colors[role];
+  save(); return true;
+}
 export function openQuick(){
+  const changed=syncPalette(), wasMounted=mounted;
   mount();
+  if(changed && wasMounted) paintRecipes();       // thẻ công thức vẽ theo bảng cũ lúc đổi bảng khi thẻ đang đóng
   const a=terrainTarget();
   if(a && !openedOnce){ st.size=a.tw; st.shape=a.shape||'inset'; }
   openedOnce=true;
@@ -481,4 +457,9 @@ let openedOnce=false;
 export function bindTileGen(){
   document.querySelector('.tv-tabs [data-tpane=quick]')?.addEventListener('click',openQuick);
   window.addEventListener('viewchange',e=>{ if(e.detail?.view==='terrain' && isOpen()) openQuick(); });
+  window.addEventListener('palettechange',()=>{
+    if(!syncPalette() || !mounted) return;
+    paintRecipes();                                // thẻ công thức vẽ lại cả khi thẻ đang đóng
+    if(isOpen()){ syncControls(); schedule(true); }
+  });
 }

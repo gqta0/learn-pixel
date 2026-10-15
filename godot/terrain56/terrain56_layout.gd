@@ -5,7 +5,7 @@
 ## 53 trần (155), 54 tường trái (55), 55 tường phải (205). layout.json của Lò Pixel khai:
 ##   "layout": 2, "center_variant_slots": [47,48,49],
 ##   "edge_variant_masks": {"50":110,"51":110,"52":110,"53":155,"54":55,"55":205},
-##   "macro": {"size": 3, "files": {"1": "macro_1.png", ...}}   (tuỳ chọn)
+##   "macro": {"size": 3, "files": {"1": "layer_1/macro.png", ...}}   (tuỳ chọn)
 ## Layout 3 (Lò Pixel hiện tại) giữ nguyên nghĩa slot của layout 2, chỉ đổi chỗ đặt trong ảnh:
 ## lưới 7×7 chuẩn cr31 "blob" cho 47 ô + khối 3×3 biến thể bên phải (ảnh 10×7 ô), khai trong
 ##   "layout": 3, "columns": 10, "rows": 7, "atlas_cells": {"0": [0, 0], ..., "46": [4, 4], ...}
