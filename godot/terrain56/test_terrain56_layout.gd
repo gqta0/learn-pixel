@@ -137,7 +137,7 @@ func test_macro() -> void:
 		check(lay.macro_cell(0, y + 1, w).y == (lay.macro_cell(0, y, w).y + 1) % 3, "macro liền theo y tại %d" % y)
 	# ô có mép không lấy macro; tầng không có macro → cách cũ
 	check(not lay.cell_for(110, 7, 5, 0, w, "1")["macro"], "ô sàn vẫn dùng blob")
-	var old := lay.cell_for(255, 7, 5, 0, w, "4")
+	var old := lay.cell_for(255, 7, 5, 0, w, "7")   # layout.json chỉ khai vân lớn cho tầng 1–6
 	check(not old["macro"] and old["slot"] >= 46 and old["slot"] <= 49, "tầng thiếu macro → 46–49: " + str(old))
 	check(Layout.legacy_coords(46) == Vector2i(6, 5) and Layout.legacy_coords(55) == Vector2i(7, 6), "toạ độ cũ 8 cột")
 	var cf := lay.cell_for(110, 3, 0, 1, w, "1")

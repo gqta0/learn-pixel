@@ -187,9 +187,11 @@ trang trí và nhân vật cao đúng ô **🎮 Cỡ trong game**. Bên phải l
    tile sạch): **· cỏ**, **rêu · rễ** (đá nâu đất, dây rêu rủ, rễ luồn mạch vữa), **sâu · mạch
    ngọc**, **mạch lam**, **hang tinh thể**, **linh thạch tím** (mạch vữa sáng linh khí, tinh thể
    **mọc xiên**); cùng các kiểu cũ Đá ấm · cỏ, Cuội rêu · rễ, Hang tinh thể lam, Băng tuyết,
-   Đường làng lát đá, Đá sâu · mạch lam, Linh thạch tím. Ô **Bảng** chọn bảng gốc: **Genesis v1**
-   (mặc định) hoặc Master Palette — mỗi công thức có sẵn bảng **màu theo vai trò** (viền, nền,
-   đá, mặt trên, lớp phủ, linh khí, rễ, hoa) lấy đúng mã trong bảng đó.
+   Đường làng lát đá, Đá sâu · mạch lam, Linh thạch tím. Màu lấy từ **bảng màu đang vẽ**
+   (như thẻ Tạo bộ): đang dùng Master Palette thì theo Master, còn lại theo **Genesis v1**; đổi bảng ở
+   khung vẽ thì bộ ô đổi theo. Mỗi công thức có sẵn bảng **màu theo vai trò** (viền, nền, đá, mặt
+   trên, lớp phủ, linh khí, rễ, hoa) lấy đúng mã trong bảng đó; màu anh đổi tay chỉ giữ khi bảng mới
+   cũng có màu ấy.
 2. **Chỉnh** — 5 thanh chính: **Cỡ đá, Mật độ đá, Lớp phủ, Rủ xuống, Linh khí**; chọn kiểu
    phủ (cỏ, rêu, tuyết, tinh thể) và kiểu rủ (dây rêu, nhũ băng). **🎲** đổi cả bộ, hoặc
    chỉ một phần: Đá trong · Mặt trên · Phủ & rủ · Linh khí. **Nâng cao**: độ dày mặt trên,
@@ -214,16 +216,23 @@ Biến thể của đá khối khác nhau ở cách xếp viên, viên sứt gó
 sáng linh khí và cụm tinh thể xiên. **↕ Nội suy tầng 2–5** cho các thanh trượt chuyển đều từ
 tầng 1 xuống tầng 6. Bản đồ **Cắt lớp 6 tầng** xếp chồng cả sáu để xem chỗ chuyển tầng.
 
-Xuất: **Trang trí rời** (cỏ, hoa, mầm, tinh thể, sỏi, nhũ… mỗi thứ một ô, kèm điểm neo
-đáy/đỉnh trong JSON) và **Cả 6 tầng (ZIP)**, giải nén thẳng vào thư mục Godot (ô “Thư mục
-Godot” ở thẻ Xuất của khung vẽ): `terrain-6-tang/tang-N-…/terrain56.png`, **`tileset.tres`**
-(Godot 4 TileSet dùng ngay: terrain set Match Corners and Sides, đủ 8 peering bit, xác suất
-biến thể, hộp va chạm thu theo dáng mép), `trang-tri.png/.json`, `cong-thuc.json`; cùng
-`terrain-6-tang.tres` gộp cả 6 tầng (mỗi tầng một terrain), mapping JSON, ảnh cắt lớp và
-`manifest.json`. Kèm **vân lớn 3×3** `macro_N.png` (48×48 ở khổ 16: ô đặc lấy ô con theo toạ độ,
-hết nhịp lặp mỗi ô; vành từng ô con trùng ô #46 nên ghép với ô có mép không lộ mối; nguồn
-100–105 trong `.tres`) và **`layout.json`** cho game đọc layout 3 (`atlas_cells`) từ dữ liệu. Bộ đọc phía game
-(GDScript, có test chạy trên Godot 4.3) ở [`godot/terrain56/`](godot/terrain56/README.md).
+Xuất: **Trang trí rời** (`decor.png`: cỏ, hoa, mầm, tinh thể, sỏi, nhũ… mỗi thứ một ô) và
+**Cả 6 tầng (ZIP)**, giải nén thẳng vào thư mục Godot (ô “Thư mục Godot” ở thẻ Xuất của khung vẽ).
+ZIP chỉ có sáu thư mục, mỗi thư mục đúng bốn file:
+
+```
+layer_1/ … layer_6/        (tầng 1 là mặt đất, tầng 6 sâu nhất)
+  blob_tileset.png         atlas 10×7: lưới cr31 blob 7×7 + khối 3×3 biến thể
+  decor.png                trang trí của tầng
+  macro.png                vân lớn 3×3 (48×48 ở khổ 16)
+  tileset.tres             Godot 4 TileSet dùng ngay
+```
+
+`tileset.tres`: nguồn 0 là atlas có terrain set *Match Corners and Sides*, đủ 8 peering bit, xác suất
+biến thể, hộp va chạm thu theo dáng mép; nguồn 100 là vân lớn. Vân lớn: ô đặc lấy ô con theo toạ độ,
+hết nhịp lặp mỗi ô; vành từng ô con trùng ô #46 nên ghép với ô có mép không lộ mối. Bộ đọc phía game
+(GDScript, có test chạy trên Godot 4.3, kèm `layout.json` mô tả atlas) ở
+[`godot/terrain56/`](godot/terrain56/README.md).
 Công tắc **Vân lớn 3×3** trên bản đồ xem trước cho thấy đúng cách game sẽ đặt. PNG được mã hoá ngay trong lúc bấm nên trình duyệt trên máy tính bảng không
 chặn lượt tải; dưới nút luôn có link tải lại. Cài đặt của thẻ được nhớ trong trình duyệt.
 

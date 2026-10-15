@@ -324,12 +324,22 @@
   },
   "selection": "mask 255: ô gốc + 3 biến thể chia đều; mask 110 (sàn): ô gốc + 3 biến thể chia đều; mask chỉ có 1 biến thể (155 trần, 55 tường trái, 205 tường phải): biến thể 1/4 cơ hội.",
   "layers": {
-    "1": "tang-1-Mat_dat/terrain56.png"
+    "1": "layer_1/blob_tileset.png",
+    "2": "layer_2/blob_tileset.png",
+    "3": "layer_3/blob_tileset.png",
+    "4": "layer_4/blob_tileset.png",
+    "5": "layer_5/blob_tileset.png",
+    "6": "layer_6/blob_tileset.png"
   },
   "macro": {
     "size": 3,
     "files": {
-      "1": "macro_1.png"
+      "1": "layer_1/macro.png",
+      "2": "layer_2/macro.png",
+      "3": "layer_3/macro.png",
+      "4": "layer_4/macro.png",
+      "5": "layer_5/macro.png",
+      "6": "layer_6/macro.png"
     },
     "note": "Ô đặc mask 255 lấy ô con (posmod(x, world_width) % size, posmod(y, size)) thay cho 46–49. Vành 1 px của mọi ô con trùng vành ô 46, nên ghép với ô có mép không lộ mối."
   }
