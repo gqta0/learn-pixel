@@ -183,8 +183,10 @@ Dựng cả bộ 56 ô bằng thuật toán trong vài giây, đẹp sẵn để
 Bên trái là bản đồ xem trước (**Bậc thang · Hang · Đảo bay · Cắt lớp 6 tầng**) có
 trang trí và nhân vật cao đúng ô **🎮 Cỡ trong game**. Bên phải làm theo ba bước:
 
-1. **Công thức** — **Đá khối sạch · cỏ** (khối đá xếp so le, mạch vữa rõ, mặt phẳng, cỏ 3 bậc
-   + giọt mép — kiểu tile sạch), Đá ấm · cỏ, Cuội rêu · rễ, Hang tinh thể lam, Băng tuyết,
+1. **Công thức** — sáu kiểu **đá khối sạch** (khối đá xếp so le, mạch vữa rõ, mặt phẳng — kiểu
+   tile sạch): **· cỏ**, **rêu · rễ** (đá nâu đất, dây rêu rủ, rễ luồn mạch vữa), **sâu · mạch
+   ngọc**, **mạch lam**, **hang tinh thể**, **linh thạch tím** (mạch vữa sáng linh khí, tinh thể
+   **mọc xiên**); cùng các kiểu cũ Đá ấm · cỏ, Cuội rêu · rễ, Hang tinh thể lam, Băng tuyết,
    Đường làng lát đá, Đá sâu · mạch lam, Linh thạch tím. Ô **Bảng** chọn bảng gốc: **Genesis v1**
    (mặc định) hoặc Master Palette — mỗi công thức có sẵn bảng **màu theo vai trò** (viền, nền,
    đá, mặt trên, lớp phủ, linh khí, rễ, hoa) lấy đúng mã trong bảng đó.
@@ -206,7 +208,10 @@ vành 1 px ngoài của ô gốc. Khổ 32 được vẽ thật ở 32 px, khôn
 có các chip soi: màu chỉ từ Master, viền một màu, không pixel lơ lửng, 56 ô nối liền.
 
 **Sáu tầng đất**: tầng 1 là mặt đất, tầng 6 sâu nhất; mỗi tầng một công thức và bộ thông
-số riêng (bấm tầng để chỉnh). **↕ Nội suy tầng 2–5** cho các thanh trượt chuyển đều từ
+số riêng (bấm tầng để chỉnh). Mặc định cả sáu tầng là đá khối sạch: Mặt đất (cỏ) → Tầng rễ
+(rêu · rễ) → Đá sâu (mạch ngọc) → Mạch linh thạch (lam) → Hang tinh thể → Linh thạch tím.
+Biến thể của đá khối khác nhau ở cách xếp viên, viên sứt góc, vết nứt, rêu/dây rủ, mạch vữa
+sáng linh khí và cụm tinh thể xiên. **↕ Nội suy tầng 2–5** cho các thanh trượt chuyển đều từ
 tầng 1 xuống tầng 6. Bản đồ **Cắt lớp 6 tầng** xếp chồng cả sáu để xem chỗ chuyển tầng.
 
 Xuất: **Trang trí rời** (cỏ, hoa, mầm, tinh thể, sỏi, nhũ… mỗi thứ một ô, kèm điểm neo
@@ -217,7 +222,7 @@ biến thể, hộp va chạm thu theo dáng mép), `trang-tri.png/.json`, `cong
 `terrain-6-tang.tres` gộp cả 6 tầng (mỗi tầng một terrain), mapping JSON, ảnh cắt lớp và
 `manifest.json`. Kèm **vân lớn 3×3** `macro_N.png` (48×48 ở khổ 16: ô đặc lấy ô con theo toạ độ,
 hết nhịp lặp mỗi ô; vành từng ô con trùng ô #46 nên ghép với ô có mép không lộ mối; nguồn
-100–105 trong `.tres`) và **`layout.json`** cho game đọc layout 2 từ dữ liệu. Bộ đọc phía game
+100–105 trong `.tres`) và **`layout.json`** cho game đọc layout 3 (`atlas_cells`) từ dữ liệu. Bộ đọc phía game
 (GDScript, có test chạy trên Godot 4.3) ở [`godot/terrain56/`](godot/terrain56/README.md).
 Công tắc **Vân lớn 3×3** trên bản đồ xem trước cho thấy đúng cách game sẽ đặt. PNG được mã hoá ngay trong lúc bấm nên trình duyệt trên máy tính bảng không
 chặn lượt tải; dưới nút luôn có link tải lại. Cài đặt của thẻ được nhớ trong trình duyệt.
@@ -264,7 +269,21 @@ File xuất (JSON layout, Godot, pack, project) ghi `edgeShape` và gợi ý `co
    Chú thích/overlay không được ghi vào tranh. PNG sạch chỉ xoá pixel ở hàng/cột biên của
    vùng "để trong suốt" (chỗ mối nối alpha đòi trống); cỏ mọc, nhũ rủ trong phần thụt được giữ.
 
-Layout riêng, 8 cột × 7 hàng, đánh số từ 0:
+Ảnh atlas 10 cột × 7 hàng (layout 3): bên trái là **lưới 7×7 chuẩn cr31 “blob”** chứa 47 ô
+(xếp như [template của cr31](https://opengameart.org/content/seamless-tileset-template-ii), vẽ
+vào là ghép được thành hình liền), bên phải hàng 0–2 là **khối 3×3** chứa 9 biến thể:
+
+```
+cột  7   8   9
+     #47 #48 #49   ← biến thể ruột
+     #50 #51 #52   ← biến thể sàn
+     #53 #54 #55   ← trần · tường trái · tường phải
+```
+
+Ô trống (mask 0) có mặt ở ba góc như template cr31: ô gốc ở (0,0), hai bản sao ở (6,0) và
+(0,6); vẽ một ô thì app chép sang các bản sao. Ô chú thích và thẻ Bộ ô hiện số cr31 (N=1,
+NE=2, E=4, SE=8, S=16, SW=32, W=64, NW=128) cạnh số slot. Số slot (dùng trong JSON, Godot
+mapping, project) giữ nguyên:
 
 | Slot | Vai trò |
 | --- | --- |
@@ -273,8 +292,10 @@ Layout riêng, 8 cột × 7 hàng, đánh số từ 0:
 | 50–52 | 3 biến thể sàn (gốc #31) — mặt sàn là thứ người chơi nhìn nhiều nhất |
 | 53–55 | Biến thể trần (#38), tường trái (#24), tường phải (#42) |
 
-Đây là layout 2. Bộ ô lưu theo layout cũ (5 ruột + 4 mép) được chuyển tự động khi mở:
-#50 và #51 đổi từ ruột sang sàn nên được chép ô sàn gốc #31 vào; các slot khác giữ nguyên.
+Đây là layout 3: nghĩa slot như layout 2, chỉ đổi chỗ đặt trong ảnh. Atlas cũ 8×7 (slot xếp
+theo thứ tự) tự chuyển sang 10×7 khi mở hoặc khi nhập project; bộ layout 1 (5 ruột + 4 mép)
+còn được chép ô sàn gốc #31 vào #50, #51 như trước. `layout.json` ghi `atlas_cells`
+(slot → [cột, hàng]) và `atlas_copies` để game không phải viết cứng vị trí.
 
 Ô có nhiều biến thể thì chia đều với ô gốc; ô chỉ có một biến thể thì biến thể chiếm 1/3.
 Vị trí chọn bằng phép băm có bước trộn, nên không lặp theo nhịp dọc mặt sàn.

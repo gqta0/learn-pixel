@@ -7,7 +7,8 @@ import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
 import { sanitizeFilename } from './manifest.js';
 import { PALETTES, COLOR_TOKENS, MASTER_NAME, DEFAULT_PAL_NAME } from './palette.js';
-import { TERRAIN_TILES, terrainManifest, terrainGodotManifest, terrainGodotTres, terrainLayoutJson, checkSeams, checkColorSeams } from './terrain.js';
+import { TERRAIN_TILES, terrainManifest, terrainGodotManifest, terrainGodotTres, terrainLayoutJson, checkSeams, checkColorSeams,
+  ATLAS_COLS, ATLAS_ROWS, terrainSlotCells } from './terrain.js';
 import { GEN_RECIPES, GEN_RECIPE_ORDER, GEN_PARAMS, GEN_CRUSTS, GEN_DRIPS, GEN_INTERIORS, GEN_CAPS, GEN_SEED_GROUPS,
   GEN_STRATA, GEN_ROLE_GROUPS, GEN_ROLE_LABELS, GEN_PALETTES, PREVIEW_LAYOUTS,
   makeSpec, makeSeeds, randomSeed, lerpParams, generateTerrainRoles, colorize, generateProps, generateMacro, previewLayout,
@@ -32,15 +33,16 @@ function defaultStratum(i){
     interior:null,capStyle:null,light:'tl',seed:1701+i*97,seeds:null};
 }
 function defaults(){
-  return {v:2,palette:'genesis',stratum:0,strata:GEN_STRATA.map((_,i)=>defaultStratum(i)),layout:'stairs',deco:true,hero:true,
+  return {v:3,palette:'genesis',stratum:0,strata:GEN_STRATA.map((_,i)=>defaultStratum(i)),layout:'stairs',deco:true,hero:true,
     size:16,shape:'inset',scope:'all',keepEdited:true,frames:true,macro:true};
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem(KEY));
-    if(d?.v===2 && Array.isArray(d.strata) && d.strata.length===6 && d.strata.every(s=>GEN_RECIPES[s?.recipe])) return {...defaults(),...d};
+    if(d?.v===3 && Array.isArray(d.strata) && d.strata.length===6 && d.strata.every(s=>GEN_RECIPES[s?.recipe])) return {...defaults(),...d};
     // bản cài đặt cũ (màu Master): giữ lựa chọn bản đồ, khổ, dáng mép; 6 tầng về công thức mới, màu Genesis
-    if(d?.v===1){ const keep={}; for(const k of ['layout','deco','hero','size','shape','scope','keepEdited','frames']) if(k in d) keep[k]=d[k]; return {...defaults(),...keep}; }
+    // bản cũ (v1 màu Master, v2 sáu tầng kiểu cũ): giữ lựa chọn chung, 6 tầng về bộ đá khối sạch mới
+    if(d?.v===1||d?.v===2){ const keep={}; for(const k of ['layout','deco','hero','size','shape','scope','keepEdited','frames','palette','macro']) if(k in d) keep[k]=d[k]; return {...defaults(),...keep}; }
   }catch(_){}
   return defaults();
 }
@@ -324,10 +326,11 @@ function apply(){
 }
 
 /* ---------------- xuất ---------------- */
+/* ảnh atlas 10×7: lưới cr31 7×7 cho 47 ô (+ bản sao ô 0 ở hai góc), khối 3×3 biến thể bên phải */
 function atlasImage(tiles,n){
-  const W=n*8, px=new Uint32Array(W*n*7);
-  tiles.forEach((t,s)=>{ const ox=(s%8)*n, oy=Math.floor(s/8)*n; for(let y=0;y<n;y++) px.set(t.subarray(y*n,y*n+n),(oy+y)*W+ox); });
-  return {w:W,h:n*7,px};
+  const W=n*ATLAS_COLS, px=new Uint32Array(W*n*ATLAS_ROWS);
+  tiles.forEach((t,s)=>{ for(const [c,r] of terrainSlotCells(s)) for(let y=0;y<n;y++) px.set(t.subarray(y*n,y*n+n),(r*n+y)*W+c*n); });
+  return {w:W,h:n*ATLAS_ROWS,px};
 }
 function propsImage(props,n){
   const W=n*props.length, px=new Uint32Array(W*n);

@@ -79,17 +79,26 @@ test('color checker catches same-role border changes while connector lock target
   assert.ok(checkColorSeams(px,16).some(i=>i.a===46&&i.direction==='E'&&i.positions.includes(8)));
   assert.ok(terrainConnectorIndices(46,16).includes(edgeIndex('E',8,16)));
 });
-test('mapping covers 8×7 unique slots and preserves every mask and variant',()=>{
+test('atlas follows the cr31 blob 7×7 sheet + a 3×3 variant block: unique cells, every mask and variant kept',()=>{
   for(const n of [16,32]){
-    const m=terrainManifest(n);assert.equal(m.columns*m.rows,56);
+    const m=terrainManifest(n);assert.equal(m.columns,10);assert.equal(m.rows,7);
     assert.equal(new Set(m.tiles.map(t=>t.x+','+t.y)).size,56);
-    assert.ok(m.tiles.every(t=>t.x+n<=8*n&&t.y+n<=7*n));
+    assert.ok(m.tiles.every(t=>t.x+n<=10*n&&t.y+n<=7*n));
     assert.deepEqual(m.tiles.map(t=>t.mask),TERRAIN_TILES.map(t=>t.mask));
+    // bản sao ô 0 ở hai góc, không trùng ô chính nào
+    assert.deepEqual(m.copies.map(c=>[c.slot,c.x/n,c.y/n]),[[0,6,0],[0,0,6]]);
   }
+  // vị trí đúng như tấm template cr31 (số trong ô là mask theo trọng số cr31)
+  const cr31=[[0,4,92,124,116,80,0],[16,20,87,223,241,21,64],[29,117,85,71,221,125,112],[31,253,113,28,127,247,209],
+    [23,199,213,95,255,245,81],[5,84,93,119,215,193,17],[0,1,7,197,69,68,65]];
+  const m=terrainManifest(16);
+  for(const t of m.tiles.filter(t=>t.slot<47)) assert.equal(cr31[t.y/16][t.x/16],t.cr31,'slot '+t.slot);
+  assert.deepEqual(m.tiles.filter(t=>t.slot>=47).map(t=>[t.slot,t.x/16,t.y/16]),
+    [[47,7,0],[48,8,0],[49,9,0],[50,7,1],[51,8,1],[52,9,1],[53,7,2],[54,8,2],[55,9,2]]);
   const godot=terrainGodotManifest(16);
   assert.equal(godot.format,'godot4-terrain-set-handoff');
   assert.equal(godot.tiles.length,56);
-  assert.deepEqual(godot.tiles[46].atlasCoords,[6,5]);
+  assert.deepEqual(godot.tiles[46].atlasCoords,[4,4]);              // ruột nằm giữa lưới cr31
 });
 test('layout 2 spends the nine variants where the player looks: 3 centers, 3 floors, ceiling, two walls',()=>{
   assert.deepEqual(TERRAIN_TILES.slice(47).map(t=>t.mask),[255,255,255,110,110,110,155,55,205]);
@@ -170,10 +179,10 @@ test('Godot 4 TileSet .tres: one atlas source and one terrain per layer, 8 peeri
   assert.equal((tres.match(/^\d+:\d+\/0 = 0$/gm)||[]).length,112);
   assert.match(tres,/terrain_set_0\/mode = 0/);
   assert.match(tres,/terrain_set_0\/terrain_1\/name = "B \\"x\\""/);
-  // ô giữa #46 ở (6,5): đủ 8 peering bit, va chạm kín ô
-  const mid=tres.split('\n').filter(l=>l.startsWith('6:5/0/'));
+  // ô giữa #46 ở (4,4) của lưới cr31: đủ 8 peering bit, va chạm kín ô
+  const mid=tres.split('\n').filter(l=>l.startsWith('4:4/0/'));
   assert.equal(mid.filter(l=>l.includes('terrains_peering_bit')).length,16);
-  assert.ok(mid.includes('6:5/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)'));
+  assert.ok(mid.includes('4:4/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)'));
   // khối rời #00: không peering bit, va chạm thu vào 2px mỗi cạnh (thụt mép)
   const lone=tres.split('\n').filter(l=>l.startsWith('0:0/0/'));
   assert.ok(!lone.some(l=>l.includes('peering')));
@@ -183,9 +192,13 @@ test('Godot 4 TileSet .tres: one atlas source and one terrain per layer, 8 peeri
   assert.equal(nearestHex('#5f5f80',['#251c24','#5e5572','#806f95']),'#5e5572');
 });
 
-test('layout.json for the game: layout 2 tables read from data, macro block optional; .tres gets macro sources at 100+',()=>{
+test('layout.json for the game: slot tables + atlas cells read from data, macro block optional; .tres gets macro sources at 100+',()=>{
   const lay=terrainLayoutJson(16,'inset',{layers:{'1':'a.png'},macroSize:3,macroFiles:{'1':'macro_1.png'}});
-  assert.equal(lay.layout,2);
+  assert.equal(lay.layout,3);
+  assert.equal(lay.slot_layout,2);
+  assert.deepEqual(lay.atlas_cells['46'],[4,4]);
+  assert.deepEqual(lay.atlas_cells['55'],[9,2]);
+  assert.equal(Object.keys(lay.atlas_cells).length,56);
   assert.equal(lay.base_center_slot,46);
   assert.deepEqual(lay.center_variant_slots,[47,48,49]);
   assert.deepEqual(lay.edge_variant_masks,{'50':110,'51':110,'52':110,'53':155,'54':55,'55':205});
