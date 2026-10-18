@@ -16,7 +16,7 @@ const SETS={genesis:GENESIS,master:MASTER};
 
 test('every recipe has a Genesis and a Master colour set, each colour (and preview sky) from that palette',()=>{
   assert.equal(GEN_RECIPE_ORDER.length,Object.keys(GEN_RECIPES).length);
-  assert.equal(GENESIS.size,69);
+  assert.equal(GENESIS.size,88);
   for(const id of GEN_RECIPE_ORDER){
     const r=GEN_RECIPES[id];
     for(const [pal,set] of Object.entries(SETS)){

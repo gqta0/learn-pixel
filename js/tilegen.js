@@ -42,9 +42,9 @@ const BACKGROUND=new Set([M0,M1,M2]);
 
 /* ---------------- công thức ----------------
    Mỗi công thức = kiểu vẽ + thông số mặc định + bảng vai trò màu cho TỪNG bảng màu gốc:
-   genesis (Genesis v1, mặc định) và master (Master Palette). Màu nào cũng lấy đúng mã trong
+   genesis (Genesis v2, mặc định) và master (Master Palette). Màu nào cũng lấy đúng mã trong
    bảng đó, nên bộ ô sinh ra luôn nằm trọn trong bảng anh đang vẽ. */
-export const GEN_PALETTES={genesis:'Genesis v1',master:'Master Palette'};
+export const GEN_PALETTES={genesis:'Genesis v2',master:'Master Palette'};
 const G_INK='#423d52', M_INK='#0d171f';
 export const GEN_RECIPES={
   cleanBlock:{title:'Đá khối sạch · cỏ',note:'Khối đá xếp so le, mạch vữa rõ, cỏ phủ mép trên — sạch, ít nhiễu',

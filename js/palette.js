@@ -136,9 +136,12 @@ export const COLOR_TOKENS = {
 for(const [cu,moi] of Object.entries(MASTER_REMAP))
   if(!COLOR_TOKENS[cu]) COLOR_TOKENS[cu]={...COLOR_TOKENS[moi], legacy:true, desc:'màu cũ của Master 88 → nay là '+moi};
 
-/* Genesis v1 — bảng mặc định khi mở app (nhập từ genesis-v1.hex, giữ nguyên thứ tự file).
+/* Genesis — bảng mặc định khi mở app (nhập từ palettes/genesis-v2.hex, giữ nguyên thứ tự file).
+   v2 = 69 màu của v1 giữ nguyên thứ tự + 19 màu thêm ở cuối (xám ấm, ô liu, chàm, đỏ rượu).
    Master vẫn là bảng có token vai trò cho Terrain và bộ Tạo nhanh. */
-export const GENESIS_NAME = 'Genesis v1 (69 màu)';
+export const GENESIS_NAME = 'Genesis v2 (88 màu)';
+/* số màu của Genesis v1 — 69 màu đầu của v2, để nhận ra bản lưu còn dùng v1 mà nâng lên */
+export const GENESIS_V1_COUNT = 69;
 export const DEFAULT_PAL_NAME = GENESIS_NAME;
 /* nhóm theo dải trong file .hex, để "Phân loại nhóm" và bộ chọn nhóm màu khi pixel hoá chia được */
 const GENESIS_GROUPS = [
@@ -153,6 +156,10 @@ const GENESIS_GROUPS = [
   ['Lam','2c4d8f 5b98e6 87c8cf 86bdf0 bfe0f8 ffffff'],
   ['Xám lam','4f7277 6d8f96 97b3b6 c3d4d6'],
   ['Tím hồng','51154a 43137c 681ab7 c955e7 e187f8 d8368a ec7fa9 f8b4cb fcc8da'],
+  ['Xám ấm','4a3d3a 5f524b 857870 9c8f8a cdc1b5'],
+  ['Ô liu','3f4724 5e6a32 7f8c45 a4ad62 c8cd8e'],
+  ['Chàm','2b2a5c 46489a 6a72c4 96a0e0 c4c6f2'],
+  ['Đỏ rượu','3d1020 6a1a32 9e2440 d8506a'],
 ];
 let genesisStep=0;
 for(const [group,list] of GENESIS_GROUPS) list.split(' ').forEach((h,i)=>{
@@ -176,7 +183,11 @@ export const PALETTES = {
     '#1d5a5a','#22917f','#3fd0a6','#9ef2cf','#e6fff4',  /* Ngọc */
     '#2c4d8f','#5b98e6','#87c8cf','#86bdf0','#bfe0f8','#ffffff',  /* Lam */
     '#4f7277','#6d8f96','#97b3b6','#c3d4d6',  /* Xám lam */
-    '#51154a','#43137c','#681ab7','#c955e7','#e187f8','#d8368a','#ec7fa9','#f8b4cb','#fcc8da'   /* Tím hồng */
+    '#51154a','#43137c','#681ab7','#c955e7','#e187f8','#d8368a','#ec7fa9','#f8b4cb','#fcc8da',  /* Tím hồng */
+    '#4a3d3a','#5f524b','#857870','#9c8f8a','#cdc1b5',  /* Xám ấm */
+    '#3f4724','#5e6a32','#7f8c45','#a4ad62','#c8cd8e',  /* Ô liu */
+    '#2b2a5c','#46489a','#6a72c4','#96a0e0','#c4c6f2',  /* Chàm */
+    '#3d1020','#6a1a32','#9e2440','#d8506a'   /* Đỏ rượu */
   ],
   [MASTER_NAME]: [
     '#0d171f','#162331','#223344',                                    /* Ink */

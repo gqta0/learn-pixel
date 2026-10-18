@@ -5,7 +5,7 @@ import { frameToCanvas, invalidateBuf, layerLength } from './raster.js';
 import { pushUndo } from './history.js';
 import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
-import { palette, setPalette, paintSwatches, fillPalSelect, paletteNameOf, PALETTES, MASTER_NAME, DEFAULT_PAL_NAME } from './palette.js';
+import { palette, setPalette, paintSwatches, fillPalSelect, paletteNameOf, PALETTES, MASTER_NAME, DEFAULT_PAL_NAME, GENESIS_V1_COUNT } from './palette.js';
 import { doneSet, buildExercises, migrateDone } from './content/exercises.js';
 import { spriteFramesTres, pixelizeImage, medianCut, MAX_SIDE } from './sheet.js';
 import { syncAll } from './ui.js';
@@ -194,19 +194,27 @@ function syncPalSelect(){
   const name=paletteNameOf(palette);
   if(name && $('#palSel')) fillPalSelect(name);
 }
-/* Bảng mặc định đổi sang Genesis v1: bản tự lưu nào còn đúng nguyên Master (bảng mặc định cũ,
-   chưa chỉnh màu nào) thì chuyển sang Genesis — một lần duy nhất. Pixel trong tranh không đổi;
-   bảng đã chỉnh tay hay bảng khác thì giữ nguyên. */
+/* Bảng mặc định của bản tự lưu, chạy một lần mỗi khi bảng mặc định đổi:
+   - bản đang dùng đúng nguyên Genesis v1 (69 màu, chưa chỉnh) → nâng lên Genesis v2 (88 màu: thêm 19 màu
+     ở cuối, 69 màu cũ giữ nguyên thứ tự nên chỉ số màu trong tranh không lệch);
+   - chỉ lần đầu tiên (chưa từng chạy): bản còn đúng nguyên Master (bảng mặc định cũ nhất) → Genesis.
+     Ai đã chạy qua lần đổi sang Genesis v1 rồi tự chọn lại Master thì giữ Master.
+   Pixel trong tranh không đổi; bảng đã chỉnh tay hay bảng khác thì giữ nguyên. */
 const DEFAULT_PAL_KEY='lo-pixel-default-pal';
 function adoptDefaultPalette(){
+  let prev;
   try{
-    if(localStorage.getItem(DEFAULT_PAL_KEY)===DEFAULT_PAL_NAME) return;
+    prev=localStorage.getItem(DEFAULT_PAL_KEY);
+    if(prev===DEFAULT_PAL_NAME) return;
     localStorage.setItem(DEFAULT_PAL_KEY,DEFAULT_PAL_NAME);
   }catch(_){ return; }
-  if(paletteNameOf(palette)!==MASTER_NAME) return;
+  const key=list=>list.map(h=>h.toLowerCase()).join();
+  const genesisV1=PALETTES[DEFAULT_PAL_NAME].slice(0,GENESIS_V1_COUNT);
+  const onV1=key(palette)===key(genesisV1);
+  if(!onV1 && !(prev==null && paletteNameOf(palette)===MASTER_NAME)) return;
   setPalette(PALETTES[DEFAULT_PAL_NAME]);
   syncPalSelect(); paintSwatches();
-  writeSave();          // ghi ngay, không chờ nhịp tự lưu: lỡ đóng trang sớm thì lần mở sau vẫn còn Master
+  writeSave();          // ghi ngay, không chờ nhịp tự lưu: lỡ đóng trang sớm thì lần mở sau vẫn còn bảng cũ
 }
 export async function loadSave(){
   let data=null, from='';

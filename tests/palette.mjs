@@ -51,15 +51,18 @@ test('Terrain create presets: the Genesis set uses Genesis colours, the Master s
   assert.ok(part('master').includes('#7c6d6c'), 'warm stone preset present');
   for(const c of part('master')) assert.ok(master.includes(c), c+' is not in the Master palette');
   assert.equal(part('genesis').length,14);
-  for(const c of part('genesis')) assert.ok(genesis.includes(c), c+' is not in Genesis v1');
+  for(const c of part('genesis')) assert.ok(genesis.includes(c), c+' is not in Genesis');
 });
 
 const gen=[...src.split('[GENESIS_NAME]: [')[1].split('],')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
-test('Genesis v1 is the default palette, 69 unique colours in the order of genesis-v1.hex, every colour grouped',()=>{
-  assert.equal(src.match(/export const GENESIS_NAME = '([^']+)'/)[1], `Genesis v1 (${gen.length} màu)`);
-  assert.equal(gen.length, 69);
-  assert.equal(new Set(gen).size, 69);
+test('Genesis v2 is the default palette, 88 unique colours in the order of genesis-v2.hex, every colour grouped',()=>{
+  assert.equal(src.match(/export const GENESIS_NAME = '([^']+)'/)[1], `Genesis v2 (${gen.length} màu)`);
+  assert.equal(gen.length, 88);
+  assert.equal(new Set(gen).size, 88);
+  // 69 màu đầu là Genesis v1 nguyên thứ tự (bản lưu v1 được nâng lên mà chỉ số màu không lệch), 19 màu thêm ở cuối
+  assert.equal(Number(src.match(/export const GENESIS_V1_COUNT = (\d+);/)[1]), 69);
   assert.deepEqual([gen[0],gen[10],gen[55],gen[68]], ['#251c24','#f1edf2','#ffffff','#fcc8da']);
+  assert.deepEqual([gen[69],gen[74],gen[79],gen[84],gen[87]], ['#4a3d3a','#3f4724','#2b2a5c','#3d1020','#d8506a']);
   assert.match(src, /export const DEFAULT_PAL_NAME = GENESIS_NAME;/);
   assert.match(src, /export let palette = PALETTES\[DEFAULT_PAL_NAME\]\.slice\(\);/);
   const grouped=[...src.split('const GENESIS_GROUPS = [')[1].split('];')[0].matchAll(/'([0-9a-f ]{6,})'\]/g)].flatMap(m=>m[1].split(' ').map(h=>'#'+h));
@@ -71,5 +74,5 @@ test('palette files: Lospec .hex, GIMP .gpl and loose #hex text all parse, dupli
   assert.deepEqual(parsePaletteText('251c24\r\n25232F\n\n251c24\n'), ['#251c24','#25232f']);
   assert.deepEqual(parsePaletteText('GIMP Palette\nName: x\nColumns: 4\n#\n 37  28  36\tdark\n255 255 255 white\n'), ['#251c24','#ffffff']);
   assert.deepEqual(parsePaletteText('; comment\nbg = #0d171fff, fg #E6E0D3'), ['#0d171f','#e6e0d3']);
-  assert.deepEqual(parsePaletteText(readFileSync(new URL('../palettes/genesis-v1.hex', import.meta.url),'utf8')), gen);
+  assert.deepEqual(parsePaletteText(readFileSync(new URL('../palettes/genesis-v2.hex', import.meta.url),'utf8')), gen);
 });

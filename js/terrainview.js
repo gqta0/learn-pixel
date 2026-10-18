@@ -45,7 +45,7 @@ function setPane(name){
   $$('.tv-tabs [role=tab]').forEach(t=>t.setAttribute('aria-selected',t.dataset.tpane===name));
 }
 const showDetail=()=>setPane('detail');
-/* Màu tạo bộ theo bảng đang dùng: đang vẽ bằng Master thì lấy Master, còn lại (mặc định) là Genesis v1. */
+/* Màu tạo bộ theo bảng đang dùng: đang vẽ bằng Master thì lấy Master, còn lại (mặc định) là Genesis v2. */
 export function toolPaletteKey(){ return paletteNameOf(appPalette)===MASTER_NAME ? 'master' : 'genesis'; }
 const toolPaletteName=()=>toolPaletteKey()==='master'?MASTER_NAME:DEFAULT_PAL_NAME;
 const TERRAIN_CREATE_PRESETS={
