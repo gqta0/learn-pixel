@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {GENESIS_COLORS} from '../js/genesis.js';
+import {GENESIS_V3_COLORS,GENESIS_V3_FAMILIES} from '../js/genesis-v3.js';
 import {TERRAIN_TILES, checkSeams, checkColorSeams, edgeIndex, terrainPixels, variantBase, maskToCr31} from '../js/terrain.js';
 import {GEN_RECIPES, GEN_RECIPE_ORDER, GEN_STRATA, GEN_PARAMS, GEN_ROLE_KEYS, makeSpec, lerpParams,
   generateTerrain, generateTerrainRoles, generateProps, colorize, previewLayout, renderPreview, heroSprite,
@@ -12,7 +13,8 @@ const src=readFileSync(new URL('../js/palette.js',import.meta.url),'utf8');
 const block=src.slice(src.indexOf('[MASTER_NAME]: ['),src.indexOf('],',src.indexOf('[MASTER_NAME]: [')));
 const MASTER=new Set(block.match(/#[0-9a-f]{6}/gi).map(h=>h.toLowerCase()));
 const GENESIS=new Set(GENESIS_COLORS);
-const SETS={genesis:GENESIS,master:MASTER};
+const GENESIS_V3=new Set(GENESIS_V3_COLORS);
+const SETS={genesis:GENESIS,'genesis-v3':GENESIS_V3,master:MASTER};
 
 test('every recipe has a Genesis and a Master colour set, each colour (and preview sky) from that palette',()=>{
   assert.equal(GEN_RECIPE_ORDER.length,Object.keys(GEN_RECIPES).length);
@@ -43,7 +45,7 @@ test('generated tiles show their cr31 blob index: land exactly at the yellow edg
 });
 test('every recipe tiles seamlessly at 16 and 32 px, both edge shapes, with and without a crust, in both palettes',()=>{
   for(const id of GEN_RECIPE_ORDER) for(const n of [16,32]) for(const shape of ['inset','flush']) for(const crustType of [undefined,'none']){
-    for(const [seed,palette] of [[7,'genesis'],[1701,'master']]){
+    for(const [seed,palette] of [[7,'genesis'],[7,'genesis-v3'],[1701,'master']]){
       const spec=makeSpec(id,{seed,crustType,palette}), tiles=generateTerrain(spec,n,shape);
       const tag=[id,n,shape,crustType||'crust',seed,palette].join(' ');
       assert.equal(tiles.length,56,tag);
@@ -105,7 +107,7 @@ test('props: one tile per recipe entry, ground props sit on the bottom row, hang
     }
     // màu của trang trí cũng nằm trong bảng
     for(const px of colorize(props.map(p=>p.roles),spec.colors)) for(const v of px)
-      if(v>>>24) assert.ok([...GENESIS].some(h=>hexToRgba(h)===v));
+      if(v>>>24) assert.ok([...GENESIS_V3].some(h=>hexToRgba(h)===v));
   }
 });
 
@@ -117,7 +119,7 @@ test('preview maps render every layout, and the hero always has room to stand',(
     const map=previewLayout(kind,7), sets=Array.from({length:kind==='strata'?6:1},()=>({tiles,props,sky:spec.sky}));
     const img=renderPreview(map,sets,{n,heroH:56});
     assert.equal(img.w,map.w*n); assert.equal(img.h,map.h*n);
-    const skin=hexToRgba('#f3bfa2');                 // da của nhân vật mẫu theo Genesis
+    const skin=hexToRgba(GENESIS_V3_FAMILIES.skin.base);
     let top=-1; for(let i=0;i<img.px.length&&top<0;i++) if(img.px[i]===skin) top=Math.floor(i/img.w);
     assert.ok(top>0,kind+': không thấy nhân vật');
     assert.ok(top>=Math.round(hero.h*.3)-hero.h*.3,kind);   // đầu nhân vật không bị cắt ở mép trên

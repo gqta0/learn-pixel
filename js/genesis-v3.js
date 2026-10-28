@@ -1,0 +1,297 @@
+/* Genesis v3 trong app = bản nguồn 2.2 Warm Vibrant; giữ nguyên HEX đã cung cấp. */
+const DRAFT = {
+  "version": "2.2-warm-vibrant-balanced",
+  "policy": "fixed approved HEX palette; warm ambient, balanced vibrant materials; no runtime RGB interpolation",
+  "ramp_generation": "offline draft ramps, fixed HEX; art review required before production freeze",
+  "common": {
+    "outline": "#382733",
+    "deep_shadow": "#1E1819",
+    "neutral_shadow": "#554A42",
+    "neutral_light": "#E5D0A8",
+    "specular": "#F8F2E7"
+  },
+  "families": {
+    "leaf": {
+      "base": "#68B75B",
+      "ramp": [
+        "#2B5029",
+        "#438640",
+        "#68B75B",
+        "#8FC282",
+        "#B5CFAE"
+      ]
+    },
+    "moss": {
+      "base": "#8A9C58",
+      "ramp": [
+        "#394229",
+        "#5E6E42",
+        "#8A9C58",
+        "#A1AB75",
+        "#B3BA9A"
+      ]
+    },
+    "forest": {
+      "base": "#43865A",
+      "ramp": [
+        "#20382B",
+        "#325E45",
+        "#43865A",
+        "#549967",
+        "#72A580"
+      ]
+    },
+    "wood": {
+      "base": "#A66A43",
+      "ramp": [
+        "#452C21",
+        "#744733",
+        "#A66A43",
+        "#B5845E",
+        "#BC9F87"
+      ]
+    },
+    "earth": {
+      "base": "#94704E",
+      "ramp": [
+        "#3E2F25",
+        "#684C3A",
+        "#94704E",
+        "#A78864",
+        "#B19E89"
+      ]
+    },
+    "skin": {
+      "base": "#E7AD8D",
+      "ramp": [
+        "#7E4D26",
+        "#CE7E3E",
+        "#E7AD8D",
+        "#F0D3C7",
+        "#F6EDE9"
+      ]
+    },
+    "blood": {
+      "base": "#B94D45",
+      "ramp": [
+        "#4D2324",
+        "#813537",
+        "#B94D45",
+        "#C06C6C",
+        "#C99999"
+      ]
+    },
+    "gold": {
+      "base": "#F4BF61",
+      "ramp": [
+        "#815016",
+        "#DC831A",
+        "#F4BF61",
+        "#F2D9A0",
+        "#F7F1E3"
+      ]
+    },
+    "copper": {
+      "base": "#E58A3F",
+      "ramp": [
+        "#683518",
+        "#B25420",
+        "#E58A3F",
+        "#E4AC75",
+        "#E6CBB0"
+      ]
+    },
+    "slate": {
+      "base": "#AD9B83",
+      "ramp": [
+        "#4E4638",
+        "#827459",
+        "#AD9B83",
+        "#C1B3A6",
+        "#D9D3CD"
+      ]
+    },
+    "silver": {
+      "base": "#D5C3A7",
+      "ramp": [
+        "#6C5D3B",
+        "#AF9863",
+        "#D5C3A7",
+        "#EAE1D7",
+        "#F3F0EC"
+      ]
+    },
+    "steel": {
+      "base": "#827A73",
+      "ramp": [
+        "#393633",
+        "#5D5953",
+        "#827A73",
+        "#978F8B",
+        "#AEAAA7"
+      ]
+    },
+    "stone": {
+      "base": "#78645B",
+      "ramp": [
+        "#342D29",
+        "#554A42",
+        "#78645B",
+        "#8C756D",
+        "#9D8D89"
+      ]
+    },
+    "jade": {
+      "base": "#43C9AB",
+      "ramp": [
+        "#20564F",
+        "#309184",
+        "#43C9AB",
+        "#6FCDB1",
+        "#A1D4C5"
+      ]
+    },
+    "blue": {
+      "base": "#6CABC3",
+      "ramp": [
+        "#2C495A",
+        "#437897",
+        "#6CABC3",
+        "#97C3CF",
+        "#C6DADF"
+      ]
+    },
+    "purple": {
+      "base": "#A66DD0",
+      "ramp": [
+        "#4F2863",
+        "#843DA7",
+        "#A66DD0",
+        "#BB9CDA",
+        "#DCD0E8"
+      ]
+    },
+    "pink": {
+      "base": "#E78BA7",
+      "ramp": [
+        "#7D2638",
+        "#CE3C5C",
+        "#E78BA7",
+        "#F0C5D5",
+        "#F6E9EE"
+      ]
+    },
+    "red": {
+      "base": "#D9634E",
+      "ramp": [
+        "#63221E",
+        "#A9332C",
+        "#D9634E",
+        "#DC8780",
+        "#E3BBB7"
+      ]
+    },
+    "ice": {
+      "base": "#A5D5CD",
+      "ramp": [
+        "#3A6C68",
+        "#61AFA9",
+        "#A5D5CD",
+        "#D5E9E4",
+        "#ECF3F2"
+      ]
+    },
+    "void": {
+      "base": "#79548B",
+      "ramp": [
+        "#36273B",
+        "#5A3E62",
+        "#79548B",
+        "#89699E",
+        "#9E8AAC"
+      ]
+    },
+    "ivory": {
+      "base": "#E5D0A8",
+      "ramp": [
+        "#7E6A31",
+        "#C6AA58",
+        "#E5D0A8",
+        "#F4ECE0",
+        "#F5F1EA"
+      ]
+    },
+    "toxic": {
+      "base": "#B1C64B",
+      "ramp": [
+        "#485623",
+        "#789134",
+        "#B1C64B",
+        "#C3CC76",
+        "#D0D4A7"
+      ]
+    },
+    "coal": {
+      "base": "#46353A",
+      "ramp": [
+        "#1E1819",
+        "#322729",
+        "#46353A",
+        "#514046",
+        "#5D4E53"
+      ]
+    },
+    "glow": {
+      "base": "#F5D68A",
+      "ramp": [
+        "#8E771A",
+        "#E4C030",
+        "#F5D68A",
+        "#F7E8CC",
+        "#F8F2E7"
+      ]
+    }
+  }
+};
+
+const FAMILY_NAMES = {
+  "leaf": "Lá non",
+  "moss": "Rêu dịu",
+  "forest": "Lục thẫm",
+  "wood": "Gỗ",
+  "earth": "Đất",
+  "skin": "Da ấm",
+  "blood": "Huyết",
+  "gold": "Vàng",
+  "copper": "Đồng cam",
+  "slate": "Xám lam",
+  "silver": "Bạc",
+  "steel": "Thép",
+  "stone": "Đá tối",
+  "jade": "Ngọc",
+  "blue": "Lam",
+  "purple": "Tím",
+  "pink": "Hồng",
+  "red": "Đỏ",
+  "ice": "Băng",
+  "void": "Hắc tím",
+  "ivory": "Ngà",
+  "toxic": "Độc lục",
+  "coal": "Than",
+  "glow": "Linh quang"
+};
+
+export const GENESIS_V3_COMMON=Object.fromEntries(Object.entries(DRAFT.common).map(([key,hex])=>[key,hex.toLowerCase()]));
+export const GENESIS_V3_FAMILIES=Object.fromEntries(Object.entries(DRAFT.families).map(([id,family])=>[id,{
+  base:family.base.toLowerCase(),ramp:family.ramp.map(hex=>hex.toLowerCase())
+}]));
+export const GENESIS_V3_GROUPS=[['Common',Object.values(GENESIS_V3_COMMON)],
+  ...Object.entries(GENESIS_V3_FAMILIES).map(([id,family])=>[FAMILY_NAMES[id],family.ramp])];
+export const GENESIS_V3_COLORS=[...new Set(GENESIS_V3_GROUPS.flatMap(([,colors])=>colors))];
+export const GENESIS_V3_NAME='Genesis v3 ('+GENESIS_V3_COLORS.length+' màu)';
+export const GENESIS_V3_PALETTES=Object.fromEntries(GENESIS_V3_GROUPS.map(([name,colors])=>['Genesis v3 · '+name+' ('+colors.length+' màu)',colors]));
+export const GENESIS_V3_TOKENS={};
+GENESIS_V3_GROUPS.forEach(([group,colors],i)=>colors.forEach((hex,step)=>{
+  if(!GENESIS_V3_TOKENS[hex]) GENESIS_V3_TOKENS[hex]={group:'Genesis v3 · '+group,token:'genesis-v3-'+i+'-'+step,
+    desc:group+' · '+(i===0?Object.keys(GENESIS_V3_COMMON)[step]:'S'+step+(step===2?' · màu gốc':''))};
+}));

@@ -3,25 +3,14 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import * as genesis from '../js/genesis.js';
+import {GENESIS_V3_NAME,GENESIS_V3_COLORS} from '../js/genesis-v3.js';
+import {paletteApp} from './palette-env.mjs';
 import {parsePaletteText, groupColors} from '../js/palgroups.js';
 import {makeSpec, GEN_RECIPE_ORDER, GEN_ROLE_KEYS, heroSprite} from '../js/tilegen.js';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const draft=JSON.parse(read('palettes/genesis-v2.json'));
 const lower=object=>Object.fromEntries(Object.entries(object).map(([key,hex])=>[key,hex.toLowerCase()]));
-
-function paletteApp(){
-  const saved=new Map();
-  const context=vm.createContext({...genesis,localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},
-    doc:{frames:[[new Uint32Array([0xff123456])]]},view:{},$(){return null;},writes:0,
-    syncPalSelect(){},writeSave(){context.writes++;}});
-  const source=read('js/palette.js').replace(/^import\s[\s\S]*?;\s*$/gm,'')
-    .replace(/^export\s*\{[^}]*\}(?:\s*from\s*'[^']+')?;/gm,'').replace(/\bexport\s+/g,'');
-  vm.runInContext(source+'\npaintSwatches=()=>{};',context);
-  const storage=read('js/storage.js');
-  vm.runInContext(storage.slice(storage.indexOf("const DEFAULT_PAL_KEY="),storage.indexOf('export async function loadSave')),context);
-  return {context,saved,run:code=>vm.runInContext(code,context)};
-}
 
 test('Genesis v2 keeps every approved Draft 2.0 HEX and registers 25 separate five-color palettes',()=>{
   assert.deepEqual(genesis.GENESIS_COMMON,lower(draft.common));
@@ -35,8 +24,8 @@ test('Genesis v2 keeps every approved Draft 2.0 HEX and registers 25 separate fi
   assert.equal(expected.length,122);
   assert.equal(Object.keys(genesis.GENESIS_PALETTES).length,25);
   const app=paletteApp();
-  assert.equal(app.run('DEFAULT_PAL_NAME'),genesis.GENESIS_NAME);
-  assert.deepEqual([...app.run('palette')],expected);
+  assert.equal(app.run('DEFAULT_PAL_NAME'),GENESIS_V3_NAME);
+  assert.deepEqual([...app.run('palette')],GENESIS_V3_COLORS);
   for(const [name,colors] of Object.entries(genesis.GENESIS_PALETTES)){
     assert.equal(colors.length,5,name);
     assert.deepEqual([...app.run('PALETTES['+JSON.stringify(name)+']')],colors);
@@ -56,13 +45,13 @@ test('Genesis groups and HEX exports retain shared Common colors without duplica
   assert.equal(new Set(groups.flatMap(g=>g.colors)).size,122);
 });
 
-test('old default autosaves adopt v2 once without recoloring pixels; custom palettes stay intact',()=>{
+test('old default autosaves adopt v3 once without recoloring pixels; custom palettes stay intact',()=>{
   for(const original of ['GENESIS_V1_NAME','MASTER_NAME']){
     const app=paletteApp();
     app.run('setPalette(PALETTES['+original+']);');
     const pixels=app.run('doc.frames[0][0]');
     app.run('adoptDefaultPalette()');
-    assert.deepEqual([...app.run('palette')],genesis.GENESIS_COLORS);
+    assert.deepEqual([...app.run('palette')],GENESIS_V3_COLORS);
     assert.equal(app.run('doc.frames[0][0]'),pixels);
     assert.equal(pixels[0],0xff123456);
     assert.equal(app.context.writes,1);
@@ -83,14 +72,14 @@ test('old default autosaves adopt v2 once without recoloring pixels; custom pale
 test('all Genesis recipes use the shared outline and reject stale off-palette saved overrides',()=>{
   const allowed=new Set(genesis.GENESIS_COLORS);
   for(const id of GEN_RECIPE_ORDER){
-    const spec=makeSpec(id,{colors:{r0:'#251c24',k1:'#63C74D',surprise:'#251c24'},sky:'#251c24'});
+    const spec=makeSpec(id,{palette:'genesis',colors:{r0:'#251c24',k1:'#63C74D',surprise:'#251c24'},sky:'#251c24'});
     assert.equal(spec.colors.ink,genesis.GENESIS_COMMON.outline,id);
     assert.equal(spec.colors.k1,'#63c74d');
     assert.ok(allowed.has(spec.sky),id+' sky');
     assert.deepEqual(Object.keys(spec.colors),GEN_ROLE_KEYS);
     for(const hex of Object.values(spec.colors)) assert.ok(allowed.has(hex),id+' '+hex);
   }
-  const hero=heroSprite(56);
+  const hero=heroSprite(56,'genesis');
   for(const value of hero.px){
     if(!(value>>>24)) continue;
     const hex='#'+[value&255,(value>>>8)&255,(value>>>16)&255].map(v=>v.toString(16).padStart(2,'0')).join('');
@@ -112,7 +101,7 @@ test('reopening the quick generator removes stale colors even when its palette k
   assert.equal(vm.runInContext('syncPalette()',context),false);
 });
 
-test('copying a legacy localStorage save to IndexedDB does not overwrite its adopted v2 palette',async()=>{
+test('copying a legacy localStorage save to IndexedDB does not overwrite its adopted v3 palette',async()=>{
   const app=paletteApp(),c=app.context;
   const legacy={palette:[...app.run('PALETTES[GENESIS_V1_NAME]')]};
   app.saved.set('test-save',JSON.stringify(legacy));
@@ -126,5 +115,5 @@ test('copying a legacy localStorage save to IndexedDB does not overwrite its ado
   const source=read('js/storage.js');
   vm.runInContext(source.slice(source.indexOf('export async function loadSave()'),source.indexOf('export async function clearSave()')).replace(/^export /gm,''),c);
   assert.equal(await vm.runInContext('loadSave()',c),true);
-  assert.deepEqual(persisted,genesis.GENESIS_COLORS);
+  assert.deepEqual(persisted,GENESIS_V3_COLORS);
 });
