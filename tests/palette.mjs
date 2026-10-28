@@ -2,6 +2,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {GENESIS_NAME, GENESIS_COLORS} from '../js/genesis.js';
 
 const src=readFileSync(new URL('../js/palette.js', import.meta.url),'utf8');
 const masterName=src.match(/export const MASTER_NAME = '([^']+)'/)[1];
@@ -47,22 +48,22 @@ test('Terrain create presets: the Genesis set uses Genesis colours, the Master s
   const tv=readFileSync(new URL('../js/terrainview.js', import.meta.url),'utf8');
   const block=tv.split('const TERRAIN_CREATE_PRESETS={')[1].split('\n};')[0];
   const part=k=>[...block.split(k+':{')[1].split('\n  }')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
-  const genesis=[...src.split('[GENESIS_NAME]: [')[1].split('],')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
+  const genesis=GENESIS_COLORS;
   assert.ok(part('master').includes('#7c6d6c'), 'warm stone preset present');
   for(const c of part('master')) assert.ok(master.includes(c), c+' is not in the Master palette');
   assert.equal(part('genesis').length,14);
-  for(const c of part('genesis')) assert.ok(genesis.includes(c), c+' is not in Genesis v1');
+  for(const c of part('genesis')) assert.ok(genesis.includes(c), c+' is not in Genesis v2');
 });
 
-const gen=[...src.split('[GENESIS_NAME]: [')[1].split('],')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
-test('Genesis v1 is the default palette, 69 unique colours in the order of genesis-v1.hex, every colour grouped',()=>{
-  assert.equal(src.match(/export const GENESIS_NAME = '([^']+)'/)[1], `Genesis v1 (${gen.length} màu)`);
+const gen=[...src.split('[GENESIS_V1_NAME]: [')[1].split('],')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
+test('Genesis v2 is the default while the original 69-color Genesis v1 remains available',()=>{
+  assert.equal(GENESIS_NAME, 'Genesis v2 (122 màu)');
   assert.equal(gen.length, 69);
   assert.equal(new Set(gen).size, 69);
   assert.deepEqual([gen[0],gen[10],gen[55],gen[68]], ['#251c24','#f1edf2','#ffffff','#fcc8da']);
   assert.match(src, /export const DEFAULT_PAL_NAME = GENESIS_NAME;/);
   assert.match(src, /export let palette = PALETTES\[DEFAULT_PAL_NAME\]\.slice\(\);/);
-  const grouped=[...src.split('const GENESIS_GROUPS = [')[1].split('];')[0].matchAll(/'([0-9a-f ]{6,})'\]/g)].flatMap(m=>m[1].split(' ').map(h=>'#'+h));
+  const grouped=[...src.split('const GENESIS_V1_GROUPS = [')[1].split('];')[0].matchAll(/'([0-9a-f ]{6,})'\]/g)].flatMap(m=>m[1].split(' ').map(h=>'#'+h));
   assert.deepEqual(grouped, gen);
   for(const c of gen) assert.ok(!master.includes(c), c+' trùng mã Master — token Master sẽ đè nhóm Genesis');
 });

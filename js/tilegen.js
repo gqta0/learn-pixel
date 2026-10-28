@@ -14,6 +14,7 @@
    Mọi thứ vẽ ra là CHỈ SỐ VAI TRÒ màu (ink, m0…f1) chứ không phải mã màu: đổi màu một vai là
    tô lại cả bộ trong tích tắc, và kiểm được "chỉ dùng màu trong bảng" ngay từ cấu trúc. */
 import { TERRAIN_TILES, tileRoles, terrainHash, terrainSlot, shapeInset, checkSeams, checkColorSeams, variantBase } from './terrain.js';
+import { GENESIS_COMMON, GENESIS_FAMILIES, GENESIS_COLORS } from './genesis.js';
 
 /* ---------------- vai trò màu ---------------- */
 export const GEN_ROLE_KEYS=['ink','m0','m1','m2','r0','r1','r2','r3','c0','c1','c2','c3','kd','k0','k1','k2','g0','g1','g2','w0','w1','f0','f1'];
@@ -42,19 +43,26 @@ const BACKGROUND=new Set([M0,M1,M2]);
 
 /* ---------------- công thức ----------------
    Mỗi công thức = kiểu vẽ + thông số mặc định + bảng vai trò màu cho TỪNG bảng màu gốc:
-   genesis (Genesis v1, mặc định) và master (Master Palette). Màu nào cũng lấy đúng mã trong
+   genesis (Genesis v2, mặc định) và master (Master Palette). Màu nào cũng lấy đúng mã trong
    bảng đó, nên bộ ô sinh ra luôn nằm trọn trong bảng anh đang vẽ. */
-export const GEN_PALETTES={genesis:'Genesis v1',master:'Master Palette'};
-const G_INK='#423d52', M_INK='#0d171f';
+export const GEN_PALETTES={genesis:'Genesis v2',master:'Master Palette'};
+const M_INK='#0d171f';
+/* Gán vai trò từ các bậc HEX đã duyệt, không pha hay nội suy thêm màu. */
+function genesisPalette({rock='stone',cap=rock,cover='leaf',glow='jade',background='coal',sky=GENESIS_COMMON.deep_shadow}={}){
+  const R=GENESIS_FAMILIES[rock].ramp,C=GENESIS_FAMILIES[cap].ramp,K=GENESIS_FAMILIES[cover].ramp,
+    G=GENESIS_FAMILIES[glow].ramp,B=GENESIS_FAMILIES[background].ramp,W=GENESIS_FAMILIES.wood.ramp;
+  return {sky,colors:{ink:GENESIS_COMMON.outline,m0:B[0],m1:B[1],m2:B[2],
+    r0:R[1],r1:R[2],r2:R[3],r3:R[4],c0:C[1],c1:C[2],c2:C[3],c3:C[4],
+    kd:K[0],k0:K[1],k1:K[2],k2:K[3],g0:G[0],g1:G[2],g2:G[4],
+    w0:W[0],w1:W[2],f0:GENESIS_FAMILIES.pink.base,f1:GENESIS_FAMILIES.gold.base}};
+}
 export const GEN_RECIPES={
   cleanBlock:{title:'Đá khối sạch · cỏ',note:'Khối đá xếp so le, mạch vữa rõ, cỏ phủ mép trên — sạch, ít nhiễu',
     interior:'block',capStyle:'block',crustType:'grass',dripType:'none',hangType:'vine',
     params:{size:.5,density:.5,crust:.5,drip:0,glow:0,capH:.5,cracks:.25,pebbles:0,roots:0,deco:.35},
     props:['tuft','sprout','flower','tuft','pebble','sprout','hang','hang'],
     palettes:{
-      genesis:{sky:'#25232f',colors:{ink:G_INK,m0:'#25232f',m1:'#3b2c3e',m2:'#5c4763',r0:'#968daa',r1:'#b4b0bf',r2:'#ddd1e0',r3:'#f1edf2',
-        c0:'#968daa',c1:'#b4b0bf',c2:'#ddd1e0',c3:'#f1edf2',kd:'#284d3b',k0:'#3b894b',k1:'#63c74d',k2:'#abdc4c',
-        g0:'#1d5a5a',g1:'#3fd0a6',g2:'#9ef2cf',w0:'#492d27',w1:'#6f433a',f0:'#fcc8da',f1:'#ffd900'}},
+      genesis:genesisPalette({rock:'slate'}),
       master:{sky:'#162331',colors:{ink:'#2e4659',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#7a95a7',r1:'#99b0bf',r2:'#b4c5d1',r3:'#d0dde4',
         c0:'#7a95a7',c1:'#99b0bf',c2:'#b4c5d1',c3:'#d0dde4',kd:'#245c2c',k0:'#4a873c',k1:'#7cb759',k2:'#b1dc74',
         g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#ec89ae',f1:'#f5cb53'}}}},
@@ -63,44 +71,42 @@ export const GEN_RECIPES={
     params:{size:.5,density:.5,crust:.45,drip:.35,glow:0,capH:.5,cracks:.3,pebbles:0,roots:.45,deco:.4},
     props:['sprout','tuft','flower','sprout','pebble','tuft','hang','hang'],
     palettes:{
-      genesis:{sky:'#251c24',colors:{ink:'#25232f',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#6f433a',r1:'#965b4f',r2:'#b1957c',r3:'#d8a597',c0:'#6f433a',c1:'#965b4f',c2:'#b1957c',c3:'#e8d7d4',kd:'#284d3b',k0:'#2a5a42',k1:'#3b894b',k2:'#63c74d',g0:'#1d5a5a',g1:'#22917f',g2:'#9ef2cf',w0:'#492d27',w1:'#6f433a',f0:'#ec7fa9',f1:'#ffd900'}},
+      genesis:genesisPalette({rock:'wood',cover:'moss'}),
       master:{sky:'#0d171f',colors:{ink:'#223344',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#5f4b4e',r1:'#7c6d6c',r2:'#ac9c8d',r3:'#cabcad',c0:'#5f4b4e',c1:'#7c6d6c',c2:'#ac9c8d',c3:'#e6e0d3',kd:'#173d2a',k0:'#245c2c',k1:'#4a873c',k2:'#7cb759',g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#ec89ae',f1:'#f5cb53'}}}},
   cleanDeep:{title:'Đá khối sâu · mạch ngọc',note:'Khối đá tím than tối, rêu xám mỏng, mạch vữa ánh linh khí ngọc',
     interior:'block',capStyle:'block',crustType:'moss',dripType:'vine',hangType:'stalactite',
     params:{size:.5,density:.5,crust:.3,drip:.15,glow:.35,capH:.5,cracks:.4,pebbles:0,roots:.1,deco:.3},
     props:['pebble','sprout','shard','pebble','crystal','tuft','hang','hang'],
     palettes:{
-      genesis:{sky:'#251c24',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#423d52',r1:'#5e5572',r2:'#806f95',r3:'#968daa',c0:'#423d52',c1:'#5e5572',c2:'#806f95',c3:'#968daa',kd:'#2a5a42',k0:'#4d6b53',k1:'#7a9a72',k2:'#c3d4d6',g0:'#1d5a5a',g1:'#22917f',g2:'#3fd0a6',w0:'#492d27',w1:'#6f433a',f0:'#9ef2cf',f1:'#3fd0a6'}},
+      genesis:genesisPalette({cover:'moss',background:'void'}),
       master:{sky:'#0d171f',colors:{ink:'#0d171f',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',c0:'#2e4659',c1:'#435d73',c2:'#5e788c',c3:'#7a95a7',kd:'#283b3a',k0:'#3a5647',k1:'#527059',k2:'#6e896f',g0:'#004264',g1:'#08919b',g2:'#01cbd3',w0:'#41261c',w1:'#694635',f0:'#c4f0de',f1:'#5dffc0'}}}},
   cleanQi:{title:'Đá khối mạch lam',note:'Khối đá xám lam, băng tinh thể trên mép, mạch vữa sáng linh khí lam',
     interior:'block',capStyle:'block',crustType:'crystal',dripType:'icicle',hangType:'icicle',
     params:{size:.5,density:.5,crust:.3,drip:.25,glow:.55,capH:.5,cracks:.3,pebbles:0,roots:0,deco:.4},
     props:['crystal','shard','crystal','pebble','shard','crystal','hang','hang'],
     palettes:{
-      genesis:{sky:'#25232f',colors:{ink:'#25232f',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#4f7277',r1:'#6d8f96',r2:'#97b3b6',r3:'#c3d4d6',c0:'#4f7277',c1:'#6d8f96',c2:'#97b3b6',c3:'#e6fff4',kd:'#2c4d8f',k0:'#5b98e6',k1:'#87c8cf',k2:'#bfe0f8',g0:'#2c4d8f',g1:'#5b98e6',g2:'#bfe0f8',w0:'#492d27',w1:'#6f433a',f0:'#87c8cf',f1:'#ffffff'}},
+      genesis:genesisPalette({rock:'slate',cover:'ice',glow:'blue'}),
       master:{sky:'#223344',colors:{ink:'#0d171f',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#5e788c',r1:'#7a95a7',r2:'#99b0bf',r3:'#b4c5d1',c0:'#5e788c',c1:'#7a95a7',c2:'#99b0bf',c3:'#d0dde4',kd:'#004264',k0:'#08919b',k1:'#01cbd3',k2:'#6cf2ff',g0:'#004264',g1:'#01cbd3',g2:'#6cf2ff',w0:'#41261c',w1:'#694635',f0:'#6cf2ff',f1:'#d9efff'}}}},
   cleanCrystal:{title:'Đá khối hang tinh thể',note:'Khối đá lam tối, cụm tinh thể mọc xiên, mạch vữa rực linh khí',
     interior:'block',capStyle:'block',crustType:'crystal',dripType:'icicle',hangType:'icicle',
     params:{size:.5,density:.5,crust:.35,drip:.35,glow:.85,capH:.5,cracks:.25,pebbles:0,roots:0,deco:.5},
     props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang'],
     palettes:{
-      genesis:{sky:'#25232f',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#423d52',r1:'#4f7277',r2:'#6d8f96',r3:'#97b3b6',c0:'#423d52',c1:'#4f7277',c2:'#6d8f96',c3:'#c3d4d6',kd:'#2c4d8f',k0:'#5b98e6',k1:'#86bdf0',k2:'#e6fff4',g0:'#2c4d8f',g1:'#86bdf0',g2:'#e6fff4',w0:'#492d27',w1:'#6f433a',f0:'#86bdf0',f1:'#ffffff'}},
+      genesis:genesisPalette({cap:'slate',cover:'ice',glow:'ice'}),
       master:{sky:'#223344',colors:{ink:'#0d171f',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',c0:'#2e4659',c1:'#435d73',c2:'#5e788c',c3:'#b4c5d1',kd:'#004264',k0:'#08919b',k1:'#01cbd3',k2:'#6cf2ff',g0:'#004264',g1:'#01cbd3',g2:'#6cf2ff',w0:'#41261c',w1:'#694635',f0:'#6cf2ff',f1:'#d9efff'}}}},
   cleanViolet:{title:'Đá khối linh thạch tím',note:'Khối đá tím than, tinh thể tím mọc xiên, mạch vữa sáng linh khí tím',
     interior:'block',capStyle:'block',crustType:'crystal',dripType:'icicle',hangType:'icicle',
     params:{size:.5,density:.5,crust:.35,drip:.3,glow:.9,capH:.5,cracks:.25,pebbles:0,roots:0,deco:.5},
     props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang'],
     palettes:{
-      genesis:{sky:'#251c24',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#3b2c3e',r1:'#5c4763',r2:'#806f95',r3:'#9886a7',c0:'#3b2c3e',c1:'#5c4763',c2:'#806f95',c3:'#bba9c6',kd:'#43137c',k0:'#681ab7',k1:'#c955e7',k2:'#e187f8',g0:'#51154a',g1:'#c955e7',g2:'#e187f8',w0:'#492d27',w1:'#6f433a',f0:'#fcc8da',f1:'#ffd900'}},
+      genesis:genesisPalette({rock:'void',cap:'purple',cover:'purple',glow:'purple'}),
       master:{sky:'#162331',colors:{ink:'#0d171f',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',c0:'#2e4659',c1:'#435d73',c2:'#5e788c',c3:'#b4c5d1',kd:'#5e419e',k0:'#7c5bc4',k1:'#9a7de0',k2:'#b99cff',g0:'#5e419e',g1:'#9a7de0',g2:'#b99cff',w0:'#41261c',w1:'#694635',f0:'#b99cff',f1:'#ffd0df'}}}},
   warmLedge:{title:'Đá ấm · cỏ',note:'Gờ cuội ấm, cỏ non; đá tảng nằm trong nền tối',
     interior:'boulder',capStyle:'cobble',crustType:'grass',dripType:'vine',hangType:'stalactite',
     params:{size:.65,density:.3,crust:.4,drip:.25,glow:0,capH:.5,cracks:.35,pebbles:.55,roots:0,deco:.55},
     props:['tuft','tuft','flower','sprout','pebble','tuft','flower','hang'],
     palettes:{
-      genesis:{sky:'#25232f',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#3b2c3e',r0:'#6f433a',r1:'#965b4f',r2:'#b1957c',r3:'#d8a597',
-        c0:'#965b4f',c1:'#b1957c',c2:'#d8a597',c3:'#e8d7d4',kd:'#284d3b',k0:'#3b894b',k1:'#63c74d',k2:'#abdc4c',
-        g0:'#1d5a5a',g1:'#22917f',g2:'#9ef2cf',w0:'#492d27',w1:'#6f433a',f0:'#f1edf2',f1:'#ffd900'}},
+      genesis:genesisPalette({rock:'wood',cap:'earth'}),
       master:{sky:'#223344',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#413e49',r0:'#5f4b4e',r1:'#7c6d6c',r2:'#ac9c8d',r3:'#cabcad',
         c0:'#7c6d6c',c1:'#ac9c8d',c2:'#cabcad',c3:'#e6e0d3',kd:'#245c2c',k0:'#4a873c',k1:'#7cb759',k2:'#b1dc74',
         g0:'#14866a',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#f4efe3',f1:'#f5cb53'}}}},
@@ -109,9 +115,7 @@ export const GEN_RECIPES={
     params:{size:.55,density:.6,crust:.55,drip:.6,glow:0,capH:.45,cracks:.2,pebbles:.3,roots:.5,deco:.5},
     props:['sprout','sprout','tuft','tuft','flower','pebble','hang','hang'],
     palettes:{
-      genesis:{sky:'#251c24',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#4f7277',r1:'#6d8f96',r2:'#97b3b6',r3:'#c3d4d6',
-        c0:'#4f7277',c1:'#6d8f96',c2:'#97b3b6',c3:'#c3d4d6',kd:'#284d3b',k0:'#3b894b',k1:'#63c74d',k2:'#abdc4c',
-        g0:'#1d5a5a',g1:'#22917f',g2:'#9ef2cf',w0:'#492d27',w1:'#6f433a',f0:'#ec7fa9',f1:'#ffd900'}},
+      genesis:genesisPalette({rock:'slate',cover:'moss'}),
       master:{sky:'#0d171f',colors:{ink:M_INK,m0:'#0d171f',m1:'#223344',m2:'#2e4659',r0:'#435d73',r1:'#5e788c',r2:'#7a95a7',r3:'#99b0bf',
         c0:'#435d73',c1:'#5e788c',c2:'#7a95a7',c3:'#99b0bf',kd:'#245c2c',k0:'#4a873c',k1:'#7cb759',k2:'#b1dc74',
         g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#ec89ae',f1:'#f5cb53'}}}},
@@ -120,9 +124,7 @@ export const GEN_RECIPES={
     params:{size:.55,density:.35,crust:.3,drip:.45,glow:.75,capH:.4,cracks:.25,pebbles:.35,roots:0,deco:.5},
     props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang'],
     palettes:{
-      genesis:{sky:'#25232f',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#4f7277',r1:'#6d8f96',r2:'#97b3b6',r3:'#c3d4d6',
-        c0:'#6d8f96',c1:'#97b3b6',c2:'#c3d4d6',c3:'#e6fff4',kd:'#2c4d8f',k0:'#5b98e6',k1:'#87c8cf',k2:'#bfe0f8',
-        g0:'#2c4d8f',g1:'#86bdf0',g2:'#e6fff4',w0:'#492d27',w1:'#6f433a',f0:'#87c8cf',f1:'#ffffff'}},
+      genesis:genesisPalette({rock:'slate',cover:'ice',glow:'ice'}),
       master:{sky:'#223344',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#5e788c',r1:'#7a95a7',r2:'#99b0bf',r3:'#b4c5d1',
         c0:'#7a95a7',c1:'#99b0bf',c2:'#b4c5d1',c3:'#d0dde4',kd:'#004264',k0:'#08919b',k1:'#01cbd3',k2:'#6cf2ff',
         g0:'#004264',g1:'#01cbd3',g2:'#6cf2ff',w0:'#41261c',w1:'#694635',f0:'#6cf2ff',f1:'#d9efff'}}}},
@@ -131,9 +133,7 @@ export const GEN_RECIPES={
     params:{size:.5,density:.7,crust:.6,drip:.35,glow:.1,capH:.5,cracks:.4,pebbles:.2,roots:0,deco:.35},
     props:['snow','snow','shard','pebble','snow','pebble','hang','hang'],
     palettes:{
-      genesis:{sky:'#25232f',colors:{ink:'#25232f',m0:'#4f7277',m1:'#6d8f96',m2:'#97b3b6',r0:'#6d8f96',r1:'#97b3b6',r2:'#c3d4d6',r3:'#f1edf2',
-        c0:'#97b3b6',c1:'#c3d4d6',c2:'#e6fff4',c3:'#ffffff',kd:'#97b3b6',k0:'#c3d4d6',k1:'#f1edf2',k2:'#ffffff',
-        g0:'#5b98e6',g1:'#86bdf0',g2:'#bfe0f8',w0:'#492d27',w1:'#6f433a',f0:'#bfe0f8',f1:'#86bdf0'}},
+      genesis:genesisPalette({rock:'slate',cap:'ice',cover:'ice',glow:'ice',background:'slate'}),
       master:{sky:'#0d171f',colors:{ink:M_INK,m0:'#435d73',m1:'#5e788c',m2:'#7a95a7',r0:'#7a95a7',r1:'#99b0bf',r2:'#b4c5d1',r3:'#d0dde4',
         c0:'#7a95a7',c1:'#b4c5d1',c2:'#d0dde4',c3:'#d9efff',kd:'#7a95a7',k0:'#99b0bf',k1:'#d0dde4',k2:'#f4efe3',
         g0:'#53accc',g1:'#91d2ec',g2:'#d9efff',w0:'#41261c',w1:'#694635',f0:'#d9efff',f1:'#91d2ec'}}}},
@@ -142,9 +142,7 @@ export const GEN_RECIPES={
     params:{size:.75,density:.55,crust:.25,drip:.45,glow:0,capH:.6,cracks:.15,pebbles:.2,roots:.2,deco:.6},
     props:['tuft','flower','tuft','sprout','pebble','flower','hang','hang'],
     palettes:{
-      genesis:{sky:'#5b98e6',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#3b2c3e',r0:'#25232f',r1:'#3b2c3e',r2:'#423d52',r3:'#5c4763',
-        c0:'#806f95',c1:'#968daa',c2:'#b4b0bf',c3:'#ddd1e0',kd:'#284d3b',k0:'#2a5a42',k1:'#3b894b',k2:'#63c74d',
-        g0:'#1d5a5a',g1:'#22917f',g2:'#9ef2cf',w0:'#492d27',w1:'#6f433a',f0:'#f1edf2',f1:'#ffd900'}},
+      genesis:genesisPalette({cap:'slate',sky:GENESIS_FAMILIES.blue.base}),
       master:{sky:'#6faeef',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#162331',r1:'#223344',r2:'#2e4659',r3:'#435d73',
         c0:'#5e788c',c1:'#7a95a7',c2:'#99b0bf',c3:'#b4c5d1',kd:'#173d2a',k0:'#245c2c',k1:'#4a873c',k2:'#7cb759',
         g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#f4efe3',f1:'#f5cb53'}}}},
@@ -153,9 +151,7 @@ export const GEN_RECIPES={
     params:{size:.55,density:.55,crust:.25,drip:.3,glow:.35,capH:.45,cracks:.45,pebbles:.4,roots:.15,deco:.35},
     props:['pebble','sprout','shard','pebble','crystal','tuft','hang','hang'],
     palettes:{
-      genesis:{sky:'#251c24',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#423d52',r0:'#423d52',r1:'#5e5572',r2:'#806f95',r3:'#968daa',
-        c0:'#5e5572',c1:'#806f95',c2:'#968daa',c3:'#b4b0bf',kd:'#284d3b',k0:'#2a5a42',k1:'#4d6b53',k2:'#7a9a72',
-        g0:'#1d5a5a',g1:'#22917f',g2:'#3fd0a6',w0:'#492d27',w1:'#6f433a',f0:'#9ef2cf',f1:'#3fd0a6'}},
+      genesis:genesisPalette({cap:'slate',cover:'moss',glow:'blue'}),
       master:{sky:'#0d171f',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',
         c0:'#435d73',c1:'#5e788c',c2:'#7a95a7',c3:'#99b0bf',kd:'#283b3a',k0:'#3a5647',k1:'#527059',k2:'#6e896f',
         g0:'#004264',g1:'#08919b',g2:'#01cbd3',w0:'#41261c',w1:'#694635',f0:'#c4f0de',f1:'#5dffc0'}}}},
@@ -164,9 +160,7 @@ export const GEN_RECIPES={
     params:{size:.5,density:.5,crust:.3,drip:.4,glow:.85,capH:.4,cracks:.3,pebbles:.3,roots:0,deco:.5},
     props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang'],
     palettes:{
-      genesis:{sky:'#251c24',colors:{ink:'#251c24',m0:'#251c24',m1:'#25232f',m2:'#3b2c3e',r0:'#3b2c3e',r1:'#5c4763',r2:'#806f95',r3:'#9886a7',
-        c0:'#5e5572',c1:'#806f95',c2:'#9886a7',c3:'#bba9c6',kd:'#43137c',k0:'#681ab7',k1:'#c955e7',k2:'#e187f8',
-        g0:'#51154a',g1:'#c955e7',g2:'#e187f8',w0:'#492d27',w1:'#6f433a',f0:'#fcc8da',f1:'#ffd900'}},
+      genesis:genesisPalette({rock:'void',cap:'purple',cover:'purple',glow:'purple'}),
       master:{sky:'#162331',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',
         c0:'#5e788c',c1:'#7a95a7',c2:'#99b0bf',c3:'#b4c5d1',kd:'#5e419e',k0:'#5e419e',k1:'#7c5bc4',k2:'#b99cff',
         g0:'#5e419e',g1:'#9a7de0',g2:'#b99cff',w0:'#41261c',w1:'#694635',f0:'#b99cff',f1:'#ffd0df'}}}}
@@ -212,14 +206,19 @@ export function makeSpec(recipeId, patch={}){
   const r=GEN_RECIPES[recipeId]||GEN_RECIPES.cleanBlock;
   const seed=Number.isInteger(patch.seed)?patch.seed:1701;
   const palette=patch.palette==='master'?'master':'genesis', base=r.palettes[palette];
+  const colors={...base.colors},sky=String(patch.sky||'').toLowerCase();
+  for(const key of GEN_ROLE_KEYS){
+    const hex=patch.colors?.[key]?.toLowerCase?.();
+    if(hex && (palette==='master'||GENESIS_COLORS.includes(hex))) colors[key]=hex;
+  }
   return {
     recipe:GEN_RECIPES[recipeId]?recipeId:'cleanBlock', palette,
     interior:patch.interior||r.interior, capStyle:patch.capStyle||r.capStyle,
     crustType:patch.crustType||r.crustType, dripType:patch.dripType||r.dripType, hangType:r.hangType,
     light:patch.light==='tr'?'tr':'tl',
     params:{...r.params,...(patch.params||{})},
-    colors:{...base.colors,...(patch.colors||{})},
-    sky:patch.sky||base.sky,
+    colors,
+    sky:sky && (palette==='master'||GENESIS_COLORS.includes(sky))?sky:base.sky,
     props:r.props.slice(),
     seed, seeds:{...makeSeeds(seed),...(patch.seeds||{})}
   };
@@ -1158,7 +1157,9 @@ function cellMask(map,x,y){
 }
 /* nhân vật mẫu để so tỉ lệ — vẽ bằng khối, cao đúng chiều cao nhân vật trong game */
 const HERO_COLORS={
-  genesis:{hair:'#251c24',skin:'#f3bfa2',skinD:'#d8a597',robe:'#f1edf2',robeD:'#ddd1e0',belt:'#ca4949',pants:'#423d52',ink:'#251c24'},
+  genesis:{hair:GENESIS_COMMON.outline,skin:GENESIS_FAMILIES.skin.base,skinD:GENESIS_FAMILIES.skin.ramp[1],
+    robe:GENESIS_FAMILIES.ivory.ramp[4],robeD:GENESIS_FAMILIES.ivory.ramp[3],belt:GENESIS_FAMILIES.red.base,
+    pants:GENESIS_FAMILIES.void.base,ink:GENESIS_COMMON.outline},
   master:{hair:'#1f1e1c',skin:'#e8ad83',skinD:'#d08a66',robe:'#d8d1c2',robeD:'#b5aea1',belt:'#c2362c',pants:'#4c4944',ink:M_INK}
 };
 export function heroSprite(H,palette='genesis'){

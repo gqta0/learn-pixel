@@ -5,7 +5,7 @@ import { frameToCanvas, invalidateBuf, layerLength } from './raster.js';
 import { pushUndo } from './history.js';
 import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
-import { palette, setPalette, paintSwatches, fillPalSelect, paletteNameOf, PALETTES, MASTER_NAME, DEFAULT_PAL_NAME } from './palette.js';
+import { palette, setPalette, paintSwatches, fillPalSelect, paletteNameOf, PALETTES, MASTER_NAME, GENESIS_V1_NAME, DEFAULT_PAL_NAME } from './palette.js';
 import { doneSet, buildExercises, migrateDone } from './content/exercises.js';
 import { spriteFramesTres, pixelizeImage, medianCut, MAX_SIDE } from './sheet.js';
 import { syncAll } from './ui.js';
@@ -194,19 +194,22 @@ function syncPalSelect(){
   const name=paletteNameOf(palette);
   if(name && $('#palSel')) fillPalSelect(name);
 }
-/* Bảng mặc định đổi sang Genesis v1: bản tự lưu nào còn đúng nguyên Master (bảng mặc định cũ,
-   chưa chỉnh màu nào) thì chuyển sang Genesis — một lần duy nhất. Pixel trong tranh không đổi;
+/* Bản tự lưu còn đúng nguyên bảng mặc định cũ (Master hoặc Genesis v1)
+   chuyển sang Genesis v2 một lần. Pixel trong tranh không đổi;
    bảng đã chỉnh tay hay bảng khác thì giữ nguyên. */
 const DEFAULT_PAL_KEY='lo-pixel-default-pal';
 function adoptDefaultPalette(){
+  let previous;
   try{
-    if(localStorage.getItem(DEFAULT_PAL_KEY)===DEFAULT_PAL_NAME) return;
+    previous=localStorage.getItem(DEFAULT_PAL_KEY);
+    if(previous===DEFAULT_PAL_NAME) return;
     localStorage.setItem(DEFAULT_PAL_KEY,DEFAULT_PAL_NAME);
   }catch(_){ return; }
-  if(paletteNameOf(palette)!==MASTER_NAME) return;
+  const name=paletteNameOf(palette);
+  if(name!==GENESIS_V1_NAME && (name!==MASTER_NAME || previous)) return;
   setPalette(PALETTES[DEFAULT_PAL_NAME]);
   syncPalSelect(); paintSwatches();
-  writeSave();          // ghi ngay, không chờ nhịp tự lưu: lỡ đóng trang sớm thì lần mở sau vẫn còn Master
+  writeSave();          // ghi ngay, không chờ nhịp tự lưu, để lần mở sau không quay về bảng cũ
 }
 export async function loadSave(){
   let data=null, from='';
@@ -221,12 +224,12 @@ export async function loadSave(){
     }
     if(!data){ adoptDefaultPalette(); return false; }
     applyData(data);
-    adoptDefaultPalette();
     if(useIdb && from==='localStorage'){
       await idbSet(STORES.kv,SAVE_KEY,data);
       try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
       from='localStorage → IndexedDB';
     }
+    adoptDefaultPalette();
     $('#saveInfo').textContent='Đã mở lại bản lưu lần trước ('+from+').';
     return true;
   }catch(_){ return false; }

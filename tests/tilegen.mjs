@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {GENESIS_COLORS} from '../js/genesis.js';
 import {TERRAIN_TILES, checkSeams, checkColorSeams, edgeIndex, terrainPixels, variantBase, maskToCr31} from '../js/terrain.js';
 import {GEN_RECIPES, GEN_RECIPE_ORDER, GEN_STRATA, GEN_PARAMS, GEN_ROLE_KEYS, makeSpec, lerpParams,
   generateTerrain, generateTerrainRoles, generateProps, colorize, previewLayout, renderPreview, heroSprite,
@@ -10,13 +11,12 @@ import {readFileSync} from 'node:fs';
 const src=readFileSync(new URL('../js/palette.js',import.meta.url),'utf8');
 const block=src.slice(src.indexOf('[MASTER_NAME]: ['),src.indexOf('],',src.indexOf('[MASTER_NAME]: [')));
 const MASTER=new Set(block.match(/#[0-9a-f]{6}/gi).map(h=>h.toLowerCase()));
-const gblock=src.slice(src.indexOf('[GENESIS_NAME]: ['),src.indexOf('],',src.indexOf('[GENESIS_NAME]: [')));
-const GENESIS=new Set(gblock.match(/#[0-9a-f]{6}/gi).map(h=>h.toLowerCase()));
+const GENESIS=new Set(GENESIS_COLORS);
 const SETS={genesis:GENESIS,master:MASTER};
 
 test('every recipe has a Genesis and a Master colour set, each colour (and preview sky) from that palette',()=>{
   assert.equal(GEN_RECIPE_ORDER.length,Object.keys(GEN_RECIPES).length);
-  assert.equal(GENESIS.size,69);
+  assert.equal(GENESIS.size,122);
   for(const id of GEN_RECIPE_ORDER){
     const r=GEN_RECIPES[id];
     for(const [pal,set] of Object.entries(SETS)){
