@@ -3,6 +3,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {GENESIS_NAME, GENESIS_COLORS} from '../js/genesis.js';
+import {GENESIS_V3_NAME,GENESIS_V3_COLORS} from '../js/genesis-v3.js';
 
 const src=readFileSync(new URL('../js/palette.js', import.meta.url),'utf8');
 const masterName=src.match(/export const MASTER_NAME = '([^']+)'/)[1];
@@ -53,15 +54,18 @@ test('Terrain create presets: the Genesis set uses Genesis colours, the Master s
   for(const c of part('master')) assert.ok(master.includes(c), c+' is not in the Master palette');
   assert.equal(part('genesis').length,14);
   for(const c of part('genesis')) assert.ok(genesis.includes(c), c+' is not in Genesis v2');
+  assert.equal(part("'genesis-v3'").length,14);
+  for(const c of part("'genesis-v3'"))assert.ok(GENESIS_V3_COLORS.includes(c),c+' is not in Genesis v3');
 });
 
 const gen=[...src.split('[GENESIS_V1_NAME]: [')[1].split('],')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
-test('Genesis v2 is the default while the original 69-color Genesis v1 remains available',()=>{
+test('Genesis v3 is the default while Genesis v2 and the original 69-color v1 remain available',()=>{
   assert.equal(GENESIS_NAME, 'Genesis v2 (122 màu)');
+  assert.equal(GENESIS_V3_NAME, 'Genesis v3 (121 màu)');
   assert.equal(gen.length, 69);
   assert.equal(new Set(gen).size, 69);
   assert.deepEqual([gen[0],gen[10],gen[55],gen[68]], ['#251c24','#f1edf2','#ffffff','#fcc8da']);
-  assert.match(src, /export const DEFAULT_PAL_NAME = GENESIS_NAME;/);
+  assert.match(src, /export const DEFAULT_PAL_NAME = GENESIS_V3_NAME;/);
   assert.match(src, /export let palette = PALETTES\[DEFAULT_PAL_NAME\]\.slice\(\);/);
   const grouped=[...src.split('const GENESIS_V1_GROUPS = [')[1].split('];')[0].matchAll(/'([0-9a-f ]{6,})'\]/g)].flatMap(m=>m[1].split(' ').map(h=>'#'+h));
   assert.deepEqual(grouped, gen);

@@ -6,11 +6,11 @@ Có **5 vai trò Common + 24 họ màu × 5 bậc = 125 vị trí, 122 HEX duy n
 
 ## Dùng trong ứng dụng
 
-- Bảng mặc định: **Genesis v2 (122 màu)**. Bật **Phân loại nhóm** để xem Common và các họ riêng.
+- Chọn **Genesis v2 (122 màu)** để dùng Draft 2.0. Bật **Phân loại nhóm** để xem Common và các họ riêng. Mặc định hiện tại là [Genesis v3](genesis-v3.md).
 - Ô chọn bảng màu có **Genesis v2 · Common** và từng họ riêng. Mỗi asset chỉ cần một tập con của bảng tổng.
 - [JSON đã duyệt](genesis-v2.json), [HEX tổng](genesis-v2.hex), [Common](genesis-v2/common.hex). Các file HEX riêng nằm trong `genesis-v2/`.
 - Genesis v1 vẫn có trong danh sách để mở và tiếp tục vẽ tranh cũ. Nâng bảng mặc định của bản tự lưu không đổi pixel; bảng người dùng đã sửa được giữ nguyên.
-- Terrain tạo nhanh dùng bảng tổng Genesis v2 khi không chọn Master; các bảng họ riêng phục vụ vẽ và pixel hóa.
+- Chọn v2 hoặc bảng họ v2 thì Terrain dùng bảng tổng Genesis v2. V3 và Master có bộ màu riêng theo lựa chọn.
 
 ## Common
 

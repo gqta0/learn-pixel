@@ -5,7 +5,7 @@ import { frameToCanvas, invalidateBuf, layerLength } from './raster.js';
 import { pushUndo } from './history.js';
 import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
-import { palette, setPalette, paintSwatches, fillPalSelect, paletteNameOf, PALETTES, MASTER_NAME, GENESIS_V1_NAME, DEFAULT_PAL_NAME } from './palette.js';
+import { palette, setPalette, paintSwatches, fillPalSelect, paletteNameOf, PALETTES, MASTER_NAME, GENESIS_V1_NAME, GENESIS_NAME, DEFAULT_PAL_NAME } from './palette.js';
 import { doneSet, buildExercises, migrateDone } from './content/exercises.js';
 import { spriteFramesTres, pixelizeImage, medianCut, MAX_SIDE } from './sheet.js';
 import { syncAll } from './ui.js';
@@ -194,8 +194,8 @@ function syncPalSelect(){
   const name=paletteNameOf(palette);
   if(name && $('#palSel')) fillPalSelect(name);
 }
-/* Bản tự lưu còn đúng nguyên bảng mặc định cũ (Master hoặc Genesis v1)
-   chuyển sang Genesis v2 một lần. Pixel trong tranh không đổi;
+/* Bản tự lưu còn đúng bảng mặc định cũ chuyển sang Genesis v3 một lần.
+   Marker giúp phân biệt bảng mặc định với lựa chọn phiên bản cũ có chủ ý. Pixel không đổi;
    bảng đã chỉnh tay hay bảng khác thì giữ nguyên. */
 const DEFAULT_PAL_KEY='lo-pixel-default-pal';
 function adoptDefaultPalette(){
@@ -206,7 +206,7 @@ function adoptDefaultPalette(){
     localStorage.setItem(DEFAULT_PAL_KEY,DEFAULT_PAL_NAME);
   }catch(_){ return; }
   const name=paletteNameOf(palette);
-  if(name!==GENESIS_V1_NAME && (name!==MASTER_NAME || previous)) return;
+  if(![MASTER_NAME,GENESIS_V1_NAME,GENESIS_NAME].includes(name) || (previous && previous!==name)) return;
   setPalette(PALETTES[DEFAULT_PAL_NAME]);
   syncPalSelect(); paintSwatches();
   writeSave();          // ghi ngay, không chờ nhịp tự lưu, để lần mở sau không quay về bảng cũ

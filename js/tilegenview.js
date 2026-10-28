@@ -5,7 +5,7 @@ import { $, toast } from './dom.js';
 import { view } from './state.js';
 import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
-import { PALETTES, COLOR_TOKENS, MASTER_NAME, DEFAULT_PAL_NAME } from './palette.js';
+import { PALETTES, COLOR_TOKENS, MASTER_NAME, GENESIS_NAME, GENESIS_V3_NAME } from './palette.js';
 import { TERRAIN_TILES, terrainGodotTres, checkSeams, checkColorSeams,
   ATLAS_COLS, ATLAS_ROWS, terrainSlotCells } from './terrain.js';
 import { GEN_RECIPES, GEN_RECIPE_ORDER, GEN_PARAMS, GEN_CRUSTS, GEN_DRIPS, GEN_INTERIORS, GEN_CAPS, GEN_SEED_GROUPS,
@@ -32,7 +32,7 @@ function defaultStratum(i){
     interior:null,capStyle:null,light:'tl',seed:1701+i*97,seeds:null};
 }
 function defaults(){
-  return {v:3,palette:'genesis',stratum:0,strata:GEN_STRATA.map((_,i)=>defaultStratum(i)),layout:'stairs',deco:true,hero:true,
+  return {v:3,palette:'genesis-v3',stratum:0,strata:GEN_STRATA.map((_,i)=>defaultStratum(i)),layout:'stairs',deco:true,hero:true,
     size:16,shape:'inset',scope:'all',keepEdited:true,frames:true,macro:true};
 }
 function load(){
@@ -48,7 +48,7 @@ function load(){
 let st=load();
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(_){} }
 const cur=()=>st.strata[st.stratum];
-const palName=()=>st.palette==='master'?MASTER_NAME:DEFAULT_PAL_NAME;
+const palName=()=>({master:MASTER_NAME,genesis:GENESIS_NAME,'genesis-v3':GENESIS_V3_NAME})[st.palette]||GENESIS_V3_NAME;
 function specOf(s){
   return makeSpec(s.recipe,{palette:st.palette,seed:s.seed,seeds:s.seeds||undefined,params:s.params,colors:s.colors,light:s.light,
     crustType:s.crustType||undefined,dripType:s.dripType||undefined,interior:s.interior||undefined,capStyle:s.capStyle||undefined});
@@ -191,7 +191,7 @@ function fillSelect(sel,map,recipeValue){
 function paletteGroups(){
   const groups=new Map();
   for(const hex of PALETTES[palName()]){
-    const g=(COLOR_TOKENS[hex]?.group||'Khác').replace(/^Genesis (?:v2 )?· /,'');
+    const g=(COLOR_TOKENS[hex]?.group||'Khác').replace(/^Genesis (?:v[23] )?· /,'');
     if(!groups.has(g)) groups.set(g,[]);
     groups.get(g).push(hex);
   }
