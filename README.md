@@ -17,13 +17,12 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 **Màu**
 - Panel sinh dải màu lệch tông theo **chất liệu** (kim loại, gỗ, đá, da người, lá, vải, thuỷ tinh, vàng, lửa).
-- Bảng mặc định **Genesis v3 — Warm Vibrant**: **121 HEX cố định**, gồm **Common + 24 họ màu**, mỗi bảng riêng 5 màu.
-  Chọn từng họ trong ô bảng màu, hoặc bật **Phân loại nhóm** để xem bảng tổng. Có [JSON và HEX v3](palettes/genesis-v3.md).
-  Vẫn có [Genesis v2 Draft 2.0 (122 màu)](palettes/genesis-v2.md) và Genesis v1 (69 màu) để chọn lại.
-  Nâng bảng mặc định của bản tự lưu không đổi pixel; bảng đã chỉnh tay và lựa chọn phiên bản cũ có chủ ý được giữ nguyên.
+- Bảng mặc định **Genesis v3**: **91 HEX** lấy nguyên từ project-genesis, chia **20 nhóm 4–5 màu** theo tông (tối → sáng).
+  Chọn từng nhóm trong ô bảng màu, hoặc bật **Phân loại nhóm** để xem bảng tổng. Xem [bảng nhóm và file HEX](palettes/genesis-v3.md).
+  Bản tự lưu còn bảng mặc định cũ (Master, Genesis v1) được nâng lên v3 một lần, không đổi pixel; bảng đã chỉnh tay giữ nguyên.
 - **⬆ Nhập .hex** (khung Màu): nhập bảng màu từ file `.hex` của Lospec, `.gpl` của GIMP/Aseprite hoặc `.txt` có
   mã `#RRGGBB`, lưu vào “Của bạn” và dùng luôn.
-- Các bảng khác gồm Genesis v2, Genesis v1, Master Palette 92 màu, PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động và Xám 8 bậc. Master vẫn giữ các token chất liệu cho Terrain và ⚡ Tạo nhanh.
+- Các bảng khác gồm Master Palette 92 màu, PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động và Xám 8 bậc. Master vẫn giữ các token chất liệu cho Terrain và ⚡ Tạo nhanh.
 - **Thư viện bảng màu của bạn**: lưu bảng màu vào máy và dùng lại cho dự án sau, tách khỏi file tranh.
 - Sửa / bỏ / sắp xếp từng ô màu, bỏ màu thừa, rút bảng màu từ chính bức tranh hoặc từ một ảnh mẫu, thay màu hàng loạt (palette swap).
 - Ô màu chưa dùng ở khung hiện tại thì mờ đi, nên nhìn ra ngay bảng màu đang thừa chỗ nào.
@@ -189,7 +188,7 @@ trang trí và nhân vật cao đúng ô **🎮 Cỡ trong game**. Bên phải l
    ngọc**, **mạch lam**, **hang tinh thể**, **linh thạch tím** (mạch vữa sáng linh khí, tinh thể
    **mọc xiên**); cùng các kiểu cũ Đá ấm · cỏ, Cuội rêu · rễ, Hang tinh thể lam, Băng tuyết,
    Đường làng lát đá, Đá sâu · mạch lam, Linh thạch tím. Màu lấy từ **bảng màu đang vẽ**
-   (như thẻ Tạo bộ): chọn Master thì theo Master, chọn v2/v3 hoặc bảng họ thì theo bảng tổng cùng phiên bản; các bảng khác dùng **Genesis v3**. Đổi bảng ở
+   (như thẻ Tạo bộ): chọn Master thì theo Master; mọi bảng khác (kể cả nhóm Genesis v3) dùng bảng tổng **Genesis v3**. Đổi bảng ở
    khung vẽ thì bộ ô đổi theo. Mỗi công thức có sẵn bảng **màu theo vai trò** (viền, nền, đá, mặt
    trên, lớp phủ, linh khí, rễ, hoa) lấy đúng mã trong bảng đó; màu anh đổi tay chỉ giữ khi bảng mới
    cũng có màu ấy.
@@ -257,7 +256,7 @@ File xuất (JSON layout, Godot, pack, project) ghi `edgeShape` và gợi ý `co
 
 1. Chọn 16×16 hoặc 32×32, bấm **Tạo bộ 56 ô**. App dựng khối nền đá để vẽ tiếp;
    có thể chọn nhanh preset **Đá lạnh / Đá ấm / Đất / Blue Qi / Qi xanh dương / Sky/Water / Qi Violet** hoặc chọn **Nền** và
-   **Cạnh** trực tiếp từ bảng gốc của bộ tạo (Genesis v3 mặc định; v2 và Master giữ bảng tương ứng). Các bậc sáng/tối
+   **Cạnh** trực tiếp từ bảng gốc của bộ tạo (Genesis v3 mặc định; Master giữ bảng Master). Các bậc sáng/tối
    của khối nền được bắt về màu gần nhất trong bảng. Nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
 2. Chọn tile để đọc vai trò pixel, cạnh hở, góc lồi/lõm và các tile nối hợp lệ theo
    N/E/S/W. Khối cơ bản được xếp thành sơ đồ 3×3; các nhóm góc lõm, khối rời và biến thể
@@ -317,7 +316,7 @@ topology độc lập. Không giả định cùng thứ tự với tileset của
 mapping theo mask. Tham khảo thuật toán gốc:
 [Autotile-47](https://github.com/Game-Development-Resources/Autotile-47).
 
-Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs tests/pack.mjs tests/tilegen.mjs tests/genesis.mjs tests/genesis-v3.mjs`.
+Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs tests/pack.mjs tests/tilegen.mjs tests/genesis.mjs`.
 
 ## Đưa lên GitHub Pages
 
