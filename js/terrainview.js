@@ -45,18 +45,18 @@ function setPane(name){
   $$('.tv-tabs [role=tab]').forEach(t=>t.setAttribute('aria-selected',t.dataset.tpane===name));
 }
 const showDetail=()=>setPane('detail');
-/* Màu tạo bộ theo bảng đang dùng: đang vẽ bằng Master thì lấy Master, còn lại (mặc định) là Genesis v1. */
+/* Màu tạo bộ: đang vẽ bằng Master thì lấy Master, còn lại là Genesis v2 tổng. */
 export function toolPaletteKey(){ return paletteNameOf(appPalette)===MASTER_NAME ? 'master' : 'genesis'; }
 const toolPaletteName=()=>toolPaletteKey()==='master'?MASTER_NAME:DEFAULT_PAL_NAME;
 const TERRAIN_CREATE_PRESETS={
   genesis:{
-    stone:{base:'#806f95',edge:'#ddd1e0'},
-    warmStone:{base:'#965b4f',edge:'#d8a597'},
-    soil:{base:'#6f433a',edge:'#b3783d'},
-    blueQi:{base:'#2c4d8f',edge:'#87c8cf'},
-    qiBlue:{base:'#22917f',edge:'#9ef2cf'},
-    skyWater:{base:'#5b98e6',edge:'#bfe0f8'},
-    qi:{base:'#681ab7',edge:'#e187f8'}
+    stone:{base:'#97b3b6',edge:'#c0ced0'},
+    warmStone:{base:'#965b4f',edge:'#af8278'},
+    soil:{base:'#77665d',edge:'#97887f'},
+    blueQi:{base:'#5b98e6',edge:'#9dbde7'},
+    qiBlue:{base:'#3fd0a6',edge:'#7ed4bb'},
+    skyWater:{base:'#5b98e6',edge:'#d2dfee'},
+    qi:{base:'#9b47cd',edge:'#cfb7dd'}
   },
   master:{
     stone:{base:'#5e788c',edge:'#b4c5d1'},
@@ -75,7 +75,7 @@ function terrainColorGroups(){
   const groups=new Map();
   colors.forEach(hex=>{
     const meta=COLOR_TOKENS[hex],group=meta?.group||'Chung';
-    if(['Skin','Silk','Cinnabar','Genesis · Da sáng'].includes(group)) return;      // dải nhân vật không phải màu đất đá
+    if(['Skin','Silk','Cinnabar','Genesis · Da sáng','Genesis v2 · Da ấm'].includes(group)) return;      // dải nhân vật không phải màu đất đá
     if(!groups.has(group))groups.set(group,[]);
     groups.get(group).push({hex,meta});
   });

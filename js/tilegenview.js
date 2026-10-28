@@ -191,7 +191,7 @@ function fillSelect(sel,map,recipeValue){
 function paletteGroups(){
   const groups=new Map();
   for(const hex of PALETTES[palName()]){
-    const g=(COLOR_TOKENS[hex]?.group||'Khác').replace(/^Genesis · /,'');
+    const g=(COLOR_TOKENS[hex]?.group||'Khác').replace(/^Genesis (?:v2 )?· /,'');
     if(!groups.has(g)) groups.set(g,[]);
     groups.get(g).push(hex);
   }
@@ -437,11 +437,13 @@ const isOpen=()=>$('#terrainWrap')?.dataset.tpane==='quick' && document.body.dat
    chỉ giữ lại màu nào có trong bảng mới. Trả về true nếu bảng vừa đổi. */
 function syncPalette(){
   const k=toolPaletteKey();
-  if(st.palette===k) return false;
+  let changed=st.palette!==k;
   st.palette=k;
   const inPal=new Set(PALETTES[palName()].map(h=>h.toLowerCase()));
-  for(const s of st.strata) for(const [role,hex] of Object.entries(s.colors||{})) if(!inPal.has(String(hex).toLowerCase())) delete s.colors[role];
-  save(); return true;
+  for(const s of st.strata) for(const [role,hex] of Object.entries(s.colors||{})) if(!inPal.has(String(hex).toLowerCase())){
+    delete s.colors[role]; changed=true;
+  }
+  if(changed) save(); return changed;
 }
 export function openQuick(){
   const changed=syncPalette(), wasMounted=mounted;
