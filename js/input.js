@@ -8,7 +8,7 @@ import { markToday } from './daily.js';
 import { paintThumbs } from './frames.js';
 import { syncFingerBtn } from './tools.js';
 import { tileRoles, terrainConnectorIndices, ROLE_NAMES } from './terrain.js';
-import { inside, idx, put, normSel, stamp, lineStamp, rectStamp, ellipseStamp, floodFill,
+import { inside, idx, put, normSel, stamp, lineStamp, rectStamp, ellipseStamp, floodFill, outlineData,
          shiftLayer, pixelAt, preview, setPreview, setStrokeSeen, isDitherHit } from './raster.js';
 
 /* ---------------- chuột / cảm ứng ---------------- */
@@ -209,6 +209,10 @@ wrap.addEventListener('pointerdown', e=>{
   else if(strokeTool==='pencil' || strokeTool==='shade' || strokeTool==='dither'){ stamp(activeData(),p.x,p.y,col); }
   else if(strokeTool==='eraser'){ stamp(activeData(),p.x,p.y,0); }
   else if(strokeTool==='fill'){ floodFill(strokeData,p.x,p.y,col,!!e.shiftKey); }   // Shift: đổi mọi ô cùng màu
+  else if(strokeTool==='outline'){        // chạm hình: viền khối đó; chạm chỗ trống: viền cả lớp / vùng chọn
+    const n=outlineData(strokeData,col,!!(e.shiftKey||view.outlineCorners),p);
+    $('#hud').textContent = n ? `◻ Viền +${n} px` : '◻ Không còn chỗ trống sát nét để viền';
+  }
   else if(strokeTool==='move'){ moveBase = activeData().slice(); }
   else { setPreview({layer:doc.al, data:activeData().slice()}); }
   restoreTerrainLock(strokeData);
