@@ -14,8 +14,7 @@
    Mọi thứ vẽ ra là CHỈ SỐ VAI TRÒ màu (ink, m0…f1) chứ không phải mã màu: đổi màu một vai là
    tô lại cả bộ trong tích tắc, và kiểm được "chỉ dùng màu trong bảng" ngay từ cấu trúc. */
 import { TERRAIN_TILES, tileRoles, terrainHash, terrainSlot, shapeInset, checkSeams, checkColorSeams, variantBase } from './terrain.js';
-import { GENESIS_COMMON, GENESIS_FAMILIES, GENESIS_COLORS } from './genesis.js';
-import { GENESIS_V3_COMMON, GENESIS_V3_FAMILIES, GENESIS_V3_COLORS } from './genesis-v3.js';
+import { GENESIS_FAMILIES, GENESIS_COLORS } from './genesis.js';
 
 /* ---------------- vai trò màu ---------------- */
 export const GEN_ROLE_KEYS=['ink','m0','m1','m2','r0','r1','r2','r3','c0','c1','c2','c3','kd','k0','k1','k2','g0','g1','g2','w0','w1','f0','f1'];
@@ -44,22 +43,19 @@ const BACKGROUND=new Set([M0,M1,M2]);
 
 /* ---------------- công thức ----------------
    Mỗi công thức = kiểu vẽ + thông số mặc định + bảng vai trò màu cho TỪNG bảng màu gốc:
-   genesis (Genesis v2), genesis-v3 (mặc định) và master. Màu nào cũng lấy đúng mã trong
+   genesis (Genesis v3, mặc định) và master. Màu nào cũng lấy đúng mã trong
    bảng đó, nên bộ ô sinh ra luôn nằm trọn trong bảng anh đang vẽ. */
-export const GEN_PALETTES={genesis:'Genesis v2','genesis-v3':'Genesis v3',master:'Master Palette'};
+export const GEN_PALETTES={genesis:'Genesis v3',master:'Master Palette'};
 const M_INK='#0d171f';
-/* Gán vai trò từ các bậc HEX đã duyệt, không pha hay nội suy thêm màu. */
+const GF=id=>GENESIS_FAMILIES[id].ramp, G_INK=GF('coal')[0];
+/* Gán vai trò từ các nhóm Genesis 4–5 màu, không pha thêm màu: đá và mặt trên lấy 4 bậc sáng nhất,
+   lớp phủ 4 bậc tối nhất, linh khí lấy tối–giữa–sáng, nền 3 bậc tối nhất. */
 function genesisPalettes({rock='stone',cap=rock,cover='leaf',glow='jade',background='coal',sky}={}){
-  return Object.fromEntries([
-    ['genesis',GENESIS_COMMON,GENESIS_FAMILIES],['genesis-v3',GENESIS_V3_COMMON,GENESIS_V3_FAMILIES]
-  ].map(([key,common,families])=>{
-    const R=families[rock].ramp,C=families[cap].ramp,K=families[cover].ramp,
-      G=families[glow].ramp,B=families[background].ramp,W=families.wood.ramp;
-    return [key,{sky:sky?families[sky].base:common.deep_shadow,colors:{ink:common.outline,m0:B[0],m1:B[1],m2:B[2],
-      r0:R[1],r1:R[2],r2:R[3],r3:R[4],c0:C[1],c1:C[2],c2:C[3],c3:C[4],
-      kd:K[0],k0:K[1],k1:K[2],k2:K[3],g0:G[0],g1:G[2],g2:G[4],
-      w0:W[0],w1:W[2],f0:families.pink.base,f1:families.gold.base}}];
-  }));
+  const R=GF(rock).slice(-4),C=GF(cap).slice(-4),K=GF(cover),G=GF(glow),B=GF(background),W=GF('clay');
+  return {genesis:{sky:sky?GF(sky)[2]:GF('coal')[1],colors:{ink:G_INK,m0:B[0],m1:B[1],m2:B[2],
+    r0:R[0],r1:R[1],r2:R[2],r3:R[3],c0:C[0],c1:C[1],c2:C[2],c3:C[3],
+    kd:K[0],k0:K[1],k1:K[2],k2:K[3],g0:G[0],g1:G[G.length>>1],g2:G.at(-1),
+    w0:W[0],w1:W[2],f0:GF('pink')[1],f1:GF('gold')[3]}}};
 }
 export const GEN_RECIPES={
   cleanBlock:{title:'Đá khối sạch · cỏ',note:'Khối đá xếp so le, mạch vữa rõ, cỏ phủ mép trên — sạch, ít nhiễu',
@@ -76,14 +72,14 @@ export const GEN_RECIPES={
     params:{size:.5,density:.5,crust:.45,drip:.35,glow:0,capH:.5,cracks:.3,pebbles:0,roots:.45,deco:.4},
     props:['sprout','tuft','flower','sprout','pebble','tuft','hang','hang'],
     palettes:{
-      ...genesisPalettes({rock:'wood',cover:'moss'}),
+      ...genesisPalettes({rock:'clay',cover:'sage'}),
       master:{sky:'#0d171f',colors:{ink:'#223344',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#5f4b4e',r1:'#7c6d6c',r2:'#ac9c8d',r3:'#cabcad',c0:'#5f4b4e',c1:'#7c6d6c',c2:'#ac9c8d',c3:'#e6e0d3',kd:'#173d2a',k0:'#245c2c',k1:'#4a873c',k2:'#7cb759',g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#ec89ae',f1:'#f5cb53'}}}},
   cleanDeep:{title:'Đá khối sâu · mạch ngọc',note:'Khối đá tím than tối, rêu xám mỏng, mạch vữa ánh linh khí ngọc',
     interior:'block',capStyle:'block',crustType:'moss',dripType:'vine',hangType:'stalactite',
     params:{size:.5,density:.5,crust:.3,drip:.15,glow:.35,capH:.5,cracks:.4,pebbles:0,roots:.1,deco:.3},
     props:['pebble','sprout','shard','pebble','crystal','tuft','hang','hang'],
     palettes:{
-      ...genesisPalettes({cover:'moss',background:'void'}),
+      ...genesisPalettes({rock:'dusk',cover:'sage'}),
       master:{sky:'#0d171f',colors:{ink:'#0d171f',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',c0:'#2e4659',c1:'#435d73',c2:'#5e788c',c3:'#7a95a7',kd:'#283b3a',k0:'#3a5647',k1:'#527059',k2:'#6e896f',g0:'#004264',g1:'#08919b',g2:'#01cbd3',w0:'#41261c',w1:'#694635',f0:'#c4f0de',f1:'#5dffc0'}}}},
   cleanQi:{title:'Đá khối mạch lam',note:'Khối đá xám lam, băng tinh thể trên mép, mạch vữa sáng linh khí lam',
     interior:'block',capStyle:'block',crustType:'crystal',dripType:'icicle',hangType:'icicle',
@@ -104,14 +100,14 @@ export const GEN_RECIPES={
     params:{size:.5,density:.5,crust:.35,drip:.3,glow:.9,capH:.5,cracks:.25,pebbles:0,roots:0,deco:.5},
     props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang'],
     palettes:{
-      ...genesisPalettes({rock:'void',cap:'purple',cover:'purple',glow:'purple'}),
+      ...genesisPalettes({rock:'dusk',cap:'violet',cover:'violet',glow:'violet'}),
       master:{sky:'#162331',colors:{ink:'#0d171f',m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',c0:'#2e4659',c1:'#435d73',c2:'#5e788c',c3:'#b4c5d1',kd:'#5e419e',k0:'#7c5bc4',k1:'#9a7de0',k2:'#b99cff',g0:'#5e419e',g1:'#9a7de0',g2:'#b99cff',w0:'#41261c',w1:'#694635',f0:'#b99cff',f1:'#ffd0df'}}}},
   warmLedge:{title:'Đá ấm · cỏ',note:'Gờ cuội ấm, cỏ non; đá tảng nằm trong nền tối',
     interior:'boulder',capStyle:'cobble',crustType:'grass',dripType:'vine',hangType:'stalactite',
     params:{size:.65,density:.3,crust:.4,drip:.25,glow:0,capH:.5,cracks:.35,pebbles:.55,roots:0,deco:.55},
     props:['tuft','tuft','flower','sprout','pebble','tuft','flower','hang'],
     palettes:{
-      ...genesisPalettes({rock:'wood',cap:'earth'}),
+      ...genesisPalettes({rock:'clay',cap:'stone'}),
       master:{sky:'#223344',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#413e49',r0:'#5f4b4e',r1:'#7c6d6c',r2:'#ac9c8d',r3:'#cabcad',
         c0:'#7c6d6c',c1:'#ac9c8d',c2:'#cabcad',c3:'#e6e0d3',kd:'#245c2c',k0:'#4a873c',k1:'#7cb759',k2:'#b1dc74',
         g0:'#14866a',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#f4efe3',f1:'#f5cb53'}}}},
@@ -120,7 +116,7 @@ export const GEN_RECIPES={
     params:{size:.55,density:.6,crust:.55,drip:.6,glow:0,capH:.45,cracks:.2,pebbles:.3,roots:.5,deco:.5},
     props:['sprout','sprout','tuft','tuft','flower','pebble','hang','hang'],
     palettes:{
-      ...genesisPalettes({rock:'slate',cover:'moss'}),
+      ...genesisPalettes({rock:'slate',cover:'sage'}),
       master:{sky:'#0d171f',colors:{ink:M_INK,m0:'#0d171f',m1:'#223344',m2:'#2e4659',r0:'#435d73',r1:'#5e788c',r2:'#7a95a7',r3:'#99b0bf',
         c0:'#435d73',c1:'#5e788c',c2:'#7a95a7',c3:'#99b0bf',kd:'#245c2c',k0:'#4a873c',k1:'#7cb759',k2:'#b1dc74',
         g0:'#0f5c50',g1:'#2fb688',g2:'#7fe8b4',w0:'#41261c',w1:'#694635',f0:'#ec89ae',f1:'#f5cb53'}}}},
@@ -156,7 +152,7 @@ export const GEN_RECIPES={
     params:{size:.55,density:.55,crust:.25,drip:.3,glow:.35,capH:.45,cracks:.45,pebbles:.4,roots:.15,deco:.35},
     props:['pebble','sprout','shard','pebble','crystal','tuft','hang','hang'],
     palettes:{
-      ...genesisPalettes({cap:'slate',cover:'moss',glow:'blue'}),
+      ...genesisPalettes({cap:'slate',cover:'sage',glow:'blue'}),
       master:{sky:'#0d171f',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',
         c0:'#435d73',c1:'#5e788c',c2:'#7a95a7',c3:'#99b0bf',kd:'#283b3a',k0:'#3a5647',k1:'#527059',k2:'#6e896f',
         g0:'#004264',g1:'#08919b',g2:'#01cbd3',w0:'#41261c',w1:'#694635',f0:'#c4f0de',f1:'#5dffc0'}}}},
@@ -165,7 +161,7 @@ export const GEN_RECIPES={
     params:{size:.5,density:.5,crust:.3,drip:.4,glow:.85,capH:.4,cracks:.3,pebbles:.3,roots:0,deco:.5},
     props:['crystal','crystal','shard','pebble','shard','crystal','hang','hang'],
     palettes:{
-      ...genesisPalettes({rock:'void',cap:'purple',cover:'purple',glow:'purple'}),
+      ...genesisPalettes({rock:'dusk',cap:'violet',cover:'violet',glow:'violet'}),
       master:{sky:'#162331',colors:{ink:M_INK,m0:'#0d171f',m1:'#162331',m2:'#223344',r0:'#2e4659',r1:'#435d73',r2:'#5e788c',r3:'#7a95a7',
         c0:'#5e788c',c1:'#7a95a7',c2:'#99b0bf',c3:'#b4c5d1',kd:'#5e419e',k0:'#5e419e',k1:'#7c5bc4',k2:'#b99cff',
         g0:'#5e419e',g1:'#9a7de0',g2:'#b99cff',w0:'#41261c',w1:'#694635',f0:'#b99cff',f1:'#ffd0df'}}}}
@@ -210,8 +206,8 @@ export function makeSeeds(seed){
 export function makeSpec(recipeId, patch={}){
   const r=GEN_RECIPES[recipeId]||GEN_RECIPES.cleanBlock;
   const seed=Number.isInteger(patch.seed)?patch.seed:1701;
-  const palette=Object.hasOwn(r.palettes,patch.palette)?patch.palette:'genesis-v3', base=r.palettes[palette];
-  const allowed=palette==='genesis'?GENESIS_COLORS:GENESIS_V3_COLORS;
+  const palette=Object.hasOwn(r.palettes,patch.palette)?patch.palette:'genesis', base=r.palettes[palette];
+  const allowed=GENESIS_COLORS;
   const colors={...base.colors},sky=String(patch.sky||'').toLowerCase();
   for(const key of GEN_ROLE_KEYS){
     const hex=patch.colors?.[key]?.toLowerCase?.();
@@ -1163,17 +1159,13 @@ function cellMask(map,x,y){
 }
 /* nhân vật mẫu để so tỉ lệ — vẽ bằng khối, cao đúng chiều cao nhân vật trong game */
 const HERO_COLORS={
-  'genesis-v3':{hair:GENESIS_V3_COMMON.outline,skin:GENESIS_V3_FAMILIES.skin.base,skinD:GENESIS_V3_FAMILIES.skin.ramp[1],
-    robe:GENESIS_V3_FAMILIES.ivory.ramp[4],robeD:GENESIS_V3_FAMILIES.ivory.ramp[3],belt:GENESIS_V3_FAMILIES.red.base,
-    pants:GENESIS_V3_FAMILIES.void.base,ink:GENESIS_V3_COMMON.outline},
-  genesis:{hair:GENESIS_COMMON.outline,skin:GENESIS_FAMILIES.skin.base,skinD:GENESIS_FAMILIES.skin.ramp[1],
-    robe:GENESIS_FAMILIES.ivory.ramp[4],robeD:GENESIS_FAMILIES.ivory.ramp[3],belt:GENESIS_FAMILIES.red.base,
-    pants:GENESIS_FAMILIES.void.base,ink:GENESIS_COMMON.outline},
+  genesis:{hair:G_INK,skin:GF('skin')[2],skinD:GF('skin')[1],robe:GF('mist')[3],robeD:GF('mist')[2],
+    belt:GF('blood')[3],pants:GF('dusk')[1],ink:G_INK},
   master:{hair:'#1f1e1c',skin:'#e8ad83',skinD:'#d08a66',robe:'#d8d1c2',robeD:'#b5aea1',belt:'#c2362c',pants:'#4c4944',ink:M_INK}
 };
-export function heroSprite(H,palette='genesis-v3'){
+export function heroSprite(H,palette='genesis'){
   const h=Math.max(16,Math.round(H)), w=Math.max(9,Math.round(h*.46)), px=new Uint32Array(w*h);
-  const C=Object.fromEntries(Object.entries(HERO_COLORS[palette]||HERO_COLORS['genesis-v3']).map(([k,v])=>[k,hexToRgba(v)]));
+  const C=Object.fromEntries(Object.entries(HERO_COLORS[palette]||HERO_COLORS.genesis).map(([k,v])=>[k,hexToRgba(v)]));
   const rect=(x0,y0,x1,y1,c)=>{ for(let y=Math.max(0,y0);y<Math.min(h,y1);y++) for(let x=Math.max(0,x0);x<Math.min(w,x1);x++) px[y*w+x]=c; };
   const headH=Math.round(h*.3), bodyT=headH, legT=Math.round(h*.76), cx=Math.floor(w/2), hw=Math.round(w*.36);
   rect(cx-hw,1,cx+hw+1,headH,C.skin);
@@ -1196,7 +1188,7 @@ export function heroSprite(H,palette='genesis-v3'){
   return {w,h,px:out};
 }
 /* sets: [{tiles: 56 Uint32Array, props:[{anchor,px}], sky}] → ảnh RGBA của cả bản đồ */
-export function renderPreview(map,sets,{n=16,shape='inset',deco=.5,heroH=0,seed=1701,palette='genesis-v3'}={}){
+export function renderPreview(map,sets,{n=16,shape='inset',deco=.5,heroH=0,seed=1701,palette='genesis'}={}){
   const W=map.w*n, H=map.h*n, img=new Uint32Array(W*H).fill(hexToRgba(sets[0].sky||'#162331'));
   const r=shapeInset(shape,n);
   const blit=(src,sw,sh,dx,dy)=>{

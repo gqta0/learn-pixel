@@ -11,7 +11,7 @@ import { getAtlas, createTerrainAtlas, editAtlasSlot, editingRect, writeBack, wr
   migrateTerrainLayout, isTerrainSheet, isLegacyTerrainSheet, closeAtlas, linkedTerrainFrameIndex } from './atlas.js';
 import { openMapView } from './mapview.js';
 import { setView } from './tools.js';
-import { PALETTES, COLOR_TOKENS, MASTER_NAME, GENESIS_NAME, GENESIS_V3_NAME, palette as appPalette, paletteNameOf } from './palette.js';
+import { PALETTES, COLOR_TOKENS, MASTER_NAME, GENESIS_NAME, palette as appPalette, paletteNameOf } from './palette.js';
 import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
   TERRAIN_PRESENTATION_GROUPS, TERRAIN_PRESENTATION_ORDER, tileRoles, terrainPixels, describeMask, neighbors, checkSeams, checkColorSeams,
   terrainManifest, terrainGodotManifest, paintTerrainGuide,
@@ -45,30 +45,20 @@ function setPane(name){
   $$('.tv-tabs [role=tab]').forEach(t=>t.setAttribute('aria-selected',t.dataset.tpane===name));
 }
 const showDetail=()=>setPane('detail');
-/* Bảng họ dùng bộ tổng cùng phiên bản; Master giữ riêng, bảng khác dùng mặc định v3. */
+/* Master giữ riêng; mọi bảng khác (kể cả nhóm Genesis v3 và bảng tự tạo) dùng bộ tổng Genesis v3. */
 export function toolPaletteKey(){
-  const name=paletteNameOf(appPalette);
-  return name===MASTER_NAME?'master':Object.hasOwn(PALETTES,name)&&(name===GENESIS_NAME||name.startsWith('Genesis v2 · '))?'genesis':'genesis-v3';
+  return paletteNameOf(appPalette)===MASTER_NAME?'master':'genesis';
 }
-const toolPaletteName=()=>({master:MASTER_NAME,genesis:GENESIS_NAME,'genesis-v3':GENESIS_V3_NAME})[toolPaletteKey()];
+const toolPaletteName=()=>toolPaletteKey()==='master'?MASTER_NAME:GENESIS_NAME;
 const TERRAIN_CREATE_PRESETS={
-  'genesis-v3':{
-    stone:{base:'#ad9b83',edge:'#c1b3a6'},
-    warmStone:{base:'#a66a43',edge:'#b5845e'},
-    soil:{base:'#94704e',edge:'#a78864'},
-    blueQi:{base:'#6cabc3',edge:'#97c3cf'},
-    qiBlue:{base:'#43c9ab',edge:'#6fcdb1'},
-    skyWater:{base:'#6cabc3',edge:'#c6dadf'},
-    qi:{base:'#a66dd0',edge:'#dcd0e8'}
-  },
   genesis:{
-    stone:{base:'#97b3b6',edge:'#c0ced0'},
-    warmStone:{base:'#965b4f',edge:'#af8278'},
-    soil:{base:'#77665d',edge:'#97887f'},
-    blueQi:{base:'#5b98e6',edge:'#9dbde7'},
-    qiBlue:{base:'#3fd0a6',edge:'#7ed4bb'},
-    skyWater:{base:'#5b98e6',edge:'#d2dfee'},
-    qi:{base:'#9b47cd',edge:'#cfb7dd'}
+    stone:{base:'#97b3b6',edge:'#c3d4d6'},
+    warmStone:{base:'#965b4f',edge:'#c37669'},
+    soil:{base:'#857870',edge:'#9c8f8a'},
+    blueQi:{base:'#5b98e6',edge:'#86bdf0'},
+    qiBlue:{base:'#3fd0a6',edge:'#9ef2cf'},
+    skyWater:{base:'#5b98e6',edge:'#bfe0f8'},
+    qi:{base:'#c955e7',edge:'#e187f8'}
   },
   master:{
     stone:{base:'#5e788c',edge:'#b4c5d1'},
@@ -87,7 +77,7 @@ function terrainColorGroups(){
   const groups=new Map();
   colors.forEach(hex=>{
     const meta=COLOR_TOKENS[hex],group=meta?.group||'Chung';
-    if(['Skin','Silk','Cinnabar','Genesis · Da sáng','Genesis v2 · Da ấm','Genesis v3 · Da ấm'].includes(group)) return;      // dải nhân vật không phải màu đất đá
+    if(['Skin','Silk','Cinnabar','Genesis v3 · Da'].includes(group)) return;      // dải nhân vật không phải màu đất đá
     if(!groups.has(group))groups.set(group,[]);
     groups.get(group).push({hex,meta});
   });

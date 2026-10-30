@@ -1,297 +1,32 @@
-/* HEX cố định từ palettes/genesis-v2.json — Draft 2.0 đã duyệt; không sinh màu ở runtime. */
-const DRAFT = {
-  "version": "2.0-draft",
-  "policy": "fixed palette; no runtime generated colors",
-  "ramp_generation": "offline HSL seed generation followed by manual art review; freeze HEX after approval",
-  "common": {
-    "outline": "#222331",
-    "deep_shadow": "#34343F",
-    "neutral_shadow": "#555C68",
-    "neutral_light": "#D8C8A8",
-    "specular": "#F4F0DE"
-  },
-  "families": {
-    "leaf": {
-      "base": "#63C74D",
-      "ramp": [
-        "#315E28",
-        "#469236",
-        "#63C74D",
-        "#94CF87",
-        "#BFDBB9"
-      ]
-    },
-    "moss": {
-      "base": "#7A9A72",
-      "ramp": [
-        "#3A4737",
-        "#576E52",
-        "#7A9A72",
-        "#A0B39B",
-        "#C2CCC0"
-      ]
-    },
-    "forest": {
-      "base": "#327A50",
-      "ramp": [
-        "#0A130E",
-        "#1E412D",
-        "#327A50",
-        "#4EA070",
-        "#7AB191"
-      ]
-    },
-    "wood": {
-      "base": "#965B4F",
-      "ramp": [
-        "#362421",
-        "#613E37",
-        "#965B4F",
-        "#AF8278",
-        "#C1A8A3"
-      ]
-    },
-    "earth": {
-      "base": "#77665D",
-      "ramp": [
-        "#26221F",
-        "#4B423C",
-        "#77665D",
-        "#97887F",
-        "#B0A8A3"
-      ]
-    },
-    "skin": {
-      "base": "#F3BFA2",
-      "ramp": [
-        "#CE6E39",
-        "#E29367",
-        "#F3BFA2",
-        "#F8E8DF",
-        "#FAF3F0"
-      ]
-    },
-    "blood": {
-      "base": "#9E3545",
-      "ramp": [
-        "#2F1519",
-        "#61262F",
-        "#9E3545",
-        "#BA5B6A",
-        "#C48F97"
-      ]
-    },
-    "gold": {
-      "base": "#E6AC55",
-      "ramp": [
-        "#886024",
-        "#C58729",
-        "#E6AC55",
-        "#E6C697",
-        "#EDE0CE"
-      ]
-    },
-    "copper": {
-      "base": "#D1732E",
-      "ramp": [
-        "#54341C",
-        "#8B5227",
-        "#D1732E",
-        "#D2996F",
-        "#D9BBA6"
-      ]
-    },
-    "slate": {
-      "base": "#97B3B6",
-      "ramp": [
-        "#526A6C",
-        "#6D9094",
-        "#97B3B6",
-        "#C0CED0",
-        "#E4E8E9"
-      ]
-    },
-    "silver": {
-      "base": "#B9C5D0",
-      "ramp": [
-        "#6A7E90",
-        "#8E9FAF",
-        "#B9C5D0",
-        "#E2E6EA",
-        "#F4F5F6"
-      ]
-    },
-    "steel": {
-      "base": "#657681",
-      "ramp": [
-        "#272C30",
-        "#454F55",
-        "#657681",
-        "#89969F",
-        "#ADB4B9"
-      ]
-    },
-    "stone": {
-      "base": "#555C68",
-      "ramp": [
-        "#151719",
-        "#33373D",
-        "#555C68",
-        "#757D8A",
-        "#989DA4"
-      ]
-    },
-    "jade": {
-      "base": "#3FD0A6",
-      "ramp": [
-        "#225E4D",
-        "#2D9577",
-        "#3FD0A6",
-        "#7ED4BB",
-        "#B2DCD0"
-      ]
-    },
-    "blue": {
-      "base": "#5B98E6",
-      "ramp": [
-        "#26538C",
-        "#2B71C9",
-        "#5B98E6",
-        "#9DBDE7",
-        "#D2DFEE"
-      ]
-    },
-    "purple": {
-      "base": "#9B47CD",
-      "ramp": [
-        "#4A2560",
-        "#713196",
-        "#9B47CD",
-        "#B584D3",
-        "#CFB7DD"
-      ]
-    },
-    "pink": {
-      "base": "#EC7FA9",
-      "ramp": [
-        "#AE2E5F",
-        "#D8467F",
-        "#EC7FA9",
-        "#EFBED1",
-        "#F9F0F4"
-      ]
-    },
-    "red": {
-      "base": "#CA4949",
-      "ramp": [
-        "#5E2626",
-        "#933333",
-        "#CA4949",
-        "#D18585",
-        "#DCB7B7"
-      ]
-    },
-    "ice": {
-      "base": "#9EDFEA",
-      "ramp": [
-        "#3EA9BB",
-        "#67C5D5",
-        "#9EDFEA",
-        "#D7EFF3",
-        "#F1F8F9"
-      ]
-    },
-    "void": {
-      "base": "#64468A",
-      "ramp": [
-        "#201829",
-        "#402F55",
-        "#64468A",
-        "#856AA9",
-        "#A696B9"
-      ]
-    },
-    "ivory": {
-      "base": "#D8C8A8",
-      "ramp": [
-        "#9C8555",
-        "#BCA578",
-        "#D8C8A8",
-        "#EAE4D8",
-        "#F7F6F2"
-      ]
-    },
-    "toxic": {
-      "base": "#A4C94F",
-      "ramp": [
-        "#506128",
-        "#789536",
-        "#A4C94F",
-        "#BBD18A",
-        "#D2DDBB"
-      ]
-    },
-    "coal": {
-      "base": "#34343F",
-      "ramp": [
-        "#08080A",
-        "#121215",
-        "#34343F",
-        "#545462",
-        "#727280"
-      ]
-    },
-    "glow": {
-      "base": "#E7E0B6",
-      "ramp": [
-        "#B6A958",
-        "#CFC482",
-        "#E7E0B6",
-        "#F6F4E9",
-        "#F8F7F2"
-      ]
-    }
-  }
+/* Genesis v3 (91 màu) — HEX nguồn: palettes/genesis-v3.hex (project-genesis), giữ nguyên mã.
+   Chia 20 nhóm 4–5 màu theo tông, mỗi nhóm xếp tối → sáng; mỗi màu thuộc đúng một nhóm. */
+export const GENESIS_FAMILIES={
+  coal:{name:'Than tím',ramp:['#251c24','#25232f','#3b2c3e','#5c4763']},
+  dusk:{name:'Tím xám',ramp:['#423d52','#5e5572','#806f95','#9886a7','#bba9c6']},
+  mist:{name:'Sương tím',ramp:['#968daa','#b4b0bf','#ddd1e0','#f1edf2']},
+  stone:{name:'Đá ấm',ramp:['#4a3d3a','#5f524b','#857870','#9c8f8a','#cdc1b5']},
+  slate:{name:'Xám lam',ramp:['#4f7277','#6d8f96','#97b3b6','#c3d4d6']},
+  clay:{name:'Đất đỏ',ramp:['#492d27','#6f433a','#965b4f','#a76558','#c37669']},
+  skin:{name:'Da',ramp:['#b8886b','#d8a597','#f3bfa2','#e8d7d4','#fde2cf']},
+  copper:{name:'Đồng',ramp:['#b3783d','#d1732e','#b1957c','#e6ac55','#e5bd82']},
+  gold:{name:'Vàng',ramp:['#875208','#c67f0c','#ffa600','#ffd900','#f5e7a0']},
+  blood:{name:'Đỏ',ramp:['#532828','#763232','#a1514a','#ca4949','#da0205']},
+  crimson:{name:'Đỏ thẫm',ramp:['#3d1020','#6a1a32','#9e2440','#d8506a']},
+  pink:{name:'Hồng',ramp:['#d8368a','#ec7fa9','#f8b4cb','#fcc8da']},
+  olive:{name:'Ô liu',ramp:['#3f4724','#5e6a32','#7f8c45','#a4ad62','#c8cd8e']},
+  leaf:{name:'Lá',ramp:['#2a5a42','#3b894b','#63c74d','#abdc4c']},
+  sage:{name:'Rêu',ramp:['#1b3a2c','#284d3b','#4d6b53','#7a9a72']},
+  jade:{name:'Ngọc',ramp:['#1d5a5a','#22917f','#28b093','#3fd0a6','#9ef2cf']},
+  ice:{name:'Băng',ramp:['#87c8cf','#bfe0f8','#e6fff4','#ffffff']},
+  blue:{name:'Lam',ramp:['#2c4d8f','#4271ba','#5b98e6','#86bdf0']},
+  indigo:{name:'Chàm',ramp:['#2b2a5c','#46489a','#6a72c4','#96a0e0','#c4c6f2']},
+  violet:{name:'Tím',ramp:['#51154a','#43137c','#681ab7','#c955e7','#e187f8']}
 };
-
-const FAMILY_NAMES = {
-  "leaf": "Lá non",
-  "moss": "Rêu dịu",
-  "forest": "Lục thẫm",
-  "wood": "Gỗ",
-  "earth": "Đất",
-  "skin": "Da ấm",
-  "blood": "Huyết",
-  "gold": "Vàng",
-  "copper": "Đồng cam",
-  "slate": "Xám lam",
-  "silver": "Bạc",
-  "steel": "Thép",
-  "stone": "Đá tối",
-  "jade": "Ngọc",
-  "blue": "Lam",
-  "purple": "Tím",
-  "pink": "Hồng",
-  "red": "Đỏ",
-  "ice": "Băng",
-  "void": "Hắc tím",
-  "ivory": "Ngà",
-  "toxic": "Độc lục",
-  "coal": "Than",
-  "glow": "Linh quang"
-};
-
-export const GENESIS_COMMON=Object.fromEntries(Object.entries(DRAFT.common).map(([key,hex])=>[key,hex.toLowerCase()]));
-export const GENESIS_FAMILIES=Object.fromEntries(Object.entries(DRAFT.families).map(([id,family])=>[id,{
-  base:family.base.toLowerCase(),ramp:family.ramp.map(hex=>hex.toLowerCase())
-}]));
-export const GENESIS_GROUPS=[['Common',Object.values(GENESIS_COMMON)],
-  ...Object.entries(GENESIS_FAMILIES).map(([id,family])=>[FAMILY_NAMES[id],family.ramp])];
-export const GENESIS_COLORS=[...new Set(GENESIS_GROUPS.flatMap(([,colors])=>colors))];
-export const GENESIS_NAME='Genesis v2 ('+GENESIS_COLORS.length+' màu)';
-export const GENESIS_PALETTES=Object.fromEntries(GENESIS_GROUPS.map(([name,colors])=>['Genesis v2 · '+name+' ('+colors.length+' màu)',colors]));
+export const GENESIS_COLORS=Object.values(GENESIS_FAMILIES).flatMap(f=>f.ramp);
+export const GENESIS_NAME='Genesis v3 ('+GENESIS_COLORS.length+' màu)';
+export const GENESIS_PALETTES=Object.fromEntries(Object.values(GENESIS_FAMILIES)
+  .map(f=>['Genesis v3 · '+f.name+' ('+f.ramp.length+' màu)',f.ramp]));
 export const GENESIS_TOKENS={};
-GENESIS_GROUPS.forEach(([group,colors],i)=>colors.forEach((hex,step)=>{
-  if(!GENESIS_TOKENS[hex]) GENESIS_TOKENS[hex]={group:'Genesis v2 · '+group,token:'genesis-v2-'+i+'-'+step,
-    desc:group+' · '+(i===0?Object.keys(GENESIS_COMMON)[step]:'S'+step+(step===2?' · màu gốc':''))};
-}));
+for(const [id,f] of Object.entries(GENESIS_FAMILIES)) f.ramp.forEach((hex,i)=>{
+  GENESIS_TOKENS[hex]={group:'Genesis v3 · '+f.name,token:'genesis-'+id+'-'+i,desc:f.name+' · bậc '+(i+1)};
+});
