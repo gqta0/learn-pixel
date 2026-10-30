@@ -185,10 +185,22 @@ export function shiftLayer(data,dx,dy,selection=null,wrap=false){
   data.set(out);
 }
 /* Viền ngoài: tô màu col vào mọi ô trống kề một pixel đặc — viền sprite một nhát.
-   corners=false chỉ xét 4 hướng (viền bo góc, kiểu hay gặp ở sprite game). */
-export function outlineData(data,col,corners=false){
+   corners=false chỉ xét 4 hướng (viền bo góc, kiểu hay gặp ở sprite game).
+   at={x,y} trúng một pixel đặc: chỉ viền khối liền (tính cả chéo) chứa pixel đó. */
+export function outlineData(data,col,corners=false,at=null){
   const s=view.sel || {x:0,y:0,w:doc.w,h:doc.h};
-  const solid=(x,y)=> inside(x,y) && ((data[idx(x,y)]>>>24)&255)>0;
+  let solid=(x,y)=> inside(x,y) && ((data[idx(x,y)]>>>24)&255)>0;
+  if(at && solid(at.x,at.y)){
+    const blob=new Uint8Array(doc.w*doc.h), st=[at.x,at.y]; blob[idx(at.x,at.y)]=1;
+    while(st.length){
+      const cy=st.pop(), cx=st.pop();
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+        const x=cx+dx, y=cy+dy;
+        if(solid(x,y) && !blob[idx(x,y)]){ blob[idx(x,y)]=1; st.push(x,y); }
+      }
+    }
+    solid=(x,y)=> inside(x,y) && blob[idx(x,y)]===1;
+  }
   const hits=[];
   for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++){
     if(data[idx(x,y)]) continue;

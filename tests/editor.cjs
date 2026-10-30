@@ -177,6 +177,16 @@ test('outline wraps solid pixels in 4 directions, corners only on request',()=>{
   const f=editor();f.stroke(10,10);
   assert.equal(f.run('outlineData(activeData(),0xff000001,true)'),8);assert.equal(f.pixel(9,9),0xff000001);
 });
+test('outline tool: tap a shape outlines only that blob, tap empty outlines the layer, one undo step',()=>{
+  const e=editor();e.stroke(5,5);e.stroke(6,6);e.stroke(20,20);   // khối chéo (5,5)+(6,6) và một chấm riêng
+  e.view.tool='outline';e.view.pri=0xff000001;
+  e.event('pointerdown',1,5,5);e.event('pointermove',1,9,9);e.event('pointerup',1,9,9);
+  assert.equal(e.pixel(4,5),0xff000001);assert.equal(e.pixel(7,6),0xff000001);   // cả khối chéo được viền
+  assert.equal(e.pixel(19,20),0);                                                 // chấm riêng không bị đụng
+  e.stroke(0,0);assert.equal(e.pixel(19,20),0xff000001);                           // chạm chỗ trống: viền cả lớp
+  e.run('undo()');assert.equal(e.pixel(19,20),0);assert.equal(e.pixel(4,5),0xff000001);
+  e.view.outlineCorners=true;e.stroke(20,20);assert.equal(e.pixel(19,19),0xff000001);
+});
 test('rotate turns a square block 90° and refuses non-square selections',()=>{
   const e=editor();e.stroke(2,0);e.view.sel={x:0,y:0,w:4,h:4};
   assert.equal(e.run('rotateData(activeData(),true)'),true);

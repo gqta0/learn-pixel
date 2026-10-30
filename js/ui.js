@@ -593,7 +593,7 @@ window.addEventListener('keydown', e=>{
     view.sel=null; render(); return;
   }   // đóng bảng chọn trước, bỏ vùng chọn sau
   if(k==='delete'||k==='backspace'){ e.preventDefault(); $('#selDel').click(); return; }
-  const map={b:'pencil',d:'dither',e:'eraser',g:'fill',i:'picker',l:'line',u:'rect',o:'ellipse',m:'move',s:'shade',a:'select'};
+  const map={b:'pencil',d:'dither',e:'eraser',g:'fill',i:'picker',l:'line',u:'rect',o:'ellipse',m:'move',s:'shade',a:'select',k:'outline'};
   if(map[k]){ setTool(map[k]); return; }
   if(k==='h'){
     if(!view.terrainGuide || view.terrainGuideMode==='off'){

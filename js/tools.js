@@ -19,6 +19,7 @@ export const TOOLS=[
   {id:'ellipse',ic:'◯', key:'O', name:'Ê-líp rỗng (O)'},
   {id:'ellipsef',ic:'⬤', key:'', name:'Ê-líp đầy'},
   {id:'move',   ic:'✥', key:'M', name:'Dịch lớp (M) — phím mũi tên đẩy 1px; chạm giữ để lật / xoay / dịch vòng'},
+  {id:'outline',ic:'◻', key:'K', name:'Viền nhanh (K) — chạm một hình để viền bằng màu chính, chạm chỗ trống để viền cả lớp; Shift / chạm giữ: lấy cả góc chéo'},
   {id:'shade',  ic:'◐', key:'S', name:'Tô khối theo dải (S) — bấm để sáng lên 1 bậc, chuột phải / nút bên S-Pen để tối đi'},
   {id:'select', ic:'⬚', key:'A', name:'Chọn vùng (A) — kéo để chọn, chạm một cái để bỏ chọn'}
 ];
@@ -81,6 +82,10 @@ const MODS={
     {label:'📋 Dán',     fn:()=>$('#selPaste').click()},
     {label:'⌫ Xoá vùng', fn:()=>$('#selDel').click()},
     {label:'✕ Bỏ chọn',  fn:()=>$('#selNone').click()}
+  ]},
+  outline:{t:'Viền nhanh bằng màu chính', items:()=>[
+    {label:'◻ Bo góc (4 hướng)', on:!view.outlineCorners, fn:()=>{ view.outlineCorners=false; }},
+    {label:'▣ Lấy cả góc chéo',  on:!!view.outlineCorners, fn:()=>{ view.outlineCorners=true; }}
   ]},
   move:{t:'Di chuyển / lật / xoay vùng chọn hoặc lớp hiện tại', items:()=>[
     {label:'⇋ Lật ngang', fn:()=>$('#flipH').click()},
