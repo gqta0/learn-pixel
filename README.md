@@ -168,6 +168,43 @@ App xin trình duyệt giữ dữ liệu lâu dài; dù vậy vẫn nên **Xuấ
 - **🎮 Cỡ trong game** (cạnh nút ▶): thu khung về chiều cao nhân vật trên màn hình (mặc định 56 px, có
   làm mịn như game), đứng trên hàng gạch 16 px (ô đầu của atlas nếu có).
 
+## Ghép rối — vẽ nhân vật từng miếng, xem chạy ngay
+
+Nhân vật 64 px của Project Genesis không vẽ từng khung. Mình vẽ **một lần** các miếng phẳng (đầu, ngực,
+hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 xương và tự ra mọi khung của 14 động tác
+(chạy, nhảy, ngồi, đấm, bay, kiếm pháp…). Mở ở thẻ **Ghép rối** cột phải (điện thoại: 💾 File → Ghép rối).
+
+1. **Dựng khung** — **+ Sheet Đầu 80×81** (sọ + mặt, tóc sau, tóc trước, phụ kiện — riêng từng nhân vật)
+   hoặc **+ Sheet Thân 64×51** (cổ, ngực, hông, tay, chân — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
+   trong thư viện 📁. Trên canvas có hướng dẫn: khối mờ của dáng mẫu, khung ô kèm tên miếng, **chấm đỏ** là
+   khớp miếng xoay quanh, **chấm xanh** là chỗ miếng sau gắn vào; sheet Đầu thêm mốc (crown, tie, forehead,
+   ear, nape, chin) và vùng nên vẽ của tóc/phụ kiện. Hướng dẫn chỉ hiện trên màn hình, khoá sẵn, tắt/bật ở
+   khối *Hướng dẫn trên sheet*, không bao giờ vào file xuất.
+2. **Vẽ miếng** — vẽ ở cỡ game, màu phẳng, **không viền** (máy tự thêm viền 1 px `#251c24` sau khi ghép, viền
+   cả một chi dưới mọi màu của chi đó nên khớp gối, khớp khuỷu liền một khối). Chỉ vẽ một tay, một chân: phía
+   xa dùng lại, tối đi. Ngực nằm trên cả hai chân để vạt áo dài phủ được xuống.
+   - Chạm tên miếng (hoặc chạm vào rối) để **tới ô** đó. **🔒 Khoá trong ô** (bật sẵn): nét bắt đầu ở ô nào
+     thì chỉ vẽ trong ô đó, không lem sang miếng bên cạnh.
+   - **Đổ bóng**: chọn hướng ánh sáng (mặc định trên-trái), **👁 Xem thử bóng** để ngó trước, **◐ Đổ bóng
+     miếng này** để ghi: bóng phía khuất sáng và một viền sáng phía có sáng, lấy hai bậc kề màu nền trong
+     nhóm màu của bảng (Genesis v3 xếp tối → sáng). Chỉ là điểm khởi đầu — sửa tay tiếp, Ctrl+Z để bỏ.
+   - **Soi miếng**: pixel nằm ngoài ô, khớp còn trống (gập khớp sẽ hở khe), quá nhiều màu, màu ngoài bảng,
+     viền vẽ tay (không cần).
+3. **Xem rối** — rối nhỏ nổi ở góc canvas chạy ngay khi đặt pixel (kéo ⠿ để dời, ×1/×2/×3, ✕ để ẩn); thẻ
+   Ghép rối có cỡ thật ×1, ×2 và phóng to. Chọn động tác, ▶/⏸, ◀ ▶ từng khung, thanh **Tư thế** để kéo chậm
+   từng chút. Chọn bản Đầu và bản Thân nào trong thư viện ghép với nhau. **◧ Chỉ miếng này** + kéo thanh Tư
+   thế để xem một miếng qua mọi góc xoay; **◌ Bóng khối** chồng mờ dáng mẫu để so khối; ô chưa vẽ tạm hiện
+   khối mẫu để vẫn thấy cả người.
+4. **Xuất** — **⬇ Xuất mọi động tác (ZIP)**: mỗi động tác một PNG một hàng khung, tên theo kiểu game đang đọc
+   (`run_77x90_8f.png`, `skill_02_77x90_18f.png`…), kèm `puppet_bake.json` (khổ khung, điểm chân, fps, lặp).
+   Khổ khung giống nhau ở mọi động tác và tính từ khung xương, nên vẽ lại miếng không làm lệch điểm chân.
+   Ô chọn *Khối mẫu* cũng xuất ra khối mẫu — chọn *Không hiện* nếu chưa muốn xuất phần đó.
+
+Dữ liệu khung xương là `data/puppet.json` (định dạng `genesis.puppet.v1`), chép từ project
+`character-animation`. Khung xương hay động tác đổi bên đó thì làm mới: chạy
+`PYTHONPATH=tools python tools/export_puppet.py` trong project ấy, chép `out/puppet/puppet.json` đè lên
+`data/puppet.json`, rồi chạy kiểm thử (`node --test tests/puppet.mjs` soi định dạng và vị trí khớp).
+
 ## Terrain 56 — template có hướng dẫn pixel
 
 Mở **Terrain** từ thanh Terrain trên tablet, tab File/Atlas hoặc tab Terrain trên thanh
@@ -316,7 +353,7 @@ topology độc lập. Không giả định cùng thứ tự với tileset của
 mapping theo mask. Tham khảo thuật toán gốc:
 [Autotile-47](https://github.com/Game-Development-Resources/Autotile-47).
 
-Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs tests/pack.mjs tests/tilegen.mjs tests/genesis.mjs`.
+Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs tests/pack.mjs tests/tilegen.mjs tests/genesis.mjs tests/puppet.mjs`.
 
 ## Đưa lên GitHub Pages
 
@@ -370,6 +407,8 @@ js/
   daily.js            nhịp học: bài tiếp theo, số ngày đã vẽ
   atlas.js            quản lý atlas / tilesheet của dự án
   mapview.js          soi map Natural / Coverage 56 / Recipe, autotile 47/56 ô
+  puppet.js           Ghép rối: dựng tư thế, ghép miếng lên xương, đổ bóng, soi miếng (thuần tính toán)
+  puppetview.js       Ghép rối: thẻ, rối xem trước, hướng dẫn trên sheet, xuất ZIP
   ui.js               đồng bộ giao diện + nối mọi sự kiện
   main.js             khởi động
   content/
