@@ -16,7 +16,7 @@ if(typeof ResizeObserver==='function') new ResizeObserver(()=>{ padDirty=true; r
 let rq=0;
 export function requestRender(){ if(!rq) rq=requestAnimationFrame(()=>{ rq=0; render(); }); }
 /* ?perf trên địa chỉ: góc màn hình hiện thời gian vẽ, chấm đầu nét, kết thúc nét — để đo trên máy thật */
-export const PERF=/[?&]perf/.test(location.search);
+export const PERF=/[?&]perf\b/.test(location.search);
 const perfVals={};
 let perfEl=null;
 export function perfMark(key,ms){
@@ -29,8 +29,7 @@ export function perfMark(key,ms){
       'background:rgba(0,0,0,.75);color:#7ee08a;pointer-events:none;border-radius:4px';
     document.body.appendChild(perfEl);
     setInterval(()=>{ perfEl.textContent=Object.entries(perfVals).map(([k,v])=>
-      k.padEnd(6)+' '+v.last.toFixed(1)+'  tb '+(v.sum/v.n).toFixed(1)+'  max '+v.max.toFixed(1)+' ms').join('
-'); },500);
+      k.padEnd(6)+' '+v.last.toFixed(1)+'  tb '+(v.sum/v.n).toFixed(1)+'  max '+v.max.toFixed(1)+' ms').join('\n'); },500);
   }
 }
 if(PERF){ let t=performance.now(); const loop=now=>{ perfMark('frame',now-t); t=now; requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
