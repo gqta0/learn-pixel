@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {frameAt, keyPose, joints, placements, frameBox, bake, blockoutSheet, cellAt, attachPoints, shadeRamp, shadeCell,
+import {frameAt, keyPose, joints, placements, frameBox, bake, bakeAt, flapPoints, isFlap, blockoutSheet, cellAt, attachPoints, shadeRamp, shadeCell,
   lintSheet, bakeClips, bakeManifest, sheetFileName, OUTLINE, FAR_SHADE, LIGHTS, SLOT_ZONES} from '../js/puppet.js';
 import {GENESIS_FAMILIES, GENESIS_COLORS, GENESIS_TOKENS} from '../js/genesis.js';
 
@@ -26,7 +26,7 @@ const REF=[
 test('the shipped puppet.json is the genesis.puppet.v1 export with both sheets and 14 clips',()=>{
   assert.equal(P.format,'genesis.puppet.v1');
   assert.deepEqual(P.sheets.head.size,[80,81]);
-  assert.deepEqual(P.sheets.body.size,[64,60]);
+  assert.deepEqual(P.sheets.body.size,[64,87]);
   assert.deepEqual(P.sheets.body.parts.chest.rect,[1,1,20,40]);              // ô ngực cao tới gần mắt cá: vẽ được áo dài
   assert.equal(Object.keys(P.clips).length,14);
   assert.equal(P.bones.length,15);
@@ -66,7 +66,7 @@ test('one frame box fits every part of every clip, with the feet inside it',()=>
   assert.ok(box.fx>0 && box.fx<box.w && box.fy>0 && box.fy<=box.h);
   const full={head:blockoutSheet(P,'head'), body:blockoutSheet(P,'body')};
   for(const clip of Object.values(P.clips)) for(let i=0;i<clip.frames.length;i++){
-    const {px}=bake(P,full,keyPose(clip,i),box), W=box.w;
+    const {px}=bakeAt(P,full,clip,i/clip.fps,box), W=box.w;
     for(let y=0;y<box.h;y++){ assert.equal(px[y*W],0); assert.equal(px[y*W+W-1],0); }     // còn chừa mép: không miếng nào bị cắt
     for(let x=0;x<W;x++){ assert.equal(px[x],0); assert.equal(px[(box.h-1)*W+x],0); }
   }
@@ -177,4 +177,57 @@ test('export bakes one row per clip, named the way the game reads sheets',()=>{
   const m=bakeManifest(P,box,baked,{body:'Thân'});
   assert.deepEqual(m.feet,{x:box.fx,y:box.fy});
   assert.equal(m.clips.skill_02.frames,18);
+});
+
+/* tools/flaps.py points(clip, t) chạy trên data/puppet.json: B.BONES = puppet["bones"], hằng số REST/SHORT/LAG/
+   FOLLOW/GROUND/FLAPS lấy từ khối "flaps" (pixel game). [bản lề, khớp, khớp, gấu] của từng vạt. */
+const FLAP_REF=[{"clip": "idle", "t": 0, "pts": {"flap_back": [[-2.238, -18.631], [-3.640809, -14.518981], [-4.662767, -10.296166], [-5.295356, -5.997747]], "flap_right": [[2.783, -18.631], [5.073426, -15.339188], [6.778056, -11.709268], [7.848398, -7.844499]], "flap_left": [[-0.605, -18.631], [-2.007809, -14.518981], [-3.029767, -10.296166], [-3.662356, -5.997747]]}}, {"clip": "run", "t": 0, "pts": {"flap_back": [[-4.053, -22.056], [-5.335175, -17.86481], [-5.151255, -13.485744], [-5.951484, -9.176489]], "flap_right": [[0.968, -22.056], [3.262517, -18.769333], [4.566189, -14.978895], [3.834347, -11.037906]], "flap_left": [[-2.42, -22.056], [-3.702175, -17.86481], [-3.518255, -13.485744], [-2.811467, -9.160181]]}}, {"clip": "run", "t": 0.27, "pts": {"flap_back": [[-4.053, -21.9832], [-6.509773, -18.916646], [-6.462969, -14.987614], [-7.074939, -11.106251]], "flap_right": [[0.968, -21.9832], [-1.488773, -18.916646], [-1.441969, -14.987614], [-0.811038, -11.109288]], "flap_left": [[-2.42, -21.9832], [0.372113, -19.521621], [0.88774, -15.835241], [0.308016, -12.158396]]}}, {"clip": "sit", "t": 0.7777777777777778, "pts": {"flap_back": [[-2.238, -8.832], [-5.311747, -7.558812], [-6.555279, -4.472948], [-4.924564, -1.573]], "flap_right": [[2.783, -8.832], [5.856747, -7.558812], [8.516829, -5.560589], [10.616662, -2.979964]], "flap_left": [[-0.605, -8.832], [-3.678747, -7.558812], [-4.922279, -4.472948], [-3.291564, -1.573]]}}, {"clip": "jump", "t": 0.05, "pts": {"flap_back": [[-2.238, -18.5584], [-3.640809, -14.446381], [-4.662767, -10.223566], [-5.295356, -5.925147]], "flap_right": [[2.783, -18.5584], [5.073426, -15.266588], [6.778056, -11.636668], [7.848398, -7.771899]], "flap_left": [[-0.605, -18.5584], [-2.007809, -14.446381], [-3.029767, -10.223566], [-3.662356, -5.925147]]}}, {"clip": "fly", "t": 1.5, "pts": {"flap_back": [[-2.238, -24.588], [-3.556124, -20.41979], [-4.497348, -16.150654], [-5.064469, -11.815934]], "flap_right": [[2.783, -24.588], [1.711053, -20.272181], [0.951601, -15.89056], [0.498054, -11.466798]], "flap_left": [[-0.605, -24.588], [-1.923124, -20.41979], [-2.864348, -16.150654], [-3.431469, -11.815934]]}}, {"clip": "skill_02", "t": 1.234, "pts": {"flap_back": [[-2.238, -20.002642], [-3.290774, -15.676245], [-4.092872, -11.296442], [-4.589204, -6.871547]], "flap_right": [[2.783, -20.002642], [3.886564, -15.704543], [4.68762, -11.339934], [5.182264, -6.930078]], "flap_left": [[-0.605, -20.002642], [-1.657774, -15.676245], [-2.459872, -11.296442], [-2.956204, -6.871547]]}}];
+
+test('robe flap points match the Python reference (lag, follow, short length, ground)',()=>{
+  for(const r of FLAP_REF){
+    const got=flapPoints(P,P.clips[r.clip],r.t);
+    for(const [flap,pts] of Object.entries(r.pts)) pts.forEach((pt,i)=>pt.forEach((v,k)=>
+      assert.ok(Math.abs(got[flap][i][k]-v)<1e-5, r.clip+' t='+r.t+' '+flap+'['+i+']['+k+']: '+got[flap][i][k]+' ≠ '+v)));
+  }
+  // vạt phụ thuộc thời gian chứ không chỉ khung: ở khung đầu của clip lặp, độ trễ nhìn về cuối clip;
+  // cùng khung đó mà clip không lặp thì nhìn về khung đầu — tư thế khung như nhau, vạt khác chỗ
+  const run=P.clips.run, once={...run,loop:false};
+  assert.deepEqual(joints(P,frameAt(run,0)),joints(P,frameAt(once,0)));
+  assert.notDeepEqual(flapPoints(P,run,0).flap_left, flapPoints(P,once,0).flap_left);
+  for(const pts of Object.values(flapPoints(P,P.clips.sit,7/9))) for(const [,y] of pts) assert.ok(y<=P.flaps.ground+1e-9);
+});
+
+test('flaps are drawn as three bands along their chain; an empty flap cell means no robe',()=>{
+  const box=frameBox(P), body=blank('body'), c=P.sheets.body.parts.flap_left, cloth=rgba(230,225,210);
+  assert.ok(isFlap(P,'flap_left') && !isFlap(P,'thigh'));
+  const fill={head:blockoutSheet(P,'head'),body:blockoutSheet(P,'body')};
+  const bare=bakeAt(P,{body},P.clips.run,0,box,{fill}).px;
+  assert.ok(!bare.includes(cloth));
+  fillCell(body,c.rect,cloth);
+  const a=bakeAt(P,{body},P.clips.run,0,box), b=bakeAt(P,{body},P.clips.run,2/P.clips.run.fps,box);
+  const n=x=>x.px.filter(v=>v===cloth).length;
+  assert.ok(n(a)>30, 'vạt trái hiện ra');
+  assert.notDeepEqual(a.px,b.px);
+  // vạt trái không bị tối; ba dải nối liền thành một mảnh (không hở giữa các dải)
+  const W=box.w, seen=new Set(), st=[a.px.indexOf(cloth)];
+  while(st.length){ const i=st.pop(); if(seen.has(i)||a.px[i]!==cloth) continue; seen.add(i); st.push(i-1,i+1,i-W,i+W); }
+  assert.equal(seen.size,n(a));
+  // chỉ xem vạt này
+  const solo=bakeAt(P,{body},P.clips.run,0,box,{only:'flap_left'}).px;
+  assert.equal(solo.filter(v=>v===cloth).length,n(a));
+  // vạt phải và vạt sau dùng chung kiểu tối đi như phía xa
+  const right=blank('body'); fillCell(right,P.sheets.body.parts.flap_right.rect,cloth);
+  const rp=bakeAt(P,{body:right},P.clips.idle,0,box).px;
+  assert.ok(!rp.includes(cloth) && rp.includes(rgba(Math.round(230*0.8),Math.round(225*0.8),Math.round(210*0.8))));
+  // không có điểm vạt (tư thế trần, không biết thời điểm) thì không vẽ vạt
+  assert.ok(!bake(P,{body},keyPose(P.clips.run,0),box).px.includes(cloth));
+});
+
+test('lint accepts empty flap cells and checks drawn flaps like any part',()=>{
+  const body=blank('body');
+  fillCell(body,P.sheets.body.parts.thigh.rect,hex('#806f95'));
+  assert.equal(lintSheet(P,'body',body.px,GENESIS_COLORS).filter(r=>r[0]==='warn').length,0);
+  fillCell(body,P.sheets.body.parts.flap_back.rect,hex('#806f95'));
+  assert.equal(lintSheet(P,'body',body.px,GENESIS_COLORS).filter(r=>r[0]==='warn').length,0);
+  assert.equal(cellAt(P,'body',P.sheets.body.parts.flap_back.rect[0],P.sheets.body.parts.flap_back.rect[1]),'flap_back');
 });

@@ -14,7 +14,7 @@ import { keepBeforeReplace, saveCurrent, currentId, getLibraryItems, libraryRead
 import { decodeProject, sanitizeFilename } from './manifest.js';
 import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
-import { frameAt, keyPose, frameBox, bake, blockoutSheet, cellAt, attachPoints, skullCentre, SLOT_ZONES, partsOf,
+import { frameAt, flapPoints, frameBox, bake, blockoutSheet, cellAt, attachPoints, skullCentre, SLOT_ZONES, partsOf,
   LIGHTS, baseColour, shadeRamp, shadeCell, lintSheet, bakeClips, bakeManifest, sheetFileName, PART_VI, SHEET_VI } from './puppet.js';
 
 let P=null, box=null, block=null;                 // dữ liệu rối, khổ khung, sheet khối mẫu
@@ -84,11 +84,11 @@ const nKeys=()=>clipObj().frames.length;
 const keyIndex=()=>Math.min(nKeys()-1,Math.floor(rig.t*clipObj().fps+1e-6));
 let ghostCache={t:-1,clip:'',only:null,px:null};
 function pose(){
-  const f=frameAt(clipObj(),rig.t), sheets={head:sheetFor('head'),body:sheetFor('body')};
+  const f=frameAt(clipObj(),rig.t), flaps=flapPoints(P,clipObj(),rig.t), sheets={head:sheetFor('head'),body:sheetFor('body')};
   const only=rig.only && rig.part ? rig.part : null;
-  const fig=bake(P,sheets,f,box,{only, fill:rig.fill ? block : null});
+  const fig=bake(P,sheets,f,box,{only, flaps, fill:rig.fill ? block : null});
   if(rig.ghost && (ghostCache.t!==rig.t || ghostCache.clip!==rig.clip))
-    ghostCache={t:rig.t,clip:rig.clip,px:bake(P,block,f,box,{outline:false}).px};
+    ghostCache={t:rig.t,clip:rig.clip,px:bake(P,block,f,box,{outline:false, flaps}).px};
   return {fig, ghost:rig.ghost ? ghostCache.px : null};
 }
 const tmp=document.createElement('canvas'), tctx=tmp.getContext('2d');

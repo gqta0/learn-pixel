@@ -13,7 +13,7 @@ export const FAR_SHADE=0.8;                     // tay, chân phía xa dùng l�
 export const PART_VI={
   head:'Đầu', hair_back:'Tóc sau', hair_front:'Tóc trước', accessory:'Phụ kiện',
   chest:'Ngực', pelvis:'Hông', neck:'Cổ', upper_arm:'Bắp tay', forearm:'Cẳng tay', hand:'Bàn tay',
-  thigh:'Đùi', shin:'Cẳng chân', foot:'Bàn chân'
+  thigh:'Đùi', shin:'Cẳng chân', foot:'Bàn chân', flap_back:'Vạt sau', flap_right:'Vạt phải', flap_left:'Vạt trái'
 };
 export const SHEET_VI={head:'Đầu', body:'Thân'};
 
@@ -50,16 +50,76 @@ export function joints(P,f){
   return out;
 }
 export const sheetOf=(P,part)=>P.sheets.head.parts[part] ? 'head' : 'body';
-/* mỗi miếng đặt lên xương nào, quay bao nhiêu độ so với lúc nằm trên sheet; theo nhóm, sau ra trước */
-export function placements(P,f){
+
+/* ---------------- vạt áo ----------------
+   Bản chuyển của tools/flaps.py points(): ba dải vải gài dưới thắt lưng, không có khung khoá. Mỗi vạt là chuỗi
+   ba đoạn theo đùi (vạt trước theo đùi cùng phía, vạt sau theo đùi nào đưa ra sau nhất); khớp càng xa hông càng
+   ăn ít độ vung (follow) và trễ hơn (lag mỗi khớp), nên gấu rủ về đất và kéo theo sau; nằm dọc đùi đang nhấc thì
+   ngắn lại (short_length); khớp nào xuống quá mặt đất (ground) thì nằm lại trên đó.
+   Vì có độ trễ nên vạt phụ thuộc thời gian: cần clip và thời điểm t, không chỉ một khung. */
+export const isFlap=(P,part)=>!!P.flaps?.parts[part];
+function thighAngle(pose,which){
+  const a=b=>{ const [ax,ay,bx,by]=pose[b]; let v=((Math.atan2(by-ay,bx-ax)/RAD)%360+360)%360; return v>270 ? v-360 : v; };
+  const near=a('near_thigh'), far=a('far_thigh');
+  return which==='near' ? near : which==='far' ? far : Math.max(near,far);
+}
+/* {vạt: [[bản lề], [khớp], [khớp], [gấu]]} ở thời điểm t của clip */
+export function flapPoints(P,clip,t){
+  const F=P.flaps; if(!F) return {};
+  const dur=clip.frames.length/clip.fps;
+  const at=dt=>joints(P,frameAt(clip, clip.loop ? (((t-dt)%dur)+dur)%dur : Math.max(0,t-dt)));
+  const past=[1,2,3].map(i=>at(F.lag*i)), hip=at(0).pelvis;
+  const out={};
+  for(const [name,{follows,hinge}] of Object.entries(F.parts)){
+    const away=Math.min(1,Math.abs(thighAngle(past[0],follows)-90)/75);
+    const seg=(F.rest_length+(F.short_length-F.rest_length)*away)/3;
+    const pts=[[hip[0]+hinge[0],hip[1]+hinge[1]]];
+    for(let i=0;i<3;i++){
+      const a=(90+F.follow[i]*(thighAngle(past[i],follows)-90))*RAD, [px,py]=pts[pts.length-1];
+      let x=px+Math.cos(a)*seg, y=py+Math.sin(a)*seg;
+      if(y>F.ground){
+        y=Math.max(F.ground,py);
+        const reach=Math.sqrt(Math.max(seg*seg-(y-py)**2,0));
+        x=px+(Math.cos(a)>=0 ? reach : -reach);
+      }
+      pts.push([x,y]);
+    }
+    out[name]=pts;
+  }
+  return out;
+}
+/* Mỗi miếng đặt lên xương nào, quay bao nhiêu độ so với lúc nằm trên sheet; theo nhóm, sau ra trước.
+   Vạt áo (bone null) cắt thành ba dải, mỗi dải xoay quanh khớp của nó (như load_parts/draw của character.py):
+   dải i lấy các hàng từ bản lề + i·đoạn (trừ phần chồng) tới bản lề + (i+1)·đoạn (cộng phần chồng), dải đầu
+   không chặn trên, dải cuối không chặn dưới. flaps: kết quả flapPoints — thiếu thì không vẽ vạt. */
+export function placements(P,f,flaps=null){
   const pose=joints(P,f), out=[];
   P.draw_order.forEach((group,g)=>group.forEach(({part,bone,far})=>{
+    if(!bone){
+      const pts=flaps?.[part], c=P.sheets.body.parts[part];
+      if(!pts || !c) return;
+      const seg=P.flaps.rest_length/3, ov=P.flaps.band_overlap;
+      for(let i=0;i<pts.length-1;i++){
+        const [x,y]=pts[i], [nx,ny]=pts[i+1];
+        out.push({g,part,bone,far,x,y,kind:'body', turn:Math.atan2(ny-y,nx-x)/RAD-P.part_angle[part],
+          piv:[c.joint[0],c.joint[1]+i*seg], rows:[i ? c.joint[1]+i*seg-ov : -Infinity, i<2 ? c.joint[1]+(i+1)*seg+ov : Infinity]});
+      }
+      return;
+    }
     const [jx,jy,tx,ty]=pose[bone];
     out.push({g,part,bone,far,x:jx,y:jy,kind:sheetOf(P,part),
       turn:Math.atan2(ty-jy,tx-jx)/RAD-P.part_angle[part]});
   }));
   return out;
 }
+/* ô nguồn của một miếng đã đặt: khớp quay và khung chữ nhật (dải vạt áo chỉ lấy các hàng của nó) */
+function source(P,p){
+  const c=P.sheets[p.kind].parts[p.part], r=c.rect.slice();
+  if(p.rows){ r[1]=Math.max(r[1],Math.floor(p.rows[0])); r[3]=Math.min(r[3],Math.ceil(p.rows[1])); }
+  return {rect:r, joint:p.piv||c.joint, rows:p.rows};
+}
+/* tư thế đủ cả vạt áo ở thời điểm t của clip */
+export const poseAt=(P,clip,t)=>({f:frameAt(clip,t), flaps:flapPoints(P,clip,t)});
 
 /* ---------------- khổ khung xuất ---------------- */
 /* Một khổ cho mọi clip, tính từ khung xương và ô của từng miếng (không phụ thuộc nét vẽ): đổi tranh
@@ -67,8 +127,8 @@ export function placements(P,f){
 export function frameBox(P){
   let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
   for(const clip of Object.values(P.clips)) for(let i=0;i<clip.frames.length;i++)
-    for(const p of placements(P,keyPose(clip,i))){
-      const c=P.sheets[p.kind].parts[p.part], [jx,jy]=c.joint, co=Math.cos(p.turn*RAD), si=Math.sin(p.turn*RAD);
+    for(const p of placements(P,keyPose(clip,i),flapPoints(P,clip,i/clip.fps))){
+      const c=source(P,p), [jx,jy]=c.joint, co=Math.cos(p.turn*RAD), si=Math.sin(p.turn*RAD);
       for(const [cx,cy] of [[c.rect[0],c.rect[1]],[c.rect[2],c.rect[1]],[c.rect[0],c.rect[3]],[c.rect[2],c.rect[3]]]){
         const dx=cx-jx, dy=cy-jy, X=p.x+dx*co-dy*si, Y=p.y+dx*si+dy*co;
         if(X<x0)x0=X; if(X>x1)x1=X; if(Y<y0)y0=Y; if(Y>y1)y1=Y;
@@ -83,12 +143,13 @@ const solid=v=>(v>>>24)>0;
 const darken=(v,k)=>rgba(Math.round((v&255)*k),Math.round(((v>>8)&255)*k),Math.round(((v>>16)&255)*k),v>>>24);
 /* sheets: {head:{w,h,px}, body:{w,h,px}} (px Uint32 ABGR như ImageData; thiếu = không vẽ).
    opt.only: chỉ ghép một miếng (cả phía gần lẫn xa) · opt.fill: {head,body} sheet thay cho ô còn trống ·
-   opt.outline=false: bỏ viền. Trả về {px, who}: who[i] = 1 + chỉ số miếng trong PARTS_OF(P) ở pixel đó. */
+   opt.outline=false: bỏ viền · opt.flaps: điểm vạt áo (flapPoints) — dùng bakeAt cho gọn. Ô vạt áo trống nghĩa là
+   nhân vật không mặc áo dài, nên không lấy khối mẫu thay vào. Trả về {px, who}: who[i] = 1 + chỉ số miếng trong PARTS_OF(P) ở pixel đó. */
 export function partsOf(P){ return [...Object.keys(P.sheets.head.parts),...Object.keys(P.sheets.body.parts)]; }
 export function bake(P,sheets,f,box,opt={}){
   const W=box.w, H=box.h, out=new Uint32Array(W*H), who=new Uint8Array(W*H), names=partsOf(P);
   const gpx=new Uint32Array(W*H), gwho=new Uint8Array(W*H), empty=cellEmptiness(P,sheets);
-  const list=placements(P,f);
+  const list=placements(P,f,opt.flaps);
   for(let g=0, k=0; g<P.draw_order.length; g++){
     gpx.fill(0); gwho.fill(0);
     let any=false;
@@ -96,9 +157,9 @@ export function bake(P,sheets,f,box,opt={}){
       const p=list[k];
       if(opt.only && p.part!==opt.only) continue;
       let sh=sheets[p.kind];
-      if((!sh || empty[p.part]) && opt.fill) sh=opt.fill[p.kind];
+      if((!sh || empty[p.part]) && opt.fill && !p.rows) sh=opt.fill[p.kind];
       if(!sh) continue;
-      const c=P.sheets[p.kind].parts[p.part], [x0,y0,x1,y1]=c.rect, [jx,jy]=c.joint;
+      const c=source(P,p), [x0,y0,x1,y1]=c.rect, [jx,jy]=c.joint, rows=c.rows;
       const co=Math.cos(p.turn*RAD), si=Math.sin(p.turn*RAD), X=box.fx+p.x, Y=box.fy+p.y;
       const r=Math.hypot(Math.max(jx-x0,x1-jx),Math.max(jy-y0,y1-jy))+1;
       const id=names.indexOf(p.part)+1;
@@ -106,7 +167,7 @@ export function bake(P,sheets,f,box,opt={}){
         for(let ox=Math.max(0,Math.floor(X-r)); ox<Math.min(W,Math.ceil(X+r)); ox++){
           const dx=ox+0.5-X, dy=oy+0.5-Y;
           const sx=Math.floor(jx+dx*co+dy*si), sy=Math.floor(jy-dx*si+dy*co);   // quay ngược về ô trên sheet
-          if(sx<x0||sy<y0||sx>=x1||sy>=y1) continue;
+          if(sx<x0||sy<y0||sx>=x1||sy>=y1 || (rows && (sy+0.5<rows[0]||sy+0.5>rows[1]))) continue;
           const v=sh.px[sy*sh.w+sx];
           if(!solid(v)) continue;
           gpx[oy*W+ox]=p.far ? darken(v,FAR_SHADE) : v; gwho[oy*W+ox]=id; any=true;
@@ -122,6 +183,7 @@ export function bake(P,sheets,f,box,opt={}){
   }
   return {px:out, who};
 }
+export const bakeAt=(P,sheets,clip,t,box,opt={})=>bake(P,sheets,frameAt(clip,t),box,{...opt,flaps:flapPoints(P,clip,t)});
 /* ô nào chưa có pixel nào — để xem trước thay bằng khối mẫu */
 function cellEmptiness(P,sheets){
   const out={};
@@ -166,6 +228,7 @@ const KIDS={chest:['head','near_upper_arm','far_upper_arm'], pelvis:['chest','ne
 /* chỗ miếng kế tiếp gắn vào (so với khớp của miếng), như dấu xanh của sheet_guide.png */
 export function attachPoints(P,part){
   const bone=n=>P.bones.find(b=>b.name===n);
+  if(isFlap(P,part)){ const seg=P.flaps.rest_length/3; return [[0,seg],[0,2*seg]]; }   // hai khớp gập của vạt
   if(KIDS[part]) return KIDS[part].map(k=>bone(k).pos.slice());
   const b=bone('near_'+part);
   if(!b || part==='hand' || part==='foot') return [];
@@ -288,7 +351,7 @@ export function bakeClips(P,sheets,box=frameBox(P)){
   return Object.entries(P.clips).map(([name,clip])=>{
     const n=clip.frames.length, W=box.w*n, px=new Uint32Array(W*box.h);
     for(let i=0;i<n;i++){
-      const f=bake(P,sheets,keyPose(clip,i),box).px;
+      const f=bakeAt(P,sheets,clip,i/clip.fps,box).px;
       for(let y=0;y<box.h;y++) px.set(f.subarray(y*box.w,(y+1)*box.w), y*W+i*box.w);
     }
     return {clip:name, n, fps:clip.fps, loop:!!clip.loop, w:W, h:box.h, px, file:sheetFileName(name,box,n)};

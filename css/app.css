@@ -1085,3 +1085,4 @@ body[data-view="terrain"] .col.right{display:none}
   .rig-light{grid-template-columns:repeat(3,48px)}
   #pRig select{font-size:16px;min-height:44px}
 }
+@media (max-width:1000px) and (orientation:landscape){ .rigpip{right:auto;left:6px} }   /* thanh nhanh nằm cột phải */
