@@ -204,6 +204,8 @@ Dữ liệu khung xương là `data/puppet.json` (định dạng `genesis.puppet
 `character-animation`. Khung xương hay động tác đổi bên đó thì làm mới: chạy
 `PYTHONPATH=tools python tools/export_puppet.py` trong project ấy, chép `out/puppet/puppet.json` đè lên
 `data/puppet.json`, rồi chạy kiểm thử (`node --test tests/puppet.mjs` soi định dạng và vị trí khớp).
+**Bàn chân vẽ đè lên cẳng chân**: `draw_order` trong `data/puppet.json` đã đổi thứ tự đùi → cẳng chân → bàn
+chân; bên `tools/character.py` (`GROUPS`) vẫn còn thứ tự cũ, nên khi làm mới phải sửa cả bên đó (kiểm thử sẽ báo nếu quên).
 
 ## Terrain 56 — template có hướng dẫn pixel
 
