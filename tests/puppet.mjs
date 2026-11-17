@@ -26,7 +26,8 @@ const REF=[
 test('the shipped puppet.json is the genesis.puppet.v1 export with both sheets and 14 clips',()=>{
   assert.equal(P.format,'genesis.puppet.v1');
   assert.deepEqual(P.sheets.head.size,[80,81]);
-  assert.deepEqual(P.sheets.body.size,[64,51]);
+  assert.deepEqual(P.sheets.body.size,[64,60]);
+  assert.deepEqual(P.sheets.body.parts.chest.rect,[1,1,20,40]);              // ô ngực cao tới gần mắt cá: vẽ được áo dài
   assert.equal(Object.keys(P.clips).length,14);
   assert.equal(P.bones.length,15);
 });

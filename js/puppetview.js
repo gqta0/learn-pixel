@@ -15,7 +15,7 @@ import { decodeProject, sanitizeFilename } from './manifest.js';
 import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
 import { frameAt, keyPose, frameBox, bake, blockoutSheet, cellAt, attachPoints, skullCentre, SLOT_ZONES, partsOf,
-  LIGHTS, baseColour, shadeRamp, shadeCell, lintSheet, bakeClips, bakeManifest, PART_VI, SHEET_VI } from './puppet.js';
+  LIGHTS, baseColour, shadeRamp, shadeCell, lintSheet, bakeClips, bakeManifest, sheetFileName, PART_VI, SHEET_VI } from './puppet.js';
 
 let P=null, box=null, block=null;                 // dữ liệu rối, khổ khung, sheet khối mẫu
 const rig={clip:'run', t:0, playing:true, part:null, ghost:false, fill:true, only:false, pip:true, pipZoom:0,
@@ -67,7 +67,8 @@ function fillSources(){
     const sel=$(kind==='head'?'#rigSrcHead':'#rigSrcBody'), opts=[];
     if(doc.puppet===kind && !cid) opts.push(['cur','Bản đang vẽ']);
     Object.entries(items).filter(([,p])=>p.data?.puppet===kind).sort((a,b)=>b[1].at-a[1].at)
-      .forEach(([id,p])=>opts.push(['lib:'+id,(id===cid?'✏️ ':'')+p.name]));
+      .forEach(([id,p])=>{ const old=p.data.w!==P.sheets[kind].size[0]||p.data.h!==P.sheets[kind].size[1];
+        if(!old || id===cid) opts.push(['lib:'+id,(id===cid?'✏️ ':'')+p.name+(old?' (khổ cũ '+p.data.w+'×'+p.data.h+')':'')]); });
     opts.push(['block','Khối mẫu (chưa vẽ)'],['none','Không hiện']);
     const mine = doc.puppet===kind ? (cid ? 'lib:'+cid : 'cur') : null;
     const keep=picked[kind] && opts.some(o=>o[0]===src[kind]) ? src[kind] : null;
@@ -339,7 +340,8 @@ function paintGuides(){
 function runRigLint(){
   const out=$('#rigLint');
   if(!isSheet()){
-    out.innerHTML='<p class="kbd">'+(doc.puppet ? 'Khổ tranh đã đổi khỏi '+P.sheets[doc.puppet].size.join('×')+' — đổi lại khổ đó thì rối mới đọc được.' : 'Dựng hoặc mở một sheet Đầu/Thân để soi.')+'</p>';
+    out.innerHTML='<p class="kbd">'+(doc.puppet ? 'Bản này khổ '+doc.w+'×'+doc.h+', sheet '+SHEET_VI[doc.puppet]+' hiện là '+P.sheets[doc.puppet].size.join('×')+
+      ' — có thể là bản theo bố cục ô cũ. Dựng sheet mới rồi chép từng miếng sang đúng ô (chọn vùng, ⧉ Chép, 📋 Dán); đổi khổ thôi thì các ô hàng dưới vẫn lệch chỗ.' : 'Dựng hoặc mở một sheet Đầu/Thân để soi.')+'</p>';
     return;
   }
   const rows=lintSheet(P,doc.puppet,flatDoc().px,palette);
@@ -452,6 +454,9 @@ export function bindPuppet(){
       o.textContent=k+' · '+c.frames.length+' khung · '+c.fps+' fps'+(c.loop?' · lặp':''); return o; }));
     if(!P.clips[rig.clip]) rig.clip='run';
     sel.value=rig.clip;
+    // khổ sheet và khổ khung lấy từ dữ liệu, không viết cứng: làm mới puppet.json là nút tự đúng
+    for(const kind of ['head','body']) $(kind==='head'?'#rigNewHead':'#rigNewBody').textContent='+ Sheet '+SHEET_VI[kind]+' '+P.sheets[kind].size.join('×');
+    $('#rigExample').textContent=sheetFileName('run',box,P.clips.run.frames.length);
     $('#rigInfo').textContent='Khung xương '+P.bones.length+' xương · '+Object.keys(P.clips).length+' động tác · khung xuất '+box.w+'×'+box.h+', điểm chân ('+box.fx+', '+box.fy+').';
     await libraryReady;
     lastKey=''; fillSources(); paintParts(); paintGuides(); runRigLint(); render(); tick();
