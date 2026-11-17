@@ -31,7 +31,7 @@ test('the shipped puppet.json is the genesis.puppet.v1 export with both sheets a
   assert.equal(P.bones.length,15);
 });
 
-test('the foot is drawn above the shin in both legs (draw_order changed here, not yet in character.py GROUPS)',()=>{
+test('the foot is drawn above the shin in both legs (character.py GROUPS: thigh, shin, foot)',()=>{
   for(const g of P.draw_order){
     const parts=g.map(e=>e.part);
     if(parts.includes('foot')) assert.ok(parts.indexOf('foot')>parts.indexOf('shin'), JSON.stringify(parts));
