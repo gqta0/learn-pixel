@@ -1057,3 +1057,31 @@ body[data-view="terrain"] .col.right{display:none}
   .tq-map-wrap{flex:0 0 auto;min-height:0;padding:4px}
   .tq-side{overflow:visible;border-left:0;border-top:1px solid var(--line)}
 }
+
+/* ---------- Ghép rối ---------- */
+.rig-wrap{flex-wrap:wrap}
+.rig-stage{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:8px;border:1px solid var(--line);border-radius:8px;
+  background:radial-gradient(circle at 50% 0%, var(--stage-a) 0%, var(--stage-b) 70%);overflow:hidden}
+.rig-stage canvas{image-rendering:pixelated;display:block;max-width:100%}
+#rigBig{cursor:pointer;touch-action:manipulation}
+.rig-parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:5px}
+.rig-parts .btn{min-height:32px}
+.rig-parts .btn.on{background:var(--accent-bg);border-color:var(--amber);color:var(--amber)}
+.rig-parts .btn.has::after{content:" ●";color:var(--leaf)}
+.rig-light{display:grid;grid-template-columns:repeat(3,38px);gap:4px}
+.rig-light .btn{min-height:32px;font-size:15px;padding:0}
+.rig-light .btn.on{background:var(--accent-bg);border-color:var(--amber);color:var(--amber)}
+.rig-light span{display:block}
+.rigpip{position:absolute;top:8px;right:8px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:3px;
+  padding:4px;border:1px solid var(--line);border-radius:8px;background:color-mix(in srgb,var(--panel) 82%,transparent);
+  box-shadow:var(--shadow);pointer-events:auto}
+.rigpip[hidden]{display:none}
+.rigpip canvas{image-rendering:pixelated;display:block;cursor:pointer;touch-action:manipulation}
+.rigpip-bar{display:flex;gap:3px}
+.rigpip-grip{cursor:grab;touch-action:none}
+@media (max-width:1000px){
+  .rigpip{top:auto;bottom:6px;right:6px}
+  .rigpip-bar .btn,.rig-light .btn,.rig-parts .btn{min-height:44px;min-width:44px}
+  .rig-light{grid-template-columns:repeat(3,48px)}
+  #pRig select{font-size:16px;min-height:44px}
+}

@@ -21,7 +21,7 @@ export function captureUndo(){
     dur: doc.dur.slice(), sel:view.sel ? {...view.sel} : null,
     atlasEdit:doc.atlasEdit ? {...doc.atlasEdit} : null,
     terrainLink:doc.terrainLink ? {...doc.terrainLink,slots:doc.terrainLink.slots?.slice()||[]} : null,
-    anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0     // đổi khổ dời điểm chân: hoàn tác phải trả về cùng lúc
+    anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0, puppet:doc.puppet||null     // đổi khổ dời điểm chân: hoàn tác phải trả về cùng lúc
   };
 }
 function restore(s){
@@ -32,7 +32,7 @@ function restore(s){
   view.sel=s.sel ? {...s.sel} : null;
   doc.atlasEdit=s.atlasEdit ? {...s.atlasEdit} : null;
   doc.terrainLink=s.terrainLink ? {...s.terrainLink,slots:s.terrainLink.slots?.slice()||[]} : null;
-  doc.anchor=s.anchor ? {...s.anchor} : null; doc.charH=s.charH||0;
+  doc.anchor=s.anchor ? {...s.anchor} : null; doc.charH=s.charH||0; doc.puppet=s.puppet||null;
 }
 export function pushUndo(s=captureUndo()){
   undoStack.push(s); bytes+=sizeOf(s);

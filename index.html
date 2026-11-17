@@ -204,6 +204,15 @@
         </div>
         </div>
       </div>
+      <div class="rigpip" id="rigPip" hidden>
+        <canvas id="rigPipCv" width="77" height="90" title="Rối đang chạy — chạm một miếng để tới ô của nó"></canvas>
+        <div class="rigpip-bar">
+          <button class="btn tiny rigpip-grip" id="rigPipGrip" title="Kéo để dời rối nhỏ đi chỗ khác">⠿</button>
+          <button class="btn tiny" id="rigPipPlay" title="Chạy / dừng">⏸</button>
+          <button class="btn tiny" id="rigPipZoom" title="Đổi cỡ: ×1 · ×2 · ×3">×2</button>
+          <button class="btn tiny" id="rigPipHide" title="Ẩn rối nhỏ (bật lại ở thẻ Ghép rối)">✕</button>
+        </div>
+      </div>
       </div>
 
       <div class="filmstrip">
@@ -242,6 +251,7 @@
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" aria-selected="true" data-pane="pHoc">Học vẽ</button>
         <button class="tab" role="tab" aria-selected="false" data-pane="pFile">Lớp &amp; xuất</button>
+        <button class="tab" role="tab" aria-selected="false" data-pane="pRig">Ghép rối</button>
       </div>
 
       <div class="pane on" id="pHoc">
@@ -393,6 +403,81 @@
         <div class="block">
           <p class="eyebrow">Đưa vào Godot 4</p>
           <p class="kbd">Project Settings → Rendering → Textures → <b>Default Texture Filter = Nearest</b>. Với từng ảnh: tắt <b>Mipmaps</b>, tắt <b>Filter</b>. Camera2D bật <b>Snap 2D Transforms to Pixel</b>. Cửa sổ: <b>viewport</b> + <b>keep</b>, và chỉ phóng theo số nguyên (×2, ×3, ×4).</p>
+        </div>
+      </div>
+      <div class="pane" id="pRig">
+        <div class="block">
+          <p class="eyebrow">1 · Dựng khung</p>
+          <p class="kbd" style="margin:0 0 7px">Mỗi nhân vật hai tấm: <b>Đầu</b> (sọ, mặt, tóc, phụ kiện — riêng từng người) và <b>Thân</b> (một bộ cho cả môn phái).
+            Vẽ ở cỡ game, màu phẳng, <b>không viền</b> — máy tự viền 1 px sau khi ghép. Chỉ vẽ một tay, một chân; phía xa dùng lại, tối đi.</p>
+          <div class="row">
+            <button class="btn tiny grow" id="rigNewHead" title="Bản vẽ mới 80×81 trong thư viện, có khung ô, khớp và mốc">+ Sheet Đầu 80×81</button>
+            <button class="btn tiny grow" id="rigNewBody" title="Bản vẽ mới 64×51 trong thư viện, có khung ô và khớp">+ Sheet Thân 64×51</button>
+          </div>
+          <p class="kbd" id="rigInfo" style="margin:7px 0 0">Đang nạp khung xương…</p>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">2 · Xem rối</p>
+          <div class="rig-stage">
+            <canvas id="rigSmall" title="Cỡ thật ×1 và ×2"></canvas>
+            <canvas id="rigBig" title="Phóng to — chạm một miếng để tới ô của nó"></canvas>
+          </div>
+          <div class="row" style="margin-top:7px">
+            <select id="rigClip" class="grow" aria-label="Động tác"></select>
+            <button class="btn tiny" id="rigPrev" title="Khung trước">◀</button>
+            <button class="btn tiny" id="rigPlay" title="Chạy / dừng">⏸</button>
+            <button class="btn tiny" id="rigNext" title="Khung sau">▶</button>
+            <span class="kbd" id="rigFrame" style="min-width:42px;text-align:right">1/1</span>
+          </div>
+          <label class="mini" for="rigScrub">Tư thế (kéo để soi từng chút)</label>
+          <input type="range" id="rigScrub" min="0" max="1000" value="0">
+          <div class="row">
+            <label class="mini">Đầu</label><select id="rigSrcHead" class="grow" aria-label="Bản vẽ đầu"></select>
+          </div>
+          <div class="row">
+            <label class="mini">Thân</label><select id="rigSrcBody" class="grow" aria-label="Bản vẽ thân"></select>
+          </div>
+          <div class="row rig-wrap" style="margin-top:6px">
+            <button class="btn tiny" id="rigGhost" aria-pressed="false" title="Chồng mờ khối mẫu để so khối, so dáng">◌ Bóng khối</button>
+            <button class="btn tiny on" id="rigFill" aria-pressed="true" title="Ô chưa vẽ thì tạm hiện khối mẫu, để vẫn thấy cả người">▦ Ô trống: khối mẫu</button>
+            <button class="btn tiny" id="rigOnly" aria-pressed="false" title="Chỉ hiện miếng đang chọn (cả phía gần lẫn xa) — kéo thanh Tư thế để xem nó qua mọi góc xoay">◧ Chỉ miếng này</button>
+            <button class="btn tiny on" id="rigPipBtn" aria-pressed="true" title="Rối nhỏ nổi ở góc canvas, chạy ngay khi vẽ">▣ Rối trên canvas</button>
+          </div>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">3 · Miếng đang vẽ</p>
+          <div class="rig-parts" id="rigParts"></div>
+          <div class="row rig-wrap" style="margin-top:7px">
+            <button class="btn tiny on" id="rigLock" aria-pressed="true" title="Nét bắt đầu ở ô nào chỉ vẽ trong ô đó — không lem sang miếng bên cạnh">🔒 Khoá trong ô</button>
+            <button class="btn tiny" id="rigFocus" title="Phóng canvas tới ô của miếng đang chọn">🔍 Tới ô</button>
+          </div>
+          <p class="mini" style="margin:9px 0 4px">Ánh sáng chiếu từ</p>
+          <div class="rig-light" id="rigLight"></div>
+          <div class="row rig-wrap" style="margin-top:7px">
+            <button class="btn tiny" id="rigShadeSee" aria-pressed="false" title="Xem thử bóng và chỗ sáng trên miếng đang chọn, chưa ghi vào tranh">👁 Xem thử bóng</button>
+            <button class="btn tiny primary" id="rigShade" title="Tô bóng phía khuất sáng và một viền sáng phía có sáng, bằng hai bậc kề màu nền trong bảng màu. Sửa tay tiếp được, Ctrl+Z để bỏ">◐ Đổ bóng miếng này</button>
+          </div>
+          <p class="kbd" id="rigShadeInfo" style="margin:6px 0 0"></p>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">Hướng dẫn trên sheet 🔒</p>
+          <p class="kbd" style="margin:0 0 6px">Chỉ hiện trên màn hình, khoá sẵn, không bao giờ vào file xuất.</p>
+          <div class="layers" id="rigGuides"></div>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">Soi miếng</p>
+          <div id="rigLint"><p class="kbd">Dựng hoặc mở một sheet Đầu/Thân để soi.</p></div>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">4 · Xuất cho game</p>
+          <p class="kbd" style="margin:0 0 7px">Mọi động tác, mỗi động tác một sheet một hàng (<code>run_77x90_8f.png</code>…) và <code>puppet_bake.json</code> (khổ khung, điểm chân, fps), gói trong một ZIP.</p>
+          <button class="btn tiny wide primary" id="rigExport">⬇ Xuất mọi động tác (ZIP)</button>
+          <p class="kbd" id="rigNote" style="margin:6px 0 0"></p>
         </div>
       </div>
     </div>

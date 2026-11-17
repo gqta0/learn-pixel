@@ -28,6 +28,7 @@ import { openMapView, bindMapView } from './mapview.js';
 import { bindTerrain, syncTerrainBar, openTerrain, closeTerrain } from './terrainview.js';
 import { bindTileGen } from './tilegenview.js';
 import { bindSheetImport } from './sheetview.js';
+import { bindPuppet } from './puppetview.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
 /* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ.
@@ -511,6 +512,7 @@ bindMapView();
 bindTerrain();
 bindTileGen();
 bindSheetImport();
+bindPuppet();
 const mapPrevBtn = $('#mapPrevBtn');
 if(mapPrevBtn) mapPrevBtn.addEventListener('click', () => openMapView());
 const atMapPrev = $('#atMapPrev');

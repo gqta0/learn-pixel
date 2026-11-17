@@ -193,6 +193,8 @@ wrap.addEventListener('pointerdown', e=>{
     drawing=false; view.drawing=false; owner=null; return;
   }
   if(strokeTool==='select'){ view.sel=null; render(); return; }   // kéo tiếp mới thành vùng
+  // Ghép rối · Khoá trong ô: nét bắt đầu ở ô nào thì chỉ vẽ trong ô đó (dùng lại vùng chọn)
+  if(view.lockCell && strokeTool!=='move'){ const c=view.lockCell(p); if(c){ view.sel=c; strokeSelection={...c}; } }
   strokeUndo=captureUndo();
 
   const col = strokeColor(e);
