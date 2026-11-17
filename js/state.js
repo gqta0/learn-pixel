@@ -11,7 +11,8 @@ export const doc = {
   dur:[],              // dur[i] = mili-giây riêng của khung i; 0 hoặc thiếu = chạy theo fps chung
   af:0, al:0, atlasEdit:null, terrainLink:null,
   anchor:null,         // điểm chân {x,y} trong khung (y = mặt đất), có từ lúc nhập sheet — xuất kèm cho game
-  charH:0              // chiều cao nhân vật (px) lúc nhập — để xem ở cỡ trong game
+  charH:0,             // chiều cao nhân vật (px) lúc nhập — để xem ở cỡ trong game
+  puppet:null          // 'head' | 'body': bản vẽ là sheet miếng của Ghép rối (xem puppetview.js)
 };
 export function blank(){ return new Uint32Array(doc.w*doc.h); }
 export function newFrame(){ return doc.layers.map(()=>blank()); }

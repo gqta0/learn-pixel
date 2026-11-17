@@ -97,7 +97,7 @@ export function serialize(){
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers:doc.layers, palette:palette,
     frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur, atlasEdit:doc.atlasEdit, terrainLink:doc.terrainLink,
-    anchor:doc.anchor, charH:doc.charH||0, fps:view.fps,
+    anchor:doc.anchor, charH:doc.charH||0, puppet:doc.puppet||null, fps:view.fps,
     done: Array.from(doneSet)
   };
 }
@@ -130,6 +130,7 @@ export function applyData(d){
   const ax=Number(d.anchor?.x), ay=Number(d.anchor?.y);
   doc.anchor = Number.isFinite(ax)&&Number.isFinite(ay)&&ax>=0&&ax<=w&&ay>=0&&ay<=h ? {x:ax,y:ay} : null;
   doc.charH = Number(d.charH)>0 ? Math.min(Number(d.charH),h) : 0;
+  doc.puppet = d.puppet==='head'||d.puppet==='body' ? d.puppet : null;
   if(Number.isInteger(d.fps) && d.fps>=1 && d.fps<=60){ view.fps=d.fps; const f=$('#fps'); if(f) f.value=d.fps; }
   doc.terrainLink=d.terrainLink && typeof d.terrainLink==='object' ? {...d.terrainLink,slots:Array.isArray(d.terrainLink.slots)?d.terrainLink.slots.slice():[]} : null;
   if(d.palette){ setPalette(d.palette); }

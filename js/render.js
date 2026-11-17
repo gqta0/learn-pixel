@@ -8,6 +8,10 @@ import { paintTerrainGuide } from './terrain.js';
 export const board = $('#board');
 const ctx = board.getContext('2d');
 let centerOnRender=false;
+/* hướng dẫn vẽ thêm từ ngoài (Ghép rối): under(ctx,z) dưới nét vẽ, over(ctx,z,lw) trên lưới — chỉ vẽ lên
+   màn hình, không bao giờ vào tranh hay file xuất */
+let guides=null;
+export function setGuides(g){ guides=g; }
 
 /* Màn hình điện thoại đời mới có tỉ lệ pixel lẻ (S22 Ultra là 3.5). Nếu cứ vẽ
    theo pixel CSS rồi để trình duyệt phóng lên thì mỗi ô tranh chiếm 45,5 pixel
@@ -47,6 +51,7 @@ export function render(){
     ctx.drawImage(view.ref,0,0,W,H);
     ctx.globalAlpha=1;
   }
+  guides?.under?.(ctx,z);
   // ponytail: hai khung kề chỉ khác nhau độ mờ, chưa nhuộm màu — đủ để canh vòng lặp
   if(view.onion){
     // nối vòng: khung đầu thấy bóng khung cuối và ngược lại — để canh mối nối của clip lặp (chạy, bay).
@@ -81,6 +86,7 @@ export function render(){
     for(let y=gs;y<doc.h;y+=gs){ ctx.moveTo(0,y*z+lw/2); ctx.lineTo(W,y*z+lw/2); }
     ctx.stroke();
   }
+  guides?.over?.(ctx,z,lw);
   // mặt đất và điểm chân lúc nhập sheet: vẽ thêm vẫn đúng chỗ đứng, game đặt nhân vật theo điểm này
   const pv=doc.layers[doc.al]?.src?.pivot || doc.anchor;
   if(view.showGround && pv){
