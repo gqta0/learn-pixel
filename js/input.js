@@ -1,7 +1,7 @@
 /* Chuột, cảm ứng, S-Pen và bàn phím: biến thao tác của người dùng thành nét vẽ. */
-import { $ } from './dom.js';
+import { $, setText } from './dom.js';
 import { doc, view, activeData } from './state.js';
-import { board, render, setZoom } from './render.js';
+import { board, render, requestRender, setZoom, PERF, perfMark } from './render.js';
 import { pushUndo, captureUndo } from './history.js';
 import { syncColors, paintSwatches, shadeStep } from './palette.js';
 import { markToday } from './daily.js';
@@ -108,12 +108,13 @@ function canDraw(e){
 function touchPts(){ const a=[]; pointers.forEach(p=>{ if(p.type==='touch') a.push(p); }); return a; }
 function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
 function hudText(p){
-  $('#hud').textContent = inside(p.x,p.y)
+  let t = inside(p.x,p.y)
     ? (p.x+', '+p.y+'   •   '+doc.w+'×'+doc.h+'   •   ×'+view.zoom)
     : (doc.w+'×'+doc.h+'   •   ×'+view.zoom);
   const te=doc.atlasEdit;
   if(te && Number.isInteger(te.terrainSlot) && te.terrainSlot>=0 && te.terrainSlot<56 && te.w===doc.w && te.h===doc.h && inside(p.x,p.y))
-    $('#hud').textContent+=' · '+ROLE_NAMES[tileRoles(te.terrainSlot,doc.w,te.shape)[p.y*doc.w+p.x]];
+    t+=' · '+ROLE_NAMES[tileRoles(te.terrainSlot,doc.w,te.shape)[p.y*doc.w+p.x]];
+  setText($('#hud'),t);
 }
 function cancelStroke(){
   if(!drawing) return;
@@ -149,6 +150,7 @@ function getEffectiveTool(e){
 }
 
 wrap.addEventListener('pointerdown', e=>{
+  const t0=PERF ? performance.now() : 0;
   if(e.pointerType==='touch' && owner?.type==='pen') return;
   if(e.pointerType==='pen'){
     markPen();
@@ -219,6 +221,7 @@ wrap.addEventListener('pointerdown', e=>{
   else { setPreview({layer:doc.al, data:activeData().slice()}); }
   restoreTerrainLock(strokeData);
   render(); paintThumbs();
+  if(PERF) perfMark('down',performance.now()-t0);
 });
 
 function strokeColor(e){
@@ -340,11 +343,12 @@ wrap.addEventListener('pointermove', e=>{
   hudText(p);
   if(!drawing){
     if(e.target===board && ((e.pointerType==='pen' && !e.buttons) || e.pointerType==='mouse')){
-      view.brushEff=view.brush; view.hover=p; render();
+      view.brushEff=view.brush; view.hover=p; requestRender();
     }
     return;
   }
   if(e.pointerId!==owner?.id) return;
+  const t0=PERF ? performance.now() : 0;
   const col = strokeColor(e);
   const list = (e.getCoalescedEvents ? e.getCoalescedEvents() : null);
   const evs = (list && list.length) ? list : [e];
@@ -354,7 +358,8 @@ wrap.addEventListener('pointermove', e=>{
     view.brushEff=effBrush(e);
     applyStroke(p, col, e);
   }
-  render();
+  requestRender();
+  if(PERF) perfMark('move',performance.now()-t0);
 });
 
 function endStroke(e){
@@ -367,6 +372,7 @@ function endStroke(e){
     if(panning?.id===e.pointerId) panning=null;
   }
   if(!drawing || (e && e.pointerId!==owner?.id)) return;
+  const t0=PERF ? performance.now() : 0;
   drawing=false; view.drawing=false; setStrokeSeen(null); pixelPerfectHistory=[];
   // chạm một cái bằng dụng cụ chọn = bỏ chọn
   if(strokeTool==='select' && view.sel && view.sel.w===1 && view.sel.h===1) view.sel=null;
@@ -383,6 +389,7 @@ function endStroke(e){
   moveBase=null; view.brushEff=view.brush;
   render(); paintThumbs();
   paintSwatches();          // nét vừa xong có thể thêm/bớt màu đang dùng — cập nhật dấu trên bảng màu
+  if(PERF) perfMark('up',performance.now()-t0);
 }
 wrap.addEventListener('pointerup', endStroke);
 wrap.addEventListener('pointercancel', e=>{

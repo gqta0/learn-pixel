@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LÒ PIXEL — Trang Tile</title>
+<link rel="stylesheet" href="css/tile.css">
+</head>
+<body data-theme="dark">
+<header class="tp-top">
+  <a class="btn" href="index.html" title="Về trang Vẽ">✏️ <span class="wide">Trang Vẽ</span></a>
+  <select id="tsSel" aria-label="Bộ tile đang mở"></select>
+  <button class="btn" id="tsNew" title="Tạo bộ tile mới">＋ <span class="wide">Bộ mới</span></button>
+  <button class="btn" id="tsMore" aria-haspopup="menu" title="Nhân bản, đổi tên, xoá, nhập / xuất">⋯</button>
+  <button class="btn accent" id="tsGodot" title="Tải ZIP cho Godot 4: tileset.png + tileset.tres + layout.json">⬇ Godot</button>
+</header>
+<div class="tp-menu" id="tsMenu" role="menu" hidden>
+  <button role="menuitem" data-act="dup">⧉ Nhân bản bộ này</button>
+  <button role="menuitem" data-act="rename">✎ Đổi tên</button>
+  <button role="menuitem" data-act="png">⬇ PNG atlas (mọi khung)</button>
+  <button role="menuitem" data-act="json">💾 Lưu bộ ra .json</button>
+  <label role="menuitem" class="as-btn">📂 Mở bộ .json<input type="file" id="tsOpenJson" accept=".json,application/json" hidden></label>
+  <label role="menuitem" class="as-btn">🖼 Nạp PNG vào bộ này<input type="file" id="tsOpenPng" accept="image/png" hidden></label>
+  <button role="menuitem" data-act="terrain">🧩 Nhập Terrain 56 từ trang Vẽ</button>
+  <button role="menuitem" data-act="delete" class="danger">🗑 Xoá bộ này</button>
+</div>
+
+<main class="tp-main" id="tpMain" hidden>
+  <section class="tp-editor" aria-label="Vẽ ô">
+    <div class="tp-tilehead">
+      <button class="btn tiny" id="slotPrev" title="Ô trước (←)">◀</button>
+      <strong id="slotTitle">—</strong>
+      <button class="btn tiny" id="slotNext" title="Ô sau (→)">▶</button>
+    </div>
+    <div class="tp-canvaswrap" id="edWrap"><canvas id="ed"></canvas></div>
+    <p class="tp-hint" id="edHint" role="status" aria-live="polite"></p>
+    <div class="tp-tools" role="toolbar" aria-label="Dụng cụ">
+      <button data-tool="pencil" class="on" title="Bút (B)">✏️</button>
+      <button data-tool="eraser" title="Tẩy (E)">🧽</button>
+      <button data-tool="fill" title="Tô loang (G)">🪣</button>
+      <button data-tool="picker" title="Hút màu (I)">💧</button>
+      <button data-tool="line" title="Đường thẳng (L)">／</button>
+      <button data-tool="rect" title="Chữ nhật (U)">▭</button>
+      <span class="sep"></span>
+      <button id="brushBtn" title="Cỡ bút">1px</button>
+      <button id="wrapBtn" aria-pressed="false" title="Bút quấn mép: nét tràn mép này hiện ở mép kia (W)">⇆</button>
+      <button id="mirBtn" aria-pressed="false" title="Gương ngang (M)">⇋</button>
+      <button id="guideBtn" aria-pressed="true" title="Gợi ý vai pixel (H)">👁</button>
+      <span class="sep"></span>
+      <button id="undoBtn" title="Hoàn tác (Ctrl+Z)">↶</button>
+      <button id="redoBtn" title="Làm lại (Ctrl+Y)">↷</button>
+    </div>
+    <div class="tp-seg" role="radiogroup" aria-label="Khung nhìn">
+      <button data-ctx="context" class="on" role="radio" aria-checked="true" title="Ô đang vẽ ở giữa, 8 ô hàng xóm thật quanh nó — chạm ô hàng xóm để sang vẽ ô đó">▦ Hàng xóm</button>
+      <button data-ctx="repeat" role="radio" aria-checked="false" title="Lặp 3×3: vẽ ở bản sao nào cũng ghi vào ô giữa">⊞ Lặp 3×3</button>
+      <button data-ctx="single" role="radio" aria-checked="false" title="Chỉ một ô, to nhất">◻ Một ô</button>
+    </div>
+    <div class="tp-pal" id="pal" aria-label="Bảng màu"></div>
+    <div class="tp-frames" aria-label="Khung hoạt ảnh của ô">
+      <div class="tp-framebar">
+        <b>Khung</b>
+        <button class="btn tiny" id="frAdd" title="Thêm khung (chép khung đang vẽ)">＋</button>
+        <button class="btn tiny" id="frDel" title="Xoá khung đang vẽ">✕</button>
+        <button class="btn tiny" id="frLeft" title="Dời khung sang trái">←</button>
+        <button class="btn tiny" id="frRight" title="Dời khung sang phải">→</button>
+        <label class="ms">ms <input id="frMs" type="number" min="10" max="4000" step="10" placeholder="150"></label>
+        <button class="btn tiny" id="onionBtn" aria-pressed="false" title="Bóng khung trước">🧅</button>
+        <button class="btn tiny" id="playBtn" title="Chạy hoạt ảnh (Space)">▶</button>
+      </div>
+      <div class="tp-framelist" id="frames"></div>
+    </div>
+  </section>
+
+  <section class="tp-side">
+    <nav class="tp-tabs" role="tablist">
+      <button role="tab" data-pane="grid" aria-selected="true">Bộ ô</button>
+      <button role="tab" data-pane="map" aria-selected="false">Soi map</button>
+    </nav>
+    <div class="tp-pane" id="paneGrid">
+      <p class="tp-note" id="layoutNote"></p>
+      <div class="tp-grid" id="grid"></div>
+    </div>
+    <div class="tp-pane" id="paneMap" hidden>
+      <div class="tp-maptools">
+        <button class="btn tiny on" data-mtool="paint" title="Vẽ vật liệu lên map">🖌 Vẽ</button>
+        <button class="btn tiny" data-mtool="erase" title="Xoá vật liệu">🧽 Xoá</button>
+        <button class="btn tiny" id="mapReset" title="Dựng lại map mẫu">↺ Mẫu</button>
+        <button class="btn tiny" id="mapClear" title="Xoá hết">✕ Trống</button>
+        <button class="btn tiny" id="mapPlay" title="Chạy tile hoạt ảnh trên map">▶ Chạy</button>
+      </div>
+      <div class="tp-mapwrap"><canvas id="map"></canvas></div>
+      <p class="tp-note">Chạm một ô trên map để mở ô đó trong khung vẽ (khi đang ở 🖌 thì giữ và kéo để vẽ vật liệu).</p>
+    </div>
+  </section>
+</main>
+
+<div class="tp-empty" id="empty" hidden>
+  <h1>🧱 Trang Tile</h1>
+  <p>Chưa có bộ tile nào. Tạo bộ mới theo khuôn 56 ô, 4×4 nối cạnh, 4×4 nối góc hoặc lưới tự do.</p>
+  <p><button class="btn accent" id="emptyNew">＋ Tạo bộ đầu tiên</button>
+     <button class="btn" id="emptyTerrain" hidden>🧩 Nhập Terrain 56 từ trang Vẽ</button></p>
+</div>
+
+<dialog id="newDlg">
+  <form method="dialog" class="tp-form">
+    <h2>Bộ tile mới</h2>
+    <label>Tên <input name="name" maxlength="60" value="Bộ tile mới" required></label>
+    <label>Khuôn
+      <select name="layout">
+        <option value="blob56">Terrain 56 — blob 47 + 9 biến thể (đất, đá, hang)</option>
+        <option value="sides16">4×4 nối cạnh — 16 ô (ống, hàng rào, dây leo, bậc)</option>
+        <option value="corners16">4×4 nối góc — 16 ô Wang (nước, cỏ chuyển vùng)</option>
+        <option value="free">Lưới tự do — decor, đồ vật</option>
+      </select>
+    </label>
+    <div class="row" id="freeDims" hidden>
+      <label>Cột <input name="cols" type="number" min="1" max="16" value="4"></label>
+      <label>Hàng <input name="rows" type="number" min="1" max="16" value="4"></label>
+    </div>
+    <div class="row">
+      <label>Khổ ô
+        <select name="size"><option>8</option><option selected>16</option><option>24</option><option>32</option><option>48</option></select>
+      </label>
+      <label id="shapeRow">Mép
+        <select name="shape"><option value="inset">Thụt mép</option><option value="flush">Kín sát mép</option></select>
+      </label>
+    </div>
+    <label>Dựng sẵn khối mẫu theo màu
+      <select name="seed">
+        <option value="">Không — ô trống</option>
+      </select>
+    </label>
+    <p class="tp-note">Màu lấy từ Genesis v3. Khối mẫu chỉ để có ngay một bộ chạy được; vẽ đè lên.</p>
+    <menu><button value="cancel" formnovalidate class="btn">Huỷ</button><button value="ok" class="btn accent">Tạo</button></menu>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="js/tilepage.js"></script>
+</body>
+</html>

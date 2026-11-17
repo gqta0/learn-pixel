@@ -1,6 +1,10 @@
 /* Hai lối tắt truy vấn DOM dùng khắp nơi. */
 export const $  = s => document.querySelector(s);
 export const $$ = s => Array.from(document.querySelectorAll(s));
+/* Ghi chữ / ẩn hiện chỉ khi thật sự đổi: ghi trùng vẫn làm bẩn bố cục, và lần đọc khổ kế tiếp
+   phải dàn lại cả trang (~4.000 phần tử) — đó là thứ làm mỗi nét vẽ tốn 4–9 ms. */
+export function setText(el,s){ if(el && el.textContent!==s) el.textContent=s; }
+export function setHidden(el,h){ if(el && el.hidden!==h) el.hidden=h; }
 
 export function syncNavHeight(){
   const sb = document.querySelector('.stagebar');

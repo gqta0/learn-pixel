@@ -212,6 +212,31 @@ Dữ liệu khung xương là `data/puppet.json` (định dạng `genesis.puppet
 **Bàn chân vẽ đè lên cẳng chân** (thứ tự đùi → cẳng chân → bàn chân trong `GROUPS` của `tools/character.py`); kiểm thử
 báo nếu bản làm mới đổi lại thứ tự này.
 
+## Trang Tile (`tile.html`) — nhiều bộ tile, nhiều khuôn, tile hoạt ảnh
+
+Mở bằng nút **🧱 Trang Tile** trong thẻ Terrain, hoặc vào thẳng `tile.html`. Trang này tách riêng khỏi trang Vẽ.
+
+- **Bốn khuôn:**
+  - **Terrain 56**: blob 47 + 9 biến thể, atlas 10×7.
+  - **4×4 nối cạnh**: 16 ô cho ống, hàng rào, dây leo, bậc.
+  - **4×4 nối góc**: 16 ô Wang cho nước, cỏ chuyển vùng.
+  - **Lưới tự do**: decor, đồ vật.
+- **Nhiều bộ tile:** tạo mới (có thể dựng sẵn khối mẫu theo một nhóm màu Genesis v3), nhân bản, đổi tên, xoá. Các bộ lưu trong IndexedDB, dùng chung với trang Vẽ.
+- **Vẽ nhanh:**
+  - *Hàng xóm*: ô đang vẽ nằm giữa, 8 ô sẽ đứng cạnh nó trong map nằm quanh. Chạm một ô hàng xóm để sang vẽ ô đó. Pixel mép không khớp ô hàng xóm hiện vạch đỏ.
+  - *Lặp 3×3*: vẽ ở bản sao nào cũng ghi vào ô giữa.
+  - *Một ô*: chỉ hiện ô đang vẽ, to nhất.
+  - Bút quấn mép (W), gương ngang, gợi ý vai pixel (H), hoàn tác theo ô.
+- **Tile hoạt ảnh:** mỗi ô có khung riêng và thời lượng riêng, có bóng khung trước, chạy thử ngay trong khung vẽ và trên Soi map.
+- **Soi map 16×10:** vẽ vật liệu lên map, ô tự chọn theo khuôn. Chạm một ô trên map để mở ô đó.
+- **⬇ Godot:** ZIP gồm `tileset.png`, `tileset.tres` và `layout.json`.
+  - Ảnh xếp khung theo khối: khối k chứa khung k của mọi ô.
+  - `.tres` đặt terrain mode theo khuôn (0 góc + cạnh, 1 góc, 2 cạnh), có peering bit, va chạm và `animation_*` cho ô hoạt ảnh.
+- **Nhập / xuất khác:** nhập Terrain 56 đang có ở trang Vẽ thành một bộ (bản ở trang Vẽ giữ nguyên); lưu và mở `.tileset.json`; nạp PNG atlas vào bộ đang mở.
+- **Cảnh báo tab cũ:** một tab Lò Pixel cũ còn giữ kho lưu thì trang Tile nhắc tải lại tab đó.
+
+Trang Vẽ có thêm `?perf` trên địa chỉ: góc màn hình hiện thời gian vẽ, chấm đầu nét và kết thúc nét, để đo trên máy thật.
+
 ## Terrain 56 — template có hướng dẫn pixel
 
 Mở **Terrain** từ thanh Terrain trên tablet, tab File/Atlas hoặc tab Terrain trên thanh
@@ -360,7 +385,7 @@ topology độc lập. Không giả định cùng thứ tự với tileset của
 mapping theo mask. Tham khảo thuật toán gốc:
 [Autotile-47](https://github.com/Game-Development-Resources/Autotile-47).
 
-Chạy toàn bộ kiểm thử: `node --test tests/editor.cjs tests/terrain.mjs tests/sheet.mjs tests/palette.mjs tests/pack.mjs tests/tilegen.mjs tests/genesis.mjs tests/puppet.mjs`.
+Chạy toàn bộ kiểm thử: `node --test tests/*.cjs tests/*.mjs` (gồm `tests/tileset.mjs` cho khuôn và bộ tile, `tests/syntax.mjs` soi cú pháp mọi module).
 
 ## Đưa lên GitHub Pages
 

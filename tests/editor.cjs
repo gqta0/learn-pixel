@@ -25,7 +25,7 @@ function editor(){
     cloneLayer:l=>JSON.parse(JSON.stringify(l)),
     terrainConnectorIndices:()=>[2],tileRoles:()=>new Uint8Array(doc.w*doc.h),ROLE_NAMES:[],
     rgba:(r,g,b,a)=>(r|(g<<8)|(b<<16)|(a<<24))>>>0,
-    render(){},syncAll(){},paintThumbs(){},paintSwatches(){},syncColors(){},syncFingerBtn(){},
+    render(){},requestRender(){},PERF:false,perfMark(){},setText:(el,t)=>{el.textContent=t;},syncAll(){},paintThumbs(){},paintSwatches(){},syncColors(){},syncFingerBtn(){},
     markToday(){marks++;},shadeStep:v=>v,setZoom:z=>{view.zoom=z;}
   });
   for(const file of ['history','raster','input']){

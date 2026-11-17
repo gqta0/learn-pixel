@@ -97,6 +97,7 @@ export function isDitherHit(x, y, pat){
 }
 
 export function put(data,x,y,col){
+  if(view.wrapPaint){ x=((x%doc.w)+doc.w)%doc.w; y=((y%doc.h)+doc.h)%doc.h; }   // bút quấn mép: tràn mép này hiện ở mép kia
   if(!inside(x,y)) return;
   const i=idx(x,y);
   if(view.lockAlpha && !data[i]) return;         // khoá alpha: chỉ vẽ lên chỗ đã có pixel

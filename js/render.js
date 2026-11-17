@@ -1,5 +1,5 @@
 /* Vẽ tài liệu lên canvas chính: ảnh mẫu, bóng khung trước, lưới, ô ngắm, trục giữa. */
-import { $ } from './dom.js';
+import { $, setText, setHidden } from './dom.js';
 import { doc, view, TH } from './state.js';
 import { buf, compositeToBuf, inside, clampSel, layerLength } from './raster.js';
 import { autosave } from './storage.js';
@@ -8,6 +8,31 @@ import { paintTerrainGuide } from './terrain.js';
 export const board = $('#board');
 const ctx = board.getContext('2d');
 let centerOnRender=false;
+/* Khổ khung chứa chỉ đọc lại khi nó đổi (ResizeObserver), không đọc mỗi lần vẽ. */
+let padDirty=true;
+const wrapEl=$('#wrap');
+if(typeof ResizeObserver==='function') new ResizeObserver(()=>{ padDirty=true; requestRender(); }).observe(wrapEl);
+/* Gom mọi lời gọi vẽ trong một khung hình thành một lần: bút S-Pen bắn nhiều sự kiện mỗi khung. */
+let rq=0;
+export function requestRender(){ if(!rq) rq=requestAnimationFrame(()=>{ rq=0; render(); }); }
+/* ?perf trên địa chỉ: góc màn hình hiện thời gian vẽ, chấm đầu nét, kết thúc nét — để đo trên máy thật */
+export const PERF=/[?&]perf\b/.test(location.search);
+const perfVals={};
+let perfEl=null;
+export function perfMark(key,ms){
+  if(!PERF) return;
+  const v=perfVals[key]||(perfVals[key]={last:0,max:0,n:0,sum:0});
+  v.last=ms; v.max=Math.max(v.max,ms); v.n++; v.sum+=ms;
+  if(!perfEl){
+    perfEl=document.createElement('pre');
+    perfEl.style.cssText='position:fixed;left:4px;bottom:4px;z-index:9999;margin:0;padding:4px 6px;font:11px/1.3 monospace;'+
+      'background:rgba(0,0,0,.75);color:#7ee08a;pointer-events:none;border-radius:4px';
+    document.body.appendChild(perfEl);
+    setInterval(()=>{ perfEl.textContent=Object.entries(perfVals).map(([k,v])=>
+      k.padEnd(6)+' '+v.last.toFixed(1)+'  tb '+(v.sum/v.n).toFixed(1)+'  max '+v.max.toFixed(1)+' ms').join('\n'); },500);
+  }
+}
+if(PERF){ let t=performance.now(); const loop=now=>{ perfMark('frame',now-t); t=now; requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
 /* hướng dẫn vẽ thêm từ ngoài (Ghép rối): under(ctx,z) dưới nét vẽ, over(ctx,z,lw) trên lưới — chỉ vẽ lên
    màn hình, không bao giờ vào tranh hay file xuất */
 let guides=null;
@@ -20,18 +45,24 @@ export function setGuides(g){ guides=g; }
 const dpr = () => Math.max(1, window.devicePixelRatio || 1);
 
 export function render(){
+  const t0=PERF ? performance.now() : 0;
+  if(rq){ cancelAnimationFrame(rq); rq=0; }
   autosave();
   clampSel();                       // khổ canvas vừa đổi thì cắt vùng chọn cho vừa tranh
   const d=dpr();
-  const wrap=$('#wrap');
+  const wrap=wrapEl;
   // Chừa khoảng kéo ở bốn phía để zoom luôn giữ được điểm dưới con trỏ.
-  $('#canvasPlane').style.padding=Math.floor(wrap.clientHeight/2)+'px '+Math.floor(wrap.clientWidth/2)+'px';
+  if(padDirty || centerOnRender){
+    padDirty=false;
+    $('#canvasPlane').style.padding=Math.floor(wrap.clientHeight/2)+'px '+Math.floor(wrap.clientWidth/2)+'px';
+  }
   const z=Math.max(1, Math.round(view.zoom*d));      // pixel thiết bị mỗi ô tranh, luôn nguyên
   const lw=Math.max(1, Math.round(d));               // nét mảnh: dày 1 pixel CSS quy ra thiết bị
   const W=doc.w*z, H=doc.h*z;
   if(board.width!==W || board.height!==H){ board.width=W; board.height=H; }
-  board.style.width  = (W/d)+'px';                   // khổ hiển thị vẫn theo pixel CSS
-  board.style.height = (H/d)+'px';
+  const cw=(W/d)+'px', ch=(H/d)+'px';                 // khổ hiển thị vẫn theo pixel CSS
+  if(board.style.width!==cw) board.style.width=cw;
+  if(board.style.height!==ch) board.style.height=ch;
   if(centerOnRender){
     wrap.scrollLeft=(wrap.scrollWidth-wrap.clientWidth)/2;
     wrap.scrollTop=(wrap.scrollHeight-wrap.clientHeight)/2;
@@ -41,8 +72,8 @@ export function render(){
   const layer=doc.layers[doc.al];
   const modes=[view.lockAlpha?'Khoá alpha':'',view.mirX?'Gương X':'',view.mirY?'Gương Y':'',
     view.pixelPerfect && view.tool==='pencil'?'Nét sạch':''].filter(Boolean);
-  $('#drawStatus').textContent=[name,view.brush+'px',layer.name+(layer.vis?'':' (đang ẩn)'),...modes].join(' · ');
-  if(!view.drawing && !view.hover) $('#hud').textContent=doc.w+'×'+doc.h+'   •   ×'+Number(view.zoom.toFixed(1));
+  setText($('#drawStatus'),[name,view.brush+'px',layer.name+(layer.vis?'':' (đang ẩn)'),...modes].join(' · '));
+  if(!view.drawing && !view.hover) setText($('#hud'),doc.w+'×'+doc.h+'   •   ×'+Number(view.zoom.toFixed(1)));
   ctx.imageSmoothingEnabled=false;
   ctx.clearRect(0,0,W,H);
 
@@ -104,8 +135,8 @@ export function render(){
     ctx.strokeStyle=TH.hover; ctx.lineWidth=lw;
     ctx.strokeRect((view.hover.x-o)*z+lw/2,(view.hover.y-o)*z+lw/2, bs*z-lw, bs*z-lw);
   }
-  $('#selBar').hidden = !view.sel;
-  if(view.sel) $('#selSize').textContent = view.sel.w+'×'+view.sel.h;
+  setHidden($('#selBar'),!view.sel);
+  if(view.sel) setText($('#selSize'),view.sel.w+'×'+view.sel.h);
   if(view.sel){
     const s=view.sel;
     ctx.setLineDash([3*lw,3*lw]);
@@ -123,6 +154,7 @@ export function render(){
     ctx.stroke(); ctx.setLineDash([]);
   }
   window.dispatchEvent(new CustomEvent('pixelrender'));
+  if(PERF) perfMark('render',performance.now()-t0);
 }
 
 /* ---------------- phóng to / thu nhỏ ---------------- */
