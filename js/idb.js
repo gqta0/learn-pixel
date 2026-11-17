@@ -3,8 +3,8 @@
    đã chiếm gần nửa. IndexedDB được hàng trăm MB và lưu thẳng mảng, không phải chuỗi JSON.
    Trình duyệt chặn IndexedDB (một số chế độ riêng tư) thì mọi hàm trả về lỗi để nơi gọi
    quay về localStorage như cũ. */
-const DB='lo-pixel', VER=1;
-export const STORES={projects:'projects', kv:'kv'};
+const DB='lo-pixel', VER=2;                       // 2: thêm kho tilesets cho trang Tile
+export const STORES={projects:'projects', kv:'kv', tilesets:'tilesets'};
 let dbp=null;
 
 export function idbAvailable(){
@@ -18,9 +18,16 @@ function open(){
       const db=req.result;
       for(const s of Object.values(STORES)) if(!db.objectStoreNames.contains(s)) db.createObjectStore(s);
     };
-    req.onsuccess=()=>ok(req.result);
+    req.onsuccess=()=>{
+      const db=req.result;
+      // trang kia (Vẽ / Tile) cần nâng phiên bản: nhả kết nối để nó không bị chặn, lần sau mở lại
+      db.onversionchange=()=>{ db.close(); dbp=null; };
+      ok(db);
+    };
     req.onerror=()=>{ dbp=null; fail(req.error||new Error('không mở được IndexedDB')); };
-    req.onblocked=()=>fail(new Error('IndexedDB đang bị một tab khác giữ'));
+    // tab cũ (bản trước) còn giữ kết nối phiên bản 1: chờ nó nhả ra thay vì hỏng luôn — lời mở tự chạy tiếp
+    // khi tab đó đóng hoặc tải lại. Báo cho trang biết để nhắc người dùng.
+    req.onblocked=()=>{ try{ globalThis.dispatchEvent?.(new CustomEvent('idbblocked')); }catch(_){} };
   });
   return dbp;
 }
