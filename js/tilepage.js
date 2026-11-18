@@ -12,6 +12,7 @@ import { createTileset, layoutOf, tileOf, frameAt, frameCount, frameMs, addFrame
          animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES, TILESET_SCHEMA } from './tileset.js';
 import { parseTerrainFile, terrainSheetTo10x7, TERRAIN_CREATE_PRESETS } from './terrainio.js';
 import { mountCheck } from './tilecheck.js';
+import { mountDetail } from './tiledetail.js';
 import { makeZip } from './zip.js';
 import { sanitizeFilename } from './manifest.js';
 import { idbAvailable, idbGet, idbSet, idbDel, idbAll, askPersist, STORES } from './idb.js';
@@ -59,7 +60,7 @@ const TAB=Math.random().toString(36).slice(2);   // tab nào ghi bản trong Ind
 function changed(s){
   ts.rev++; pending=true;
   clearTimeout(saveT); saveT=setTimeout(save,500);
-  paintThumb(s); paintFrames(); paintMap(); check?.updateSoon();
+  paintThumb(s); paintFrames(); paintMap(); check?.updateSoon(); detail?.updateSoon();
 }
 async function save(){
   clearTimeout(saveT);
@@ -125,7 +126,9 @@ function selectSlot(s,f=0){
   setText($('#slotTitle'),'#'+String(slot).padStart(2,'0')+' · '+info.title);
   $$('#grid button').forEach(b=>b.setAttribute('aria-current',String(+b.dataset.slot===slot)));
   paintFrames(); drawEditor(); paintMap();
+  for(const cb of selectCbs) cb();
 }
+const selectCbs=[];
 function stepSlot(d){ const n=lay.slots.length; selectSlot((slot+d+n)%n,0); }
 
 /* ---------------- vẽ tranh một ô lên canvas ---------------- */
@@ -544,7 +547,7 @@ $('#mapPlay').addEventListener('click',e=>{
 });
 $$('.tp-tabs [role=tab]').forEach(t=>t.addEventListener('click',()=>{
   $$('.tp-tabs [role=tab]').forEach(o=>o.setAttribute('aria-selected',String(o===t)));
-  $('#paneGrid').hidden=t.dataset.pane!=='grid'; $('#paneMap').hidden=t.dataset.pane!=='map'; $('#paneCheck').hidden=t.dataset.pane!=='check';
+  $('#paneGrid').hidden=t.dataset.pane!=='grid'; $('#paneMap').hidden=t.dataset.pane!=='map'; $('#paneCheck').hidden=t.dataset.pane!=='check'; $('#paneDetail').hidden=t.dataset.pane!=='detail';
   paintMap();
 }));
 window.addEventListener('resize',()=>paintMap());
@@ -552,6 +555,7 @@ window.addEventListener('resize',()=>paintMap());
 /* ---------------- host chung cho các tab phụ (Soi lỗi, …) ---------------- */
 const host={
   ts:()=>ts, slot:()=>slot,
+  onSelect:cb=>{ selectCbs.push(cb); },
   select:s=>selectSlot(s,0),
   /* ghi khung 0 của nhiều ô trong MỘT bước hoàn tác */
   writeSlots(list){
@@ -569,6 +573,7 @@ const host={
   refresh(){ buildGrid(); selectSlot(slot,frame); check?.update(); }
 };
 const check=mountCheck(host);
+const detail=mountDetail(host);
 
 /* ---------------- tạo bộ mới ---------------- */
 const dlg=$('#newDlg'), form=dlg.querySelector('form').elements;   // .elements: form.name là tên của thẻ form, không phải ô Tên

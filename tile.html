@@ -77,6 +77,7 @@
       <button role="tab" data-pane="grid" aria-selected="true">Bộ ô</button>
       <button role="tab" data-pane="map" aria-selected="false">Soi map</button>
       <button role="tab" data-pane="check" aria-selected="false">Soi lỗi<b class="tp-badge" id="chkBadge" hidden></b></button>
+      <button role="tab" data-pane="detail" aria-selected="false">Chi tiết</button>
     </nav>
     <div class="tp-pane" id="paneGrid">
       <p class="tp-note" id="layoutNote"></p>
@@ -101,6 +102,21 @@
             <button class="btn tiny" id="chkVariants" title="Chép ô gốc vào 9 ô biến thể để bạn chỉ còn việc sửa cho khác đi">⧉ Biến thể ← ô gốc</button>
           </div>
         </div>
+      </div>
+    </div>
+    <div class="tp-pane" id="paneDetail" hidden>
+      <h3 class="tp-dtitle" id="detTitle"></h3>
+      <p class="tp-note" id="detMeta"></p>
+      <canvas id="detCanvas" class="tp-detcanvas" aria-label="Vai trò pixel của ô đang chọn"></canvas>
+      <p class="tp-note" id="detPixel">Rê bút/chuột lên ô để xem pixel cần vẽ gì.</p>
+      <div class="tp-legend" id="detLegend" aria-label="Chú giải vai trò pixel"></div>
+      <p class="tp-note" id="detNote" hidden></p>
+      <div id="detBlob">
+        <p id="detRecipe" class="tp-recipe"></p>
+        <p class="tp-note"><b>Ô nối được</b> — bấm một ô để mở và xem cặp ghép.</p>
+        <div id="detNeighbors"></div>
+        <p class="tp-note" id="detPairLabel"></p>
+        <canvas id="detPair" class="tp-detpair" aria-label="Hai ô ghép cạnh nhau"></canvas>
       </div>
     </div>
     <div class="tp-pane" id="paneMap" hidden>
