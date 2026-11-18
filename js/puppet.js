@@ -143,19 +143,19 @@ const solid=v=>(v>>>24)>0;
 const darken=(v,k)=>rgba(Math.round((v&255)*k),Math.round(((v>>8)&255)*k),Math.round(((v>>16)&255)*k),v>>>24);
 /* sheets: {head:{w,h,px}, body:{w,h,px}} (px Uint32 ABGR như ImageData; thiếu = không vẽ).
    opt.only: chỉ ghép một miếng (cả phía gần lẫn xa) · opt.fill: {head,body} sheet thay cho ô còn trống ·
-   opt.outline=false: bỏ viền · opt.flaps: điểm vạt áo (flapPoints) — dùng bakeAt cho gọn. Ô vạt áo trống nghĩa là
+   opt.hide: các miếng không vẽ (cả phía gần lẫn xa) · opt.outline=false: bỏ viền · opt.flaps: điểm vạt áo (flapPoints) — dùng bakeAt cho gọn. Ô vạt áo trống nghĩa là
    nhân vật không mặc áo dài, nên không lấy khối mẫu thay vào. Trả về {px, who}: who[i] = 1 + chỉ số miếng trong PARTS_OF(P) ở pixel đó. */
 export function partsOf(P){ return [...Object.keys(P.sheets.head.parts),...Object.keys(P.sheets.body.parts)]; }
 export function bake(P,sheets,f,box,opt={}){
   const W=box.w, H=box.h, out=new Uint32Array(W*H), who=new Uint8Array(W*H), names=partsOf(P);
   const gpx=new Uint32Array(W*H), gwho=new Uint8Array(W*H), empty=cellEmptiness(P,sheets);
-  const list=placements(P,f,opt.flaps);
+  const list=placements(P,f,opt.flaps), hide=new Set(opt.hide||[]);
   for(let g=0, k=0; g<P.draw_order.length; g++){
     gpx.fill(0); gwho.fill(0);
     let any=false;
     for(; k<list.length && list[k].g===g; k++){
       const p=list[k];
-      if(opt.only && p.part!==opt.only) continue;
+      if((opt.only && p.part!==opt.only) || hide.has(p.part)) continue;
       let sh=sheets[p.kind];
       if((!sh || empty[p.part]) && opt.fill && !p.rows) sh=opt.fill[p.kind];
       if(!sh) continue;

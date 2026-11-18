@@ -8,6 +8,11 @@ import { syncAll } from './ui.js';
 const MAX_STEPS=80, MAX_BYTES=160*1024*1024;      // khổ 256: 3 lớp × 16 khung ≈ 12 MB một bản chụp, vẫn giữ được ~13 bước
 const undoStack=[], redoStack=[];
 let bytes=0;
+/* Bản vẽ trong thư viện mà tranh đang mở thuộc về. Mỗi bước hoàn tác nhớ nó, để hoàn tác qua lúc mở bản
+   khác (Ghép rối nhảy giữa sheet Đầu / Thân, mở từ 📁) thì lần cất sau ghi đúng vào bản của tranh đó,
+   không đè lên bản đang mở. main.js nối vào đây — không import library.js để khỏi vòng import. */
+let docId={get:()=>null, set:()=>{}};
+export function bindDocId(get,set){ docId={get,set}; }
 const sizeOf = s => s.frames.length * s.layers.length * s.w * s.h * 4;
 function trim(){
   while(undoStack.length && (undoStack.length>MAX_STEPS || bytes>MAX_BYTES))
@@ -21,7 +26,8 @@ export function captureUndo(){
     dur: doc.dur.slice(), sel:view.sel ? {...view.sel} : null,
     atlasEdit:doc.atlasEdit ? {...doc.atlasEdit} : null,
     terrainLink:doc.terrainLink ? {...doc.terrainLink,slots:doc.terrainLink.slots?.slice()||[]} : null,
-    anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0, puppet:doc.puppet||null     // đổi khổ dời điểm chân: hoàn tác phải trả về cùng lúc
+    anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0, puppet:doc.puppet||null,    // đổi khổ dời điểm chân: hoàn tác phải trả về cùng lúc
+    lib:docId.get()
   };
 }
 function restore(s){
@@ -33,6 +39,7 @@ function restore(s){
   doc.atlasEdit=s.atlasEdit ? {...s.atlasEdit} : null;
   doc.terrainLink=s.terrainLink ? {...s.terrainLink,slots:s.terrainLink.slots?.slice()||[]} : null;
   doc.anchor=s.anchor ? {...s.anchor} : null; doc.charH=s.charH||0; doc.puppet=s.puppet||null;
+  docId.set(s.lib??null);
 }
 export function pushUndo(s=captureUndo()){
   undoStack.push(s); bytes+=sizeOf(s);

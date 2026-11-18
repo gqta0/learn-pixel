@@ -221,3 +221,32 @@ test('undo brings the pivot and layer marks back together with the pixels',()=>{
   assert.deepEqual(plain(e.doc.layers[0].marks),{0:'rời đất'});
   assert.deepEqual(plain(e.doc.layers[0].src.pivot),{x:10,y:32});
 });
+
+test('cell lock: a stroke starting outside every cell paints freely, inside a cell it is confined',()=>{
+  const e=editor(), cell={x:0,y:0,w:4,h:4};
+  e.view.lockCell=p=>p.x<4&&p.y<4 ? {...cell} : null;            // null: sheet rối, ngoài mọi ô
+  e.view.sel={...cell};                                           // ô của miếng trước còn đang khoá
+  e.stroke(10,10);
+  assert.notEqual(e.pixel(10,10),0);
+  assert.equal(e.view.sel,null);
+  e.event('pointerdown',1,2,2);e.event('pointermove',1,9,2);e.event('pointerup',1,9,2);
+  assert.notEqual(e.pixel(3,2),0);assert.equal(e.pixel(5,2),0);
+});
+test('cell lock off (lockCell gives undefined) keeps the user selection',()=>{
+  const e=editor();
+  e.view.lockCell=()=>undefined;
+  e.view.sel={x:0,y:0,w:4,h:4};
+  e.stroke(10,10);
+  assert.equal(e.pixel(10,10),0);
+  assert.deepEqual(JSON.parse(JSON.stringify(e.view.sel)),{x:0,y:0,w:4,h:4});
+});
+test('undo and redo bring back which library item the drawing belongs to',()=>{
+  const e=editor();
+  e.run('var libId="A"; bindDocId(()=>libId, id=>{ libId=id; });');
+  e.stroke(2,2);                                                  // nét trên bản A
+  e.run('libId="B";');                                            // mở bản B (không đẩy bước hoàn tác)
+  e.run('undo()');
+  assert.equal(e.run('libId'),'A');                               // hoàn tác về tranh của A thì lưu vào A
+  e.run('redo()');
+  assert.equal(e.run('libId'),'B');
+});

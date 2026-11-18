@@ -10,7 +10,7 @@ import { pushUndo } from './history.js';
 import { syncAll } from './ui.js';
 import { palette, COLOR_TOKENS } from './palette.js';
 import { stopEditing } from './atlas.js';
-import { keepBeforeReplace, saveCurrent, currentId, getLibraryItems, libraryReady, openProject } from './library.js';
+import { keepBeforeReplace, forgetCurrent, saveCurrent, currentId, getLibraryItems, libraryReady, openProject } from './library.js';
 import { decodeProject, sanitizeFilename } from './manifest.js';
 import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
@@ -19,11 +19,12 @@ import { frameAt, flapPoints, frameBox, bake, blockoutSheet, cellAt, attachPoint
 
 let P=null, box=null, block=null;                 // dữ liệu rối, khổ khung, sheet khối mẫu
 const rig={clip:'run', t:0, playing:true, part:null, ghost:false, fill:true, only:false, pip:true, pipZoom:0,
-  lock:true, light:'↖', shadeSee:false};
+  lock:true, light:'↖', shadeSee:false, outline:true, hidden:[]};   // outline, hidden: chỉ cho phần xem, không vào file xuất
 const guideOn={shapes:true, cells:true, joints:true, anchors:true};
 const GUIDE_NAMES={shapes:'Khối mờ (dáng mẫu)', cells:'Khung ô + tên miếng', joints:'Khớp: đỏ = điểm xoay, xanh = chỗ gắn miếng sau', anchors:'Mốc đầu + vùng tóc/phụ kiện'};
 try{ Object.assign(rig, JSON.parse(localStorage.getItem('lo-pixel-rig')||'{}'), {playing:true, shadeSee:false, t:0}); }catch(_){}
-const remember=()=>{ try{ const {clip,ghost,fill,pip,pipZoom,lock,light}=rig; localStorage.setItem('lo-pixel-rig',JSON.stringify({clip,ghost,fill,pip,pipZoom,lock,light})); }catch(_){} };
+if(!Array.isArray(rig.hidden)) rig.hidden=[];
+const remember=()=>{ try{ const {clip,ghost,fill,pip,pipZoom,lock,light,outline,hidden}=rig; localStorage.setItem('lo-pixel-rig',JSON.stringify({clip,ghost,fill,pip,pipZoom,lock,light,outline,hidden})); }catch(_){} };
 
 /* ---------------- sheet đang vẽ ---------------- */
 const isSheet=()=>P && (doc.puppet==='head'||doc.puppet==='body') &&
@@ -86,7 +87,8 @@ let ghostCache={t:-1,clip:'',only:null,px:null};
 function pose(){
   const f=frameAt(clipObj(),rig.t), flaps=flapPoints(P,clipObj(),rig.t), sheets={head:sheetFor('head'),body:sheetFor('body')};
   const only=rig.only && rig.part ? rig.part : null;
-  const fig=bake(P,sheets,f,box,{only, flaps, fill:rig.fill ? block : null});
+  // Chỉ miếng này thắng danh sách ẩn: đang soi riêng một miếng thì luôn thấy nó
+  const fig=bake(P,sheets,f,box,{only, flaps, fill:rig.fill ? block : null, outline:rig.outline, hide:only ? [] : rig.hidden});
   if(rig.ghost && (ghostCache.t!==rig.t || ghostCache.clip!==rig.clip))
     ghostCache={t:rig.t,clip:rig.clip,px:bake(P,block,f,box,{outline:false, flaps}).px};
   return {fig, ghost:rig.ghost ? ghostCache.px : null};
@@ -170,6 +172,26 @@ function tick(){
 function setPlaying(on){ rig.playing=on; if(on) tick(); else clearTimeout(timer); schedule(); }
 function step(d){ setPlaying(false); const n=nKeys(); rig.t=((keyIndex()+d+n)%n)/clipObj().fps; schedule(); }
 
+/* ---------------- ẩn / hiện từng miếng trên rối ---------------- */
+function paintShow(){
+  const el=$('#rigShow'); el.replaceChildren();
+  if(!P) return;
+  rig.hidden=rig.hidden.filter(p=>partsOf(P).includes(p));        // làm mới puppet.json bỏ miếng nào thì quên nó
+  for(const part of partsOf(P)){
+    const off=rig.hidden.includes(part), b=document.createElement('button');
+    b.className='btn tiny'+(off?' off':''); b.textContent=PART_VI[part];
+    b.setAttribute('aria-pressed',String(!off)); b.title=(off?'Đang ẩn — chạm để hiện ':'Chạm để ẩn ')+PART_VI[part]+' trên rối';
+    b.addEventListener('click',()=>{
+      rig.hidden=off ? rig.hidden.filter(p=>p!==part) : [...rig.hidden,part];
+      remember(); paintShow(); schedule();
+    });
+    el.appendChild(b);
+  }
+  const n=rig.hidden.length;
+  $('#rigShowLabel').textContent='Miếng hiện trên rối'+(n ? ' · đang ẩn '+n : '')+' (chạm để ẩn / hiện)';
+  $('#rigShowAll').disabled=!n;
+}
+
 /* ---------------- miếng đang chọn: tới ô, khoá ô ---------------- */
 function paintParts(){
   const box_=$('#rigParts'); box_.replaceChildren();
@@ -222,9 +244,10 @@ function zoomTo(r){
   wrap.scrollLeft+=b.left+(r.x+r.w/2)*k-(w.left+wrap.clientWidth/2);
   wrap.scrollTop+=b.top+(r.y+r.h/2)*k-(w.top+wrap.clientHeight/2);
 }
-/* Khoá trong ô: input.js hỏi ô của điểm bắt đầu nét */
+/* Khoá trong ô: input.js hỏi ô của điểm bắt đầu nét. undefined = không khoá (giữ vùng chọn của người vẽ) ·
+   null = sheet rối nhưng ngoài mọi ô: vẽ / xoá tự do, để dọn được pixel lạc mà Soi miếng báo */
 function lockCell(p){
-  if(!rig.lock || !isSheet()) return null;
+  if(!rig.lock || !isSheet()) return undefined;
   const part=cellAt(P,doc.puppet,p.x,p.y);
   if(!part) return null;
   if(part!==rig.part){ rig.part=part; paintParts(); }
@@ -355,7 +378,7 @@ function createSheet(kind){
   if(!confirm('Dựng sheet '+SHEET_VI[kind]+' '+w+'×'+h+'?\n\nBản đang vẽ sẽ được cất vào thư viện trước, không mất đi đâu.')) return;
   if(!keepBeforeReplace()) return;
   stopEditing();
-  pushUndo();
+  pushUndo(); forgetCurrent();                    // sheet mới là một bản riêng trong thư viện
   doc.w=w; doc.h=h; doc.terrainLink=null; doc.anchor=null; doc.charH=0; doc.puppet=kind;
   doc.name=(kind==='head'?'Đầu ':'Thân ')+'nhân vật';
   doc.layers=[{name:'Miếng',vis:true}];
@@ -407,6 +430,8 @@ export function bindPuppet(){
   toggleBtn('#rigFill','fill');
   toggleBtn('#rigOnly','only',()=>{ if(rig.only && !rig.part) toast('Chọn một miếng để xem riêng.'); });
   toggleBtn('#rigPipBtn','pip');
+  toggleBtn('#rigOutline','outline');
+  $('#rigShowAll').addEventListener('click',()=>{ rig.hidden=[]; remember(); paintShow(); schedule(); });
   toggleBtn('#rigLock','lock',()=>{ if(!rig.lock && isSheet()){ view.sel=null; render(); } else if(rig.part && isSheet()){ view.sel=cellRect(rig.part); render(); } });
   $('#rigPipHide').addEventListener('click',()=>{ rig.pip=false; remember(); $('#rigPipBtn').classList.remove('on'); $('#rigPipBtn').setAttribute('aria-pressed','false'); schedule(); });
   $('#rigPipZoom').addEventListener('click',()=>{ const z=rig.pipZoom||2; rig.pipZoom=z%3+1; remember(); schedule(); });
@@ -459,6 +484,6 @@ export function bindPuppet(){
     $('#rigExample').textContent=sheetFileName('run',box,P.clips.run.frames.length);
     $('#rigInfo').textContent='Khung xương '+P.bones.length+' xương · '+Object.keys(P.clips).length+' động tác · khung xuất '+box.w+'×'+box.h+', điểm chân ('+box.fx+', '+box.fy+').';
     await libraryReady;
-    lastKey=''; fillSources(); paintParts(); paintGuides(); runRigLint(); render(); tick();
+    lastKey=''; fillSources(); paintParts(); paintShow(); paintGuides(); runRigLint(); render(); tick();
   }).catch(err=>{ $('#rigInfo').textContent='Không nạp được data/puppet.json ('+err.message+'). Mở trang qua máy chủ (python -m http.server).'; });
 }

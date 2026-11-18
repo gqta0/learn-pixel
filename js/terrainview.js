@@ -202,7 +202,7 @@ function linkFramesToTerrain(n){
   doc.layers=[{name:'Terrain',vis:true}];
   doc.frames=source.map(cv=>[pixelsFromCanvas(cv)]);
   doc.dur=Array(56).fill(0);
-  doc.af=0; doc.al=0; doc.atlasEdit=null;
+  doc.af=0; doc.al=0; doc.atlasEdit=null; doc.puppet=null;
   terrainDirty=false;
   doc.terrainLink={schema:TERRAIN_SCHEMA,atlasId:a.id,slots:TERRAIN_TILES.map(t=>t.slot),
     labels:$('#terrainFrameLabels')?.checked!==false,
