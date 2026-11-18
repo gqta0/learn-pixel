@@ -189,7 +189,8 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
      Vạt sau nằm sau chân xa, vạt phải đè chân xa, vạt trái đè chân gần và nằm dưới ngực; vạt phải và vạt sau
      tối đi như phía xa. **Để trống ô vạt nghĩa là không mặc áo dài** — rối không thay khối mẫu vào đó.
    - Chạm tên miếng (hoặc chạm vào rối) để **tới ô** đó. **🔒 Khoá trong ô** (bật sẵn): nét bắt đầu ở ô nào
-     thì chỉ vẽ trong ô đó, không lem sang miếng bên cạnh.
+     thì chỉ vẽ trong ô đó, không lem sang miếng bên cạnh; nét bắt đầu ngoài mọi ô thì vẽ / xoá tự do, để dọn
+     pixel lạc mà Soi miếng báo.
    - **Đổ bóng**: chọn hướng ánh sáng (mặc định trên-trái), **👁 Xem thử bóng** để ngó trước, **◐ Đổ bóng
      miếng này** để ghi: bóng phía khuất sáng và một viền sáng phía có sáng, lấy hai bậc kề màu nền trong
      nhóm màu của bảng (Genesis v3 xếp tối → sáng). Chỉ là điểm khởi đầu — sửa tay tiếp, Ctrl+Z để bỏ.
@@ -199,7 +200,9 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
    Ghép rối có cỡ thật ×1, ×2 và phóng to. Chọn động tác, ▶/⏸, ◀ ▶ từng khung, thanh **Tư thế** để kéo chậm
    từng chút. Chọn bản Đầu và bản Thân nào trong thư viện ghép với nhau. **◧ Chỉ miếng này** + kéo thanh Tư
    thế để xem một miếng qua mọi góc xoay; **◌ Bóng khối** chồng mờ dáng mẫu để so khối; ô chưa vẽ tạm hiện
-   khối mẫu để vẫn thấy cả người.
+   khối mẫu để vẫn thấy cả người. **▢ Viền máy** tắt viền 1 px để soi màu sát mép miếng; dãy **Miếng hiện trên
+   rối** chạm để ẩn / hiện từng miếng (cả phía gần lẫn xa), **Hiện hết** để bật lại. Hai thứ này chỉ đổi phần xem
+   (rối trong thẻ và rối nổi trên canvas), file xuất luôn đủ miếng, có viền.
 4. **Xuất** — **⬇ Xuất mọi động tác (ZIP)**: mỗi động tác một PNG một hàng khung, tên theo kiểu game đang đọc
    (`run_77x93_8f.png`, `skill_02_77x93_18f.png`…), kèm `puppet_bake.json` (khổ khung, điểm chân, fps, lặp).
    Khổ khung giống nhau ở mọi động tác và tính từ khung xương, nên vẽ lại miếng không làm lệch điểm chân.

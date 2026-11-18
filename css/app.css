@@ -1068,6 +1068,7 @@ body[data-view="terrain"] .col.right{display:none}
 .rig-parts .btn{min-height:32px}
 .rig-parts .btn.on{background:var(--accent-bg);border-color:var(--amber);color:var(--amber)}
 .rig-parts .btn.has::after{content:" ●";color:var(--leaf)}
+.rig-show .btn.off{opacity:.45;text-decoration:line-through}
 .rig-light{display:grid;grid-template-columns:repeat(3,38px);gap:4px}
 .rig-light .btn{min-height:32px;font-size:15px;padding:0}
 .rig-light .btn.on{background:var(--accent-bg);border-color:var(--amber);color:var(--amber)}

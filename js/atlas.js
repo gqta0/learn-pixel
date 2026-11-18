@@ -11,7 +11,7 @@ import { invalidateBuf, frameToCanvas } from './raster.js';
 import { pushUndo } from './history.js';
 import { fitZoom, render } from './render.js';
 import { download } from './storage.js';
-import { keepBeforeReplace } from './library.js';
+import { keepBeforeReplace, forgetCurrent } from './library.js';
 import { syncAll } from './ui.js';
 import { TERRAIN_SCHEMA, TERRAIN_LAYOUT, TERRAIN_TILES, ATLAS_COLS, ATLAS_ROWS, terrainSlotCell, terrainSlotCells, terrainCellSlot, legacyTerrainCell } from './terrain.js';
 
@@ -217,14 +217,14 @@ export function editSelection(){
     return;
   }
   if(!keepBeforeReplace()) return;
-  pushUndo();
+  pushUndo(); forgetCurrent();          // ô atlas mở ra là một bản riêng
   doc.w=r.w; doc.h=r.h;
   doc.layers=[{name:'Ô atlas',vis:true}];
   doc.dur=[];
   const px=atlas.cv.getContext('2d').getImageData(r.x,r.y,r.w,r.h);
   doc.frames=[[new Uint32Array(px.data.buffer.slice(0))]];
   doc.af=0; doc.al=0;
-  doc.terrainLink=null;
+  doc.terrainLink=null; doc.puppet=null;   // ô atlas không phải sheet Ghép rối
   view.sel=null;
   doc.atlasEdit={...r,atlasId:atlas.id, c:sel.c, r0:sel.r,
     terrainSlot:atlas.terrain===TERRAIN_SCHEMA && sel.cw===1 && sel.ch===1 && terrainCellSlot(sel.c,sel.r)>=0 ? terrainCellSlot(sel.c,sel.r) : null,shape:atlas.shape};

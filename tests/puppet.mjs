@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {frameAt, keyPose, joints, placements, frameBox, bake, bakeAt, flapPoints, isFlap, blockoutSheet, cellAt, attachPoints, shadeRamp, shadeCell,
-  lintSheet, bakeClips, bakeManifest, sheetFileName, OUTLINE, FAR_SHADE, LIGHTS, SLOT_ZONES} from '../js/puppet.js';
+  lintSheet, bakeClips, bakeManifest, sheetFileName, partsOf, OUTLINE, FAR_SHADE, LIGHTS, SLOT_ZONES} from '../js/puppet.js';
 import {GENESIS_FAMILIES, GENESIS_COLORS, GENESIS_TOKENS} from '../js/genesis.js';
 
 const P=JSON.parse(readFileSync(new URL('../data/puppet.json',import.meta.url),'utf8'));
@@ -100,6 +100,20 @@ test('only-this-part, blockout fill for empty cells, and no outline on request',
   assert.ok(!solo.includes(rgba(10,200,10)));                     // đùi đã vẽ không hiện khi chỉ xem cẳng chân
   assert.ok(all.includes(rgba(10,200,10)) && all.some(v=>v===fill.body.px.find(Boolean)));
   assert.ok(!bake(P,{body},f,box,{outline:false}).px.includes(OUTLINE));
+});
+
+test('hidden parts are left out on both sides; the rest of the figure is unchanged',()=>{
+  const body=blank('body'), box=frameBox(P), f=keyPose(P.clips.run,2), green=rgba(10,200,10), blue=rgba(20,20,220);
+  fillCell(body,P.sheets.body.parts.thigh.rect,green);
+  fillCell(body,P.sheets.body.parts.shin.rect,blue);
+  const all=bake(P,{body},f,box,{outline:false}).px, noThigh=bake(P,{body},f,box,{outline:false,hide:['thigh']}).px;
+  const far=v=>rgba(Math.round((v&255)*FAR_SHADE),Math.round(((v>>8)&255)*FAR_SHADE),Math.round(((v>>16)&255)*FAR_SHADE));
+  assert.ok(all.includes(green) && all.includes(far(green)));
+  assert.ok(!noThigh.includes(green) && !noThigh.includes(far(green)));      // cả đùi gần lẫn đùi xa
+  assert.ok(noThigh.includes(blue) && noThigh.includes(far(blue)));          // cẳng chân vẫn còn
+  assert.deepEqual(bake(P,{body},f,box,{hide:[]}).px,bake(P,{body},f,box).px);
+  // ẩn miếng thì chạm vào rối không trúng nó
+  assert.ok(!bake(P,{body},f,box,{hide:['thigh']}).who.includes(partsOf(P).indexOf('thigh')+1));
 });
 
 test('a part at 0 degrees is copied pixel for pixel, whatever the fraction of its joint',()=>{

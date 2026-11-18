@@ -75,6 +75,8 @@ export function removeProject(id){ delete items[id]; persist(id); }
 export function renameProject(id,n){ if(items[id]){ items[id].name=n; persist(id); } }
 export function currentId(){ return openId; }
 export function forgetCurrent(){ openId=null; }
+/* hoàn tác / làm lại trả tranh về thì trả cả bản thư viện của nó (bản đã xoá thì thôi) — main.js nối vào history.js */
+export function adoptCurrent(id){ openId = id && items[id] ? id : null; }
 
 /* Ảnh nhỏ dựng thẳng từ dữ liệu đã lưu, không đụng tới tranh đang mở. */
 function unrle(o,len){
@@ -176,13 +178,14 @@ function askKeep(){
   if(c && !saveCurrent()){ alert('Trình duyệt hết chỗ lưu. Hãy xoá bớt bản vẽ cũ rồi thử lại.'); return false; }
   return true;
 }
-/* Gọi trước khi Dựng khung thay tranh: giữ lại bức đang làm dở. */
+/* Gọi trước khi Dựng khung thay tranh: giữ lại bức đang làm dở. Không bỏ bản đang mở ở đây: người gọi
+   pushUndo() trước (để bước hoàn tác nhớ bức cũ thuộc bản nào) rồi mới forgetCurrent() cho bức mới. */
 export function keepBeforeReplace(){
-  if(isBlank()) { openId=null; return true; }
+  if(isBlank()) return true;
   if(!saveCurrent()){
-    return confirm('Trình duyệt hết chỗ nên không cất được bản đang vẽ. Vẫn dựng khung mới và bỏ bức này?');
+    if(!confirm('Trình duyệt hết chỗ nên không cất được bản đang vẽ. Vẫn dựng khung mới và bỏ bức này?')) return false;
+    openId=null;                 // bức cũ không cất được: đừng để bước hoàn tác trỏ về bản cũ hơn của nó
   }
-  openId=null;                   // bức mới sẽ là một bản riêng
   return true;
 }
 

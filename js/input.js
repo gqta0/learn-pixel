@@ -196,7 +196,8 @@ wrap.addEventListener('pointerdown', e=>{
   }
   if(strokeTool==='select'){ view.sel=null; render(); return; }   // kéo tiếp mới thành vùng
   // Ghép rối · Khoá trong ô: nét bắt đầu ở ô nào thì chỉ vẽ trong ô đó (dùng lại vùng chọn)
-  if(view.lockCell && strokeTool!=='move'){ const c=view.lockCell(p); if(c){ view.sel=c; strokeSelection={...c}; } }
+  // lockCell: ô chữ nhật · null = sheet rối nhưng ngoài mọi ô (vẽ / xoá tự do, để dọn được pixel lạc) · undefined = không khoá
+  if(view.lockCell && strokeTool!=='move'){ const c=view.lockCell(p); if(c!==undefined){ view.sel=c; strokeSelection=c ? {...c} : null; } }
   strokeUndo=captureUndo();
 
   const col = strokeColor(e);

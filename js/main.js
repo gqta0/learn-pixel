@@ -11,6 +11,10 @@ import { buildExercises, TRACKS } from './content/exercises.js';
 import { buildTheory } from './content/lessons.js';
 import { loadAtlas } from './atlas.js';
 import './input.js';                 // gắn sự kiện chuột / cảm ứng / S-Pen
+import { bindDocId } from './history.js';
+import { currentId, adoptCurrent } from './library.js';
+
+bindDocId(currentId, adoptCurrent);  // ở đây chứ không trong library.js: lúc library.js chạy, history.js có thể chưa nạp xong (vòng import)
 
 function boot(){
   let saved=null;
