@@ -32,15 +32,16 @@ export function editingRect(){
     e.w===doc.w && e.h===doc.h && e.x+e.w<=atlas.cv.width && e.y+e.h<=atlas.cv.height ? e : null;
 }
 /* Atlas Terrain đúng khổ bố cục hiện tại (10×7 ô: lưới cr31 7×7 + khối biến thể 3×3)? */
-export const isTerrainSheet=(cv,size)=>cv.width===size*ATLAS_COLS && cv.height===size*ATLAS_ROWS;
+const isTerrainSheet=(cv,size)=>cv.width===size*ATLAS_COLS && cv.height===size*ATLAS_ROWS;
 /* Bố cục cũ (layout 1–2): 8×7 ô, slot xếp theo thứ tự. */
-export const isLegacyTerrainSheet=(cv,size)=>cv.width===size*8 && cv.height===size*7;
+const isLegacyTerrainSheet=(cv,size)=>cv.width===size*8 && cv.height===size*7;
 /* Chuyển atlas bố cục cũ sang layout 3, trả về canvas MỚI (khổ đổi từ 8×7 sang 10×7):
    - layout 1 → 2: #50 và #51 đổi từ biến thể ruột sang biến thể sàn; tranh ruột cũ ở đó sẽ thành
      mặt sàn không có mép, nên chép ô sàn gốc #31 vào — đúng hình ngay, người vẽ chỉ còn sửa cho khác;
    - layout 2 → 3: chuyển từng slot từ ô cũ (thứ tự 8 cột) sang ô mới (lưới cr31), chép ô 0 ra bản sao.
-   Nghĩa của slot không đổi, nên frame đang link vẫn đúng ô. */
-export function migrateTerrainLayout(cv,size,fromLayout=2){
+   Nghĩa của slot không đổi. Tạo / sửa bộ Terrain 56 nằm ở Trang Tile (tile.html);
+   ở đây chỉ còn đọc được atlas Terrain để xem, soi map và sửa từng ô như atlas thường. */
+function migrateTerrainLayout(cv,size,fromLayout=2){
   if(!isLegacyTerrainSheet(cv,size)) return cv;
   const src=document.createElement('canvas'); src.width=cv.width; src.height=cv.height;
   const sg=src.getContext('2d'); sg.drawImage(cv,0,0);
@@ -56,31 +57,6 @@ export function migrateTerrainLayout(cv,size,fromLayout=2){
   }
   return out;
 }
-export function createTerrainAtlas(cv,size,replace=false,shape='inset'){
-  if(atlas && !replace && !confirm('Thay atlas hiện tại bằng bộ Terrain 56? Hãy xuất PNG atlas cũ trước nếu cần giữ. Bản đang vẽ không bị xoá.')) return false;
-  atlas={id:crypto.randomUUID(),name:'terrain56-'+size,cv,tw:size,th:size,pad:0,off:0,terrain:TERRAIN_SCHEMA,layout:TERRAIN_LAYOUT,shape:shape==='flush'?'flush':'inset'};
-  sel=anchor=null; doc.atlasEdit=null; zoom=2;
-  save(); syncBar(); return true;
-}
-export function linkedTerrainFrameIndex(slot){
-  if(!atlas || atlas.terrain!==TERRAIN_SCHEMA || atlas.tw!==atlas.th || !isTerrainSheet(atlas.cv,atlas.tw)) return -1;
-  const link=doc.terrainLink;
-  if(link?.schema!==TERRAIN_SCHEMA || link.atlasId!==atlas.id ||
-     !Array.isArray(link.slots) || link.slots.length!==56 || doc.frames.length!==56 ||
-     doc.w!==atlas.tw || doc.h!==atlas.th) return -1;
-  const i=link.slots.indexOf(slot);
-  return i>=0 && doc.frames[i] ? i : -1;
-}
-export function writeTerrainSlot(slot, frameIndex=doc.af, persist=true){
-  if(!atlas || atlas.terrain!==TERRAIN_SCHEMA || !Number.isInteger(slot) || slot<0 || slot>=56 ||
-     doc.w!==atlas.tw || doc.h!==atlas.th || !doc.frames[frameIndex]) return false;
-  const cv=document.createElement('canvas');cv.width=atlas.tw;cv.height=atlas.th;
-  frameToCanvas(frameIndex,cv,1);
-  drawSlotCells(slot,cv);
-  if(persist) save();
-  if(!$('#atlasWrap').hidden) paint();
-  return true;
-}
 /* vẽ tranh một slot vào mọi ô của nó trong atlas (ô chính + bản sao) */
 function drawSlotCells(slot,tile){
   const g=atlas.cv.getContext('2d');
@@ -89,28 +65,15 @@ function drawSlotCells(slot,tile){
     g.clearRect(x,y,atlas.tw,atlas.th); g.drawImage(tile,x,y);
   }
 }
-/* Ghi một canvas ô vào slot — dùng khi app tự dựng ô (ghép từ ô lõi, chép ô gốc),
-   tức không có frame nào để lấy tranh như writeTerrainSlot. */
-export function writeTerrainPixels(slot,tile,persist=true){
-  if(!atlas || atlas.terrain!==TERRAIN_SCHEMA || !Number.isInteger(slot) || slot<0 || slot>=56) return false;
-  drawSlotCells(slot,tile);
-  if(persist) save();
-  return true;
+/* slot Terrain của vùng đang mượn: chỉ khi là đúng một ô của atlas Terrain, không thì -1 */
+function terrainSlotAt(e){
+  if(atlas.terrain!==TERRAIN_SCHEMA || !isTerrainSheet(atlas.cv,atlas.tw) || e.w!==atlas.tw || e.h!==atlas.th) return -1;
+  return terrainCellSlot(e.c,e.r0);
 }
 /* ô [cột, hàng] của một slot: atlas Terrain theo bảng bố cục, atlas thường theo thứ tự */
 const slotCellOf=slot=>atlas.terrain===TERRAIN_SCHEMA && isTerrainSheet(atlas.cv,atlas.tw) ? terrainSlotCell(slot) : [slot%cols(),Math.floor(slot/cols())];
 export function editAtlasSlot(slot){
   if(!atlas || slot<0 || slot>=cols()*rows()) return false;
-  const linked=linkedTerrainFrameIndex(slot);
-  if(linked>=0){
-    const [c,r]=slotCellOf(slot);
-    doc.af=linked; doc.al=0; view.sel=null;
-    sel={c,r,cw:1,ch:1}; anchor=null;
-    doc.atlasEdit={x:atlas.off+c*stepX(),y:atlas.off+r*stepY(),w:atlas.tw,h:atlas.th,
-      atlasId:atlas.id,c,r0:r,terrainSlot:slot,shape:atlas.shape};
-    syncAll();
-    return true;
-  }
   const [c,r]=slotCellOf(slot);
   sel={c,r,cw:1,ch:1};
   return editSelection();
@@ -188,9 +151,6 @@ export function loadAtlas(){
         const from=atlas.layout||1;
         atlas.cv=migrateTerrainLayout(atlas.cv,atlas.tw,from);
         atlas.layout=TERRAIN_LAYOUT;
-        // layout 1: frame đang link cũng phải đổi theo, nếu không lần đồng bộ sau sẽ ghi tranh ruột cũ đè lại
-        if(from<2 && linkedTerrainFrameIndex(31)>=0) for(const slot of [50,51])
-          doc.frames[linkedTerrainFrameIndex(slot)]=doc.frames[linkedTerrainFrameIndex(31)].map(layer=>layer.slice());
         save(true);
       }
       syncAll();
@@ -224,10 +184,9 @@ export function editSelection(){
   const px=atlas.cv.getContext('2d').getImageData(r.x,r.y,r.w,r.h);
   doc.frames=[[new Uint32Array(px.data.buffer.slice(0))]];
   doc.af=0; doc.al=0;
-  doc.terrainLink=null; doc.puppet=null;   // ô atlas không phải sheet Ghép rối
+  doc.puppet=null;   // ô atlas không phải sheet Ghép rối
   view.sel=null;
-  doc.atlasEdit={...r,atlasId:atlas.id, c:sel.c, r0:sel.r,
-    terrainSlot:atlas.terrain===TERRAIN_SCHEMA && sel.cw===1 && sel.ch===1 && terrainCellSlot(sel.c,sel.r)>=0 ? terrainCellSlot(sel.c,sel.r) : null,shape:atlas.shape};
+  doc.atlasEdit={...r,atlasId:atlas.id, c:sel.c, r0:sel.r};
   invalidateBuf(); fitZoom(); syncAll();
   setExtend(false);            // lần mở atlas sau lại bắt đầu bằng chọn một ô
   closeAtlas(); syncBar();
@@ -243,11 +202,12 @@ export function writeBack(){
   const g=atlas.cv.getContext('2d');
   g.clearRect(editing.x, editing.y, editing.w, editing.h);
   g.drawImage(cv, 0,0,w,h, editing.x,editing.y,w,h);
-  // ô có bản sao trong atlas (ô 0 ở hai góc của lưới cr31): bản sao đi theo ô chính
-  if(Number.isInteger(editing.terrainSlot) && terrainSlotCells(editing.terrainSlot).length>1){
+  // atlas Terrain: ô có bản sao (ô 0 ở hai góc của lưới cr31) thì bản sao đi theo ô chính
+  const slot=terrainSlotAt(editing);
+  if(slot>=0 && terrainSlotCells(slot).length>1){
     const t=document.createElement('canvas'); t.width=editing.w; t.height=editing.h;
     t.getContext('2d').drawImage(atlas.cv,editing.x,editing.y,editing.w,editing.h,0,0,editing.w,editing.h);
-    drawSlotCells(editing.terrainSlot,t);
+    drawSlotCells(slot,t);
   }
   save();
   if(!$('#atlasWrap').hidden) paint();

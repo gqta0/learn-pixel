@@ -1,6 +1,6 @@
 /* Tạo nhanh Terrain 56 từ một "công thức" — vẽ bằng thuật toán, ra pixel thật ở đúng khổ ô
    (không phóng to 16 → 32) và không lộ lưới ô vuông. Thuần dữ liệu, không DOM, để kiểm thử
-   bằng Node; tilegenview.js lo giao diện, xem trước và đưa vào atlas.
+   bằng Node; tilequick.js (thẻ ⚡ Tạo nhanh ở Trang Tile) lo giao diện, xem trước và ghi vào bộ ô.
 
    Ba ý chính để ghép đâu cũng liền:
    1. Phần ruột là một tấm vân LẶP VÒNG đúng bằng một ô: cạnh phải ô nào cũng chạy tiếp sang

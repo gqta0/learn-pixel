@@ -7,7 +7,6 @@ import { syncColors, paintSwatches, shadeStep } from './palette.js';
 import { markToday } from './daily.js';
 import { paintThumbs } from './frames.js';
 import { syncFingerBtn } from './tools.js';
-import { tileRoles, terrainConnectorIndices, ROLE_NAMES } from './terrain.js';
 import { inside, idx, put, normSel, stamp, lineStamp, rectStamp, ellipseStamp, floodFill, outlineData,
          shiftLayer, pixelAt, preview, setPreview, setStrokeSeen, isDitherHit } from './raster.js';
 
@@ -17,20 +16,9 @@ const pointers=new Map();
 let penSeen=false, gesture=null, panning=null;
 let pixelPerfectHistory=[];
 let owner=null, strokeUndo=null, strokeData=null, strokeSelection=null, spaceDown=false;
-let terrainLockSnapshot=null;
 let lastDot=null;     // điểm cuối của nét bút trước — Shift+bấm nối thẳng từ đây
 const LINE_TOOLS=['pencil','eraser','shade','dither'];
 const wrap=$('#wrap');
-
-function captureTerrainLock(data){
-  const te=doc.atlasEdit;
-  if(!view.terrainLock || !te || !Number.isInteger(te.terrainSlot) || te.w!==doc.w || te.h!==doc.h || doc.w!==doc.h) return null;
-  return terrainConnectorIndices(te.terrainSlot,doc.w,te.shape).map(i=>[i,data[i]]).filter(([,v])=>(v>>>24)===255);
-}
-function restoreTerrainLock(data){
-  if(!terrainLockSnapshot) return;
-  for(const [i,v] of terrainLockSnapshot) data[i]=v;
-}
 
 function posFrom(e){
   const r=board.getBoundingClientRect();
@@ -111,9 +99,6 @@ function hudText(p){
   let t = inside(p.x,p.y)
     ? (p.x+', '+p.y+'   •   '+doc.w+'×'+doc.h+'   •   ×'+view.zoom)
     : (doc.w+'×'+doc.h+'   •   ×'+view.zoom);
-  const te=doc.atlasEdit;
-  if(te && Number.isInteger(te.terrainSlot) && te.terrainSlot>=0 && te.terrainSlot<56 && te.w===doc.w && te.h===doc.h && inside(p.x,p.y))
-    t+=' · '+ROLE_NAMES[tileRoles(te.terrainSlot,doc.w,te.shape)[p.y*doc.w+p.x]];
   setText($('#hud'),t);
 }
 function cancelStroke(){
@@ -121,7 +106,7 @@ function cancelStroke(){
   if(strokeUndo) strokeData.set(strokeUndo.frames[strokeUndo.af][strokeUndo.al]);
   view.sel=strokeSelection;
   drawing=false; setPreview(null); moveBase=null; setStrokeSeen(null); pixelPerfectHistory=[];
-  owner=null; strokeUndo=null; strokeData=null; terrainLockSnapshot=null; view.drawing=false;
+  owner=null; strokeUndo=null; strokeData=null; view.drawing=false;
   render(); paintThumbs();
 }
 
@@ -181,7 +166,6 @@ wrap.addEventListener('pointerdown', e=>{
   strokeSelection=view.sel ? {...view.sel} : null;
   strokeUndo=null;
   strokeData=activeData();
-  terrainLockSnapshot=captureTerrainLock(strokeData);
   view.brushEff=effBrush(e);
 
   const isPenPicker = (e.pointerType==='pen' && penAlt(e) && view.penButton==='picker');
@@ -220,7 +204,6 @@ wrap.addEventListener('pointerdown', e=>{
   }
   else if(strokeTool==='move'){ moveBase = activeData().slice(); }
   else { setPreview({layer:doc.al, data:activeData().slice()}); }
-  restoreTerrainLock(strokeData);
   render(); paintThumbs();
   if(PERF) perfMark('down',performance.now()-t0);
 });
@@ -313,9 +296,7 @@ function applyStroke(rawP, col, e){
       ellipseStamp(preview.data,start.x,start.y,p.x,p.y,col,true);
       $('#hud').textContent = `⬤ ${w}×${h} px   •   ${p.x}, ${p.y}`;
     }
-    restoreTerrainLock(preview.data);
   }
-  else restoreTerrainLock(strokeData);
 }
 
 wrap.addEventListener('pointermove', e=>{
@@ -379,14 +360,13 @@ function endStroke(e){
   if(strokeTool==='select' && view.sel && view.sel.w===1 && view.sel.h===1) view.sel=null;
   if(LINE_TOOLS.includes(strokeTool) && last) lastDot={x:last.x,y:last.y};
   if(preview){ strokeData.set(preview.data); setPreview(null); }
-  restoreTerrainLock(strokeData);
   const before=strokeUndo?.frames[strokeUndo.af][strokeUndo.al];
   if(before && strokeData.some((v,i)=>v!==before[i])){
     pushUndo(strokeUndo); markToday();
     if(typeof window.dispatchEvent==='function' && typeof CustomEvent==='function')
       window.dispatchEvent(new CustomEvent('pixelchange'));
   }
-  owner=null; strokeUndo=null; strokeData=null; terrainLockSnapshot=null;
+  owner=null; strokeUndo=null; strokeData=null;
   moveBase=null; view.brushEff=view.brush;
   render(); paintThumbs();
   paintSwatches();          // nét vừa xong có thể thêm/bớt màu đang dùng — cập nhật dấu trên bảng màu

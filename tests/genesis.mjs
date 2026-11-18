@@ -83,20 +83,7 @@ test('terrain tools use Master only for Master; every other palette uses Genesis
   assert.equal(app.run('toolPaletteKey()'),'genesis');
 });
 
-test('reopening the quick generator removes stale colors even when its palette key is unchanged',()=>{
-  const src=read('js/tilegenview.js');
-  const start=src.indexOf('function syncPalette(){'),end=src.indexOf('export function openQuick()',start);
-  const st={palette:'genesis',strata:[{colors:{r0:'#382733',k1:'#63C74D'}}]};
-  let saves=0;
-  const context=vm.createContext({st,toolPaletteKey:()=> 'genesis',palName:()=> 'v3',
-    PALETTES:{v3:genesis.GENESIS_COLORS},save(){saves++;}});
-  vm.runInContext(src.slice(start,end),context);
-  assert.equal(vm.runInContext('syncPalette()',context),true);
-  assert.deepEqual(st.strata[0].colors,{k1:'#63C74D'});
-  assert.equal(saves,1);
-  assert.equal(vm.runInContext('syncPalette()',context),false);
-});
-// Trang Tile (tilequick.js): bảng theo bộ đang mở (host.paletteKey). Bản tilegenview ở trên bỏ khi Task 9 gỡ thẻ ⚡ khỏi trang Vẽ.
+// Trang Tile (tilequick.js): bảng theo bộ đang mở (host.paletteKey).
 test('Tile page quick generator removes stale colors even when its palette key is unchanged',()=>{
   const src=read('js/tilequick.js');
   const start=src.indexOf('function syncPalette(){'),end=src.indexOf('\n}\n',start)+3;

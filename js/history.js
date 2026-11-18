@@ -25,7 +25,6 @@ export function captureUndo(){
     frames: doc.frames.map(f=>f.map(d=>d.slice())),
     dur: doc.dur.slice(), sel:view.sel ? {...view.sel} : null,
     atlasEdit:doc.atlasEdit ? {...doc.atlasEdit} : null,
-    terrainLink:doc.terrainLink ? {...doc.terrainLink,slots:doc.terrainLink.slots?.slice()||[]} : null,
     anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0, puppet:doc.puppet||null,    // đổi khổ dời điểm chân: hoàn tác phải trả về cùng lúc
     lib:docId.get()
   };
@@ -37,7 +36,6 @@ function restore(s){
   doc.dur=(s.dur||[]).slice();
   view.sel=s.sel ? {...s.sel} : null;
   doc.atlasEdit=s.atlasEdit ? {...s.atlasEdit} : null;
-  doc.terrainLink=s.terrainLink ? {...s.terrainLink,slots:s.terrainLink.slots?.slice()||[]} : null;
   doc.anchor=s.anchor ? {...s.anchor} : null; doc.charH=s.charH||0; doc.puppet=s.puppet||null;
   docId.set(s.lib??null);
 }

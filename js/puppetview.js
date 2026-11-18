@@ -379,7 +379,7 @@ function createSheet(kind){
   if(!keepBeforeReplace()) return;
   stopEditing();
   pushUndo(); forgetCurrent();                    // sheet mới là một bản riêng trong thư viện
-  doc.w=w; doc.h=h; doc.terrainLink=null; doc.anchor=null; doc.charH=0; doc.puppet=kind;
+  doc.w=w; doc.h=h; doc.anchor=null; doc.charH=0; doc.puppet=kind;
   doc.name=(kind==='head'?'Đầu ':'Thân ')+'nhân vật';
   doc.layers=[{name:'Miếng',vis:true}];
   doc.frames=[[new Uint32Array(w*h)]]; doc.dur=[]; doc.af=0; doc.al=0;
