@@ -16,7 +16,7 @@ import { GEN_RECIPES, GEN_RECIPE_ORDER, GEN_PARAMS, GEN_CRUSTS, GEN_DRIPS, GEN_I
   GEN_STRATA, GEN_ROLE_GROUPS, GEN_ROLE_LABELS, GEN_PALETTES, PREVIEW_LAYOUTS,
   makeSpec, makeSeeds, randomSeed, lerpParams, generateTerrainRoles, colorize, generateProps, generateMacro, previewLayout,
   renderPreview, lintTerrain } from './tilegen.js';
-import { slotPixels, planApply } from './terrainio.js';
+import { slotPixels, planApply, handOverStamp } from './terrainio.js';
 import { tileOf } from './tileset.js';
 
 const KEY='lo-pixel-tilegen', STAMP='lo-pixel-tilegen-stamp', GODOT_DIR_KEY='lo-pixel-godot-dir';
@@ -276,6 +276,10 @@ function rollGroup(group){
 function hashPx(px){ let h=0x811c9dc5; for(let i=0;i<px.length;i++){ h^=px[i]; h=Math.imul(h,16777619); } return h>>>0; }
 function readStamp(){ try{ return JSON.parse(localStorage.getItem(STAMP))||null; }catch(_){ return null; } }
 function writeStamp(s){ try{ localStorage.setItem(STAMP,JSON.stringify(s)); }catch(_){} }
+/* atlas Vẽ cũ nhập thành bộ mới (id mới): dấu ⚡ cũ chuyển sang id bộ mới để ô sửa tay / ô khoá còn nguyên */
+export function handOverQuickStamp(fromId,toId){
+  const s=handOverStamp(readStamp(),fromId,toId); if(s) writeStamp(s);
+}
 /* trạng thái khoá của bộ đang mở: ô đã sửa tay sau lần tạo nhanh gần nhất (tranh khác đi, hoặc đã
    thêm khung hoạt ảnh — ghi đè sẽ mất cả hai) + ô khoá bằng tay. Dấu chỉ nhớ một bộ: bộ tạo nhanh gần nhất. */
 function lockState(){

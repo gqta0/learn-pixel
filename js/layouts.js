@@ -76,9 +76,10 @@ export function connectorIndices(layout,slot,size,shape='inset'){
   if(layout.match==='sides') return terrainConnectorIndices(BLOB_47_MASKS.indexOf(sidesToBlob(slot)),size,shape);
   return [];
 }
-/* bản sao của `after` với các pixel ở idx lấy lại từ `before` */
+/* bản sao của `after` với các pixel ở idx lấy lại từ `before` — chỉ pixel nối đã có màu (đục hẳn);
+   pixel nối còn trong suốt thì vẫn cho vẽ lên */
 export function keepConnectors(before,after,idx){
-  const out=after.slice(); for(const i of idx) out[i]=before[i]; return out;
+  const out=after.slice(); for(const i of idx) if((before[i]>>>24)===255) out[i]=before[i]; return out;
 }
 /* tranh mẫu khi tạo bộ mới: khối đặc theo vai, đủ để có ngay một bộ chạy được rồi vẽ đè */
 export function seedPixels(layout,slot,size,colors,shape='inset'){

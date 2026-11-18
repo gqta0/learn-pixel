@@ -176,7 +176,15 @@ async function usageNote(){
 export function autosave(){
   clearTimeout(saveT);
   if(!bootDone) return;
-  saveT=setTimeout(()=>{ if(!view.drawing) writeSave(); }, 1200);   // chỉ lưu nét đã kết thúc, không lưu nét sắp bị huỷ bởi pinch
+  saveT=setTimeout(()=>{ saveT=null; if(!view.drawing) writeSave(); }, 1200);   // chỉ lưu nét đã kết thúc, không lưu nét sắp bị huỷ bởi pinch
+}
+/* lưu ngay nếu đang có lượt tự lưu chờ (rời trang / ẩn tab / bấm sang Trang Tile). Trả Promise khi có ghi,
+   null khi không có gì chờ — để liên kết sang trang khác đợi ghi xong rồi mới đi (IndexedDB không kịp
+   hoàn tất nếu trang bị gỡ giữa chừng). */
+export function flushSave(){
+  if(!bootDone || !saveT) return null;
+  clearTimeout(saveT); saveT=null;
+  return view.drawing ? null : writeSave();
 }
 async function writeSave(){
   const data=serialize();

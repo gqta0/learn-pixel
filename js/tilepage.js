@@ -14,7 +14,7 @@ import { createTileset, layoutOf, tileOf, frameAt, frameCount, frameMs, addFrame
 import { parseTerrainFile, terrainSheetTo10x7, TERRAIN_CREATE_PRESETS, cleanSheet, terrainProjectJson, terrainPackJson } from './terrainio.js';
 import { mountCheck } from './tilecheck.js';
 import { mountDetail } from './tiledetail.js';
-import { mountQuick } from './tilequick.js';
+import { mountQuick, handOverQuickStamp } from './tilequick.js';
 import { makeZip } from './zip.js';
 import { sanitizeFilename } from './manifest.js';
 import { idbAvailable, idbGet, idbSet, idbDel, idbAll, askPersist, STORES } from './idb.js';
@@ -694,13 +694,14 @@ async function imageData(file){
 const terrainSheet=terrainSheetTo10x7;
 async function importTerrain56(){
   let a=null; try{ a=JSON.parse(lsGet(ATLAS_KEY)||'null'); }catch(_){}
-  if(!a?.png || a.terrain!=='lo-pixel.terrain56.v1') return toast('Trang Vẽ chưa có atlas Terrain 56 nào (thẻ 🧩 Terrain → Tạo bộ).',4000);
+  if(!a?.png || a.terrain!=='lo-pixel.terrain56.v1') return toast('Trang Vẽ không có atlas Terrain 56 cũ nào — tạo bộ bằng ＋ Bộ mới.',4000);
   if(!TILE_SIZES.includes(a.tw)) return toast('Khổ ô '+a.tw+' chưa hỗ trợ.');
   try{
     const sh=terrainSheet(await imageData(a.png),a.layout,a.tw);
     slot=0;
-    await adopt(fromSheet(sh,{name:a.name||'Terrain 56',layout:'blob56',size:a.tw,shape:a.shape,palette:GENESIS_COLORS}),
-      'Đã nhập Terrain 56 từ trang Vẽ thành bộ mới. Bản ở trang Vẽ giữ nguyên.');
+    const next=fromSheet(sh,{name:a.name||'Terrain 56',layout:'blob56',size:a.tw,shape:a.shape,palette:GENESIS_COLORS});
+    handOverQuickStamp(a.id,next.id);   // ⚡ dấu tạo nhanh cũ (theo id atlas Vẽ) đi theo bộ mới
+    await adopt(next,'Đã nhập Terrain 56 từ trang Vẽ thành bộ mới. Bản ở trang Vẽ giữ nguyên.');
   }catch(err){ toast('Không nhập được: '+err.message,4000); }
 }
 async function exportGodot(){
@@ -754,7 +755,7 @@ menu.addEventListener('click',async e=>{
   else if(act==='png'){ download(sanitizeFilename(ts.name,'tileset')+'.png',await pngBlob(sheetCanvas(sheetPixels(ts,{blocks:frameCount(ts)})))); }
   else if(act==='json'){ download(sanitizeFilename(ts.name,'tileset')+'.tileset.json',new Blob([JSON.stringify(toJSON(ts))],{type:'application/json'})); }
   else if(act==='terrain') importTerrain56();
-  else if(act.startsWith('t-')){ if(ts?.layout==='blob56') exportTerrain(act); }
+  else if(act.startsWith('t-')){ if(ts?.layout==='blob56') exportTerrain(act).catch(err=>toast('Không xuất được: '+err.message,4000)); }
   else if(act==='delete'){
     if(!confirm('Xoá hẳn bộ “'+ts.name+'”? Không hoàn tác được — lưu .json trước nếu cần giữ.')) return;
     const id=ts.id; clearTimeout(saveT); pending=false;
@@ -764,7 +765,7 @@ menu.addEventListener('click',async e=>{
     if(list.length) await openSet(list[0].id); else showEmpty();
   }
 });
-$('#tsOpenJson').addEventListener('change',async e=>{
+for(const inp of [$('#tsOpenJson'),$('#emptyOpenJson')]) inp.addEventListener('change',async e=>{
   const f=e.target.files[0]; e.target.value=''; menu.hidden=true; if(!f) return;
   try{
     const d=JSON.parse(await f.text());

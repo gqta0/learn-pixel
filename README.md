@@ -252,7 +252,7 @@ Tạo bằng **＋ Bộ mới → Terrain 56** (16 hoặc 32 px, dáng mép, pre
 hoặc mở file cũ. Năm thẻ của Trang Tile, mỗi thẻ một việc:
 
 - **Bộ ô** — 56 ô theo atlas 10×7; chạm một ô để vẽ. Khi vẽ, **👁** bật gợi ý vai pixel
-  (phím **H** đổi Viền nét → Phủ mờ → Tắt; chỉ hiện trên màn hình, không vào file xuất),
+  (phím **H** đổi Khung viền → Phủ mờ → Tắt; chỉ hiện trên màn hình, không vào file xuất),
   **🔒 Khoá nối** (phím **K**) giữ nguyên pixel connector đã có ở mép để khỏi vô tình khoét thủng.
 - **Soi map** — vẽ vật liệu lên map, ô tự chọn theo mask và biến thể.
 - **Soi lỗi** — soi mối nối (alpha / màu-vân / cả hai), **◎ Ô cần sửa**, và cách làm 13 ô lõi:

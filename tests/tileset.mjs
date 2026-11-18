@@ -174,9 +174,14 @@ test('connectorIndices: blob56 = terrain, sides16 via sidesToBlob, corners16/fre
   assert.deepEqual(connectorIndices(getLayout('free',{cols:2,rows:2}),0,16),[]);
 });
 test('keepConnectors restores only listed indices and does not mutate inputs',()=>{
-  const before=Uint32Array.from([1,2,3,4]), after=Uint32Array.from([9,9,9,9]);
+  const O=0xff000000, before=Uint32Array.from([(O|1)>>>0,(O|2)>>>0,(O|3)>>>0,(O|4)>>>0]), after=Uint32Array.from([9,9,9,9]);
   const out=keepConnectors(before,after,[0,3]);
-  assert.deepEqual([...out],[1,9,9,4]);
+  assert.deepEqual([...out],[before[0],9,9,before[3]]);
   assert.deepEqual([...after],[9,9,9,9]);
   assert.deepEqual([...keepConnectors(before,after,[])],[9,9,9,9]);
+});
+
+test('keepConnectors restores only OPAQUE connector pixels: transparent ones accept paint',()=>{
+  const A=0xff000000, B=v=>(A|v)>>>0, before=Uint32Array.from([B(1),0,B(3),0]), after=Uint32Array.from([B(9),B(9),B(9),B(9)]);
+  assert.deepEqual([...keepConnectors(before,after,[0,1,2,3])],[B(1),B(9),B(3),B(9)]);
 });

@@ -1,7 +1,7 @@
 // Run: node --test tests/terrainio.mjs — phần I/O thuần của Terrain 56.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {slotPixels,legacySheetTo10x7,terrainSheetTo10x7,parseTerrainFile,terrainProjectJson,terrainPackJson,cleanSheet,toolPaletteKey,seamReport,planApply,TERRAIN_CREATE_PRESETS} from '../js/terrainio.js';
+import {slotPixels,legacySheetTo10x7,terrainSheetTo10x7,parseTerrainFile,terrainProjectJson,terrainPackJson,cleanSheet,toolPaletteKey,seamReport,planApply,handOverStamp,TERRAIN_CREATE_PRESETS} from '../js/terrainio.js';
 import {createTileset,frameAt,fromSheet,sheetPixels} from '../js/tileset.js';
 import {checkSeams,checkColorSeams,legacyTerrainCell,TERRAIN_TILES,ATLAS_COLS,ATLAS_ROWS,tileRoles,terrainSlotCells} from '../js/terrain.js';
 
@@ -120,4 +120,12 @@ test('planApply: scope limits slots and kept counts only in-scope tiles',()=>{
 test('planApply: asks before overwriting a set never quick-generated',()=>{
   assert.equal(planApply({scopeTest:()=>true,locks:new Set(),edited:new Set(),keepEdited:true,known:false}).ask,true);
   assert.equal(planApply({scopeTest:()=>true,locks:new Set(),edited:new Set(),keepEdited:true,known:true}).ask,false);
+});
+
+test('handOverStamp moves a stamp to the new set id and leaves others alone',()=>{
+  const st={atlasId:'a1',hashes:{0:5},locks:[3]};
+  assert.deepEqual(handOverStamp(st,'a1','s2'),{atlasId:'s2',hashes:{0:5},locks:[3]});
+  assert.equal(st.atlasId,'a1','input not mutated');
+  assert.equal(handOverStamp(st,'zz','s2'),null);
+  assert.equal(handOverStamp(null,'a1','s2'),null);
 });

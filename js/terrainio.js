@@ -44,6 +44,12 @@ export function planApply({scopeTest,locks=new Set(),edited=new Set(),keepEdited
   return {slots,kept:inScope.length-slots.length,ask:!known};
 }
 
+/* ⚡ dấu tạo nhanh (lưu theo id bộ) chuyển sang id mới khi atlas được nhập thành bộ mới; pixel giữ nguyên nên
+   hash vẫn đúng. null = dấu không thuộc `fromId`. Không sửa bản gốc. */
+export function handOverStamp(stamp,fromId,toId){
+  return stamp && stamp.atlasId===fromId ? {...stamp,atlasId:toId} : null;
+}
+
 /* Atlas bố cục cũ 8×7 (layout 1/2) → lưới cr31 10×7, kể cả ô bản sao.
    Layout 1: #50, #51 đổi từ biến thể ruột sang biến thể sàn nên chép ô sàn gốc #31 vào. */
 export function legacySheetTo10x7({w,h,data},layoutVersion,size){
