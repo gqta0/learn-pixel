@@ -1,7 +1,7 @@
 // Run: node --test tests/terrainio.mjs — phần I/O thuần của Terrain 56.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {slotPixels,legacySheetTo10x7,parseTerrainFile,terrainProjectJson,terrainPackJson,cleanSheet,toolPaletteKey,TERRAIN_CREATE_PRESETS} from '../js/terrainio.js';
+import {slotPixels,legacySheetTo10x7,terrainSheetTo10x7,parseTerrainFile,terrainProjectJson,terrainPackJson,cleanSheet,toolPaletteKey,TERRAIN_CREATE_PRESETS} from '../js/terrainio.js';
 import {createTileset,frameAt,fromSheet,sheetPixels} from '../js/tileset.js';
 import {legacyTerrainCell,TERRAIN_TILES,ATLAS_COLS,ATLAS_ROWS,tileRoles,terrainSlotCells} from '../js/terrain.js';
 
@@ -70,4 +70,14 @@ test('toolPaletteKey: Master only for Master',()=>{
   assert.equal(toolPaletteKey('x','M'),'genesis');
   assert.equal(toolPaletteKey('','M'),'genesis');
   assert.ok(TERRAIN_CREATE_PRESETS.master.stone.base);
+});
+
+test('terrainSheetTo10x7 decides by sheet size',()=>{
+  const n=16, mk=(c,r)=>({w:c*n,h:r*n,data:new Uint32Array(c*n*r*n).fill(0xff112233)});
+  const cur=mk(10,7);
+  assert.equal(terrainSheetTo10x7(cur,undefined,n),cur);
+  assert.equal(terrainSheetTo10x7(cur,1,n),cur);
+  for(const lv of [1,2]){ const o=terrainSheetTo10x7(mk(8,7),lv,n); assert.equal(o.w,10*n); assert.equal(o.h,7*n); }
+  assert.throws(()=>terrainSheetTo10x7(mk(9,7),2,n),/lưới/);
+  assert.throws(()=>terrainSheetTo10x7(mk(10,6),undefined,n),/lưới/);
 });

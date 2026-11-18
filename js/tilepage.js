@@ -9,7 +9,7 @@ import { ROLE_COLORS, ROLE_NAMES } from './terrain.js';
 import { layoutRoles, pickSlot, contextSlots, layoutGodotTres, layoutJson } from './layouts.js';
 import { createTileset, layoutOf, tileOf, frameAt, frameCount, frameMs, addFrame, removeFrame, moveFrame, setDuration,
          animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES, TILESET_SCHEMA } from './tileset.js';
-import { parseTerrainFile, legacySheetTo10x7 } from './terrainio.js';
+import { parseTerrainFile, terrainSheetTo10x7 } from './terrainio.js';
 import { makeZip } from './zip.js';
 import { sanitizeFilename } from './manifest.js';
 import { idbAvailable, idbGet, idbSet, idbDel, idbAll, askPersist, STORES } from './idb.js';
@@ -555,20 +555,13 @@ async function imageData(file){
   return {w:im.width,h:im.height,data:new Uint32Array(g.getImageData(0,0,im.width,im.height).data.buffer)};
 }
 /* Atlas/dự án Terrain 56 → ảnh 10×7 (đổi từ bố cục cũ 8×7 nếu cần); ném lỗi tiếng Việt nếu sai khổ */
-function terrainSheet(sh,layout,n){
-  if(layout===3){
-    if(sh.w!==n*10 || sh.h!==n*7) throw new Error('ảnh atlas phải rộng '+(n*10)+'×'+(n*7)+' px');
-    return sh;
-  }
-  if(sh.w!==n*8 || sh.h!==n*7) throw new Error('atlas bố cục cũ phải là lưới 8×7 ô '+n+' px');
-  return legacySheetTo10x7(sh,layout,n);
-}
+const terrainSheet=terrainSheetTo10x7;
 async function importTerrain56(){
   let a=null; try{ a=JSON.parse(lsGet(ATLAS_KEY)||'null'); }catch(_){}
   if(!a?.png || a.terrain!=='lo-pixel.terrain56.v1') return toast('Trang Vẽ chưa có atlas Terrain 56 nào (thẻ 🧩 Terrain → Tạo bộ).',4000);
   if(!TILE_SIZES.includes(a.tw)) return toast('Khổ ô '+a.tw+' chưa hỗ trợ.');
   try{
-    const sh=terrainSheet(await imageData(a.png),a.layout||1,a.tw);
+    const sh=terrainSheet(await imageData(a.png),a.layout,a.tw);
     slot=0;
     await adopt(fromSheet(sh,{name:a.name||'Terrain 56',layout:'blob56',size:a.tw,shape:a.shape,palette:GENESIS_COLORS}),
       'Đã nhập Terrain 56 từ trang Vẽ thành bộ mới. Bản ở trang Vẽ giữ nguyên.');

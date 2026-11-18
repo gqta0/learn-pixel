@@ -50,6 +50,15 @@ export function legacySheetTo10x7({w,h,data},layoutVersion,size){
   return {w:ow,h:oh,data:out};
 }
 
+/* Quyết định theo KÍCH THƯỚC ảnh (như trang Vẽ): đúng 10×7 ô = bố cục hiện tại, bất kể `layout`;
+   8×7 ô = bố cục cũ (layout chỉ chọn biến thể 1/2); còn lại ném lỗi tiếng Việt. */
+export function terrainSheetTo10x7(sheet,layoutVersion,size){
+  const {w,h}=sheet;
+  if(w===size*ATLAS_COLS && h===size*ATLAS_ROWS) return sheet;
+  if(w===size*8 && h===size*ATLAS_ROWS) return legacySheetTo10x7(sheet,layoutVersion===2?2:1,size);
+  throw new Error('ảnh atlas phải là lưới '+ATLAS_COLS+'×'+ATLAS_ROWS+' (hoặc 8×'+ATLAS_ROWS+' bố cục cũ) ô '+size+' px');
+}
+
 const FORMATS=['lo-pixel-terrain56-project.v1','lo-pixel-terrain56-pack.v1'];
 export function parseTerrainFile(d){
   if(d?.schema!==TERRAIN_SCHEMA || !FORMATS.includes(d.format)) throw new Error('không phải dự án Terrain 56');
