@@ -18,6 +18,7 @@ import { TERRAIN_SCHEMA, TERRAIN_TILES, DIRECTIONS, ROLE_COLORS, ROLE_NAMES,
   TERRAIN_LAYOUT, CORE_SLOTS, composeTile, composeSources, variantBase, TERRAIN_SHAPES,
   ATLAS_COLS, ATLAS_ROWS, terrainSlotCell, terrainSlotCells, maskToCr31 } from './terrain.js';
 
+import { TERRAIN_CREATE_PRESETS, toolPaletteKey as pureToolPaletteKey } from './terrainio.js';
 let selected=46, seamIssues=[], inspectedPair=null, terrainDirty=false;
 /* 'full' = vẽ tay cả 56 ô · 'core' = vẽ 13 ô lõi rồi bấm Ghép. Chỉ đổi cách trình bày và
    bật hai nút ghép; không tự ghi đè ô nào khi chưa bấm. */
@@ -46,30 +47,8 @@ function setPane(name){
 }
 const showDetail=()=>setPane('detail');
 /* Master giữ riêng; mọi bảng khác (kể cả nhóm Genesis v3 và bảng tự tạo) dùng bộ tổng Genesis v3. */
-export function toolPaletteKey(){
-  return paletteNameOf(appPalette)===MASTER_NAME?'master':'genesis';
-}
+export const toolPaletteKey=()=>pureToolPaletteKey(paletteNameOf(appPalette),MASTER_NAME);
 const toolPaletteName=()=>toolPaletteKey()==='master'?MASTER_NAME:GENESIS_NAME;
-const TERRAIN_CREATE_PRESETS={
-  genesis:{
-    stone:{base:'#97b3b6',edge:'#c3d4d6'},
-    warmStone:{base:'#965b4f',edge:'#c37669'},
-    soil:{base:'#857870',edge:'#9c8f8a'},
-    blueQi:{base:'#5b98e6',edge:'#86bdf0'},
-    qiBlue:{base:'#3fd0a6',edge:'#9ef2cf'},
-    skyWater:{base:'#5b98e6',edge:'#bfe0f8'},
-    qi:{base:'#c955e7',edge:'#e187f8'}
-  },
-  master:{
-    stone:{base:'#5e788c',edge:'#b4c5d1'},
-    warmStone:{base:'#7c6d6c',edge:'#cabcad'},
-    soil:{base:'#765640',edge:'#d7aa6b'},
-    blueQi:{base:'#1e789c',edge:'#6cf2ff'},
-    qiBlue:{base:'#08919b',edge:'#6cf2ff'},
-    skyWater:{base:'#3973ad',edge:'#91d2ec'},
-    qi:{base:'#5e419e',edge:'#b99cff'}
-  }
-};
 const createPresets=()=>TERRAIN_CREATE_PRESETS[toolPaletteKey()];
 const createDefaults=()=>createPresets().stone;
 function terrainColorGroups(){

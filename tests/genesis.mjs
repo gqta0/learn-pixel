@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import * as genesis from '../js/genesis.js';
+import {toolPaletteKey} from '../js/terrainio.js';
 import {paletteApp} from './palette-env.mjs';
 import {parsePaletteText, groupColors} from '../js/palgroups.js';
 import {makeSpec, GEN_RECIPE_ORDER, GEN_ROLE_KEYS, heroSprite} from '../js/tilegen.js';
@@ -72,8 +73,8 @@ test('Genesis recipes and hero stay inside v3 and drop stale off-palette saved o
 });
 
 test('terrain tools use Master only for Master; every other palette uses Genesis v3',()=>{
-  const app=paletteApp(),src=read('js/terrainview.js');
-  vm.runInContext(src.slice(src.indexOf('export function toolPaletteKey()'),src.indexOf('const TERRAIN_CREATE_PRESETS=')).replace(/^export /gm,''),app.context);
+  const app=paletteApp(), MASTER=app.run('MASTER_NAME');
+  app.context.toolPaletteKey=()=>toolPaletteKey(app.run('paletteNameOf(appPalette)'),MASTER);
   for(const [name,key] of [[genesis.GENESIS_NAME,'genesis'],['Genesis v3 · Lá (4 màu)','genesis'],['Master Palette (92 màu)','master']]){
     app.context.appPalette=app.run('PALETTES['+JSON.stringify(name)+']');
     assert.equal(app.run('toolPaletteKey()'),key,name);
