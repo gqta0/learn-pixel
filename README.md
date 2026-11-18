@@ -175,14 +175,18 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
 (chạy, nhảy, ngồi, đấm, bay, kiếm pháp…). Mở ở thẻ **Ghép rối** cột phải (điện thoại: 💾 File → Ghép rối).
 
 1. **Dựng khung** — **+ Sheet Đầu 80×81** (sọ + mặt, tóc sau, tóc trước, phụ kiện — riêng từng nhân vật)
-   hoặc **+ Sheet Thân 64×87** (cổ, ngực, hông, tay, chân, ba vạt áo — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
+   hoặc **+ Sheet Thân 64×106** (cổ, ngực, hông, tay, chân, tay chân phía xa, ba vạt áo — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
    trong thư viện 📁. Trên canvas có hướng dẫn: khối mờ của dáng mẫu, khung ô kèm tên miếng, **chấm đỏ** là
    khớp miếng xoay quanh, **chấm xanh** là chỗ miếng sau gắn vào; sheet Đầu thêm mốc (crown, tie, forehead,
    ear, nape, chin) và vùng nên vẽ của tóc/phụ kiện. Hướng dẫn chỉ hiện trên màn hình, khoá sẵn, tắt/bật ở
    khối *Hướng dẫn trên sheet*, không bao giờ vào file xuất.
 2. **Vẽ miếng** — vẽ ở cỡ game, màu phẳng, **không viền** (máy tự thêm viền 1 px `#251c24` sau khi ghép, viền
-   cả một chi dưới mọi màu của chi đó nên khớp gối, khớp khuỷu liền một khối). Chỉ vẽ một tay, một chân: phía
-   xa dùng lại, tối đi. Ngực nằm trên cả hai chân để vạt áo dài phủ được xuống.
+   cả một chi dưới mọi màu của chi đó nên khớp gối, khớp khuỷu liền một khối). Thường chỉ cần vẽ một tay, một
+   chân: phía xa dùng lại, tối đi. Ngực nằm trên cả hai chân để vạt áo dài phủ được xuống.
+   - **Tay, chân phía xa** (sáu ô *… xa*, cùng khổ và chỗ khớp với ô gần): để trống là phía xa dùng nét phía gần
+     tối đi; ô xa có nét thì phía xa dùng đúng nét đó, không tối thêm. **⧉ Chép từ bên gần** (một ô) hoặc
+     **⧉ Chép cả 6 miếng xa** chép nét bên gần sang, tối đi một bậc theo dải màu của bảng (màu ngoài bảng thì
+     tối đi thường), một bước hoàn tác — chỉ còn sửa chỗ khác nhau (tay áo, giày, băng tay…).
    - **Vạt áo** (vạt sau, vạt phải, vạt trái): vẽ buông thẳng từ chấm đỏ (bản lề dưới thắt lưng) xuống; hai chấm
      xanh là chỗ máy gập vạt. Vạt không có khung khoá: máy cho nó theo đùi, khúc dưới trễ hơn khúc trên nên gấu
      rủ và kéo theo sau, nhấc đùi thì vạt ngắn lại, chạm đất thì nằm trên đất (bản chuyển của `tools/flaps.py`).

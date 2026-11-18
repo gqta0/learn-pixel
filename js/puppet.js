@@ -13,7 +13,9 @@ export const FAR_SHADE=0.8;                     // tay, chân phía xa dùng l�
 export const PART_VI={
   head:'Đầu', hair_back:'Tóc sau', hair_front:'Tóc trước', accessory:'Phụ kiện',
   chest:'Ngực', pelvis:'Hông', neck:'Cổ', upper_arm:'Bắp tay', forearm:'Cẳng tay', hand:'Bàn tay',
-  thigh:'Đùi', shin:'Cẳng chân', foot:'Bàn chân', flap_back:'Vạt sau', flap_right:'Vạt phải', flap_left:'Vạt trái'
+  thigh:'Đùi', shin:'Cẳng chân', foot:'Bàn chân',
+  far_upper_arm:'Bắp tay xa', far_forearm:'Cẳng tay xa', far_hand:'Bàn tay xa', far_thigh:'Đùi xa', far_shin:'Cẳng chân xa', far_foot:'Bàn chân xa',
+  flap_back:'Vạt sau', flap_right:'Vạt phải', flap_left:'Vạt trái'
 };
 export const SHEET_VI={head:'Đầu', body:'Thân'};
 
@@ -50,6 +52,11 @@ export function joints(P,f){
   return out;
 }
 export const sheetOf=(P,part)=>P.sheets.head.parts[part] ? 'head' : 'body';
+/* Tay, chân phía xa: ô far_* (far_parts: ô xa → miếng gần nó thay). Ô xa có pixel thì phía xa dùng đúng nét đó,
+   không tối đi; ô xa trống thì như cũ: nét phía gần, tối đi (khối FAR cuối load_parts trong tools/character.py). */
+export const isFarCell=(P,part)=>!!P.far_parts?.[part];
+export const nearOf=(P,part)=>P.far_parts?.[part]||part;
+export const farCellOf=(P,near)=>Object.keys(P.far_parts||{}).find(k=>P.far_parts[k]===near)||null;
 
 /* ---------------- vạt áo ----------------
    Bản chuyển của tools/flaps.py points(): ba dải vải gài dưới thắt lưng, không có khung khoá. Mỗi vạt là chuỗi
@@ -113,8 +120,8 @@ export function placements(P,f,flaps=null){
   return out;
 }
 /* ô nguồn của một miếng đã đặt: khớp quay và khung chữ nhật (dải vạt áo chỉ lấy các hàng của nó) */
-function source(P,p){
-  const c=P.sheets[p.kind].parts[p.part], r=c.rect.slice();
+function source(P,p,cell=p.part){
+  const c=P.sheets[p.kind].parts[cell], r=c.rect.slice();
   if(p.rows){ r[1]=Math.max(r[1],Math.floor(p.rows[0])); r[3]=Math.min(r[3],Math.ceil(p.rows[1])); }
   return {rect:r, joint:p.piv||c.joint, rows:p.rows};
 }
@@ -154,15 +161,17 @@ export function bake(P,sheets,f,box,opt={}){
     gpx.fill(0); gwho.fill(0);
     let any=false;
     for(; k<list.length && list[k].g===g; k++){
-      const p=list[k];
-      if((opt.only && p.part!==opt.only) || hide.has(p.part)) continue;
-      let sh=sheets[p.kind];
-      if((!sh || empty[p.part]) && opt.fill && !p.rows) sh=opt.fill[p.kind];
+      const p=list[k], farCell=p.far && !p.rows ? farCellOf(P,p.part) : null;
+      let sh=sheets[p.kind], cell=p.part, dark=p.far;
+      if(farCell && sh && !empty[farCell]){ cell=farCell; dark=false; }          // phía xa đã vẽ riêng
+      else if((!sh || empty[p.part]) && opt.fill && !p.rows) sh=opt.fill[p.kind];
+      // cell là ô thật sự được vẽ: chọn/ẩn ô xa thì luôn trúng chi phía xa, chọn ô gần chỉ trúng chi dùng nét ô gần
+      if((opt.only && opt.only!==cell && opt.only!==farCell) || hide.has(cell) || (farCell && hide.has(farCell))) continue;
       if(!sh) continue;
-      const c=source(P,p), [x0,y0,x1,y1]=c.rect, [jx,jy]=c.joint, rows=c.rows;
+      const c=source(P,p,cell), [x0,y0,x1,y1]=c.rect, [jx,jy]=c.joint, rows=c.rows;
       const co=Math.cos(p.turn*RAD), si=Math.sin(p.turn*RAD), X=box.fx+p.x, Y=box.fy+p.y;
       const r=Math.hypot(Math.max(jx-x0,x1-jx),Math.max(jy-y0,y1-jy))+1;
-      const id=names.indexOf(p.part)+1;
+      const id=names.indexOf(cell)+1;
       for(let oy=Math.max(0,Math.floor(Y-r)); oy<Math.min(H,Math.ceil(Y+r)); oy++)
         for(let ox=Math.max(0,Math.floor(X-r)); ox<Math.min(W,Math.ceil(X+r)); ox++){
           const dx=ox+0.5-X, dy=oy+0.5-Y;
@@ -170,7 +179,7 @@ export function bake(P,sheets,f,box,opt={}){
           if(sx<x0||sy<y0||sx>=x1||sy>=y1 || (rows && (sy+0.5<rows[0]||sy+0.5>rows[1]))) continue;
           const v=sh.px[sy*sh.w+sx];
           if(!solid(v)) continue;
-          gpx[oy*W+ox]=p.far ? darken(v,FAR_SHADE) : v; gwho[oy*W+ox]=id; any=true;
+          gpx[oy*W+ox]=dark ? darken(v,FAR_SHADE) : v; gwho[oy*W+ox]=id; any=true;
         }
     }
     if(!any) continue;
@@ -204,7 +213,8 @@ export const BLOCK_COLORS={skin:hexToInt('#f3bfa2'), cloth:hexToInt('#806f95')};
 export function blockoutSheet(P,kind){
   const S=P.sheets[kind], [w,h]=S.size, px=new Uint32Array(w*h);
   for(const [part,c] of Object.entries(S.parts)){
-    const caps=P.shapes[part].length ? P.shapes[part] : [];
+    if(isFarCell(P,part)) continue;                  // ô xa để trống: chỉ vẽ khi muốn phía xa khác phía gần
+    const caps=P.shapes[part]?.length ? P.shapes[part] : [];
     for(const [ax,ay,bx,by,ra,rb,mat] of caps){
       const Ax=c.joint[0]+ax, Ay=c.joint[1]+ay, Bx=c.joint[0]+bx, By=c.joint[1]+by;
       const vx=Bx-Ax, vy=By-Ay, L2=vx*vx+vy*vy||1;
@@ -228,6 +238,7 @@ const KIDS={chest:['head','near_upper_arm','far_upper_arm'], pelvis:['chest','ne
 /* chỗ miếng kế tiếp gắn vào (so với khớp của miếng), như dấu xanh của sheet_guide.png */
 export function attachPoints(P,part){
   const bone=n=>P.bones.find(b=>b.name===n);
+  part=nearOf(P,part);
   if(isFlap(P,part)){ const seg=P.flaps.rest_length/3; return [[0,seg],[0,2*seg]]; }   // hai khớp gập của vạt
   if(KIDS[part]) return KIDS[part].map(k=>bone(k).pos.slice());
   const b=bone('near_'+part);
@@ -322,7 +333,7 @@ export function lintSheet(P,kind,px,palette){
     if(!has) continue;
     if(cols.size>6) many.push(PART_VI[part]+' ('+cols.size+')');
     if(edgeDark>=3) dark.push(PART_VI[part]);
-    if(JOINT_CHECK.includes(part)){
+    if(JOINT_CHECK.includes(nearOf(P,part))){
       const [jx,jy]=c.joint;
       let near=false;
       for(let y=Math.floor(jy-1.5);y<=Math.ceil(jy+1.5)&&!near;y++) for(let x=Math.floor(jx-1.5);x<=Math.ceil(jx+1.5);x++)
@@ -362,4 +373,27 @@ export function bakeManifest(P,box,baked,names={}){
     frame:{w:box.w,h:box.h}, feet:{x:box.fx,y:box.fy}, outline:OUTLINE_HEX,
     note:'feet: điểm chân trong khung (pixel, gốc trên-trái, y là mặt đất). Mỗi file một clip, một hàng khung.',
     clips:Object.fromEntries(baked.map(b=>[b.clip,{file:b.file,frames:b.n,fps:b.fps,loop:b.loop}]))};
+}
+
+/* ---------------- chép phía gần sang ô xa ----------------
+   Chép nét ô gần vào ô xa (cùng khổ, cùng chỗ khớp) và tối đi một bậc: bậc tối kề trong nhóm màu của bảng
+   nếu màu đó nằm trong một nhóm, không thì nhân FAR_SHADE. src: sheet nhìn thấy (các lớp đang hiện),
+   dst: dữ liệu lớp sẽ ghi. Ô xa bị thay hẳn. Trả về {px (bản chép của dst), n: số pixel chép}. */
+export function copyNearToFar(P,src,dst,w,far,palette,tokens={}){
+  const S=P.sheets.body.parts, a=S[nearOf(P,far)], b=S[far], out=dst.slice();
+  const dx=b.rect[0]-a.rect[0], dy=b.rect[1]-a.rect[1];
+  const groups=groupColors(palette,tokens).filter(g=>g.group!=='Khác'), memo=new Map();
+  const darker=v=>{
+    if(memo.has(v)) return memo.get(v);
+    const hex=intToHex(v), g=groups.find(g=>g.colors.includes(hex)), i=g ? g.colors.indexOf(hex) : -1;
+    const r=i>0 ? hexToInt(g.colors[i-1],v>>>24) : darken(v,FAR_SHADE);
+    memo.set(v,r); return r;
+  };
+  for(let y=b.rect[1];y<b.rect[3];y++) for(let x=b.rect[0];x<b.rect[2];x++) out[y*w+x]=0;
+  let n=0;
+  for(let y=a.rect[1];y<a.rect[3];y++) for(let x=a.rect[0];x<a.rect[2];x++){
+    const v=src[y*w+x]; if(!solid(v)) continue;
+    out[(y+dy)*w+x+dx]=darker(v); n++;
+  }
+  return {px:out, n};
 }

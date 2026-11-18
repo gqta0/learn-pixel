@@ -14,7 +14,7 @@ import { keepBeforeReplace, forgetCurrent, saveCurrent, currentId, getLibraryIte
 import { decodeProject, sanitizeFilename } from './manifest.js';
 import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
-import { frameAt, flapPoints, frameBox, bake, blockoutSheet, cellAt, attachPoints, skullCentre, SLOT_ZONES, partsOf,
+import { frameAt, flapPoints, frameBox, bake, isFarCell, farCellOf, copyNearToFar, blockoutSheet, cellAt, attachPoints, skullCentre, SLOT_ZONES, partsOf,
   LIGHTS, baseColour, shadeRamp, shadeCell, lintSheet, bakeClips, bakeManifest, sheetFileName, PART_VI, SHEET_VI } from './puppet.js';
 
 let P=null, box=null, block=null;                 // dữ liệu rối, khổ khung, sheet khối mẫu
@@ -292,6 +292,24 @@ function commitShade(){
   toast('Đã đổ bóng '+PART_VI[rig.part]+'. Sửa tay tiếp, hoặc Ctrl+Z để bỏ.');
 }
 
+/* ---------------- chép phía gần sang ô xa ---------------- */
+function copyFar(all){
+  if(!isSheet() || doc.puppet!=='body'){ toast('Mở một sheet Thân trước.'); return; }
+  const fars=all ? Object.keys(P.far_parts||{}) : (isFarCell(P,rig.part) ? [rig.part] : farCellOf(P,rig.part) ? [farCellOf(P,rig.part)] : []);
+  if(!fars.length){ toast('Chọn một miếng tay / chân (bên gần hoặc ô xa) trước.'); return; }
+  clearShadeSee();
+  const src=flatDoc().px, data=doc.frames[doc.af][doc.al];
+  const drawn=fars.filter(f=>{ const c=cellsOf('body')[f].rect; for(let y=c[1];y<c[3];y++) for(let x=c[0];x<c[2];x++) if(src[y*doc.w+x]) return true; return false; });
+  if(drawn.length && !confirm('Ô '+drawn.map(f=>PART_VI[f]).join(', ')+' đã có nét. Thay bằng bản chép từ bên gần?')) return;
+  let px=data, n=0;
+  for(const far of fars){ const r=copyNearToFar(P,src,px,doc.w,far,palette,COLOR_TOKENS); px=r.px; n+=r.n; }
+  if(!n){ toast('Bên gần chưa có nét để chép.'); return; }
+  pushUndo(); data.set(px);
+  window.dispatchEvent(new CustomEvent('pixelchange'));
+  if(!all) focusPart(fars[0],true); else render();
+  toast('Đã chép '+n+' pixel sang '+(all?'6 ô xa':PART_VI[fars[0]])+', tối đi một bậc. Sửa chỗ khác, Ctrl+Z để bỏ.',3200);
+}
+
 /* ---------------- hướng dẫn trên canvas ---------------- */
 let blockImg=null;
 function guideUnder(ctx,z){
@@ -456,6 +474,8 @@ export function bindPuppet(){
   });
   $('#rigShadeSee').addEventListener('click',toggleShadeSee);
   $('#rigShade').addEventListener('click',commitShade);
+  $('#rigFarCopy').addEventListener('click',()=>copyFar(false));
+  $('#rigFarAll').addEventListener('click',()=>copyFar(true));
   $('#rigExport').addEventListener('click',exportAll);
   // nét vẽ mới hay đổi khung khi đang xem thử bóng: bỏ xem thử trước, để nét không bị ghi đè bằng bản xem thử
   document.addEventListener('pointerdown',e=>{ if(rig.shadeSee && e.target===board) clearShadeSee(); },true);

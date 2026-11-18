@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {frameAt, keyPose, joints, placements, frameBox, bake, bakeAt, flapPoints, isFlap, blockoutSheet, cellAt, attachPoints, shadeRamp, shadeCell,
-  lintSheet, bakeClips, bakeManifest, sheetFileName, partsOf, OUTLINE, FAR_SHADE, LIGHTS, SLOT_ZONES} from '../js/puppet.js';
+  lintSheet, bakeClips, bakeManifest, sheetFileName, partsOf, isFarCell, nearOf, farCellOf, copyNearToFar, OUTLINE, FAR_SHADE, LIGHTS, SLOT_ZONES} from '../js/puppet.js';
 import {GENESIS_FAMILIES, GENESIS_COLORS, GENESIS_TOKENS} from '../js/genesis.js';
 
 const P=JSON.parse(readFileSync(new URL('../data/puppet.json',import.meta.url),'utf8'));
@@ -26,7 +26,7 @@ const REF=[
 test('the shipped puppet.json is the genesis.puppet.v1 export with both sheets and 14 clips',()=>{
   assert.equal(P.format,'genesis.puppet.v1');
   assert.deepEqual(P.sheets.head.size,[80,81]);
-  assert.deepEqual(P.sheets.body.size,[64,87]);
+  assert.deepEqual(P.sheets.body.size,[64,106]);
   assert.deepEqual(P.sheets.body.parts.chest.rect,[1,1,20,40]);              // ô ngực cao tới gần mắt cá: vẽ được áo dài
   assert.equal(Object.keys(P.clips).length,14);
   assert.equal(P.bones.length,15);
@@ -244,4 +244,55 @@ test('lint accepts empty flap cells and checks drawn flaps like any part',()=>{
   fillCell(body,P.sheets.body.parts.flap_back.rect,hex('#806f95'));
   assert.equal(lintSheet(P,'body',body.px,GENESIS_COLORS).filter(r=>r[0]==='warn').length,0);
   assert.equal(cellAt(P,'body',P.sheets.body.parts.flap_back.rect[0],P.sheets.body.parts.flap_back.rect[1]),'flap_back');
+});
+
+test('far cells mirror the near layout and each maps to the near part it stands in for',()=>{
+  const S=P.sheets.body.parts;
+  assert.equal(Object.keys(P.far_parts).length,6);
+  for(const [far,near] of Object.entries(P.far_parts)){
+    assert.ok(isFarCell(P,far) && !isFarCell(P,near) && nearOf(P,far)===near && farCellOf(P,near)===far);
+    const a=S[near], b=S[far];
+    assert.deepEqual([b.rect[2]-b.rect[0],b.rect[3]-b.rect[1]],[a.rect[2]-a.rect[0],a.rect[3]-a.rect[1]]);
+    assert.ok(Math.abs((b.joint[0]-b.rect[0])-(a.joint[0]-a.rect[0]))<1e-9 && Math.abs((b.joint[1]-b.rect[1])-(a.joint[1]-a.rect[1]))<1e-9);
+    assert.deepEqual(attachPoints(P,far),attachPoints(P,near));
+  }
+  const bo=blockoutSheet(P,'body'), t=S.far_thigh;                 // ô xa không có khối mờ: hiện như khung trống
+  for(let y=t.rect[1];y<t.rect[3];y++) for(let x=t.rect[0];x<t.rect[2];x++) assert.equal(bo.px[y*bo.w+x],0);
+});
+
+test('a painted far cell replaces the darkened near art; an empty one falls back to it',()=>{
+  const box=frameBox(P), red=rgba(200,40,40), blue=rgba(40,60,200), f=keyPose(P.clips.run,0);
+  const darkRed=rgba(Math.round(200*FAR_SHADE),Math.round(40*FAR_SHADE),Math.round(40*FAR_SHADE));
+  const body=blank('body');
+  fillCell(body,P.sheets.body.parts.thigh.rect,red);
+  const before=bake(P,{body},f,box).px;
+  assert.ok(before.includes(red) && before.includes(darkRed));        // ô xa trống: đùi xa = đùi gần tối đi
+  fillCell(body,P.sheets.body.parts.far_thigh.rect,blue);
+  const {px,who}=bake(P,{body},f,box);
+  assert.ok(px.includes(red) && px.includes(blue) && !px.includes(darkRed));   // ô xa đã vẽ: dùng y nguyên, không tối
+  const names=partsOf(P), ids=new Set([...who].filter(Boolean).map(i=>names[i-1]));
+  assert.deepEqual([...ids].sort(),['far_thigh','thigh']);
+  // chỉ xem ô xa: chỉ chi phía xa · chỉ xem ô gần: chỉ chi phía gần (phía xa đã có nét riêng)
+  const farOnly=bake(P,{body},f,box,{only:'far_thigh'}).px, nearOnly=bake(P,{body},f,box,{only:'thigh'}).px;
+  assert.ok(farOnly.includes(blue) && !farOnly.includes(red));
+  assert.ok(nearOnly.includes(red) && !nearOnly.includes(blue));
+  // ô xa còn trống mà chọn nó: vẫn thấy chi phía xa (nét gần tối đi)
+  const only2=bake(P,{body:(()=>{ const b=blank('body'); fillCell(b,P.sheets.body.parts.thigh.rect,red); return b; })()},f,box,{only:'far_thigh'}).px;
+  assert.ok(only2.includes(darkRed) && !only2.includes(red));
+  assert.ok(!bake(P,{body},f,box,{hide:['far_thigh']}).px.includes(blue));
+});
+
+test('copy near to far darkens one ramp step, replaces the far cell, and lint is quiet on empty far cells',()=>{
+  const S=P.sheets.body.parts, body=blank('body'), skin=GENESIS_FAMILIES.skin.ramp;
+  assert.equal(lintSheet(P,'body',(()=>{ const b=blank('body'); fillCell(b,S.thigh.rect,hex('#806f95')); return b.px; })(),GENESIS_COLORS).filter(r=>r[0]==='warn').length,0);
+  fillCell(body,S.thigh.rect,hex(skin[2]));
+  body.px[S.thigh.rect[1]*body.w+S.thigh.rect[0]]=rgba(10,200,250);     // màu ngoài bảng: tối đi kiểu thường
+  body.px[S.far_thigh.rect[1]*body.w+S.far_thigh.rect[2]-1]=rgba(1,1,1); // nét cũ trong ô xa bị thay
+  const {px,n}=copyNearToFar(P,body.px,body.px,body.w,'far_thigh',GENESIS_COLORS,GENESIS_TOKENS);
+  const cnt=v=>px.filter(x=>x===v).length, area=(S.thigh.rect[2]-S.thigh.rect[0])*(S.thigh.rect[3]-S.thigh.rect[1]);
+  assert.equal(n,area);
+  assert.equal(cnt(hex(skin[1])),area-1);
+  assert.equal(cnt(rgba(8,160,200)),1);
+  assert.equal(cnt(rgba(1,1,1)),0);
+  assert.equal(px[S.thigh.rect[1]*body.w+S.thigh.rect[0]+1],hex(skin[2]));   // ô gần không đổi
 });
