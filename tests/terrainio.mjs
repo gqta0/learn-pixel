@@ -55,6 +55,16 @@ test('cleanSheet clears transparent-role border pixels only',()=>{
   assert.ok(cleared>0);
   assert.equal(sheet.data[0],0xffabcdef,'input untouched');
 });
+test('cleanSheet honours flush and fails loudly on bad args',()=>{
+  const n=16,ts=createTileset({layout:'blob56',size:n}),sheet=sheetPixels(ts);
+  sheet.data.fill(0xffabcdef);
+  const a=cleanSheet(sheet,n,'inset'),b=cleanSheet(sheet,n,'flush');
+  const cleared=o=>o.data.reduce((k,v)=>k+((v>>>24)===0),0);
+  assert.notEqual(cleared(a),cleared(b));
+  assert.throws(()=>cleanSheet(sheet,n),/shape/);
+  assert.throws(()=>cleanSheet(sheet,undefined,'inset'),/khổ ô/);
+  assert.throws(()=>cleanSheet(sheet,1.5,'inset'),/khổ ô/);
+});
 test('toolPaletteKey: Master only for Master',()=>{
   assert.equal(toolPaletteKey('M','M'),'master');
   assert.equal(toolPaletteKey('x','M'),'genesis');

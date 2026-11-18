@@ -74,9 +74,11 @@ export function terrainPackJson(ts,pngDataUrl,annotatedDataUrl){
 }
 
 /* Dọn pixel "để trong suốt" ở hàng/cột biên ô (chỗ mối nối alpha đòi trống); phần thụt bên trong giữ nguyên. */
-export function cleanSheet({w,h,data},size,shape='inset'){
+export function cleanSheet({w,h,data},size,shape){
+  if(!Number.isInteger(size) || size<=0) throw new Error('cleanSheet: thiếu khổ ô hợp lệ');
+  if(shape!=='inset' && shape!=='flush') throw new Error("cleanSheet: shape phải là 'inset' hoặc 'flush'");
+  if(w<size*ATLAS_COLS || h<size*ATLAS_ROWS) throw new Error('cleanSheet: ảnh nhỏ hơn lưới '+ATLAS_COLS+'×'+ATLAS_ROWS+' ô');
   const out=data.slice();
-  if(!size) size=w/ATLAS_COLS;
   for(const t of TERRAIN_TILES){
     const roles=tileRoles(t.slot,size,shape);
     for(const [c,r] of terrainSlotCells(t.slot)){
