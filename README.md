@@ -174,8 +174,8 @@ Nhân vật 64 px của Project Genesis không vẽ từng khung. Mình vẽ **m
 hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 xương và tự ra mọi khung của 14 động tác
 (chạy, nhảy, ngồi, đấm, bay, kiếm pháp…). Mở ở thẻ **Ghép rối** cột phải (điện thoại: 💾 File → Ghép rối).
 
-1. **Dựng khung** — **+ Sheet Đầu 80×81** (sọ + mặt, tóc sau, tóc trước, phụ kiện — riêng từng nhân vật)
-   hoặc **+ Sheet Thân 64×110** (cổ, ngực, hông, tay, chân, tay chân phía xa, ba vạt áo — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
+1. **Dựng khung** — **+ Sheet Đầu 80×69** (sọ + mặt, tóc sau, tóc trước, phụ kiện — riêng từng nhân vật)
+   hoặc **+ Sheet Thân 64×122** (cổ, ngực, hông, tay, chân, tay chân phía xa, ba vạt áo — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
    trong thư viện 📁. Trên canvas có hướng dẫn: khối mờ của dáng mẫu, khung ô kèm tên miếng, **chấm đỏ** là
    khớp miếng xoay quanh, **chấm xanh** là chỗ miếng sau gắn vào; sheet Đầu thêm mốc (crown, tie, forehead,
    ear, nape, chin) và vùng nên vẽ của tóc/phụ kiện. Hướng dẫn chỉ hiện trên màn hình, khoá sẵn, tắt/bật ở
@@ -208,7 +208,7 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
    rối** chạm để ẩn / hiện từng miếng (cả phía gần lẫn xa), **Hiện hết** để bật lại. Hai thứ này chỉ đổi phần xem
    (rối trong thẻ và rối nổi trên canvas), file xuất luôn đủ miếng, có viền.
 4. **Xuất** — **⬇ Xuất mọi động tác (ZIP)**: mỗi động tác một PNG một hàng khung, tên theo kiểu game đang đọc
-   (`run_76x96_8f.png`, `skill_02_76x96_18f.png`…), kèm `puppet_bake.json` (khổ khung, điểm chân, fps, lặp).
+   (`run_71x99_8f.png`, `skill_02_71x99_18f.png`…), kèm `puppet_bake.json` (khổ khung, điểm chân, fps, lặp).
    Khổ khung giống nhau ở mọi động tác và tính từ khung xương, nên vẽ lại miếng không làm lệch điểm chân.
    Ô chọn *Khối mẫu* cũng xuất ra khối mẫu — chọn *Không hiện* nếu chưa muốn xuất phần đó.
 
