@@ -35,6 +35,15 @@ export function seamReport(pixels,size,shape,mode='both'){
   return [...(mode==='color'?[]:checkSeams(pixels,size,shape)),...(mode==='alpha'?[]:checkColorSeams(pixels,size,shape))];
 }
 
+/* Kế hoạch ghi của ⚡ Tạo nhanh vào bộ 56 ô đang mở: ô trong phạm vi `scopeTest(tile)` trừ ô khoá
+   (không bao giờ ghi) và ô đã sửa tay (chỉ giữ khi `keepEdited`). `kept` = số ô trong phạm vi được giữ;
+   `ask` = bộ chưa từng tạo nhanh (`!known`) nên phải hỏi trước khi đè. */
+export function planApply({scopeTest,locks=new Set(),edited=new Set(),keepEdited=false,known=false}){
+  const inScope=TERRAIN_TILES.filter(t=>scopeTest(t)).map(t=>t.slot);
+  const slots=inScope.filter(s=>!locks.has(s) && !(keepEdited && edited.has(s))).sort((a,b)=>a-b);
+  return {slots,kept:inScope.length-slots.length,ask:!known};
+}
+
 /* Atlas bố cục cũ 8×7 (layout 1/2) → lưới cr31 10×7, kể cả ô bản sao.
    Layout 1: #50, #51 đổi từ biến thể ruột sang biến thể sàn nên chép ô sàn gốc #31 vào. */
 export function legacySheetTo10x7({w,h,data},layoutVersion,size){

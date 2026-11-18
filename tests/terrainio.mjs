@@ -1,7 +1,7 @@
 // Run: node --test tests/terrainio.mjs — phần I/O thuần của Terrain 56.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {slotPixels,legacySheetTo10x7,terrainSheetTo10x7,parseTerrainFile,terrainProjectJson,terrainPackJson,cleanSheet,toolPaletteKey,seamReport,TERRAIN_CREATE_PRESETS} from '../js/terrainio.js';
+import {slotPixels,legacySheetTo10x7,terrainSheetTo10x7,parseTerrainFile,terrainProjectJson,terrainPackJson,cleanSheet,toolPaletteKey,seamReport,planApply,TERRAIN_CREATE_PRESETS} from '../js/terrainio.js';
 import {createTileset,frameAt,fromSheet,sheetPixels} from '../js/tileset.js';
 import {checkSeams,checkColorSeams,legacyTerrainCell,TERRAIN_TILES,ATLAS_COLS,ATLAS_ROWS,tileRoles,terrainSlotCells} from '../js/terrain.js';
 
@@ -94,4 +94,30 @@ test('seamReport: alpha equals checkSeams, both = alpha + colour',()=>{
   assert.deepEqual(b.slice(0,a.length),a);
   assert.ok(a.length>0&&c.length>0);
   assert.deepEqual(seamReport(px,n,ts.shape),b,'default is both');
+});
+test('planApply: locked slots never written, even when not edited',()=>{
+  const p=planApply({scopeTest:()=>true,locks:new Set([3,46]),edited:new Set(),keepEdited:false,known:true});
+  assert.equal(p.slots.length,54);
+  assert.ok(!p.slots.includes(3) && !p.slots.includes(46));
+  assert.equal(p.kept,2);
+  assert.equal(p.ask,false);
+});
+test('planApply: hand-edited slots kept only with keepEdited',()=>{
+  const base={scopeTest:()=>true,locks:new Set([0]),edited:new Set([46,47]),known:true};
+  const keep=planApply({...base,keepEdited:true});
+  assert.ok(!keep.slots.includes(46) && !keep.slots.includes(47) && !keep.slots.includes(0));
+  assert.equal(keep.kept,3);
+  const over=planApply({...base,keepEdited:false});
+  assert.ok(over.slots.includes(46) && over.slots.includes(47) && !over.slots.includes(0));
+  assert.equal(over.kept,1);
+});
+test('planApply: scope limits slots and kept counts only in-scope tiles',()=>{
+  const p=planApply({scopeTest:t=>t.mask===255,locks:new Set([46,5]),edited:new Set([47]),keepEdited:true,known:true});
+  assert.deepEqual(p.slots,[48,49]);
+  assert.equal(p.kept,2);
+  assert.deepEqual(p.slots,[...p.slots].sort((a,b)=>a-b));
+});
+test('planApply: asks before overwriting a set never quick-generated',()=>{
+  assert.equal(planApply({scopeTest:()=>true,locks:new Set(),edited:new Set(),keepEdited:true,known:false}).ask,true);
+  assert.equal(planApply({scopeTest:()=>true,locks:new Set(),edited:new Set(),keepEdited:true,known:true}).ask,false);
 });
