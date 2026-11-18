@@ -72,6 +72,14 @@ select,input{background:var(--input-bg);border:1px solid var(--line);border-radi
 .tp-tabs button{flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;min-height:40px;cursor:pointer}
 .tp-tabs button[aria-selected="true"]{border-color:var(--amber);color:var(--amber)}
 .tp-pane[hidden]{display:none}
+.tp-tabs button{white-space:nowrap}
+.tp-badge{display:inline-block;margin-left:5px;min-width:18px;padding:0 5px;border-radius:9px;background:#ff6b8a;color:#14101a;font:700 11px/18px var(--mono,monospace);text-align:center}
+.tp-badge[hidden]{display:none}
+.tp-seams{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:8px 0}
+.btn.tiny.tp-issue,.btn.tiny#chkNext,.btn.tiny#chkCompose,.btn.tiny#chkVariants{min-height:44px}
+.tp-core{margin-top:8px}
+#chkMode{min-height:44px}
+#chkMode{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
 .tp-note{margin:0;color:var(--dim);font-size:12px}
 .tp-grid{display:grid;gap:3px;width:100%}
 .tp-grid button{position:relative;padding:0;aspect-ratio:1;border:1px solid var(--line);border-radius:4px;cursor:pointer;

@@ -11,6 +11,7 @@ import { layoutRoles, connectorIndices, keepConnectors, pickSlot, contextSlots, 
 import { createTileset, layoutOf, tileOf, frameAt, frameCount, frameMs, addFrame, removeFrame, moveFrame, setDuration,
          animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES, TILESET_SCHEMA } from './tileset.js';
 import { parseTerrainFile, terrainSheetTo10x7, TERRAIN_CREATE_PRESETS } from './terrainio.js';
+import { mountCheck } from './tilecheck.js';
 import { makeZip } from './zip.js';
 import { sanitizeFilename } from './manifest.js';
 import { idbAvailable, idbGet, idbSet, idbDel, idbAll, askPersist, STORES } from './idb.js';
@@ -39,14 +40,17 @@ window.addEventListener('idbblocked',()=>toast('Một tab Lò Pixel cũ đang gi
 /* ---------------- hoàn tác (theo ô: nhỏ, nên giữ được nhiều bước) ---------------- */
 const undoS=[], redoS=[];
 const snap=s=>{ const t=tileOf(ts,s); return {slot:s,frame,frames:t.frames.map(f=>f.slice()),dur:t.dur.slice()}; };
+/* một bước hoàn tác có thể chứa nhiều ô: {multi:[snap…],slot,frame} (ghép 34 ô, chép biến thể…) */
+const snapOf=e=>e.multi ? {multi:e.multi.map(m=>snap(m.slot)),slot,frame} : snap(e.slot);
 function pushUndo(e){ undoS.push(e); if(undoS.length>200) undoS.shift(); redoS.length=0; syncUndo(); }
 function restoreSnap(e){
-  ts.tiles[e.slot]={frames:e.frames.map(f=>f.slice()),dur:e.dur.slice()};
-  slot=e.slot; frame=Math.min(e.frame,e.frames.length-1);
-  changed(e.slot); selectSlot(slot,frame);
+  for(const m of (e.multi||[e])){ ts.tiles[m.slot]={frames:m.frames.map(f=>f.slice()),dur:m.dur.slice()}; changed(m.slot); }
+  const t=tileOf(ts,e.slot);
+  slot=e.slot; frame=Math.min(e.frame,t.frames.length-1);
+  selectSlot(slot,frame);
 }
-function undo(){ if(!undoS.length) return; const e=undoS.pop(); redoS.push(snap(e.slot)); restoreSnap(e); syncUndo(); }
-function redo(){ if(!redoS.length) return; const e=redoS.pop(); undoS.push(snap(e.slot)); restoreSnap(e); syncUndo(); }
+function undo(){ if(!undoS.length) return; const e=undoS.pop(); redoS.push(snapOf(e)); restoreSnap(e); syncUndo(); }
+function redo(){ if(!redoS.length) return; const e=redoS.pop(); undoS.push(snapOf(e)); restoreSnap(e); syncUndo(); }
 function syncUndo(){ $('#undoBtn').disabled=!undoS.length; $('#redoBtn').disabled=!redoS.length; }
 
 /* ---------------- lưu (IndexedDB chung với trang Vẽ) ---------------- */
@@ -55,7 +59,7 @@ const TAB=Math.random().toString(36).slice(2);   // tab nào ghi bản trong Ind
 function changed(s){
   ts.rev++; pending=true;
   clearTimeout(saveT); saveT=setTimeout(save,500);
-  paintThumb(s); paintFrames(); paintMap();
+  paintThumb(s); paintFrames(); paintMap(); check?.updateSoon();
 }
 async function save(){
   clearTimeout(saveT);
@@ -102,6 +106,7 @@ function load(next){
   setText($('#layoutNote'),lay.name+' · ô '+ts.size+'×'+ts.size+(lay.match==='blob'||lay.match==='sides'?' · '+(ts.shape==='flush'?'kín sát mép':'thụt mép'):''));
   mapPreset();
   buildGrid(); paintPalette(); fillSelect();
+  check?.update();
   selectSlot(Math.min(slot,lay.slots.length-1),0);
 }
 async function adopt(next,msg){
@@ -539,10 +544,31 @@ $('#mapPlay').addEventListener('click',e=>{
 });
 $$('.tp-tabs [role=tab]').forEach(t=>t.addEventListener('click',()=>{
   $$('.tp-tabs [role=tab]').forEach(o=>o.setAttribute('aria-selected',String(o===t)));
-  $('#paneGrid').hidden=t.dataset.pane!=='grid'; $('#paneMap').hidden=t.dataset.pane!=='map';
+  $('#paneGrid').hidden=t.dataset.pane!=='grid'; $('#paneMap').hidden=t.dataset.pane!=='map'; $('#paneCheck').hidden=t.dataset.pane!=='check';
   paintMap();
 }));
 window.addEventListener('resize',()=>paintMap());
+
+/* ---------------- host chung cho các tab phụ (Soi lỗi, …) ---------------- */
+const host={
+  ts:()=>ts, slot:()=>slot,
+  select:s=>selectSlot(s,0),
+  /* ghi khung 0 của nhiều ô trong MỘT bước hoàn tác */
+  writeSlots(list){
+    const before={multi:list.map(([s])=>snap(s)),slot,frame};
+    let any=false;
+    for(const [s,px] of list){
+      const dst=tileOf(ts,s).frames[0];
+      if(px.some((v,i)=>v!==dst[i])){ dst.set(px); any=true; }
+    }
+    if(!any) return;
+    pushUndo(before);
+    for(const [s] of list) changed(s);
+    selectSlot(slot,frame);
+  },
+  refresh(){ buildGrid(); selectSlot(slot,frame); check?.update(); }
+};
+const check=mountCheck(host);
 
 /* ---------------- tạo bộ mới ---------------- */
 const dlg=$('#newDlg'), form=dlg.querySelector('form').elements;   // .elements: form.name là tên của thẻ form, không phải ô Tên

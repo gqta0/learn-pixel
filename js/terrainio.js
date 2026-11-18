@@ -1,6 +1,6 @@
 /* Terrain 56 — phần I/O thuần (không DOM): đọc/ghi file dự án, đổi atlas cũ, dọn mép trong suốt. */
 import { TERRAIN_SCHEMA, TERRAIN_LAYOUT, TERRAIN_TILES, ATLAS_COLS, ATLAS_ROWS,
-  terrainSlotCells, legacyTerrainCell, tileRoles, terrainManifest, terrainGodotManifest } from './terrain.js';
+  terrainSlotCells, legacyTerrainCell, tileRoles, terrainManifest, terrainGodotManifest, checkSeams, checkColorSeams } from './terrain.js';
 import { frameAt } from './tileset.js';
 
 /* Master giữ riêng; mọi bảng khác (kể cả nhóm Genesis v3 và bảng tự tạo) dùng bộ tổng Genesis v3. */
@@ -29,6 +29,11 @@ export const TERRAIN_CREATE_PRESETS={
 
 /* 56 ô của bộ blob56 theo slot (khung `frame`) */
 export const slotPixels=(ts,frame=0)=>Array.from({length:56},(_,slot)=>frameAt(ts,slot,frame));
+
+/* Báo cáo mối nối: mode 'alpha' | 'color' | 'both' (mặc định). Alpha đứng trước, màu/vân đứng sau. */
+export function seamReport(pixels,size,shape,mode='both'){
+  return [...(mode==='color'?[]:checkSeams(pixels,size,shape)),...(mode==='alpha'?[]:checkColorSeams(pixels,size,shape))];
+}
 
 /* Atlas bố cục cũ 8×7 (layout 1/2) → lưới cr31 10×7, kể cả ô bản sao.
    Layout 1: #50, #51 đổi từ biến thể ruột sang biến thể sàn nên chép ô sàn gốc #31 vào. */

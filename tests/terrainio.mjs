@@ -1,9 +1,9 @@
 // Run: node --test tests/terrainio.mjs — phần I/O thuần của Terrain 56.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {slotPixels,legacySheetTo10x7,terrainSheetTo10x7,parseTerrainFile,terrainProjectJson,terrainPackJson,cleanSheet,toolPaletteKey,TERRAIN_CREATE_PRESETS} from '../js/terrainio.js';
+import {slotPixels,legacySheetTo10x7,terrainSheetTo10x7,parseTerrainFile,terrainProjectJson,terrainPackJson,cleanSheet,toolPaletteKey,seamReport,TERRAIN_CREATE_PRESETS} from '../js/terrainio.js';
 import {createTileset,frameAt,fromSheet,sheetPixels} from '../js/tileset.js';
-import {legacyTerrainCell,TERRAIN_TILES,ATLAS_COLS,ATLAS_ROWS,tileRoles,terrainSlotCells} from '../js/terrain.js';
+import {checkSeams,checkColorSeams,legacyTerrainCell,TERRAIN_TILES,ATLAS_COLS,ATLAS_ROWS,tileRoles,terrainSlotCells} from '../js/terrain.js';
 
 const URL='data:image/png;base64,AAAA';
 test('slotPixels returns 56 slot frames',()=>{
@@ -80,4 +80,18 @@ test('terrainSheetTo10x7 decides by sheet size',()=>{
   for(const lv of [1,2]){ const o=terrainSheetTo10x7(mk(8,7),lv,n); assert.equal(o.w,10*n); assert.equal(o.h,7*n); }
   assert.throws(()=>terrainSheetTo10x7(mk(9,7),2,n),/lưới/);
   assert.throws(()=>terrainSheetTo10x7(mk(10,6),undefined,n),/lưới/);
+});
+
+test('seamReport: alpha equals checkSeams, both = alpha + colour',()=>{
+  const n=16,ts=createTileset({layout:'blob56',size:n,colors:{base:'#5e788c',edge:'#b4c5d1',palette:['#5e788c','#b4c5d1']}});
+  const px=slotPixels(ts);
+  px[31]=px[31].slice(); px[31][3*n]=0xff00ff00;   // lệch màu ở cạnh trái ô 31
+  px[31][5*n]=0;            // lủng alpha ở cạnh trái ô 31
+  const a=seamReport(px,n,ts.shape,'alpha'), c=seamReport(px,n,ts.shape,'color'), b=seamReport(px,n,ts.shape,'both');
+  assert.equal(a.length,checkSeams(px,n,ts.shape).length);
+  assert.equal(c.length,checkColorSeams(px,n,ts.shape).length);
+  assert.equal(b.length,a.length+c.length);
+  assert.deepEqual(b.slice(0,a.length),a);
+  assert.ok(a.length>0&&c.length>0);
+  assert.deepEqual(seamReport(px,n,ts.shape),b,'default is both');
 });

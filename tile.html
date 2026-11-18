@@ -76,10 +76,32 @@
     <nav class="tp-tabs" role="tablist">
       <button role="tab" data-pane="grid" aria-selected="true">Bộ ô</button>
       <button role="tab" data-pane="map" aria-selected="false">Soi map</button>
+      <button role="tab" data-pane="check" aria-selected="false">Soi lỗi<b class="tp-badge" id="chkBadge" hidden></b></button>
     </nav>
     <div class="tp-pane" id="paneGrid">
       <p class="tp-note" id="layoutNote"></p>
       <div class="tp-grid" id="grid"></div>
+    </div>
+    <div class="tp-pane" id="paneCheck" hidden>
+      <p class="tp-note" id="chkNote" hidden></p>
+      <div id="chkBody">
+        <div class="tp-maptools">
+          <select id="chkMode" title="Chọn mức kiểm tra mối nối">
+            <option value="both" selected>Alpha + màu/vân</option>
+            <option value="alpha">Chỉ alpha</option>
+            <option value="color">Chỉ màu/vân</option>
+          </select>
+          <button class="btn tiny" id="chkNext" title="Mở ô kế tiếp đang có lỗi">◎ Ô cần sửa</button>
+        </div>
+        <section class="tp-seams" id="chkSeams" role="status" aria-live="polite"></section>
+        <div class="tp-core">
+          <p class="tp-note"><b>13 ô lõi.</b> Vẽ 13 ô lõi, rồi để app ghép 34 ô còn lại.</p>
+          <div class="tp-maptools">
+            <button class="btn tiny" id="chkCompose" title="Dựng 34 ô còn lại từ bốn góc phần tư của 13 ô lõi. Ô lõi và biến thể không bị đụng.">⚙ Ghép 34 ô</button>
+            <button class="btn tiny" id="chkVariants" title="Chép ô gốc vào 9 ô biến thể để bạn chỉ còn việc sửa cho khác đi">⧉ Biến thể ← ô gốc</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="tp-pane" id="paneMap" hidden>
       <div class="tp-maptools">
