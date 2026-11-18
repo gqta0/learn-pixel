@@ -7,7 +7,7 @@ import { hexToInt, intToHex } from './color.js';
 import { GENESIS_COLORS, GENESIS_TOKENS } from './genesis.js';
 import { MASTER_COLORS, COLOR_TOKENS } from './masterpal.js';
 import { ROLE_COLORS, ROLE_NAMES } from './terrain.js';
-import { layoutRoles, pickSlot, contextSlots, layoutGodotTres, layoutJson } from './layouts.js';
+import { layoutRoles, connectorIndices, keepConnectors, pickSlot, contextSlots, layoutGodotTres, layoutJson } from './layouts.js';
 import { createTileset, layoutOf, tileOf, frameAt, frameCount, frameMs, addFrame, removeFrame, moveFrame, setDuration,
          animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES, TILESET_SCHEMA } from './tileset.js';
 import { parseTerrainFile, terrainSheetTo10x7, TERRAIN_CREATE_PRESETS } from './terrainio.js';
@@ -28,7 +28,8 @@ function toast(msg,ms=2600){ const el=$('#toast'); el.textContent=msg; el.classL
 /* ---------------- trạng thái trang ---------------- */
 let ts=null, lay=null, slot=0, frame=0;
 let list=[];                                    // [{id,name,layout}] để đổ vào ô chọn bộ
-const ui={tool:'pencil',ctx:'context',guide:true,onion:false,playing:false,mapPlaying:false,mtool:'paint'};
+const GUIDE_MODES=['wireframe','tint','off'];
+const ui={tool:'pencil',ctx:'context',guide:GUIDE_MODES.includes(lsGet('lo-pixel-tile-guide'))?lsGet('lo-pixel-tile-guide'):'wireframe',lock:true,onion:false,playing:false,mapPlaying:false,mtool:'paint'};
 view.brush=1; view.brushEff=1; view.mirX=false; view.mirY=false; view.sel=null; view.lockAlpha=false; view.wrapPaint=false;
 view.pri=hexToInt('#857870');
 const useIdb=idbAvailable();
@@ -157,6 +158,7 @@ function layoutEditor(){
   if(ed.style.width!==css){ ed.style.width=ed.style.height=css; }
 }
 function drawEditor(){
+  syncLockBtn();
   if(!ts) return;
   if(drawQ){ cancelAnimationFrame(drawQ); drawQ=0; }
   layoutEditor();
@@ -173,16 +175,9 @@ function drawEditor(){
   }
   ectx.globalAlpha=1;
   const ox=(c===1?0:n)*z, oy=ox, px=curData();
-  // gợi ý vai pixel: chỗ nên có đất mà còn trống thì phủ mờ màu vai; vẽ lố ra chỗ phải trong suốt thì chấm đỏ
-  const roles=ui.guide ? rolesOf(slot) : null;
-  if(roles && !ui.playing){
-    for(let i=0;i<roles.length;i++){
-      const x=i%n, y=(i/n)|0, solid=(px[i]>>>24)>0;
-      if(!solid && roles[i]){ ectx.fillStyle=ROLE_COLORS[roles[i]]+'55'; ectx.fillRect(ox+x*z,oy+y*z,z,z); }
-      // nối góc: nửa không có vật liệu chính là vật liệu nền, vẫn phải tô — không chấm đỏ
-      else if(solid && !roles[i] && lay.match!=='corners'){ ectx.fillStyle='#ff5c8a'; const d=Math.max(lw,z>>2); ectx.fillRect(ox+x*z+(z-d>>1),oy+y*z+(z-d>>1),d,d); }
-    }
-  }
+  // gợi ý vai pixel theo khuôn: khung viền hoặc phủ mờ; dải cyan ở mép nối
+  const roles=ui.guide!=='off' ? rolesOf(slot) : null;
+  if(roles && !ui.playing) paintGuide(ectx,roles,n,z,ox,oy,ui.guide);
   if(z>=6){
     ectx.strokeStyle='rgba(255,255,255,0.07)'; ectx.lineWidth=lw; ectx.beginPath();
     for(let i=1;i<n*c;i++){ ectx.moveTo(i*z+lw/2,0); ectx.lineTo(i*z+lw/2,ed.height); ectx.moveTo(0,i*z+lw/2); ectx.lineTo(ed.width,i*z+lw/2); }
@@ -192,6 +187,30 @@ function drawEditor(){
     ectx.strokeStyle='rgba(255,180,63,0.9)'; ectx.lineWidth=lw; ectx.strokeRect(ox+lw/2,oy+lw/2,n*z-lw,n*z-lw);
     if(ui.ctx==='context' && !ui.playing) paintSeams(ctxSlots,ox,oy,z,lw);
   }
+}
+function paintGuide(g,roles,n,z,ox,oy,mode){
+  g.save();
+  const edgeW=Math.max(2,Math.min(4,Math.floor(z*(mode==='tint'?.14:.16))));
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++){
+    const role=roles[y*n+x], px=ox+x*z, py=oy+y*z;
+    if(mode==='wireframe'){
+      if(!role){ g.strokeStyle='rgba(255,92,138,.35)'; g.lineWidth=1; g.beginPath(); g.moveTo(px+3,py+z-3); g.lineTo(px+z-3,py+3); g.stroke(); }
+      else if(role===1){ g.strokeStyle='rgba(101,126,140,.3)'; g.lineWidth=1; g.strokeRect(px+.5,py+.5,z-1,z-1); }
+      else { g.fillStyle=ROLE_COLORS[role]; g.globalAlpha=.08; g.fillRect(px,py,z,z);
+        g.strokeStyle=ROLE_COLORS[role]; g.globalAlpha=.85; g.lineWidth=1.5; g.strokeRect(px+1,py+1,z-2,z-2); }
+    } else {
+      g.fillStyle=role?ROLE_COLORS[role]:'#ff5c8a'; g.globalAlpha=role===1?.12:role?.28:.15; g.fillRect(px,py,z,z);
+    }
+    if(role && (x===0||y===0||x===n-1||y===n-1)){
+      g.strokeStyle='#58d5ff'; g.globalAlpha=.9; g.lineWidth=edgeW; g.beginPath();
+      if(y===0){ g.moveTo(px,py+edgeW/2); g.lineTo(px+z,py+edgeW/2); }
+      if(y===n-1){ g.moveTo(px,py+z-edgeW/2); g.lineTo(px+z,py+z-edgeW/2); }
+      if(x===0){ g.moveTo(px+edgeW/2,py); g.lineTo(px+edgeW/2,py+z); }
+      if(x===n-1){ g.moveTo(px+z-edgeW/2,py); g.lineTo(px+z-edgeW/2,py+z); }
+      g.stroke();
+    }
+  }
+  g.restore();
 }
 /* soi mối nối ngay trên khung: pixel cạnh ô giữa và cạnh đối diện của ô hàng xóm phải cùng đặc hoặc cùng trống */
 function paintSeams(ctxSlots,ox,oy,z,lw){
@@ -260,7 +279,7 @@ ed.addEventListener('pointermove',e=>{
   const p=toLocal(edPos(e)), n=ts.size;
   if(!stroke){
     if(p.x>=0&&p.y>=0&&p.x<n&&p.y<n){
-      const r=ui.guide?rolesOf(slot):null;
+      const r=ui.guide!=='off'?rolesOf(slot):null;
       setText($('#edHint'),p.x+', '+p.y+(r?' · '+ROLE_NAMES[r[p.y*n+p.x]]:''));
     }
     return;
@@ -286,6 +305,8 @@ function cancelStroke(){
 }
 function commit(before){
   const now=curData(), was=before.frames[frame];
+  // khoá nối: pixel ở mép nối về lại như trước nét vẽ, cả nét vẽ vẫn chỉ là một bước hoàn tác
+  if(was && ui.lock){ const idx=connectorIndices(lay,slot,ts.size,ts.shape); if(idx.length) now.set(keepConnectors(was,now,idx)); }
   if(was && now.some((v,i)=>v!==was[i])){ pushUndo(before); changed(slot); }
   drawEditor();
 }
@@ -387,7 +408,21 @@ $('#brushBtn').addEventListener('click',e=>{ view.brush=view.brush%3+1; view.bru
 const toggle=(id,get,set)=>$(id).addEventListener('click',e=>{ set(!get()); e.currentTarget.setAttribute('aria-pressed',get()); drawEditor(); });
 toggle('#wrapBtn',()=>view.wrapPaint,v=>{ view.wrapPaint=v; });
 toggle('#mirBtn',()=>view.mirX,v=>{ view.mirX=v; });
-toggle('#guideBtn',()=>ui.guide,v=>{ ui.guide=v; });
+const GUIDE_NAMES={wireframe:'Khung viền',tint:'Phủ mờ',off:'Tắt'};
+function syncGuideBtn(){
+  const b=$('#guideBtn'); b.setAttribute('aria-pressed',String(ui.guide!=='off'));
+  b.title='Gợi ý vai pixel: '+GUIDE_NAMES[ui.guide]+' (H đổi chế độ)'; b.dataset.mode=ui.guide;
+}
+$('#guideBtn').addEventListener('click',()=>{
+  ui.guide=GUIDE_MODES[(GUIDE_MODES.indexOf(ui.guide)+1)%3]; lsSet('lo-pixel-tile-guide',ui.guide); syncGuideBtn(); drawEditor();
+});
+syncGuideBtn();
+function syncLockBtn(){
+  const b=$('#lockBtn'), has=!!ts && connectorIndices(lay,slot,ts.size,ts.shape).length>0;
+  b.hidden=!has; b.setAttribute('aria-pressed',String(ui.lock));
+  b.title='Khoá nối: '+(ui.lock?'bật — pixel ở mép nối được giữ nguyên khi vẽ':'tắt — vẽ đè được cả pixel mép nối')+' (K)';
+}
+$('#lockBtn').addEventListener('click',()=>{ ui.lock=!ui.lock; syncLockBtn(); });
 $('#undoBtn').addEventListener('click',undo);
 $('#redoBtn').addEventListener('click',redo);
 $$('[data-ctx]').forEach(b=>b.addEventListener('click',()=>{
@@ -408,6 +443,7 @@ window.addEventListener('keydown',e=>{
   else if(k==='w') $('#wrapBtn').click();
   else if(k==='m') $('#mirBtn').click();
   else if(k==='h') $('#guideBtn').click();
+  else if(k==='k') $('#lockBtn').click();
   else if(e.key==='ArrowRight'){ e.preventDefault(); stepSlot(1); }
   else if(e.key==='ArrowLeft'){ e.preventDefault(); stepSlot(-1); }
   else if(k===']'){ selectSlot(slot,frame+1); }

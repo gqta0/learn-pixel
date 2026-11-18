@@ -49,6 +49,7 @@ select,input{background:var(--input-bg);border:1px solid var(--line);border-radi
 .tp-tools{display:flex;flex-wrap:wrap;gap:4px}
 .tp-tools button{min-width:44px;padding:6px}
 .tp-tools .sep{width:4px}
+.tp-tools button[hidden]{display:none}
 .tp-seg{display:flex;gap:4px}
 .tp-seg button{flex:1;padding:6px 4px;font-size:13px}
 .tp-pal{display:flex;flex-wrap:wrap;gap:3px;max-height:128px;overflow-y:auto}

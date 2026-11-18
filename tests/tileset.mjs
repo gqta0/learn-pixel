@@ -162,3 +162,21 @@ test('Godot .tres: terrain mode, peering bits and animation follow the layout',(
   const j=layoutJson(getLayout('sides16'),16,{anim:{6:[100,250]},frames:2});
   assert.equal(j.tiles.length,16); assert.deepEqual(j.tiles[6].frames_ms,[100,250]); assert.equal(j.frame_blocks,2);
 });
+
+import {connectorIndices, keepConnectors} from '../js/layouts.js';
+import {terrainConnectorIndices} from '../js/terrain.js';
+test('connectorIndices: blob56 = terrain, sides16 via sidesToBlob, corners16/free empty',()=>{
+  const b=getLayout('blob56');
+  for(const s of [0,46]) assert.deepEqual(connectorIndices(b,s,16,'inset'),terrainConnectorIndices(s,16,'inset'));
+  const sd=getLayout('sides16');
+  for(const m of [0,5,15]) assert.deepEqual(connectorIndices(sd,m,16,'inset'),terrainConnectorIndices(BLOB_47_MASKS.indexOf(sidesToBlob(m)),16,'inset'));
+  assert.deepEqual(connectorIndices(getLayout('corners16'),3,16),[]);
+  assert.deepEqual(connectorIndices(getLayout('free',{cols:2,rows:2}),0,16),[]);
+});
+test('keepConnectors restores only listed indices and does not mutate inputs',()=>{
+  const before=Uint32Array.from([1,2,3,4]), after=Uint32Array.from([9,9,9,9]);
+  const out=keepConnectors(before,after,[0,3]);
+  assert.deepEqual([...out],[1,9,9,4]);
+  assert.deepEqual([...after],[9,9,9,9]);
+  assert.deepEqual([...keepConnectors(before,after,[])],[9,9,9,9]);
+});
