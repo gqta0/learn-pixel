@@ -96,6 +96,25 @@ test('reopening the quick generator removes stale colors even when its palette k
   assert.equal(saves,1);
   assert.equal(vm.runInContext('syncPalette()',context),false);
 });
+// Trang Tile (tilequick.js): bảng theo bộ đang mở (host.paletteKey). Bản tilegenview ở trên bỏ khi Task 9 gỡ thẻ ⚡ khỏi trang Vẽ.
+test('Tile page quick generator removes stale colors even when its palette key is unchanged',()=>{
+  const src=read('js/tilequick.js');
+  const start=src.indexOf('function syncPalette(){'),end=src.indexOf('\n}\n',start)+3;
+  assert.ok(start>0 && end>start);
+  const st={palette:'genesis',strata:[{colors:{r0:'#382733',k1:'#63C74D'}}]};
+  let saves=0, key='genesis';
+  const context=vm.createContext({st,paletteKey:()=>key,palName:()=>st.palette==='master'?'m':'v3',
+    PALETTES:{v3:genesis.GENESIS_COLORS,m:['#63c74d']},save(){saves++;}});
+  vm.runInContext(src.slice(start,end),context);
+  assert.equal(vm.runInContext('syncPalette()',context),true);
+  assert.deepEqual(st.strata[0].colors,{k1:'#63C74D'});
+  assert.equal(saves,1);
+  assert.equal(vm.runInContext('syncPalette()',context),false);
+  key='master';
+  assert.equal(vm.runInContext('syncPalette()',context),true);
+  assert.equal(st.palette,'master');
+  assert.deepEqual(st.strata[0].colors,{k1:'#63C74D'});
+});
 
 test('copying a legacy localStorage save to IndexedDB does not overwrite its adopted v3 palette',async()=>{
   const app=paletteApp(),c=app.context;

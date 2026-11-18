@@ -14,6 +14,7 @@ import { createTileset, layoutOf, tileOf, frameAt, frameCount, frameMs, addFrame
 import { parseTerrainFile, terrainSheetTo10x7, TERRAIN_CREATE_PRESETS, cleanSheet, terrainProjectJson, terrainPackJson } from './terrainio.js';
 import { mountCheck } from './tilecheck.js';
 import { mountDetail } from './tiledetail.js';
+import { mountQuick } from './tilequick.js';
 import { makeZip } from './zip.js';
 import { sanitizeFilename } from './manifest.js';
 import { idbAvailable, idbGet, idbSet, idbDel, idbAll, askPersist, STORES } from './idb.js';
@@ -61,7 +62,7 @@ const TAB=Math.random().toString(36).slice(2);   // tab nào ghi bản trong Ind
 function changed(s){
   ts.rev++; pending=true;
   clearTimeout(saveT); saveT=setTimeout(save,500);
-  paintThumb(s); paintFrames(); paintMap(); check?.updateSoon(); detail?.updateSoon();
+  paintThumb(s); paintFrames(); paintMap(); check?.updateSoon(); detail?.updateSoon(); quick?.updateSoon();
 }
 async function save(){
   clearTimeout(saveT);
@@ -546,10 +547,12 @@ $('#mapPlay').addEventListener('click',e=>{
   const loop=now=>{ if(!ui.mapPlaying) return; mapT=now-t0; paintMap(); requestAnimationFrame(loop); };
   if(ui.mapPlaying) requestAnimationFrame(loop); else paintMap();
 });
+const PANES={grid:'#paneGrid',map:'#paneMap',check:'#paneCheck',detail:'#paneDetail',quick:'#paneQuick'};
 $$('.tp-tabs [role=tab]').forEach(t=>t.addEventListener('click',()=>{
   $$('.tp-tabs [role=tab]').forEach(o=>o.setAttribute('aria-selected',String(o===t)));
-  $('#paneGrid').hidden=t.dataset.pane!=='grid'; $('#paneMap').hidden=t.dataset.pane!=='map'; $('#paneCheck').hidden=t.dataset.pane!=='check'; $('#paneDetail').hidden=t.dataset.pane!=='detail';
+  for(const [k,sel] of Object.entries(PANES)) $(sel).hidden=t.dataset.pane!==k;
   paintMap();
+  if(t.dataset.pane==='quick') quick.open();
 }));
 window.addEventListener('resize',()=>paintMap());
 
@@ -558,28 +561,43 @@ const host={
   ts:()=>ts, slot:()=>slot,
   onSelect:cb=>{ selectCbs.push(cb); },
   select:s=>selectSlot(s,0),
-  /* ghi khung 0 của nhiều ô trong MỘT bước hoàn tác */
+  /* ghi nhiều ô trong MỘT bước hoàn tác: ô được ghi còn đúng một khung là tranh mới
+     (khung hoạt ảnh cũ bỏ đi — hoàn tác trả lại đủ mọi khung) */
   writeSlots(list){
     const before={multi:list.map(([s])=>snap(s)),slot,frame};
     let any=false;
     for(const [s,px] of list){
-      const dst=tileOf(ts,s).frames[0];
-      if(px.some((v,i)=>v!==dst[i])){ dst.set(px); any=true; }
+      const t=tileOf(ts,s);
+      if(t.frames.length===1 && !px.some((v,i)=>v!==t.frames[0][i])) continue;
+      ts.tiles[s]={frames:[px.slice()],dur:[0]}; any=true;
     }
     if(!any) return;
     pushUndo(before);
     for(const [s] of list) changed(s);
     selectSlot(slot,frame);
   },
-  refresh(){ buildGrid(); selectSlot(slot,frame); check?.update(); }
+  refresh(){ buildGrid(); selectSlot(slot,frame); check?.update(); },
+  /* bộ đang mở dùng Master Palette thì 'master', mọi bảng khác 'genesis' (như toolPaletteKey ở trang Vẽ) */
+  paletteKey(){
+    const p=ts?.palette||[], m=new Set(MASTER_COLORS);
+    return p.length===m.size && p.every(h=>m.has(h.toLowerCase())) ? 'master' : 'genesis';
+  },
+  /* bộ 56 ô mới từ tranh có sẵn (⚡ Tạo nhanh): mở ngay, lưu, hiện trong danh sách; bộ cũ giữ nguyên */
+  createFromTiles(size,shape,tiles,name){
+    const next=createTileset({name:name||'Bộ 56 ô tạo nhanh',layout:'blob56',size,shape,palette:PAL_DATA[host.paletteKey()]});
+    tiles.forEach((px,s)=>{ next.tiles[s]={frames:[px.slice()],dur:[0]}; });
+    adopt(next,'Đã tạo bộ “'+next.name+'”.');
+    return next;
+  }
 };
+const PAL_DATA={master:MASTER_COLORS,genesis:GENESIS_COLORS};
 const check=mountCheck(host);
 const detail=mountDetail(host);
+const quick=mountQuick(host);
 
 /* ---------------- tạo bộ mới ---------------- */
 const dlg=$('#newDlg'), form=dlg.querySelector('form').elements;   // .elements: form.name là tên của thẻ form, không phải ô Tên
-/* Màu dựng sẵn: Nền / Cạnh chọn theo nhóm của Master hoặc Genesis v3, như ô "Tạo bộ" ở trang Vẽ */
-const PAL_DATA={master:MASTER_COLORS,genesis:GENESIS_COLORS};
+/* Màu dựng sẵn: Nền / Cạnh chọn theo nhóm của Master hoặc Genesis v3, như ô "Tạo bộ" ở trang Vẽ (PAL_DATA ở trên) */
 const tokenOf=hex=>COLOR_TOKENS[hex]||GENESIS_TOKENS[hex];
 const picks={Base:{group:$('#tpNewBaseGroup'),color:$('#tpNewBase')},Edge:{group:$('#tpNewEdgeGroup'),color:$('#tpNewEdge')}};
 function colorGroups(){
@@ -782,6 +800,8 @@ $('#tsOpenPng').addEventListener('change',async e=>{
   }catch(err){ toast('Không nạp được: '+err.message); }
 });
 $('#emptyTerrain').addEventListener('click',importTerrain56);
+/* chưa có bộ nào: ⚡ dựng ngay bộ 56 ô từ công thức đang chọn rồi mở thẻ Tạo nhanh để chỉnh tiếp */
+$('#emptyQuick').addEventListener('click',()=>{ slot=0; if(quick.apply()) $('.tp-tabs [data-pane=quick]').click(); });
 $('#tsGodot').addEventListener('click',exportGodot);
 $('#tsSel').addEventListener('change',async e=>{ await save(); slot=0; await openSet(e.target.value); });
 
