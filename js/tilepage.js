@@ -6,11 +6,12 @@ import { stamp, lineStamp, rectStamp, floodFill } from './raster.js';
 import { hexToInt, intToHex } from './color.js';
 import { GENESIS_COLORS, GENESIS_TOKENS } from './genesis.js';
 import { MASTER_COLORS, COLOR_TOKENS } from './masterpal.js';
-import { ROLE_COLORS, ROLE_NAMES } from './terrain.js';
+import { ROLE_COLORS, ROLE_NAMES, TERRAIN_TILES, DIRECTIONS, terrainSlotCell, maskToCr31, paintTerrainGuide,
+         terrainManifest, terrainGodotManifest, ATLAS_COLS, ATLAS_ROWS } from './terrain.js';
 import { layoutRoles, connectorIndices, keepConnectors, pickSlot, contextSlots, layoutGodotTres, layoutJson } from './layouts.js';
 import { createTileset, layoutOf, tileOf, frameAt, frameCount, frameMs, addFrame, removeFrame, moveFrame, setDuration,
          animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES, TILESET_SCHEMA } from './tileset.js';
-import { parseTerrainFile, terrainSheetTo10x7, TERRAIN_CREATE_PRESETS } from './terrainio.js';
+import { parseTerrainFile, terrainSheetTo10x7, TERRAIN_CREATE_PRESETS, cleanSheet, terrainProjectJson, terrainPackJson } from './terrainio.js';
 import { mountCheck } from './tilecheck.js';
 import { mountDetail } from './tiledetail.js';
 import { makeZip } from './zip.js';
@@ -650,7 +651,8 @@ dlg.querySelector('form').addEventListener('submit',async e=>{
 
 /* ---------------- menu ⋯: nhân bản, đổi tên, nhập / xuất ---------------- */
 const menu=$('#tsMenu');
-$('#tsMore').addEventListener('click',e=>{ e.stopPropagation(); menu.hidden=!menu.hidden; });
+$('#tsMore').addEventListener('click',e=>{ e.stopPropagation(); menu.hidden=!menu.hidden; syncTerrainMenu(); });
+function syncTerrainMenu(){ const on=ts?.layout==='blob56'; menu.querySelectorAll('.t56').forEach(b=>{ b.hidden=!on; }); }
 document.addEventListener('click',e=>{ if(!menu.hidden && !menu.contains(e.target)) menu.hidden=true; });
 function download(name,blob){
   const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=name;
@@ -697,6 +699,35 @@ async function exportGodot(){
   download(base+'_godot.zip',new Blob([zip],{type:'application/zip'}));
   toast('Đã xuất '+base+'_godot.zip · giải nén vào '+dir+(Object.keys(anim).length?' · '+Object.keys(anim).length+' ô hoạt ảnh':''),4000);
 }
+/* ---------------- xuất Terrain 56 (chỉ bộ blob56) ---------------- */
+function cleanedSheetCanvas(){ return sheetCanvas(cleanSheet(sheetPixels(ts),ts.size,ts.shape)); }
+function annotationCanvas(){
+  const n=ts.size, cv=document.createElement('canvas'); cv.width=180*ATLAS_COLS; cv.height=88+174*ATLAS_ROWS;
+  const g=cv.getContext('2d'), id=s=>'#'+String(s).padStart(2,'0');
+  g.fillStyle='#101018'; g.fillRect(0,0,cv.width,cv.height);
+  g.fillStyle='#e8e8f2'; g.font='bold 24px sans-serif'; g.fillText('TERRAIN 56 · lưới cr31 blob 7×7 (47 ô) + biến thể 3×3: 3 ruột · 3 sàn · trần + 2 tường',24,34);
+  g.font='14px sans-serif'; g.fillText('Cyan: nối liền · Hồng mờ: trong suốt · Vàng: sàn · Tím: tường · Cam: góc lõm · Hồng: góc lồi',24,62);
+  TERRAIN_TILES.forEach(t=>{
+    const [cc,cr]=terrainSlotCell(t.slot), x=cc*180, y=88+cr*174;
+    g.strokeStyle='#434360'; g.strokeRect(x+4,y,172,166);
+    g.imageSmoothingEnabled=false; g.drawImage(sheetCanvas({w:n,h:n,data:frameAt(ts,t.slot,0)}),x+10,y+8,80,80);
+    g.save(); g.translate(x+10,y+8); paintTerrainGuide(g,t.slot,n,80/n,'wireframe',ts.shape); g.restore();
+    g.fillStyle='#e8e8f2'; g.font='bold 13px sans-serif'; g.fillText(id(t.slot)+' mask '+t.mask+(t.slot<47?' · cr31 '+maskToCr31(t.mask):''),x+10,y+108);
+    g.font='12px sans-serif'; g.fillText(t.title,x+10,y+127,157);
+    g.fillText('Nối: '+(DIRECTIONS.filter(d=>t.mask&d.bit).map(d=>d.key).join(' ')||'không'),x+10,y+147,157);
+  });
+  return cv;
+}
+const jsonBlob=(o,pretty)=>new Blob([JSON.stringify(o,null,pretty?2:undefined)],{type:'application/json'});
+async function exportTerrain(act){
+  await save();
+  if(act==='t-clean') download(sanitizeFilename(ts.name,'terrain56')+'.png',await pngBlob(cleanedSheetCanvas()));
+  else if(act==='t-annot') download('terrain56-annotated.png',await pngBlob(annotationCanvas()));
+  else if(act==='t-godot') download('terrain56-godot-mapping.json',jsonBlob(terrainGodotManifest(ts.size,ts.shape),true));
+  else if(act==='t-layout') download('terrain56-layout.json',jsonBlob(terrainManifest(ts.size,ts.shape),true));
+  else if(act==='t-pack') download('terrain56-pack.json',jsonBlob(terrainPackJson(ts,cleanedSheetCanvas().toDataURL('image/png'),annotationCanvas().toDataURL('image/png'))));
+  else if(act==='t-project') download('terrain56-project.json',jsonBlob(terrainProjectJson(ts,cleanedSheetCanvas().toDataURL('image/png'))));
+}
 menu.addEventListener('click',async e=>{
   const act=e.target.closest('[data-act]')?.dataset.act; if(!act) return;
   menu.hidden=true;
@@ -705,6 +736,7 @@ menu.addEventListener('click',async e=>{
   else if(act==='png'){ download(sanitizeFilename(ts.name,'tileset')+'.png',await pngBlob(sheetCanvas(sheetPixels(ts,{blocks:frameCount(ts)})))); }
   else if(act==='json'){ download(sanitizeFilename(ts.name,'tileset')+'.tileset.json',new Blob([JSON.stringify(toJSON(ts))],{type:'application/json'})); }
   else if(act==='terrain') importTerrain56();
+  else if(act.startsWith('t-')){ if(ts?.layout==='blob56') exportTerrain(act); }
   else if(act==='delete'){
     if(!confirm('Xoá hẳn bộ “'+ts.name+'”? Không hoàn tác được — lưu .json trước nếu cần giữ.')) return;
     const id=ts.id; clearTimeout(saveT); pending=false;

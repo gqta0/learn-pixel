@@ -34,6 +34,7 @@ select,input{background:var(--input-bg);border:1px solid var(--line);border-radi
   background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 40px #0008;max-width:calc(100vw - 24px)}
 .tp-menu[hidden]{display:none}
 .tp-menu button,.tp-menu .as-btn{justify-content:flex-start}
+.tp-menu button[hidden]{display:none}
 .tp-menu .danger{color:var(--rose)}
 
 .tp-main{display:grid;gap:12px;padding:12px 16px 24px;max-width:1280px;margin:0 auto}
