@@ -8,7 +8,8 @@ import { GENESIS_COLORS, GENESIS_FAMILIES } from './genesis.js';
 import { ROLE_COLORS, ROLE_NAMES } from './terrain.js';
 import { layoutRoles, pickSlot, contextSlots, layoutGodotTres, layoutJson } from './layouts.js';
 import { createTileset, layoutOf, tileOf, frameAt, frameCount, frameMs, addFrame, removeFrame, moveFrame, setDuration,
-         animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES } from './tileset.js';
+         animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES, TILESET_SCHEMA } from './tileset.js';
+import { parseTerrainFile, legacySheetTo10x7 } from './terrainio.js';
 import { makeZip } from './zip.js';
 import { sanitizeFilename } from './manifest.js';
 import { idbAvailable, idbGet, idbSet, idbDel, idbAll, askPersist, STORES } from './idb.js';
@@ -553,17 +554,25 @@ async function imageData(file){
   const g=cv.getContext('2d',{willReadFrequently:true}); g.drawImage(im,0,0);
   return {w:im.width,h:im.height,data:new Uint32Array(g.getImageData(0,0,im.width,im.height).data.buffer)};
 }
+/* Atlas/dự án Terrain 56 → ảnh 10×7 (đổi từ bố cục cũ 8×7 nếu cần); ném lỗi tiếng Việt nếu sai khổ */
+function terrainSheet(sh,layout,n){
+  if(layout===3){
+    if(sh.w!==n*10 || sh.h!==n*7) throw new Error('ảnh atlas phải rộng '+(n*10)+'×'+(n*7)+' px');
+    return sh;
+  }
+  if(sh.w!==n*8 || sh.h!==n*7) throw new Error('atlas bố cục cũ phải là lưới 8×7 ô '+n+' px');
+  return legacySheetTo10x7(sh,layout,n);
+}
 async function importTerrain56(){
   let a=null; try{ a=JSON.parse(lsGet(ATLAS_KEY)||'null'); }catch(_){}
   if(!a?.png || a.terrain!=='lo-pixel.terrain56.v1') return toast('Trang Vẽ chưa có atlas Terrain 56 nào (thẻ 🧩 Terrain → Tạo bộ).',4000);
   if(!TILE_SIZES.includes(a.tw)) return toast('Khổ ô '+a.tw+' chưa hỗ trợ.');
   try{
-    const sh=await imageData(a.png);
-    if(sh.w!==a.tw*10 || sh.h!==a.tw*7) return toast('Atlas còn bố cục cũ: mở thẻ Terrain ở trang Vẽ một lần để chuyển bố cục rồi thử lại.',4500);
+    const sh=terrainSheet(await imageData(a.png),a.layout||1,a.tw);
     slot=0;
     await adopt(fromSheet(sh,{name:a.name||'Terrain 56',layout:'blob56',size:a.tw,shape:a.shape,palette:GENESIS_COLORS}),
       'Đã nhập Terrain 56 từ trang Vẽ thành bộ mới. Bản ở trang Vẽ giữ nguyên.');
-  }catch(err){ toast('Không nhập được: '+err.message); }
+  }catch(err){ toast('Không nhập được: '+err.message,4000); }
 }
 async function exportGodot(){
   await save();
@@ -599,7 +608,14 @@ menu.addEventListener('click',async e=>{
 $('#tsOpenJson').addEventListener('change',async e=>{
   const f=e.target.files[0]; e.target.value=''; menu.hidden=true; if(!f) return;
   try{
-    let next=fromJSON(JSON.parse(await f.text()));
+    const d=JSON.parse(await f.text());
+    let next;
+    if(d?.schema===TILESET_SCHEMA) next=fromJSON(d);
+    else{
+      const t=parseTerrainFile(d);
+      next=fromSheet(terrainSheet(await imageData(t.png),t.layout,t.size),
+        {name:t.name,layout:'blob56',size:t.size,shape:t.shape,palette:GENESIS_COLORS});
+    }
     if(list.some(r=>r.id===next.id)) next=cloneTileset(next);
     slot=0; await adopt(next,'Đã mở “'+next.name+'” thành một bộ trong danh sách.');
   }catch(err){ toast('Không đọc được file: '+err.message,4000); }
