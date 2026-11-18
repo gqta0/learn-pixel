@@ -25,9 +25,12 @@ const REF=[
 
 test('the shipped puppet.json is the genesis.puppet.v1 export with both sheets and 14 clips',()=>{
   assert.equal(P.format,'genesis.puppet.v1');
-  assert.deepEqual(P.sheets.head.size,[80,69]);
-  assert.deepEqual(P.sheets.body.size,[64,122]);
-  assert.deepEqual(P.sheets.body.parts.chest.rect,[1,1,20,46]);              // ô ngực cao tới gần mắt cá: vẽ được áo dài
+  assert.deepEqual(P.sheets.head.size,[103,69]);
+  assert.deepEqual(P.sheets.body.size,[69,112]);
+  assert.deepEqual(P.sheets.body.parts.chest.rect,[25,15,44,60]);
+  // bố cục có nghĩa: tay, chân gần ở bên trái thân, ô xa ở bên phải, đối xứng qua cột giữa
+  const S=P.sheets.body.parts;
+  for(const [far,near] of Object.entries(P.far_parts)) assert.ok(S[near].rect[2]<=S.chest.rect[0] && S[far].rect[0]>=S.chest.rect[2], far);              // ô ngực cao tới gần mắt cá: vẽ được áo dài
   assert.equal(Object.keys(P.clips).length,14);
   assert.equal(P.bones.length,15);
 });
