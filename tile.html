@@ -125,12 +125,43 @@
         <select name="shape"><option value="inset">Thụt mép</option><option value="flush">Kín sát mép</option></select>
       </label>
     </div>
-    <label>Dựng sẵn khối mẫu theo màu
-      <select name="seed">
-        <option value="">Không — ô trống</option>
-      </select>
-    </label>
-    <p class="tp-note">Màu lấy từ Genesis v3. Khối mẫu chỉ để có ngay một bộ chạy được; vẽ đè lên.</p>
+    <div id="colorBlock" class="tp-colors">
+      <div class="row">
+        <label>Màu
+          <select id="tpNewPreset" name="preset">
+            <option value="">Không — ô trống</option>
+            <option value="stone">Đá lạnh</option>
+            <option value="warmStone">Đá ấm</option>
+            <option value="soil">Đất</option>
+            <option value="blueQi">Nước + Khí</option>
+            <option value="qiBlue">Khí xanh</option>
+            <option value="skyWater">Trời + nước</option>
+            <option value="qi">Khí tím</option>
+            <option value="custom">Tự chọn màu</option>
+          </select>
+        </label>
+        <label>Bảng màu
+          <select id="tpNewPal" name="pal"><option value="genesis">Genesis v3</option><option value="master">Master</option></select>
+        </label>
+      </div>
+      <div id="tpNewPicks" role="group" aria-label="Màu dựng sẵn khối mẫu">
+        <div class="tp-color" title="Màu thân và ruột">
+          <i id="tpNewBaseChip" aria-hidden="true"></i>
+          <div class="tp-color-body">
+            <div class="tp-color-head"><b>Nền</b><span id="tpNewBaseName"></span><code id="tpNewBaseHex"></code></div>
+            <div class="tp-color-sel"><select id="tpNewBaseGroup" aria-label="Nhóm màu nền"></select><select id="tpNewBase" aria-label="Màu nền trong nhóm đã chọn"></select></div>
+          </div>
+        </div>
+        <div class="tp-color" title="Màu cạnh và viền">
+          <i id="tpNewEdgeChip" aria-hidden="true"></i>
+          <div class="tp-color-body">
+            <div class="tp-color-head"><b>Cạnh</b><span id="tpNewEdgeName"></span><code id="tpNewEdgeHex"></code></div>
+            <div class="tp-color-sel"><select id="tpNewEdgeGroup" aria-label="Nhóm màu cạnh"></select><select id="tpNewEdge" aria-label="Màu cạnh trong nhóm đã chọn"></select></div>
+          </div>
+        </div>
+      </div>
+      <p class="tp-note">Khối mẫu chỉ để có ngay một bộ chạy được; vẽ đè lên. “Không — ô trống” thì tạo bộ trắng.</p>
+    </div>
     <menu><button value="cancel" formnovalidate class="btn">Huỷ</button><button value="ok" class="btn accent">Tạo</button></menu>
   </form>
 </dialog>

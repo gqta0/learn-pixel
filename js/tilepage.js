@@ -4,12 +4,13 @@
 import { doc, view } from './state.js';
 import { stamp, lineStamp, rectStamp, floodFill } from './raster.js';
 import { hexToInt, intToHex } from './color.js';
-import { GENESIS_COLORS, GENESIS_FAMILIES } from './genesis.js';
+import { GENESIS_COLORS, GENESIS_TOKENS } from './genesis.js';
+import { MASTER_COLORS, COLOR_TOKENS } from './masterpal.js';
 import { ROLE_COLORS, ROLE_NAMES } from './terrain.js';
 import { layoutRoles, pickSlot, contextSlots, layoutGodotTres, layoutJson } from './layouts.js';
 import { createTileset, layoutOf, tileOf, frameAt, frameCount, frameMs, addFrame, removeFrame, moveFrame, setDuration,
          animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES, TILESET_SCHEMA } from './tileset.js';
-import { parseTerrainFile, terrainSheetTo10x7 } from './terrainio.js';
+import { parseTerrainFile, terrainSheetTo10x7, TERRAIN_CREATE_PRESETS } from './terrainio.js';
 import { makeZip } from './zip.js';
 import { sanitizeFilename } from './manifest.js';
 import { idbAvailable, idbGet, idbSet, idbDel, idbAll, askPersist, STORES } from './idb.js';
@@ -509,26 +510,74 @@ window.addEventListener('resize',()=>paintMap());
 
 /* ---------------- tạo bộ mới ---------------- */
 const dlg=$('#newDlg'), form=dlg.querySelector('form').elements;   // .elements: form.name là tên của thẻ form, không phải ô Tên
-for(const [key,f] of Object.entries(GENESIS_FAMILIES)){
-  const o=document.createElement('option'); o.value=key; o.textContent=f.name; form.seed.append(o);
+/* Màu dựng sẵn: Nền / Cạnh chọn theo nhóm của Master hoặc Genesis v3, như ô "Tạo bộ" ở trang Vẽ */
+const PAL_DATA={master:MASTER_COLORS,genesis:GENESIS_COLORS};
+const tokenOf=hex=>COLOR_TOKENS[hex]||GENESIS_TOKENS[hex];
+const picks={Base:{group:$('#tpNewBaseGroup'),color:$('#tpNewBase')},Edge:{group:$('#tpNewEdgeGroup'),color:$('#tpNewEdge')}};
+function colorGroups(){
+  const groups=new Map();
+  for(const hex of new Set(PAL_DATA[form.pal.value].map(h=>h.toLowerCase()))){
+    const meta=tokenOf(hex), group=meta?.group||'Chung';
+    if(['Skin','Silk','Cinnabar','Genesis v3 · Da'].includes(group)) continue;   // dải nhân vật không phải màu đất đá
+    if(!groups.has(group)) groups.set(group,[]);
+    groups.get(group).push({hex,meta});
+  }
+  return groups;
 }
-form.seed.value='stone';
+function showPick(key){
+  const hex=picks[key].color.value, meta=hex&&tokenOf(hex);
+  const chip=$('#tpNew'+key+'Chip'); chip.style.background=hex||'transparent'; chip.title=meta?`${meta.group}: ${meta.desc} (${hex})`:hex||'';
+  $('#tpNew'+key+'Name').textContent=meta?.desc||meta?.token||''; $('#tpNew'+key+'Hex').textContent=hex||'';
+}
+function fillColors(key,groups,preferred){
+  const items=groups.get(picks[key].group.value)||[], sel=picks[key].color;
+  sel.replaceChildren(...items.map(({hex,meta})=>{
+    const o=document.createElement('option'); o.value=hex; o.textContent=(meta?.token||'Màu')+' · '+hex;
+    o.title=meta?`${meta.group} · ${meta.token} · ${hex} · ${meta.desc}`:hex; return o;
+  }));
+  if(items.some(i=>i.hex===preferred)) sel.value=preferred;
+  else if(items.length) sel.value=items[key==='Edge'?items.length-1:Math.floor((items.length-1)/2)].hex;
+  showPick(key);
+}
+function pickColors(base,edge){     // chọn nhóm chứa màu rồi màu; màu không có trong bảng thì giữ lựa chọn cũ
+  const groups=colorGroups();
+  for(const [key,hex] of [['Base',base],['Edge',edge]]){
+    const g=picks[key].group, groupOf=hx=>[...groups].find(([,it])=>it.some(i=>i.hex===hx))?.[0];
+    const cur=picks[key].color.value;
+    g.replaceChildren(...[...groups].map(([name,items])=>{ const o=document.createElement('option'); o.value=name; o.textContent=`${name} · ${items.length}`; return o; }));
+    g.value=groupOf(hex)||groupOf(cur)||groups.keys().next().value||'';
+    fillColors(key,groups,hex||cur);
+  }
+}
+function applyPreset(){
+  const p=TERRAIN_CREATE_PRESETS[form.pal.value][form.preset.value];
+  if(p) pickColors(p.base,p.edge); else pickColors(picks.Base.color.value,picks.Edge.color.value);
+}
 function syncNewForm(){
   const l=form.layout.value;
   $('#freeDims').hidden=l!=='free';
   $('#shapeRow').hidden=l==='corners16'||l==='free';
-  form.seed.disabled=l==='free';
+  $('#colorBlock').hidden=l==='free';
+  $('#tpNewPicks').hidden=!form.preset.value;
 }
+form.preset.addEventListener('change',()=>{ applyPreset(); syncNewForm(); });
+form.pal.addEventListener('change',applyPreset);
+for(const key of ['Base','Edge']){
+  picks[key].group.addEventListener('change',()=>{ fillColors(key,colorGroups()); form.preset.value='custom'; syncNewForm(); });
+  picks[key].color.addEventListener('change',()=>{ showPick(key); form.preset.value='custom'; });
+}
+form.preset.value='stone'; applyPreset();
 form.layout.addEventListener('change',syncNewForm);
 function openNew(){ syncNewForm(); dlg.showModal(); }
 $('#tsNew').addEventListener('click',openNew);
 $('#emptyNew').addEventListener('click',openNew);
 dlg.querySelector('form').addEventListener('submit',async e=>{
   if(e.submitter?.value!=='ok') return;            // method=dialog: nút nào bấm thì hộp tự đóng
-  const fam=GENESIS_FAMILIES[form.seed.value], l=form.layout.value;
-  const colors=fam && l!=='free' ? {base:fam.ramp[Math.floor(fam.ramp.length/2)],edge:fam.ramp[fam.ramp.length-1],palette:GENESIS_COLORS,low:true} : null;
+  const l=form.layout.value, pal=PAL_DATA[form.pal.value], base=picks.Base.color.value, edge=picks.Edge.color.value;
+  // {base,edge,palette} như create() của trang Vẽ: các bậc sáng/tối của khối nền được bắt về màu trong bảng
+  const colors=form.preset.value && l!=='free' && base && edge ? {base,edge,palette:pal,low:true} : null;
   const next=createTileset({name:form.name.value.trim()||'Bộ tile mới',layout:l,cols:+form.cols.value,rows:+form.rows.value,
-    size:+form.size.value,shape:form.shape.value,palette:GENESIS_COLORS,colors});
+    size:+form.size.value,shape:form.shape.value,palette:colors?pal:GENESIS_COLORS,colors});
   slot=0; await adopt(next,'Đã tạo bộ “'+next.name+'”.');
 });
 

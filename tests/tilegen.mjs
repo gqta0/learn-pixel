@@ -6,10 +6,10 @@ import {GEN_RECIPES, GEN_RECIPE_ORDER, GEN_STRATA, GEN_PARAMS, GEN_ROLE_KEYS, ma
   generateTerrain, generateTerrainRoles, generateProps, colorize, previewLayout, renderPreview, heroSprite,
   lintTerrain, hexToRgba} from '../js/tilegen.js';
 
-// bản sao danh sách Master trong palette.js (palette.js cần DOM nên không nạp thẳng được ở đây)
+// danh sách Master (masterpal.js là dữ liệu thuần)
 import {readFileSync} from 'node:fs';
-const src=readFileSync(new URL('../js/palette.js',import.meta.url),'utf8');
-const block=src.slice(src.indexOf('[MASTER_NAME]: ['),src.indexOf('],',src.indexOf('[MASTER_NAME]: [')));
+const src=readFileSync(new URL('../js/masterpal.js',import.meta.url),'utf8');
+const block=src.slice(src.indexOf('export const MASTER_COLORS = ['),src.indexOf('];',src.indexOf('export const MASTER_COLORS = [')));
 const MASTER=new Set(block.match(/#[0-9a-f]{6}/gi).map(h=>h.toLowerCase()));
 const GENESIS=new Set(GENESIS_COLORS);
 const SETS={genesis:GENESIS,master:MASTER};
