@@ -263,6 +263,23 @@ test('far cells mirror the near layout and each maps to the near part it stands 
   for(let y=t.rect[1];y<t.rect[3];y++) for(let x=t.rect[0];x<t.rect[2];x++) assert.equal(bo.px[y*bo.w+x],0);
 });
 
+test('the sheet guide shows the blockout in far cells too, a step darker, mirroring the near cells',()=>{
+  const S=P.sheets.body.parts, plain=blockoutSheet(P,'body'), guide=blockoutSheet(P,'body',{far:true}), w=guide.w;
+  const dark=v=>rgba(Math.round((v&255)*FAR_SHADE),Math.round(((v>>8)&255)*FAR_SHADE),Math.round(((v>>16)&255)*FAR_SHADE));
+  for(const [far,near] of Object.entries(P.far_parts)){
+    const a=S[near].rect, b=S[far].rect;
+    let n=0;
+    for(let y=0;y<a[3]-a[1];y++) for(let x=0;x<a[2]-a[0];x++){
+      const v=plain.px[(a[1]+y)*w+a[0]+x], u=guide.px[(b[1]+y)*w+b[0]+x];
+      assert.equal(u, v ? dark(v) : 0, far+' '+x+','+y);          // cùng dáng với ô gần, tối hơn một bậc
+      if(u) n++;
+    }
+    assert.ok(n>10, far+' has a blockout');
+  }
+  for(let i=0;i<w*guide.h;i++) if(!Object.keys(P.far_parts).some(f=>{ const r=S[f].rect, x=i%w, y=Math.floor(i/w); return x>=r[0]&&y>=r[1]&&x<r[2]&&y<r[3]; }))
+    assert.equal(guide.px[i],plain.px[i]);                      // ngoài ô xa: y như khối mẫu thường
+});
+
 test('a painted far cell replaces the darkened near art; an empty one falls back to it',()=>{
   const box=frameBox(P), red=rgba(200,40,40), blue=rgba(40,60,200), f=keyPose(P.clips.run,0);
   const darkRed=rgba(Math.round(200*FAR_SHADE),Math.round(40*FAR_SHADE),Math.round(40*FAR_SHADE));

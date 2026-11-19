@@ -318,7 +318,7 @@ function guideUnder(ctx,z){
   if(!isSheet() || !guideOn.shapes) return;
   const kind=doc.puppet;
   if(!blockImg || blockImg.kind!==kind){
-    const b=block[kind], c=document.createElement('canvas'); c.width=b.w; c.height=b.h;
+    const b=blockoutSheet(P,kind,{far:true}), c=document.createElement('canvas'); c.width=b.w; c.height=b.h;   // lớp hướng dẫn: cả ô xa
     const g=c.getContext('2d'), im=g.createImageData(b.w,b.h); new Uint32Array(im.data.buffer).set(b.px); g.putImageData(im,0,0);
     blockImg={kind,c};
   }

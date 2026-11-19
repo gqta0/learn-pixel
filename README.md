@@ -184,7 +184,8 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
    cả một chi dưới mọi màu của chi đó nên khớp gối, khớp khuỷu liền một khối). Thường chỉ cần vẽ một tay, một
    chân: phía xa dùng lại, tối đi. Ngực nằm trên cả hai chân để vạt áo dài phủ được xuống.
    - **Tay, chân phía xa** (sáu ô *… xa*, cùng khổ và chỗ khớp với ô gần; trên sheet Thân, tay chân gần nằm
-     bên trái thân — nhãn **Trái (gần)** — ô xa đối xứng bên phải — **Phải (xa)** — ba vạt áo ở hàng dưới): để trống là phía xa dùng nét phía gần
+     bên trái thân — nhãn **Trái (gần)** — ô xa đối xứng bên phải — **Phải (xa)** — ba vạt áo ở hàng dưới; ô xa cũng có khối mờ dáng
+     mẫu, tối hơn một bậc, để vẽ theo — chỉ là hướng dẫn, rối không lấy nó thay ô xa trống): để trống là phía xa dùng nét phía gần
      tối đi; ô xa có nét thì phía xa dùng đúng nét đó, không tối thêm. **⧉ Chép từ bên gần** (một ô) hoặc
      **⧉ Chép cả 6 miếng xa** chép nét bên gần sang, tối đi một bậc theo dải màu của bảng (màu ngoài bảng thì
      tối đi thường), một bước hoàn tác — chỉ còn sửa chỗ khác nhau (tay áo, giày, băng tay…).
