@@ -213,6 +213,8 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
      thì file thiếu sheet đó. **📂 Mở nhân vật (.json)**: hai sheet vào thư viện 📁 thành bản mới (sheet còn tên mặc
      định thì gọi theo tên nhân vật), rối ghép luôn nhân vật đó; đang mở một sheet cùng loại thì hỏi có mở sheet của
      nhân vật mới không (bản đang vẽ được cất trước). File hỏng hay không phải nhân vật thì báo lý do, không thêm gì.
+     File mẫu `data/samples/mau-de-tu-ao-lam.nhanvat.json` (Đệ tử áo lam): miếng gần tô phẳng + đổ bóng, sáu ô xa
+     chép từ bên gần tối đi một bậc trong dải Genesis v3 — mở bằng 📂 Mở nhân vật để xem bộ xa nên trông thế nào.
    - Hướng dẫn trên sheet có viền tối quanh mọi chấm, nét và chữ nên thấy rõ trên ô ca-rô sáng lẫn tối và trên mọi
      màu miếng: chấm đỏ = khớp xoay, chấm xanh = chỗ gắn, chấm vàng có nhãn = mốc đầu, vòng xanh lá = sọ, khung hồng
      = vùng tóc / phụ kiện.
