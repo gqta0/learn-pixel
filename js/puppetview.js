@@ -14,7 +14,7 @@ import { keepBeforeReplace, forgetCurrent, saveCurrent, currentId, getLibraryIte
 import { decodeProject, sanitizeFilename } from './manifest.js';
 import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
-import { frameAt, flapPoints, frameBox, bake, blockoutSheet, cellAt, attachPoints, skullCentre, SLOT_ZONES, partsOf,
+import { frameAt, flapPoints, frameBox, bake, isFarCell, farCellOf, copyNearToFar, blockoutSheet, cellAt, attachPoints, skullCentre, SLOT_ZONES, partsOf,
   LIGHTS, baseColour, shadeRamp, shadeCell, lintSheet, bakeClips, bakeManifest, sheetFileName, PART_VI, SHEET_VI } from './puppet.js';
 
 let P=null, box=null, block=null;                 // dữ liệu rối, khổ khung, sheet khối mẫu
@@ -292,6 +292,24 @@ function commitShade(){
   toast('Đã đổ bóng '+PART_VI[rig.part]+'. Sửa tay tiếp, hoặc Ctrl+Z để bỏ.');
 }
 
+/* ---------------- chép phía gần sang ô xa ---------------- */
+function copyFar(all){
+  if(!isSheet() || doc.puppet!=='body'){ toast('Mở một sheet Thân trước.'); return; }
+  const fars=all ? Object.keys(P.far_parts||{}) : (isFarCell(P,rig.part) ? [rig.part] : farCellOf(P,rig.part) ? [farCellOf(P,rig.part)] : []);
+  if(!fars.length){ toast('Chọn một miếng tay / chân (bên gần hoặc ô xa) trước.'); return; }
+  clearShadeSee();
+  const src=flatDoc().px, data=doc.frames[doc.af][doc.al];
+  const drawn=fars.filter(f=>{ const c=cellsOf('body')[f].rect; for(let y=c[1];y<c[3];y++) for(let x=c[0];x<c[2];x++) if(src[y*doc.w+x]) return true; return false; });
+  if(drawn.length && !confirm('Ô '+drawn.map(f=>PART_VI[f]).join(', ')+' đã có nét. Thay bằng bản chép từ bên gần?')) return;
+  let px=data, n=0;
+  for(const far of fars){ const r=copyNearToFar(P,src,px,doc.w,far,palette,COLOR_TOKENS); px=r.px; n+=r.n; }
+  if(!n){ toast('Bên gần chưa có nét để chép.'); return; }
+  pushUndo(); data.set(px);
+  window.dispatchEvent(new CustomEvent('pixelchange'));
+  if(!all) focusPart(fars[0],true); else render();
+  toast('Đã chép '+n+' pixel sang '+(all?'6 ô xa':PART_VI[fars[0]])+', tối đi một bậc. Sửa chỗ khác, Ctrl+Z để bỏ.',3200);
+}
+
 /* ---------------- hướng dẫn trên canvas ---------------- */
 let blockImg=null;
 function guideUnder(ctx,z){
@@ -305,9 +323,25 @@ function guideUnder(ctx,z){
   ctx.globalAlpha=0.18; ctx.drawImage(blockImg.c,0,0,doc.w*z,doc.h*z); ctx.globalAlpha=1;
 }
 function dot(ctx,x,y,r,fill){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=Math.max(1,r/3); ctx.stroke(); }
+/* Hai phía của sheet Thân: các ô tay chân gần (trái) và ô xa (phải), tô nền nhạt và ghi tên dưới cột của chúng */
+function sideLabels(ctx,z,lw,font){
+  const far=Object.keys(P.far_parts||{}); if(!far.length) return;
+  const cells=cellsOf('body');
+  for(const [names,label,tint,ink] of [[far.map(f=>P.far_parts[f]),'Trái (gần)','rgba(126,224,138,0.07)','#7ee08a'],
+                                        [far,'Phải (xa)','rgba(88,160,255,0.08)','#8fc1ff']]){
+    const rs=names.map(n=>cells[n]?.rect).filter(Boolean); if(!rs.length) continue;
+    const x0=Math.min(...rs.map(r=>r[0])), x1=Math.max(...rs.map(r=>r[2])), y0=Math.min(...rs.map(r=>r[1])), y1=Math.max(...rs.map(r=>r[3]));
+    ctx.fillStyle=tint; ctx.fillRect(x0*z,y0*z,(x1-x0)*z,(y1-y0)*z);
+    ctx.font='bold '+font+'px ui-monospace, Consolas, monospace'; ctx.textBaseline='top';
+    const tw=ctx.measureText(label).width, tx=Math.max(0,(x0+x1)/2*z-tw/2), ty=y1*z+3*lw;
+    ctx.fillStyle='rgba(15,15,24,0.75)'; ctx.fillRect(tx-3*lw,ty-lw,tw+6*lw,font+3*lw);
+    ctx.fillStyle=ink; ctx.fillText(label,tx,ty);
+  }
+}
 function guideOver(ctx,z,lw){
   if(!isSheet()) return;
   const kind=doc.puppet, cells=cellsOf(kind), font=Math.round(Math.max(10*lw,Math.min(z*1.15,13*lw)));
+  if(guideOn.cells && kind==='body') sideLabels(ctx,z,lw,font);
   for(const [part,c] of Object.entries(cells)){
     const [x0,y0,x1,y1]=c.rect, [jx,jy]=c.joint;
     if(guideOn.cells){
@@ -456,6 +490,8 @@ export function bindPuppet(){
   });
   $('#rigShadeSee').addEventListener('click',toggleShadeSee);
   $('#rigShade').addEventListener('click',commitShade);
+  $('#rigFarCopy').addEventListener('click',()=>copyFar(false));
+  $('#rigFarAll').addEventListener('click',()=>copyFar(true));
   $('#rigExport').addEventListener('click',exportAll);
   // nét vẽ mới hay đổi khung khi đang xem thử bóng: bỏ xem thử trước, để nét không bị ghi đè bằng bản xem thử
   document.addEventListener('pointerdown',e=>{ if(rig.shadeSee && e.target===board) clearShadeSee(); },true);
