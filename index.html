@@ -436,6 +436,11 @@
             <label class="mini">Thân</label><select id="rigSrcBody" class="grow" aria-label="Bản vẽ thân"></select>
           </div>
           <div class="row rig-wrap" style="margin-top:6px">
+            <button class="btn tiny" id="rigCharSave" title="Lưu sheet Đầu và sheet Thân đang ghép thành một file .json — chuyển máy, gửi bạn, cất dự phòng">⬇ Lưu nhân vật (.json)</button>
+            <label class="btn tiny filelabel" style="display:inline-flex" title="Mở file nhân vật: hai sheet vào thư viện 📁 thành bản mới, rối ghép luôn nhân vật đó">📂 Mở nhân vật (.json)<input type="file" id="rigCharOpen" accept=".json,application/json"></label>
+          </div>
+          <p class="kbd" id="rigCharNote" style="margin:4px 0 0"></p>
+          <div class="row rig-wrap" style="margin-top:6px">
             <button class="btn tiny" id="rigGhost" aria-pressed="false" title="Chồng mờ khối mẫu để so khối, so dáng">◌ Bóng khối</button>
             <button class="btn tiny on" id="rigFill" aria-pressed="true" title="Ô chưa vẽ thì tạm hiện khối mẫu, để vẫn thấy cả người">▦ Ô trống: khối mẫu</button>
             <button class="btn tiny" id="rigOnly" aria-pressed="false" title="Chỉ hiện miếng đang chọn (cả phía gần lẫn xa) — kéo thanh Tư thế để xem nó qua mọi góc xoay">◧ Chỉ miếng này</button>

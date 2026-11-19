@@ -10,7 +10,9 @@ import { pushUndo } from './history.js';
 import { syncAll } from './ui.js';
 import { palette, COLOR_TOKENS } from './palette.js';
 import { stopEditing } from './atlas.js';
-import { keepBeforeReplace, forgetCurrent, saveCurrent, currentId, getLibraryItems, libraryReady, openProject } from './library.js';
+import { keepBeforeReplace, forgetCurrent, saveCurrent, currentId, getLibraryItems, libraryReady, openProject, addProject } from './library.js';
+import { serialize } from './storage.js';
+import { characterJson, parseCharacter } from './charfile.js';
 import { decodeProject, sanitizeFilename } from './manifest.js';
 import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
@@ -322,7 +324,29 @@ function guideUnder(ctx,z){
   }
   ctx.globalAlpha=0.18; ctx.drawImage(blockImg.c,0,0,doc.w*z,doc.h*z); ctx.globalAlpha=1;
 }
-function dot(ctx,x,y,r,fill){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=Math.max(1,r/3); ctx.stroke(); }
+/* Hướng dẫn nằm trên ô ca-rô sáng hoặc tối và trên mọi màu miếng đã tô (da, vải, tóc…), nên mỗi dấu đều có
+   viền tối bên ngoài + phần sáng bên trong: không màu nền nào nuốt được nó. Mỗi loại dấu một màu riêng. */
+const GUIDE={halo:'rgba(10,10,18,0.85)', cell:'#58d5ff', cellOn:'#ffb43f', joint:'#ff3b3b', attach:'#3d7bff',
+  anchor:'#ffd200', skull:'#5fe08a', zone:'#ff4fd8', tagBg:'rgba(10,10,18,0.82)'};
+/* nét có viền tối: vẽ đường `path` hai lần, dày + tối rồi mảnh + màu */
+function haloStroke(ctx,lw,path,colour,width,dash=[]){
+  ctx.setLineDash(dash.length?dash.map(d=>d):[]);
+  ctx.lineWidth=width+2*lw; ctx.strokeStyle=GUIDE.halo; ctx.beginPath(); path(); ctx.stroke();
+  ctx.lineWidth=width; ctx.strokeStyle=colour; ctx.beginPath(); path(); ctx.stroke();
+  ctx.setLineDash([]);
+}
+/* chấm: vành tối, vòng trắng, lõi màu */
+function dot(ctx,x,y,r,fill,lw=1){
+  const disc=(rr,c)=>{ ctx.beginPath(); ctx.arc(x,y,rr,0,Math.PI*2); ctx.fillStyle=c; ctx.fill(); };
+  disc(r+1.5*lw,GUIDE.halo); disc(r,'#fff'); disc(Math.max(lw,r-Math.max(lw,r/3)),fill);
+}
+/* chữ trên nền tối, như nhãn tên ô */
+function tag(ctx,text,x,y,colour,font,lw){
+  ctx.font=font+'px ui-monospace, Consolas, monospace'; ctx.textBaseline='middle';
+  const tw=ctx.measureText(text).width;
+  ctx.fillStyle=GUIDE.tagBg; ctx.fillRect(x-2*lw,y-font/2-lw,tw+4*lw,font+2*lw);
+  ctx.fillStyle=colour; ctx.fillText(text,x,y);
+}
 /* Hai phía của sheet Thân: các ô tay chân gần (trái) và ô xa (phải), tô nền nhạt và ghi tên dưới cột của chúng */
 function sideLabels(ctx,z,lw,font){
   const far=Object.keys(P.far_parts||{}); if(!far.length) return;
@@ -346,35 +370,27 @@ function guideOver(ctx,z,lw){
     const [x0,y0,x1,y1]=c.rect, [jx,jy]=c.joint;
     if(guideOn.cells){
       const on=part===rig.part;
-      ctx.lineWidth=on?2*lw:lw; ctx.setLineDash(on?[]:[3*lw,3*lw]);
-      ctx.strokeStyle=on?'rgba(255,180,63,0.95)':'rgba(88,213,255,0.55)';
-      ctx.strokeRect(x0*z+lw/2,y0*z+lw/2,(x1-x0)*z-lw,(y1-y0)*z-lw); ctx.setLineDash([]);
-      ctx.font=font+'px ui-monospace, Consolas, monospace'; ctx.textBaseline='top';
-      const t=PART_VI[part], tw=ctx.measureText(t).width;
-      ctx.fillStyle='rgba(15,15,24,0.7)'; ctx.fillRect(x0*z+2*lw,y0*z+2*lw,tw+4*lw,font+2*lw);
-      ctx.fillStyle=on?'#ffb43f':'#9fe6ff'; ctx.fillText(t,x0*z+4*lw,y0*z+3*lw);
+      haloStroke(ctx,lw,()=>ctx.rect(x0*z+lw,y0*z+lw,(x1-x0)*z-2*lw,(y1-y0)*z-2*lw),on?GUIDE.cellOn:GUIDE.cell,on?2*lw:lw,on?[]:[4*lw,3*lw]);
+      tag(ctx,PART_VI[part],x0*z+4*lw,y0*z+3*lw+font/2,on?GUIDE.cellOn:'#bff0ff',font,lw);
     }
     if(kind==='head' && guideOn.anchors){
       const [sx,sy]=skullCentre(P), cx=(jx+sx)*z, cy=(jy+sy)*z;
       ctx.save(); ctx.beginPath(); ctx.rect(x0*z,y0*z,(x1-x0)*z,(y1-y0)*z); ctx.clip();
       if(P.slots[part]){
-        ctx.strokeStyle='rgba(120,200,120,0.7)'; ctx.lineWidth=lw;
-        ctx.beginPath(); ctx.arc(cx,cy,P.shapes.head[0][4]*z,0,Math.PI*2); ctx.stroke();
+        haloStroke(ctx,lw,()=>ctx.arc(cx,cy,P.shapes.head[0][4]*z,0,Math.PI*2),GUIDE.skull,lw);
         const [a,b,c2,e]=SLOT_ZONES[part];
-        ctx.strokeStyle='rgba(255,0,200,0.75)'; ctx.lineWidth=2*lw;
-        ctx.strokeRect(cx+a*z,cy+b*z,(c2-a)*z,(e-b)*z);
+        haloStroke(ctx,lw,()=>ctx.rect(cx+a*z,cy+b*z,(c2-a)*z,(e-b)*z),GUIDE.zone,2*lw);
       }
       for(const [name,[ax,ay]] of Object.entries(P.anchors)){
         const X=(jx+ax)*z, Y=(jy+ay)*z;
-        dot(ctx,X,Y,Math.max(2*lw,z*0.3),'#ffd200');
-        ctx.font=Math.round(font*0.85)+'px ui-monospace, Consolas, monospace'; ctx.fillStyle='#ffd200'; ctx.textBaseline='middle';
-        ctx.fillText(name,X+Math.max(4*lw,z*0.5),Y);
+        dot(ctx,X,Y,Math.max(2.5*lw,z*0.32),GUIDE.anchor,lw);
+        tag(ctx,name,X+Math.max(6*lw,z*0.6),Y,GUIDE.anchor,Math.round(font*0.85),lw);
       }
       ctx.restore();
     }
     if(guideOn.joints){
-      if(jx>=x0&&jx<=x1&&jy>=y0&&jy<=y1) dot(ctx,jx*z,jy*z,Math.max(2.5*lw,z*0.38),'#dc1e1e');
-      for(const [ax,ay] of attachPoints(P,part)) dot(ctx,(jx+ax)*z,(jy+ay)*z,Math.max(2*lw,z*0.3),'#1e50e6');
+      if(jx>=x0&&jx<=x1&&jy>=y0&&jy<=y1) dot(ctx,jx*z,jy*z,Math.max(3*lw,z*0.4),GUIDE.joint,lw);
+      for(const [ax,ay] of attachPoints(P,part)) dot(ctx,(jx+ax)*z,(jy+ay)*z,Math.max(2.5*lw,z*0.32),GUIDE.attach,lw);
     }
   }
 }
@@ -439,6 +455,52 @@ function exportAll(){
   toast('Đã xuất '+baked.length+' động tác, khung '+box.w+'×'+box.h+'.');
 }
 
+/* ---------------- file nhân vật (.json) ---------------- */
+/* sheet đang ghép trên rối → {name, data} để ghi file; khối mẫu / không hiện thì không có sheet */
+function sheetEntry(kind){
+  const v=src[kind];
+  if(!v || v==='none' || v==='block') return null;
+  if(v==='cur' || v==='lib:'+currentId()) return doc.puppet===kind ? {name:doc.name, data:serialize()} : null;   // bản đang mở: lấy cả nét chưa cất
+  const p=getLibraryItems()[v.slice(4)];
+  return p ? {name:p.name, data:p.data} : null;
+}
+function saveCharacter(){
+  if(!P) return;
+  const head=sheetEntry('head'), body=sheetEntry('body');
+  if(!head && !body){ toast('Chọn một sheet Đầu hoặc Thân đã vẽ ở hai ô chọn phía trên trước khi lưu nhân vật.',3600); return; }
+  const suggest=[head?.name,body?.name].filter(Boolean).join(' + ');
+  const name=(prompt('Tên nhân vật:',suggest)||'').trim();
+  if(!name) return;
+  const file=characterJson({name,head,body});
+  offerDownload(new TextEncoder().encode(JSON.stringify(file)),sanitizeFilename(name,'nhan-vat')+'.nhanvat.json','application/json',$('#rigCharNote'));
+  toast('Đã lưu nhân vật “'+name+'”'+(!head?' (chưa có sheet Đầu)':!body?' (chưa có sheet Thân)':'')+'.');
+}
+async function openCharacter(file){
+  let c;
+  try{ c=parseCharacter(JSON.parse(await file.text())); }
+  catch(err){ toast('Không mở được file nhân vật: '+err.message,5000); return; }
+  await libraryReady;
+  const ids={};
+  for(const kind of ['head','body']){
+    const p=c[kind]; if(!p) continue;
+    // sheet còn mang tên mặc định (Đầu nhân vật / Thân nhân vật) thì gọi theo nhân vật cho khỏi lẫn trong thư viện;
+    // tên tự đặt (vd. thân chung của một môn phái) thì giữ
+    const plain=!p.name || p.name===SHEET_VI[kind]+' nhân vật';
+    ids[kind]=addProject(plain ? c.name+' · '+SHEET_VI[kind] : p.name, p.data);
+    if(!ids[kind]){ toast('Trình duyệt hết chỗ, chưa thêm được sheet '+SHEET_VI[kind]+'. Xoá bớt bản vẽ cũ trong thư viện rồi mở lại.',6000); break; }
+  }
+  for(const kind of Object.keys(ids)) if(ids[kind]){ src[kind]='lib:'+ids[kind]; picked[kind]=true; }
+  // sheet đang mở luôn giành ô chọn cùng loại: mở hẳn sheet của nhân vật mới để rối ghép đúng nó
+  const clash=Object.keys(ids).find(k=>ids[k] && doc.puppet===k);
+  if(clash && confirm('Đã thêm “'+c.name+'” vào thư viện 📁.\n\nMở sheet '+SHEET_VI[clash]+' của nhân vật này để vẽ tiếp? (Bản đang vẽ được cất vào thư viện trước.)')){
+    if(!saveCurrent()){ toast('Trình duyệt hết chỗ, chưa cất được bản đang vẽ.'); }
+    else openProject(ids[clash]);
+  }
+  fillSources(); paintParts(); schedule();
+  const n=Object.values(ids).filter(Boolean).length;
+  if(n) toast('Đã thêm '+n+' sheet của “'+c.name+'” vào thư viện 📁 — rối đang ghép nhân vật này.',4200);
+}
+
 /* ---------------- nối sự kiện ---------------- */
 function toggleBtn(id,key,after){
   const b=$(id);
@@ -493,6 +555,8 @@ export function bindPuppet(){
   $('#rigFarCopy').addEventListener('click',()=>copyFar(false));
   $('#rigFarAll').addEventListener('click',()=>copyFar(true));
   $('#rigExport').addEventListener('click',exportAll);
+  $('#rigCharSave').addEventListener('click',saveCharacter);
+  $('#rigCharOpen').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) openCharacter(f); });
   // nét vẽ mới hay đổi khung khi đang xem thử bóng: bỏ xem thử trước, để nét không bị ghi đè bằng bản xem thử
   document.addEventListener('pointerdown',e=>{ if(rig.shadeSee && e.target===board) clearShadeSee(); },true);
   document.querySelector('.tab[data-pane="pRig"]').addEventListener('click',()=>{ fillSources(); paintParts(); paintGuides(); runRigLint(); schedule(); });

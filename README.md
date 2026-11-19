@@ -208,6 +208,14 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
    khối mẫu để vẫn thấy cả người. **▢ Viền máy** tắt viền 1 px để soi màu sát mép miếng; dãy **Miếng hiện trên
    rối** chạm để ẩn / hiện từng miếng (cả phía gần lẫn xa), **Hiện hết** để bật lại. Hai thứ này chỉ đổi phần xem
    (rối trong thẻ và rối nổi trên canvas), file xuất luôn đủ miếng, có viền.
+   - **⬇ Lưu nhân vật (.json)**: sheet Đầu và sheet Thân đang ghép (kể cả nét chưa cất của bản đang vẽ) thành một
+     file `<tên>.nhanvat.json` (`lo-pixel.character.v1`) — chuyển máy, gửi bạn, cất dự phòng. Khối mẫu / Không hiện
+     thì file thiếu sheet đó. **📂 Mở nhân vật (.json)**: hai sheet vào thư viện 📁 thành bản mới (sheet còn tên mặc
+     định thì gọi theo tên nhân vật), rối ghép luôn nhân vật đó; đang mở một sheet cùng loại thì hỏi có mở sheet của
+     nhân vật mới không (bản đang vẽ được cất trước). File hỏng hay không phải nhân vật thì báo lý do, không thêm gì.
+   - Hướng dẫn trên sheet có viền tối quanh mọi chấm, nét và chữ nên thấy rõ trên ô ca-rô sáng lẫn tối và trên mọi
+     màu miếng: chấm đỏ = khớp xoay, chấm xanh = chỗ gắn, chấm vàng có nhãn = mốc đầu, vòng xanh lá = sọ, khung hồng
+     = vùng tóc / phụ kiện.
 4. **Xuất** — **⬇ Xuất mọi động tác (ZIP)**: mỗi động tác một PNG một hàng khung, tên theo kiểu game đang đọc
    (`run_71x99_8f.png`, `skill_02_71x99_18f.png`…), kèm `puppet_bake.json` (khổ khung, điểm chân, fps, lặp).
    Khổ khung giống nhau ở mọi động tác và tính từ khung xương, nên vẽ lại miếng không làm lệch điểm chân.
@@ -481,6 +489,7 @@ js/
   tilequick.js        Trang Tile, thẻ ⚡ Tạo nhanh
   puppet.js           Ghép rối: dựng tư thế, ghép miếng lên xương, đổ bóng, soi miếng (thuần tính toán)
   puppetview.js       Ghép rối: thẻ, rối xem trước, hướng dẫn trên sheet, xuất ZIP
+  charfile.js         Ghép rối: file .json nhân vật (sheet Đầu + Thân), ghi và kiểm khi đọc (thuần dữ liệu)
   ui.js               đồng bộ giao diện + nối mọi sự kiện
   main.js             khởi động
   content/
