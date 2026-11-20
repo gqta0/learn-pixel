@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {frameAt, keyPose, joints, placements, frameBox, bake, bakeAt, flapPoints, isFlap, blockoutSheet, cellAt, attachPoints, shadeRamp, shadeCell,
-  lintSheet, bakeClips, bakeManifest, sheetFileName, partsOf, isFarCell, nearOf, farCellOf, copyNearToFar, OUTLINE, FAR_SHADE, LIGHTS, SLOT_ZONES} from '../js/puppet.js';
+  lintSheet, bakeClips, bakeManifest, sheetFileName, partsOf, isFarCell, nearOf, farCellOf, copyNearToFar, OUTLINE, FAR_SHADE, BLOCK_COLORS, LIGHTS, SLOT_ZONES} from '../js/puppet.js';
 import {GENESIS_FAMILIES, GENESIS_COLORS, GENESIS_TOKENS} from '../js/genesis.js';
 
 const P=JSON.parse(readFileSync(new URL('../data/puppet.json',import.meta.url),'utf8'));
@@ -67,11 +67,13 @@ test('one frame box fits every part of every clip, with the feet inside it',()=>
   const box=frameBox(P);
   assert.ok(box.w>=40 && box.w<=128 && box.h>=64 && box.h<=128, JSON.stringify(box));
   assert.ok(box.fx>0 && box.fx<box.w && box.fy>0 && box.fy<=box.h);
-  const full={head:blockoutSheet(P,'head'), body:blockoutSheet(P,'body')};
+  // ô tô kín (trường hợp xấu nhất, kể cả miếng dời ½ px khi snap): không pixel màu nào chạm mép, viền còn chỗ
+  const full={};
+  for(const k of ['head','body']){ full[k]=blank(k); for(const c of Object.values(P.sheets[k].parts)) fillCell(full[k],c.rect,rgba(128,128,128)); }
   for(const clip of Object.values(P.clips)) for(let i=0;i<clip.frames.length;i++){
-    const {px}=bakeAt(P,full,clip,i/clip.fps,box), W=box.w;
-    for(let y=0;y<box.h;y++){ assert.equal(px[y*W],0); assert.equal(px[y*W+W-1],0); }     // còn chừa mép: không miếng nào bị cắt
-    for(let x=0;x<W;x++){ assert.equal(px[x],0); assert.equal(px[(box.h-1)*W+x],0); }
+    const {px}=bakeAt(P,full,clip,i/clip.fps,box), W=box.w, inner=v=>v && v!==OUTLINE;
+    for(let y=0;y<box.h;y++){ assert.ok(!inner(px[y*W])); assert.ok(!inner(px[y*W+W-1])); }
+    for(let x=0;x<W;x++){ assert.ok(!inner(px[x])); assert.ok(!inner(px[(box.h-1)*W+x])); }
   }
 });
 
@@ -315,4 +317,38 @@ test('copy near to far darkens one ramp step, replaces the far cell, and lint is
   assert.equal(cnt(rgba(8,160,200)),1);
   assert.equal(cnt(rgba(1,1,1)),0);
   assert.equal(px[S.thigh.rect[1]*body.w+S.thigh.rect[0]+1],hex(skin[2]));   // ô gần không đổi
+});
+
+test('turning parts keeps what is drawn: a 1-px tip, a lone dot and a 1-px notch survive at rest',()=>{
+  const body=blank('body'), A=rgba(120,90,160), B=rgba(240,220,90), box=frameBox(P);
+  fillCell(body,[28,30,40,50],A);
+  body.px[29*body.w+34]=A;                 // mũi nhọn: một hàng xóm
+  body.px[40*body.w+33]=B;                 // chấm lẻ
+  body.px[40*body.w+28]=0;                 // khe 1 px ở mép trái: ba hàng xóm
+  const rest={_move:[0,0],_pos:{},_scale:{}};   // thân không quay ở tư thế nghỉ
+  const {px,who}=bake(P,{body},rest,box,{only:'chest',outline:false});
+  const shape=(arr,w,h)=>{ const pts=[]; for(let y=0;y<h;y++) for(let x=0;x<w;x++) if(arr[y*w+x]) pts.push([x,y,arr[y*w+x]]);
+    const mx=Math.min(...pts.map(p=>p[0])), my=Math.min(...pts.map(p=>p[1])); return pts.map(([x,y,v])=>`${x-mx},${y-my},${v}`).sort(); };
+  assert.deepEqual(shape(px,box.w,box.h),shape(body.px,body.w,body.h));
+  px.forEach((v,i)=>assert.equal(!!v,!!who[i]));                // who khớp với pixel
+});
+
+test('turned parts leave few stray pixels: spikes per frame over every key frame stay low',()=>{
+  const ramps=[{base:BLOCK_COLORS.skin,shadow:rgba(214,150,128),light:rgba(255,222,200)},{base:BLOCK_COLORS.cloth,shadow:rgba(92,78,112),light:rgba(170,156,190)}];
+  const sheets={};
+  for(const kind of ['head','body']){
+    const sh=blockoutSheet(P,kind);
+    for(const c of Object.values(P.sheets[kind].parts)) for(const r of ramps) sh.px=shadeCell(sh.px,sh.w,c.rect,[-1,-1],r).px;
+    sheets[kind]=sh;
+  }
+  const box=frameBox(P), W=box.w; let spikes=0, frames=0;
+  for(const clip of Object.values(P.clips)) for(let i=0;i<clip.frames.length;i++){
+    const {px,who}=bakeAt(P,sheets,clip,i/clip.fps,box); frames++;
+    px.forEach((v,k)=>{ if(!v) assert.equal(who[k],0); });
+    for(let y=1;y<box.h-1;y++) for(let x=1;x<W-1;x++){
+      const k=y*W+x; if(!px[k]) continue;
+      if([px[k-1],px[k+1],px[k-W],px[k+W]].filter(Boolean).length<=1) spikes++;   // gai: chỉ chạm một pixel khác
+    }
+  }
+  assert.ok(spikes/frames<0.5, 'spikes per frame '+(spikes/frames).toFixed(2));    // trước khi snap + dọn: 2.5
 });

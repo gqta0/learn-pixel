@@ -125,6 +125,9 @@ function source(P,p,cell=p.part){
   if(p.rows){ r[1]=Math.max(r[1],Math.floor(p.rows[0])); r[3]=Math.min(r[3],Math.ceil(p.rows[1])); }
   return {rect:r, joint:p.piv||c.joint, rows:p.rows};
 }
+/* Đặt miếng sao cho tâm pixel trên sheet rơi đúng tâm pixel của khung (khớp lệch nửa pixel làm mép sinh pixel lẻ).
+   fx/fy của khổ khung là số nguyên nên làm trên toạ độ quanh điểm chân là đủ. */
+const snap=(v,j)=>Math.round(v-j)+j;   // ≤ ½ px: frameBox không cần biết, test "ô tô kín không chạm mép" canh chuyện đó
 /* tư thế đủ cả vạt áo ở thời điểm t của clip */
 export const poseAt=(P,clip,t)=>({f:frameAt(clip,t), flaps:flapPoints(P,clip,t)});
 
@@ -155,10 +158,11 @@ const darken=(v,k)=>rgba(Math.round((v&255)*k),Math.round(((v>>8)&255)*k),Math.r
 export function partsOf(P){ return [...Object.keys(P.sheets.head.parts),...Object.keys(P.sheets.body.parts)]; }
 export function bake(P,sheets,f,box,opt={}){
   const W=box.w, H=box.h, out=new Uint32Array(W*H), who=new Uint8Array(W*H), names=partsOf(P);
-  const gpx=new Uint32Array(W*H), gwho=new Uint8Array(W*H), empty=cellEmptiness(P,sheets);
+  const gpx=new Uint32Array(W*H), gwho=new Uint8Array(W*H), gsrc=new Uint8Array(W*H), empty=cellEmptiness(P,sheets);
+  const marks=new Map(), markOf=(sh,kind)=>{ if(!marks.has(sh)) marks.set(sh,drawnMarks(P,sh,kind)); return marks.get(sh); };
   const list=placements(P,f,opt.flaps), hide=new Set(opt.hide||[]);
   for(let g=0, k=0; g<P.draw_order.length; g++){
-    gpx.fill(0); gwho.fill(0);
+    gpx.fill(0); gwho.fill(0); gsrc.fill(0);
     let any=false;
     for(; k<list.length && list[k].g===g; k++){
       const p=list[k], farCell=p.far && !p.rows ? farCellOf(P,p.part) : null;
@@ -169,20 +173,21 @@ export function bake(P,sheets,f,box,opt={}){
       if((opt.only && opt.only!==cell && opt.only!==farCell) || hide.has(cell) || (farCell && hide.has(farCell))) continue;
       if(!sh) continue;
       const c=source(P,p,cell), [x0,y0,x1,y1]=c.rect, [jx,jy]=c.joint, rows=c.rows;
-      const co=Math.cos(p.turn*RAD), si=Math.sin(p.turn*RAD), X=box.fx+p.x, Y=box.fy+p.y;
+      const co=Math.cos(p.turn*RAD), si=Math.sin(p.turn*RAD), X=box.fx+snap(p.x,jx), Y=box.fy+snap(p.y,jy);
       const r=Math.hypot(Math.max(jx-x0,x1-jx),Math.max(jy-y0,y1-jy))+1;
-      const id=names.indexOf(cell)+1;
+      const id=names.indexOf(cell)+1, mk=markOf(sh,p.kind);
       for(let oy=Math.max(0,Math.floor(Y-r)); oy<Math.min(H,Math.ceil(Y+r)); oy++)
         for(let ox=Math.max(0,Math.floor(X-r)); ox<Math.min(W,Math.ceil(X+r)); ox++){
           const dx=ox+0.5-X, dy=oy+0.5-Y;
           const sx=Math.floor(jx+dx*co+dy*si), sy=Math.floor(jy-dx*si+dy*co);   // quay ngược về ô trên sheet
           if(sx<x0||sy<y0||sx>=x1||sy>=y1 || (rows && (sy+0.5<rows[0]||sy+0.5>rows[1]))) continue;
-          const v=sh.px[sy*sh.w+sx];
-          if(!solid(v)) continue;
-          gpx[oy*W+ox]=dark ? darken(v,FAR_SHADE) : v; gwho[oy*W+ox]=id; any=true;
+          const v=sh.px[sy*sh.w+sx], o=oy*W+ox, m=mk[sy*sh.w+sx];
+          if(!solid(v)){ if(!gpx[o]) gsrc[o]|=m&NOTCH; continue; }
+          gpx[o]=dark ? darken(v,FAR_SHADE) : v; gwho[o]=id; gsrc[o]=m; any=true;
         }
     }
     if(!any) continue;
+    cleanTurn(gpx,gwho,gsrc,W,H);
     if(opt.outline!==false) for(let y=0;y<H;y++) for(let x=0;x<W;x++){   // viền cả nhóm nằm dưới mọi màu của nhóm
       const i=y*W+x;
       if(gpx[i]) continue;
@@ -193,6 +198,40 @@ export function bake(P,sheets,f,box,opt={}){
   return {px:out, who};
 }
 export const bakeAt=(P,sheets,clip,t,box,opt={})=>bake(P,sheets,frameAt(clip,t),box,{...opt,flaps:flapPoints(P,clip,t)});
+/* Dấu của từng pixel trên sheet, xét trong ô của nó: TIP = pixel có ≤ 1 hàng xóm (mũi nhọn vẽ cố ý),
+   DOT = chấm màu lẻ (bốn hàng xóm cùng một màu khác nó), NOTCH = khe 1 px (pixel trống có ≥ 3 hàng xóm). */
+const TIP=1, DOT=2, NOTCH=4;
+function drawnMarks(P,sh,kind){
+  const m=new Uint8Array(sh.w*sh.h);
+  for(const c of Object.values(P.sheets[kind].parts)){
+    const [x0,y0,x1,y1]=c.rect, at=(x,y)=>(x<x0||y<y0||x>=x1||y>=y1) ? 0 : sh.px[y*sh.w+x];
+    for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++){
+      const v=at(x,y), ns=[at(x-1,y),at(x+1,y),at(x,y-1),at(x,y+1)], n=ns.filter(solid).length;
+      if(!solid(v)){ if(n>=3) m[y*sh.w+x]=NOTCH; continue; }
+      if(n<=1) m[y*sh.w+x]|=TIP;
+      if(n===4 && ns.every(q=>q===ns[0]) && ns[0]!==v) m[y*sh.w+x]|=DOT;
+    }
+  }
+  return m;
+}
+/* Dọn những gì phép quay sinh ra trong một nhóm (trước khi viền), giữ mọi thứ có sẵn trong bản vẽ:
+   pixel ≤ 1 hàng xóm → xoá (trừ mũi nhọn vẽ cố ý); pixel bị bốn hàng xóm cùng một màu khác bao quanh → lấy màu đó
+   (trừ chấm vẽ cố ý); ô trống có ≥ 3 hàng xóm → lấp bằng màu hàng xóm (trừ khe vẽ cố ý). Quyết định từ trạng thái
+   trước khi dọn rồi mới áp. ponytail: một lượt là đủ; quay miếng 3-4 px vẫn lệch diện tích vài %, đó là giới hạn chấp nhận. */
+function cleanTurn(px,who,src,W,H){
+  const set=[];                                     // [pixel, lấy từ pixel nào | -1 = xoá]
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const i=y*W+x, on=[];
+    if(x>0&&px[i-1]) on.push(i-1); if(x<W-1&&px[i+1]) on.push(i+1);
+    if(y>0&&px[i-W]) on.push(i-W); if(y<H-1&&px[i+W]) on.push(i+W);
+    if(px[i]){
+      if(on.length<=1 && !(src[i]&TIP)) set.push([i,-1]);
+      else if(on.length===4 && !(src[i]&DOT) && px[on[0]]!==px[i] && on.every(j=>px[j]===px[on[0]])) set.push([i,on[0]]);
+    } else if(on.length>=3 && !(src[i]&NOTCH)) set.push([i,on[0]]);
+  }
+  const from=set.map(([,j])=>j<0 ? [0,0] : [px[j],who[j]]);
+  set.forEach(([i],k)=>{ [px[i],who[i]]=from[k]; });
+}
 /* ô nào chưa có pixel nào — để xem trước thay bằng khối mẫu */
 function cellEmptiness(P,sheets){
   const out={};
