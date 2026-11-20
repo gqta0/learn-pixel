@@ -32,17 +32,14 @@ export function paintThumbs(){
   const len=layerLength(doc.al), short=doc.layers.length>1 && len<doc.frames.length;
   const info=$('#layerLenInfo');
   if(info) info.textContent = short ? 'Lớp “'+doc.layers[doc.al].name+'”: '+len+'/'+doc.frames.length+' khung' : '';
-  const linked=doc.terrainLink?.labels && Array.isArray(doc.terrainLink.slots);
-  box.classList.toggle('terrain-linked-frames',!!linked);
   doc.frames.forEach((f,i)=>{
     const b=document.createElement('button');
-    b.className='frame'+(linked?' terrain-linked-frame':''); b.setAttribute('aria-current', i===doc.af?'true':'false');
+    b.className='frame'; b.setAttribute('aria-current', i===doc.af?'true':'false');
     const cv=document.createElement('canvas');
     frameToCanvas(i, cv, Math.max(1, Math.round(46/Math.max(doc.w,doc.h))));
     const tag=document.createElement('b');
-    const slot=linked ? doc.terrainLink.slots[i] : null;
-    tag.textContent=Number.isInteger(slot) ? '#'+String(slot).padStart(2,'0') : i+1;
-    tag.title=Number.isInteger(slot) ? 'Terrain slot #'+slot : 'Khung '+(i+1);
+    tag.textContent=i+1;
+    tag.title='Khung '+(i+1);
     if(short && i>=len){ b.classList.add('frame-out'); b.title='Lớp “'+doc.layers[doc.al].name+'” không có hình từ khung '+(len+1); }
     b.appendChild(cv); b.appendChild(tag);
     const mk=doc.layers[doc.al]?.marks?.[i];
@@ -52,7 +49,6 @@ export function paintThumbs(){
       const items = [
         {label:'+ Khung trống sau khung này', fn:()=>{
           pushUndo();
-          doc.terrainLink=null;
           marksInsert(i+1);
           doc.frames.splice(i+1,0,doc.layers.map(()=>new Uint32Array(doc.w*doc.h)));
           doc.dur.splice(i+1,0,0); doc.af=i+1;
@@ -60,7 +56,6 @@ export function paintThumbs(){
         }},
         {label:'⧉ Nhân bản khung này', fn:()=>{
           pushUndo();
-          doc.terrainLink=null;
           marksInsert(i+1);
           doc.frames.splice(i+1, 0, doc.frames[i].map(d=>d.slice()));
           doc.dur.splice(i+1, 0, doc.dur[i]||0);
@@ -80,7 +75,6 @@ export function paintThumbs(){
       if(doc.frames.length > 1){
         items.push({label:'✕ Xoá khung này', fn:()=>{
           pushUndo();
-          doc.terrainLink=null;
           marksRemove(i);
           doc.frames.splice(i, 1);
           doc.dur.splice(i, 1);
@@ -91,7 +85,6 @@ export function paintThumbs(){
       if(i > 0){
         items.push({label:'← Đẩy sang trái', fn:()=>{
           pushUndo();
-          doc.terrainLink=null;
           marksMove(i,i-1);
           const [fr] = doc.frames.splice(i, 1); doc.frames.splice(i-1, 0, fr);
           const [dr] = doc.dur.splice(i, 1); doc.dur.splice(i-1, 0, dr||0);
@@ -102,7 +95,6 @@ export function paintThumbs(){
       if(i < doc.frames.length - 1){
         items.push({label:'→ Đẩy sang phải', fn:()=>{
           pushUndo();
-          doc.terrainLink=null;
           marksMove(i,i+1);
           const [fr] = doc.frames.splice(i, 1); doc.frames.splice(i+1, 0, fr);
           const [dr] = doc.dur.splice(i, 1); doc.dur.splice(i+1, 0, dr||0);

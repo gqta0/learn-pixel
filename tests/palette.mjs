@@ -2,12 +2,14 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {TERRAIN_CREATE_PRESETS} from '../js/terrainio.js';
 import {GENESIS_NAME, GENESIS_COLORS} from '../js/genesis.js';
 
-const src=readFileSync(new URL('../js/palette.js', import.meta.url),'utf8');
+const src=readFileSync(new URL('../js/masterpal.js', import.meta.url),'utf8');   // Master + COLOR_TOKENS nằm ở masterpal.js (thuần)
+const palSrc=readFileSync(new URL('../js/palette.js', import.meta.url),'utf8');
 const masterName=src.match(/export const MASTER_NAME = '([^']+)'/)[1];
-const master=[...src.split('[MASTER_NAME]: [')[1].split('],')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
-const tokenSrc=src.split('export const PALETTES')[0];
+const master=[...src.split('export const MASTER_COLORS = [')[1].split('];')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
+const tokenSrc=src;
 const tokens=Object.fromEntries([...tokenSrc.matchAll(/'(#[0-9a-f]{6})': \{ group: '([^']+)', token: '([^']+)'/g)]
   .map(m=>[m[1],{group:m[2],token:m[3]}]));
 
@@ -45,9 +47,7 @@ test('the Warm stone ramp rises in lightness and shares its ledge colour with Si
   assert.equal(tokens['#d8d1c2'].group, 'Silk');
 });
 test('Terrain create presets: the Genesis set uses Genesis colours, the Master set Master colours',()=>{
-  const tv=readFileSync(new URL('../js/terrainview.js', import.meta.url),'utf8');
-  const block=tv.split('const TERRAIN_CREATE_PRESETS={')[1].split('\n};')[0];
-  const part=k=>[...block.split(k+':{')[1].split('\n  }')[0].matchAll(/'(#[0-9a-f]{6})'/g)].map(m=>m[1]);
+  const part=k=>Object.values(TERRAIN_CREATE_PRESETS[k]).flatMap(p=>[p.base,p.edge]);
   const genesis=GENESIS_COLORS;
   assert.ok(part('master').includes('#7c6d6c'), 'warm stone preset present');
   for(const c of part('master')) assert.ok(master.includes(c), c+' is not in the Master palette');
@@ -57,9 +57,9 @@ test('Terrain create presets: the Genesis set uses Genesis colours, the Master s
 
 test('Genesis v3 is the only Genesis palette and the default; no colour collides with a Master token',()=>{
   assert.equal(GENESIS_NAME, 'Genesis v3 (91 màu)');
-  assert.match(src, /export const DEFAULT_PAL_NAME = GENESIS_NAME;/);
-  assert.match(src, /export let palette = PALETTES\[DEFAULT_PAL_NAME\]\.slice\(\);/);
-  assert.doesNotMatch(src, /GENESIS_V[0-9]/);
+  assert.match(palSrc, /export const DEFAULT_PAL_NAME = GENESIS_NAME;/);
+  assert.match(palSrc, /export let palette = PALETTES\[DEFAULT_PAL_NAME\]\.slice\(\);/);
+  assert.doesNotMatch(palSrc, /GENESIS_V[0-9]/);
   for(const c of GENESIS_COLORS) assert.ok(!master.includes(c), c+' trùng mã Master — token Master sẽ đè nhóm Genesis');
 });
 test('palette files: Lospec .hex, GIMP .gpl and loose #hex text all parse, duplicates dropped',async()=>{

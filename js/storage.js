@@ -96,7 +96,7 @@ export function serialize(){
     app:'lo-pixel', version:2, name:doc.name||'Bản vẽ không tên',
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers:doc.layers, palette:palette,
-    frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur, atlasEdit:doc.atlasEdit, terrainLink:doc.terrainLink,
+    frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur, atlasEdit:doc.atlasEdit,
     anchor:doc.anchor, charH:doc.charH||0, puppet:doc.puppet||null, fps:view.fps,
     done: Array.from(doneSet)
   };
@@ -132,7 +132,6 @@ export function applyData(d){
   doc.charH = Number(d.charH)>0 ? Math.min(Number(d.charH),h) : 0;
   doc.puppet = d.puppet==='head'||d.puppet==='body' ? d.puppet : null;
   if(Number.isInteger(d.fps) && d.fps>=1 && d.fps<=60){ view.fps=d.fps; const f=$('#fps'); if(f) f.value=d.fps; }
-  doc.terrainLink=d.terrainLink && typeof d.terrainLink==='object' ? {...d.terrainLink,slots:Array.isArray(d.terrainLink.slots)?d.terrainLink.slots.slice():[]} : null;
   if(d.palette){ setPalette(d.palette); }
   syncPalSelect();
   if(d.done) migrateDone(d.done);
@@ -177,7 +176,15 @@ async function usageNote(){
 export function autosave(){
   clearTimeout(saveT);
   if(!bootDone) return;
-  saveT=setTimeout(()=>{ if(!view.drawing) writeSave(); }, 1200);   // chỉ lưu nét đã kết thúc, không lưu nét sắp bị huỷ bởi pinch
+  saveT=setTimeout(()=>{ saveT=null; if(!view.drawing) writeSave(); }, 1200);   // chỉ lưu nét đã kết thúc, không lưu nét sắp bị huỷ bởi pinch
+}
+/* lưu ngay nếu đang có lượt tự lưu chờ (rời trang / ẩn tab / bấm sang Trang Tile). Trả Promise khi có ghi,
+   null khi không có gì chờ — để liên kết sang trang khác đợi ghi xong rồi mới đi (IndexedDB không kịp
+   hoàn tất nếu trang bị gỡ giữa chừng). */
+export function flushSave(){
+  if(!bootDone || !saveT) return null;
+  clearTimeout(saveT); saveT=null;
+  return view.drawing ? null : writeSave();
 }
 async function writeSave(){
   const data=serialize();

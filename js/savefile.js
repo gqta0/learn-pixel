@@ -4,7 +4,12 @@
    và điện thoại lặng lẽ chặn lượt tải. Nên ở đây:
    - PNG mã hoá đồng bộ (toDataURL) để cú tải xảy ra ngay trong lúc bấm;
    - luôn để lại một link tải thật trên giao diện: lỡ trình duyệt vẫn chặn, chạm link là tải. */
-import { download } from './storage.js';
+/* tự làm thẻ <a download> ở đây (như storage.js) để trang không có khung Vẽ (tile.html) dùng được
+   mà không kéo theo cả storage.js / palette.js */
+function download(name,url){
+  const a=document.createElement('a'); a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
 
 export function dataUrlBytes(url){
   const bin=atob(url.slice(url.indexOf(',')+1)), out=new Uint8Array(bin.length);

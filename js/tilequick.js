@@ -1,22 +1,29 @@
-/* Thẻ "⚡ Tạo nhanh" của xưởng Terrain 56: chọn công thức, chỉnh vài thanh trượt, xem ngay trên
-   bản đồ có nhân vật đúng cỡ game, rồi đưa thẳng vào atlas 56 ô — ô anh đã sửa tay thì giữ nguyên.
-   Phần vẽ nằm ở tilegen.js (thuần dữ liệu); ở đây chỉ có giao diện, lưu cài đặt và xuất file. */
+/* Thẻ "⚡ Tạo nhanh" của trang Tile: chọn công thức, chỉnh vài thanh trượt, xem ngay trên bản đồ
+   có nhân vật đúng cỡ game, rồi đưa thẳng vào bộ 56 ô đang mở — ô anh đã sửa tay thì giữ nguyên.
+   Phần vẽ nằm ở tilegen.js (thuần dữ liệu); ở đây chỉ có giao diện, lưu cài đặt và xuất file.
+   Không biết gì về phần còn lại của trang: mọi thứ đi qua `host` do tilepage.js dựng:
+   host = {ts(), slot(), select(s), writeSlots([[slot,Uint32Array]…]), refresh(), onSelect(cb),
+           createFromTiles(size,shape,tiles,name) → ts, paletteKey() → 'master'|'genesis'}. */
 import { $, toast } from './dom.js';
 import { view } from './state.js';
 import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
-import { PALETTES, COLOR_TOKENS, MASTER_NAME, GENESIS_NAME } from './palette.js';
+import { MASTER_NAME, MASTER_COLORS, COLOR_TOKENS } from './masterpal.js';
+import { GENESIS_NAME, GENESIS_COLORS, GENESIS_TOKENS } from './genesis.js';
 import { TERRAIN_TILES, terrainGodotTres, checkSeams, checkColorSeams,
   ATLAS_COLS, ATLAS_ROWS, terrainSlotCells } from './terrain.js';
 import { GEN_RECIPES, GEN_RECIPE_ORDER, GEN_PARAMS, GEN_CRUSTS, GEN_DRIPS, GEN_INTERIORS, GEN_CAPS, GEN_SEED_GROUPS,
   GEN_STRATA, GEN_ROLE_GROUPS, GEN_ROLE_LABELS, GEN_PALETTES, PREVIEW_LAYOUTS,
   makeSpec, makeSeeds, randomSeed, lerpParams, generateTerrainRoles, colorize, generateProps, generateMacro, previewLayout,
   renderPreview, lintTerrain } from './tilegen.js';
-import { terrainTarget, selectedTerrainSlot, writeGeneratedTiles, createTerrainFromTiles, terrainTilePixels,
-  refreshTerrain, toolPaletteKey } from './terrainview.js';
+import { slotPixels, planApply, handOverStamp } from './terrainio.js';
+import { tileOf } from './tileset.js';
 
-const KEY='lo-pixel-tilegen', STAMP='lo-pixel-tilegen-stamp';
-/* phạm vi ghi: chỉ thay một nhóm ô, phần còn lại của atlas giữ nguyên */
+const KEY='lo-pixel-tilegen', STAMP='lo-pixel-tilegen-stamp', GODOT_DIR_KEY='lo-pixel-godot-dir';
+/* trang này không nạp palette.js (nó kéo theo cả khung Vẽ): chỉ cần hai bảng gốc và mã màu của chúng */
+const PALETTES={[MASTER_NAME]:MASTER_COLORS,[GENESIS_NAME]:GENESIS_COLORS};
+const tokenOf=hex=>COLOR_TOKENS[hex]||GENESIS_TOKENS[hex];
+/* phạm vi ghi: chỉ thay một nhóm ô, phần còn lại của bộ giữ nguyên */
 const SCOPES={
   all:{label:'Cả 56 ô',test:()=>true},
   top:{label:'Ô có mặt trên (sàn, mép trên)',test:t=>!(t.mask&1)},
@@ -24,8 +31,16 @@ const SCOPES={
   ceil:{label:'Ô có trần (mép dưới)',test:t=>!(t.mask&4)},
   wall:{label:'Ô có tường (mép trái/phải)',test:t=>!(t.mask&2)||!(t.mask&8)}
 };
+const GEN_SIZES=[16,32];
 
-/* ---------------- cài đặt (nhớ qua lần mở sau) ---------------- */
+/* ---------------- nối với trang (host) ---------------- */
+let host=null;
+const paletteKey=()=>host?.paletteKey()||'genesis';
+/* bộ đang mở nếu là khuôn 56 ô blob, không thì null (sẽ tạo bộ mới) */
+const terrainTarget=()=>{ const ts=host?.ts(); return ts?.layout==='blob56' ? {id:ts.id,size:ts.size,shape:ts.shape||'inset'} : null; };
+const sameTarget=a=>!!a && a.size===st.size && a.shape===st.shape;
+
+/* ---------------- cài đặt (nhớ qua lần mở sau, chung với thẻ ở trang Vẽ) ---------------- */
 function defaultStratum(i){
   const s=GEN_STRATA[i], r=GEN_RECIPES[s.recipe];
   return {recipe:s.recipe,params:{...r.params,...s.params},colors:{},crustType:null,dripType:null,
@@ -33,17 +48,25 @@ function defaultStratum(i){
 }
 function defaults(){
   return {v:3,palette:'genesis',stratum:0,strata:GEN_STRATA.map((_,i)=>defaultStratum(i)),layout:'stairs',deco:true,hero:true,
-    size:16,shape:'inset',scope:'all',keepEdited:true,frames:true,macro:true};
+    size:16,shape:'inset',scope:'all',keepEdited:true,macro:true};
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem(KEY));
-    if(d?.v===3 && Array.isArray(d.strata) && d.strata.length===6 && d.strata.every(s=>GEN_RECIPES[s?.recipe])) return {...defaults(),...d};
-    // bản cài đặt cũ (màu Master): giữ lựa chọn bản đồ, khổ, dáng mép; 6 tầng về công thức mới, màu Genesis
+    if(d?.v===3 && Array.isArray(d.strata) && d.strata.length===6 && d.strata.every(s=>GEN_RECIPES[s?.recipe])) return fix({...defaults(),...d});
     // bản cũ (v1 màu Master, v2 sáu tầng kiểu cũ): giữ lựa chọn chung, 6 tầng về bộ đá khối sạch mới
-    if(d?.v===1||d?.v===2){ const keep={}; for(const k of ['layout','deco','hero','size','shape','scope','keepEdited','frames','palette','macro']) if(k in d) keep[k]=d[k]; return {...defaults(),...keep}; }
+    if(d?.v===1||d?.v===2){ const keep={}; for(const k of ['layout','deco','hero','size','shape','scope','keepEdited','frames','palette','macro']) if(k in d) keep[k]=d[k]; return fix({...defaults(),...keep}); }
   }catch(_){}
   return defaults();
+}
+/* giá trị lạ trong bản lưu (khổ khác 16/32, phạm vi không còn) về mặc định */
+function fix(s){
+  if(!GEN_SIZES.includes(s.size)) s.size=16;
+  if(s.shape!=='flush') s.shape='inset';
+  if(!SCOPES[s.scope]) s.scope='all';
+  if(!PREVIEW_LAYOUTS[s.layout]) s.layout='stairs';
+  if(!(s.stratum>=0 && s.stratum<6)) s.stratum=0;
+  return s;
 }
 let st=load();
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(_){} }
@@ -81,23 +104,22 @@ const MINI={w:6,h:4,cells:Uint8Array.from([1,1,0,0,0,0, 1,1,1,1,0,0, 1,1,1,1,1,1
 function thumb(cv,x,n=16){
   putImage(cv,renderPreview(MINI,setsFor([x]),{n,shape:st.shape,deco:x.spec.params.deco,seed:3,palette:st.palette}));
 }
+/* khung bản đồ rộng bằng cột, cao tối đa nửa màn hình */
 function fitMap(){
   const cv=$('#tqMap'), box=cv?.parentElement; if(!cv||!box) return;
-  // màn rộng: khung bản đồ cao cố định theo cột; màn hẹp: khung co theo bản đồ, chỉ chặn ở nửa màn hình
-  const wide=innerWidth>1000, cw=box.clientWidth-8, ch=wide?box.clientHeight-8:innerHeight*.5;
+  const cw=box.clientWidth-8, ch=innerHeight*.5;
   if(cw<=0) return;
   let z=Math.min(cw/cv.width, ch>40?ch/cv.height:Infinity);
   z=z>=2?Math.floor(z):z;                     // từ ×2 trở lên phóng nguyên lần cho pixel sắc; nhỏ hơn thì vừa khung
   cv.style.width=Math.max(1,Math.round(cv.width*z))+'px';
   cv.style.height=Math.max(1,Math.round(cv.height*z))+'px';
 }
-let raf=0;
+let raf=0, thumbsDirty=false;
 function schedule(thumbs=false){
   if(thumbs) thumbsDirty=true;
   if(raf) return;
   raf=requestAnimationFrame(()=>{ raf=0; paintPreview(); if(thumbsDirty){ thumbsDirty=false; paintStrata(); } });
 }
-let thumbsDirty=false;
 function paintPreview(){
   const n=st.size, shape=st.shape;
   const map=previewLayout(st.layout,7);
@@ -191,7 +213,7 @@ function fillSelect(sel,map,recipeValue){
 function paletteGroups(){
   const groups=new Map();
   for(const hex of PALETTES[palName()]){
-    const g=(COLOR_TOKENS[hex]?.group||'Khác').replace(/^Genesis v3 · /,'');
+    const g=(tokenOf(hex)?.group||'Khác').replace(/^Genesis v3 · /,'');
     if(!groups.has(g)) groups.set(g,[]);
     groups.get(g).push(hex);
   }
@@ -234,9 +256,9 @@ function syncControls(){
   $('#tqLight').value=s.light;
   $('#tqSeed').value=s.seed;
   $('#tqStratumName').textContent='Tầng '+(st.stratum+1)+' · '+GEN_STRATA[st.stratum].title;
-  $('#tqPalette').textContent='Bảng: '+GEN_PALETTES[st.palette]+' · theo bảng màu đang vẽ';
+  $('#tqPalette').textContent='Bảng: '+GEN_PALETTES[st.palette]+' · theo bảng màu của bộ đang mở';
   $('#tqSize').value=String(st.size); $('#tqShape').value=st.shape; $('#tqScope').value=st.scope;
-  $('#tqKeepEdited').checked=st.keepEdited; $('#tqFrames').checked=st.frames;
+  $('#tqKeepEdited').checked=st.keepEdited;
   $('#tqDeco').checked=st.deco; $('#tqHero').checked=st.hero; $('#tqMacro').checked=st.macro!==false;
   document.querySelectorAll('#tqLayout button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.layout===st.layout));
   syncRecipeCards(); paintColors(); syncTarget();
@@ -254,35 +276,44 @@ function rollGroup(group){
 function hashPx(px){ let h=0x811c9dc5; for(let i=0;i<px.length;i++){ h^=px[i]; h=Math.imul(h,16777619); } return h>>>0; }
 function readStamp(){ try{ return JSON.parse(localStorage.getItem(STAMP))||null; }catch(_){ return null; } }
 function writeStamp(s){ try{ localStorage.setItem(STAMP,JSON.stringify(s)); }catch(_){} }
-/* trạng thái khoá của atlas đang mở: ô đã sửa tay sau lần tạo nhanh gần nhất + ô khoá bằng tay */
+/* atlas Vẽ cũ nhập thành bộ mới (id mới): dấu ⚡ cũ chuyển sang id bộ mới để ô sửa tay / ô khoá còn nguyên */
+export function handOverQuickStamp(fromId,toId){
+  const s=handOverStamp(readStamp(),fromId,toId); if(s) writeStamp(s);
+}
+/* trạng thái khoá của bộ đang mở: ô đã sửa tay sau lần tạo nhanh gần nhất (tranh khác đi, hoặc đã
+   thêm khung hoạt ảnh — ghi đè sẽ mất cả hai) + ô khoá bằng tay. Dấu chỉ nhớ một bộ: bộ tạo nhanh gần nhất. */
 function lockState(){
   const a=terrainTarget(); if(!a) return {known:false,edited:new Set(),locks:new Set()};
-  const stamp=readStamp(), px=terrainTilePixels(), mine=stamp?.atlasId===a.id;
+  const ts=host.ts(), stamp=readStamp(), mine=stamp?.atlasId===a.id;
   const edited=new Set(), locks=new Set(mine?stamp.locks||[]:[]);
-  if(mine && px) TERRAIN_TILES.forEach(t=>{ const h=stamp.hashes?.[t.slot]; if(h!=null && h!==hashPx(px[t.slot])) edited.add(t.slot); });
+  if(mine){
+    const px=slotPixels(ts);
+    TERRAIN_TILES.forEach(t=>{ const h=stamp.hashes?.[t.slot]; if(h!=null && (h!==hashPx(px[t.slot]) || tileOf(ts,t.slot).frames.length>1)) edited.add(t.slot); });
+  }
   return {known:mine,edited,locks};
 }
 const ids=set=>[...set].sort((a,b)=>a-b).map(s=>'#'+String(s).padStart(2,'0')).join(', ');
+const shapeText=s=>s==='flush'?'kín sát mép':'thụt mép';
 function syncTarget(){
   const a=terrainTarget(), note=$('#tqTarget'), lock=$('#tqLocks'), btn=$('#tqApply');
   if(!note) return;
-  const same=a && a.tw===st.size && (a.shape||'inset')===st.shape;
-  note.textContent=!a ? 'Chưa có bộ nào: sẽ tạo bộ 56 ô mới.' :
-    same ? 'Ghi vào bộ đang mở ('+a.tw+' px, '+(a.shape==='flush'?'kín sát mép':'thụt mép')+').' :
-    'Bộ đang mở là '+a.tw+' px, '+(a.shape==='flush'?'kín sát mép':'thụt mép')+' — khác lựa chọn, nên sẽ tạo bộ mới thay bộ cũ.';
-  btn.textContent=same?'⚡ Ghi vào atlas 56 ô':'⚡ Tạo bộ 56 ô từ công thức';
+  const same=sameTarget(a), ts=host?.ts();
+  note.textContent=!a ? (ts ? 'Bộ “'+ts.name+'” không phải khuôn 56 ô: sẽ tạo bộ 56 ô mới (bộ này giữ nguyên).' : 'Chưa có bộ nào: sẽ tạo bộ 56 ô mới.') :
+    same ? 'Ghi vào bộ đang mở “'+ts.name+'” ('+a.size+' px, '+shapeText(a.shape)+').' :
+    'Bộ đang mở là '+a.size+' px, '+shapeText(a.shape)+' — khác lựa chọn, nên sẽ tạo bộ 56 ô mới (bộ cũ vẫn trong danh sách).';
+  btn.textContent=same?'⚡ Ghi vào bộ 56 ô đang mở':'⚡ Tạo bộ 56 ô từ công thức';
   const L=lockState(), parts=[];
   if(same && L.locks.size) parts.push('🔒 khoá '+ids(L.locks));
   if(same && L.edited.size) parts.push('✎ đã sửa tay '+ids(L.edited));
   if(same && !L.known) parts.push('Bộ này chưa từng tạo nhanh — ghi sẽ hỏi lại trước khi đè.');
   lock.textContent=parts.join(' · ')||(same?'Không có ô khoá.':'');
-  const slot=selectedTerrainSlot(), lb=$('#tqLockSel');
+  const slot=host?.slot()??0, lb=$('#tqLockSel');
   lb.disabled=!same;
   lb.textContent=(L.locks.has(slot)?'🔓 Mở khoá ':'🔒 Khoá ')+'#'+String(slot).padStart(2,'0');
 }
 function toggleLock(){
   const a=terrainTarget(); if(!a) return;
-  const stamp=readStamp(), slot=selectedTerrainSlot();
+  const stamp=readStamp(), slot=host.slot();
   const s=stamp?.atlasId===a.id ? stamp : {atlasId:a.id,hashes:{},locks:[]};
   s.locks=s.locks||[];
   const at=s.locks.indexOf(slot);
@@ -290,38 +321,38 @@ function toggleLock(){
   writeStamp(s); syncTarget();
 }
 
-/* ---------------- đưa vào atlas ---------------- */
+/* ---------------- đưa vào bộ 56 ô ---------------- */
+/* trả về true nếu đã ghi / đã tạo bộ */
 function apply(){
+  syncPalette();                                // bấm từ màn trống (thẻ chưa mở lần nào): màu theo bộ sắp có
   const s=cur(), n=st.size, shape=st.shape, x=build(s,n,shape);
-  const a=terrainTarget(), same=a && a.tw===n && (a.shape||'inset')===shape;
+  const a=terrainTarget();
   let written=[];
-  if(same){
-    const L=lockState(), inScope=TERRAIN_TILES.filter(t=>SCOPES[st.scope].test(t));
-    let skip=new Set(L.locks);
-    if(st.keepEdited) L.edited.forEach(v=>skip.add(v));
-    if(!L.known && !confirm('Bộ đang mở chưa từng được tạo nhanh, có thể là tranh anh vẽ tay.\n\nGhi đè '+
-      inScope.filter(t=>!skip.has(t.slot)).length+' ô bằng công thức “'+GEN_RECIPES[s.recipe].title+'”? (Hoàn tác được bằng Ctrl+Z.)')) return;
-    const list=inScope.filter(t=>!skip.has(t.slot)).map(t=>[t.slot,x.tiles[t.slot].slice()]);
-    if(!list.length) return toast('Không còn ô nào để ghi — mọi ô trong phạm vi đều đang khoá.');
-    if(!writeGeneratedTiles(list,st.frames)) return;
-    written=list.map(([slot])=>slot);
-    const kept=inScope.length-list.length;
-    toast('Đã ghi '+list.length+' ô'+(kept?' · giữ '+kept+' ô khoá/sửa tay':'')+'. Xem ở thẻ Bộ ô.',3200);
+  if(sameTarget(a)){
+    const L=lockState();
+    const plan=planApply({scopeTest:SCOPES[st.scope].test,locks:L.locks,edited:L.edited,keepEdited:st.keepEdited,known:L.known});
+    if(!plan.slots.length){ toast('Không còn ô nào để ghi — mọi ô trong phạm vi đều đang khoá hoặc đã sửa tay.'); return false; }
+    if(plan.ask && !confirm('Bộ đang mở chưa từng được tạo nhanh, có thể là tranh anh vẽ tay.\n\nGhi đè '+
+      plan.slots.length+' ô bằng công thức “'+GEN_RECIPES[s.recipe].title+'”? (Hoàn tác được bằng Ctrl+Z.)')) return false;
+    host.writeSlots(plan.slots.map(slot=>[slot,x.tiles[slot].slice()]));
+    written=plan.slots;
+    toast('Đã ghi '+written.length+' ô'+(plan.kept?' · giữ '+plan.kept+' ô khoá/sửa tay':'')+'. Ctrl+Z để hoàn tác.',3200);
   } else {
-    if(!createTerrainFromTiles(n,shape,x.tiles.map(t=>t.slice()),st.frames)) return;
+    host.createFromTiles(n,shape,x.tiles.map(t=>t.slice()),'⚡ '+GEN_RECIPES[s.recipe].title+' · '+n+' px');
     written=TERRAIN_TILES.map(t=>t.slot);
     toast('Đã tạo bộ 56 ô '+n+' px từ “'+GEN_RECIPES[s.recipe].title+'”. Xem ở thẻ Bộ ô.',3200);
   }
   // ghi dấu tranh vừa sinh để lần sau nhận ra ô nào anh đã sửa tay
-  const atlas=terrainTarget(), px=terrainTilePixels(), old=readStamp();
-  const stamp=old?.atlasId===atlas.id ? old : {atlasId:atlas.id,hashes:{},locks:[]};
+  const ts=host.ts(), px=slotPixels(ts), old=readStamp();
+  const stamp=old?.atlasId===ts.id ? old : {atlasId:ts.id,hashes:{},locks:[]};
   stamp.hashes=stamp.hashes||{};
   written.forEach(slot=>{ stamp.hashes[slot]=hashPx(px[slot]); });
   writeStamp(stamp);
   const issues=checkSeams(px,n,shape).length+checkColorSeams(px,n,shape).length;
-  $('#tqApplyNote').textContent=issues ? '⚠ Sau khi ghi, atlas có '+issues+' chỗ nối lệch (thường do ô khoá vẽ theo kiểu khác) — mở thẻ Soi lỗi để xem.' :
-    '✓ Atlas sau khi ghi: 56 ô nối liền mọi cặp.';
-  refreshTerrain(); syncTarget();
+  $('#tqApplyNote').textContent=issues ? '⚠ Sau khi ghi, bộ có '+issues+' chỗ nối lệch (thường do ô khoá vẽ theo kiểu khác) — mở thẻ Soi lỗi để xem.' :
+    '✓ Bộ sau khi ghi: 56 ô nối liền mọi cặp.';
+  host.refresh(); syncTarget();
+  return true;
 }
 
 /* ---------------- xuất ---------------- */
@@ -336,11 +367,15 @@ function propsImage(props,n){
   props.forEach((p,i)=>{ for(let y=0;y<n;y++) px.set(p.px.subarray(y*n,y*n+n),y*W+i*n); });
   return {w:W,h:n,px};
 }
-/* thư mục Godot nơi anh sẽ giải nén ZIP — lấy từ ô "Thư mục Godot" ở thẻ Xuất của khung vẽ */
+/* thư mục Godot nơi anh sẽ giải nén ZIP — cùng ô nhớ với nút ⬇ Godot của trang này */
 function godotDir(){
-  let dir=(document.querySelector('#expGodotDir')?.value||'res://').trim()||'res://';
+  let dir='res://';
+  try{ dir=(localStorage.getItem(GODOT_DIR_KEY)||'res://').trim()||'res://'; }catch(_){}
   if(!/^res:\/\//.test(dir)) dir='res://'+dir.replace(/^\/+/,'');
   return dir.endsWith('/') ? dir : dir+'/';
+}
+function syncExportNote(){
+  $('#tqExportNote').textContent='Đường dẫn ảnh trong file .tres theo thư mục Godot của nút ⬇ Godot: '+godotDir()+'layer_1…6/';
 }
 /* chạy đồng bộ từ đầu tới cuối: cú tải phải xảy ra khi lượt chạm của người dùng còn hiệu lực */
 function runExport(btn,label,work){
@@ -389,7 +424,7 @@ function resetStrata(){
   st.strata=GEN_STRATA.map((_,i)=>defaultStratum(i)); save(); syncControls(); schedule(true);
 }
 
-/* ---------------- gắn sự kiện ---------------- */
+/* ---------------- gắn sự kiện (lần đầu mở thẻ: dựng hình thu nhỏ tốn vài chục ms) ---------------- */
 let mounted=false;
 function mount(){
   if(mounted) return; mounted=true;
@@ -418,7 +453,6 @@ function mount(){
   $('#tqShape').addEventListener('change',e=>{ st.shape=e.target.value; save(); syncTarget(); paintRecipes(); schedule(true); });
   $('#tqScope').addEventListener('change',e=>{ st.scope=e.target.value; save(); });
   $('#tqKeepEdited').addEventListener('change',e=>{ st.keepEdited=e.target.checked; save(); });
-  $('#tqFrames').addEventListener('change',e=>{ st.frames=e.target.checked; save(); });
   $('#tqDeco').addEventListener('change',e=>{ st.deco=e.target.checked; save(); schedule(); });
   $('#tqHero').addEventListener('change',e=>{ st.hero=e.target.checked; save(); schedule(); });
   $('#tqMacro').addEventListener('change',e=>{ st.macro=e.target.checked; save(); schedule(true); });
@@ -431,12 +465,11 @@ function mount(){
   window.addEventListener('resize',()=>{ if(isOpen()) fitMap(); });
   paintRecipes();
 }
-const isOpen=()=>$('#terrainWrap')?.dataset.tpane==='quick' && document.body.dataset.view==='terrain';
-/* mở thẻ: atlas đang mở quyết định khổ và dáng mép mặc định, để ghi thẳng vào được */
-/* bảng gốc của bộ ô = bảng màu đang vẽ (như thẻ Tạo bộ). Đổi bảng thì màu vai trò anh đã chọn tay
-   chỉ giữ lại màu nào có trong bảng mới. Trả về true nếu bảng vừa đổi. */
+const isOpen=()=>{ const p=$('#paneQuick'); return !!p && !p.hidden && !$('#tpMain')?.hidden; };
+/* bảng gốc của bộ ô = bảng màu của bộ đang mở (Master → Master, còn lại → Genesis v3). Đổi bảng thì
+   màu vai trò anh đã chọn tay chỉ giữ lại màu nào có trong bảng mới. Trả về true nếu bảng vừa đổi. */
 function syncPalette(){
-  const k=toolPaletteKey();
+  const k=paletteKey();
   let changed=st.palette!==k;
   st.palette=k;
   const inPal=new Set(PALETTES[palName()].map(h=>h.toLowerCase()));
@@ -445,23 +478,28 @@ function syncPalette(){
   }
   if(changed) save(); return changed;
 }
-export function openQuick(){
-  const changed=syncPalette(), wasMounted=mounted;
+/* mở thẻ (hoặc đổi sang bộ khác khi thẻ đang mở): bộ 56 ô đang mở quyết định khổ và dáng mép
+   mặc định, để ghi thẳng vào được; mỗi bộ chỉ áp một lần, anh đổi tay thì giữ lựa chọn của anh */
+let adoptedFor=null, shownFor;
+function open(){
+  const changed=syncPalette(), wasMounted=mounted, shape=st.shape;
   mount();
-  if(changed && wasMounted) paintRecipes();       // thẻ công thức vẽ theo bảng cũ lúc đổi bảng khi thẻ đang đóng
   const a=terrainTarget();
-  if(a && !openedOnce){ st.size=a.tw; st.shape=a.shape||'inset'; }
-  openedOnce=true;
-  syncControls(); paintStrata(); schedule();
+  if(a && a.id!==adoptedFor && GEN_SIZES.includes(a.size)){ st.size=a.size; st.shape=a.shape; save(); }
+  adoptedFor=a?.id??adoptedFor; shownFor=host.ts()?.id;
+  if(wasMounted && (changed || shape!==st.shape)) paintRecipes();   // thẻ công thức vẽ theo bảng / dáng mép cũ
+  syncControls(); syncExportNote(); paintStrata(); schedule();
   requestAnimationFrame(fitMap);
 }
-let openedOnce=false;
-export function bindTileGen(){
-  document.querySelector('.tv-tabs [data-tpane=quick]')?.addEventListener('click',openQuick);
-  window.addEventListener('viewchange',e=>{ if(e.detail?.view==='terrain' && isOpen()) openQuick(); });
-  window.addEventListener('palettechange',()=>{
-    if(!syncPalette() || !mounted) return;
-    paintRecipes();                                // thẻ công thức vẽ lại cả khi thẻ đang đóng
-    if(isOpen()){ syncControls(); schedule(true); }
-  });
+let soonT=0;
+export function mountQuick(h){
+  host=h;
+  // đổi ô / đổi bộ khi thẻ đang mở: nút khoá theo ô mới; bộ mới thì dựng lại theo bộ đó
+  host.onSelect(()=>{ if(!isOpen()) return; if(host.ts()?.id!==shownFor) open(); else syncTarget(); });
+  return {
+    open,
+    /* ô vừa được vẽ: danh sách "đã sửa tay" cập nhật sau một nhịp */
+    updateSoon(){ clearTimeout(soonT); if(isOpen()) soonT=setTimeout(()=>{ if(isOpen()) syncTarget(); },300); },
+    apply
+  };
 }

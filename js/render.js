@@ -3,7 +3,6 @@ import { $, setText, setHidden } from './dom.js';
 import { doc, view, TH } from './state.js';
 import { buf, compositeToBuf, inside, clampSel, layerLength } from './raster.js';
 import { autosave } from './storage.js';
-import { paintTerrainGuide } from './terrain.js';
 
 export const board = $('#board');
 const ctx = board.getContext('2d');
@@ -98,10 +97,6 @@ export function render(){
   }
   compositeToBuf(doc.af);
   ctx.drawImage(buf,0,0,W,H);
-
-  const te=doc.atlasEdit;
-  if(view.terrainGuide && view.terrainGuideMode!=='off' && te && Number.isInteger(te.terrainSlot) && te.terrainSlot>=0 && te.terrainSlot<56 && te.w===doc.w && te.h===doc.h && doc.w===doc.h)
-    paintTerrainGuide(ctx,te.terrainSlot,doc.w,z,view.terrainGuideMode||'wireframe',te.shape);
 
   if(view.grid && view.zoom>=6){
     ctx.lineWidth=lw;

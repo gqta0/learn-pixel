@@ -9,7 +9,7 @@ export const doc = {
   layers:[{name:'Nét chính', vis:true}],
   frames:[],           // frames[i] = [Uint32Array,…] theo thứ tự lớp
   dur:[],              // dur[i] = mili-giây riêng của khung i; 0 hoặc thiếu = chạy theo fps chung
-  af:0, al:0, atlasEdit:null, terrainLink:null,
+  af:0, al:0, atlasEdit:null,
   anchor:null,         // điểm chân {x,y} trong khung (y = mặt đất), có từ lúc nhập sheet — xuất kèm cho game
   charH:0,             // chiều cao nhân vật (px) lúc nhập — để xem ở cỡ trong game
   puppet:null          // 'head' | 'body': bản vẽ là sheet miếng của Ghép rối (xem puppetview.js)
@@ -27,7 +27,7 @@ try { savedGroup = localStorage.getItem('lo-pixel-pal-group') !== 'false'; } cat
 try { savedPenBtn = localStorage.getItem('lo-pixel-pen-btn') || 'sec'; } catch(_) {}
 
 export const view = {
-  zoom:12, grid:true, onion:false, symLine:false, drawing:false, terrainGuide:true,
+  zoom:12, grid:true, onion:false, symLine:false, drawing:false,
   mirX:false, mirY:false,
   tool:'pencil', brush:1,
   pri: hexToInt('#ffb43f'), sec: hexToInt('#2e2e42'),
@@ -39,8 +39,7 @@ export const view = {
   penButton: savedPenBtn, wrapMove:false,
   pixelPerfect:false, ditherPattern:'50', ditherMode:'sec',
   groupPalette: savedGroup,
-  palettePinned: false,
-  terrainGuideMode: 'wireframe', terrainLock:true
+  palettePinned: false
 };
 
 /* ---------------- chủ đề sáng / tối ---------------- */

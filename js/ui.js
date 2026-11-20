@@ -25,8 +25,6 @@ import { packProjects } from './pack.js';
 import { paintDaily, goToNext } from './daily.js';
 import { bindAtlas, importAtlas, syncBar as syncAtlasBar } from './atlas.js';
 import { openMapView, bindMapView } from './mapview.js';
-import { bindTerrain, syncTerrainBar, openTerrain, closeTerrain } from './terrainview.js';
-import { bindTileGen } from './tilegenview.js';
 import { bindSheetImport } from './sheetview.js';
 import { bindPuppet } from './puppetview.js';
 
@@ -36,7 +34,6 @@ import { bindPuppet } from './puppetview.js';
 export function resizeDoc(w, h, keep){
   const old={w:doc.w,h:doc.h,frames:doc.frames};
   pushUndo();
-  doc.terrainLink=null;
   doc.w=w; doc.h=h;
   const ox = keep==='center' ? Math.floor((w-old.w)/2) : 0;
   const oy = keep==='center' ? Math.floor((h-old.h)/2) : 0;
@@ -118,7 +115,7 @@ export function syncAll(){
   $('#hud').textContent = doc.w+'×'+doc.h;
   const nameEl = $('#projName'); if(nameEl) nameEl.value = doc.name || 'Bản vẽ không tên';
   paintLayers(); paintThumbs(); syncColors(); render(); updateProgress();
-  syncAtlasBar(); syncTerrainBar();
+  syncAtlasBar();
   syncNavHeight();
 }
 
@@ -411,14 +408,14 @@ $('#clearBtn').addEventListener('click', ()=>{
 $('#btnUndo').addEventListener('click', undo);
 $('#btnRedo').addEventListener('click', redo);
 
-$('#frAdd').addEventListener('click', ()=>{ pushUndo(); doc.terrainLink=null; marksInsert(doc.af+1); doc.frames.splice(doc.af+1,0,newFrame()); doc.dur.splice(doc.af+1,0,0); doc.af++; paintThumbs(); render(); });
-$('#frDup').addEventListener('click', ()=>{ pushUndo(); doc.terrainLink=null; marksInsert(doc.af+1); doc.frames.splice(doc.af+1,0, doc.frames[doc.af].map(d=>d.slice())); doc.dur.splice(doc.af+1,0,doc.dur[doc.af]||0); doc.af++; paintThumbs(); render(); });
+$('#frAdd').addEventListener('click', ()=>{ pushUndo(); marksInsert(doc.af+1); doc.frames.splice(doc.af+1,0,newFrame()); doc.dur.splice(doc.af+1,0,0); doc.af++; paintThumbs(); render(); });
+$('#frDup').addEventListener('click', ()=>{ pushUndo(); marksInsert(doc.af+1); doc.frames.splice(doc.af+1,0, doc.frames[doc.af].map(d=>d.slice())); doc.dur.splice(doc.af+1,0,doc.dur[doc.af]||0); doc.af++; paintThumbs(); render(); });
 $('#frDel').addEventListener('click', ()=>{
   if(doc.frames.length<2) return;
-  pushUndo(); doc.terrainLink=null; marksRemove(doc.af); doc.frames.splice(doc.af,1); doc.dur.splice(doc.af,1); doc.af=Math.max(0,doc.af-1); paintThumbs(); render();
+  pushUndo(); marksRemove(doc.af); doc.frames.splice(doc.af,1); doc.dur.splice(doc.af,1); doc.af=Math.max(0,doc.af-1); paintThumbs(); render();
 });
-$('#frLeft').addEventListener('click', ()=>{ if(doc.af>0){ pushUndo(); doc.terrainLink=null; marksMove(doc.af,doc.af-1); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af-1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af-1,0,t||0); doc.af--; paintThumbs(); render(); } });
-$('#frRight').addEventListener('click', ()=>{ if(doc.af<doc.frames.length-1){ pushUndo(); doc.terrainLink=null; marksMove(doc.af,doc.af+1); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af+1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af+1,0,t||0); doc.af++; paintThumbs(); render(); } });
+$('#frLeft').addEventListener('click', ()=>{ if(doc.af>0){ pushUndo(); marksMove(doc.af,doc.af-1); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af-1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af-1,0,t||0); doc.af--; paintThumbs(); render(); } });
+$('#frRight').addEventListener('click', ()=>{ if(doc.af<doc.frames.length-1){ pushUndo(); marksMove(doc.af,doc.af+1); const f=doc.frames.splice(doc.af,1)[0]; doc.frames.splice(doc.af+1,0,f); const t=doc.dur.splice(doc.af,1)[0]; doc.dur.splice(doc.af+1,0,t||0); doc.af++; paintThumbs(); render(); } });
 $('#frDur').addEventListener('change', e=>{
   const v=parseInt(e.target.value,10);
   doc.dur[doc.af] = isFinite(v) ? Math.max(10,Math.min(4000,v)) : 0;
@@ -509,8 +506,6 @@ $('#impJson').addEventListener('change', e=>{ if(e.target.files[0]) importJson(e
 
 bindAtlas();
 bindMapView();
-bindTerrain();
-bindTileGen();
 bindSheetImport();
 bindPuppet();
 const mapPrevBtn = $('#mapPrevBtn');
@@ -573,14 +568,14 @@ window.addEventListener('keydown', e=>{
   }
   if(e.ctrlKey||e.metaKey) return;
   const arrows={arrowleft:[-1,0],arrowright:[1,0],arrowup:[0,-1],arrowdown:[0,1]};
-  if(arrows[k] && !e.altKey && view.tool==='move' && document.body.dataset.view!=='terrain' &&
+  if(arrows[k] && !e.altKey && view.tool==='move' &&
      !document.querySelector('.libwrap:not([hidden])')){
     e.preventDefault();
     const step=e.shiftKey ? (view.gridStep||8) : 1;
     nudge(arrows[k][0]*step, arrows[k][1]*step);
     return;
   }
-  const onCanvas = document.body.dataset.view!=='terrain' && !document.querySelector('.libwrap:not([hidden])');
+  const onCanvas = !document.querySelector('.libwrap:not([hidden])');
   if(onCanvas && (k==='+'||k==='=')){ setZoom(view.zoom+2); return; }
   if(onCanvas && (k==='-'||k==='_')){ setZoom(view.zoom-2); return; }
   if(onCanvas && k==='0'){ fitZoom(); render(); return; }
@@ -588,7 +583,6 @@ window.addEventListener('keydown', e=>{
   if(k==='escape'){
     if(closePopup()) return;
     if(moreEl.open){ moreEl.open=false; moreEl.querySelector('summary').focus(); return; }
-    if(document.body.dataset.view==='terrain'){ setView('draw'); return; }
     const mw=$('#mapWrap'); if(mw && !mw.hidden){ mw.hidden=true; return; }
     const aw=$('#atlasWrap'); if(aw && !aw.hidden){ aw.hidden=true; return; }
     const lw=$('#libWrap'); if(lw && !lw.hidden){ lw.hidden=true; return; }
@@ -597,16 +591,6 @@ window.addEventListener('keydown', e=>{
   if(k==='delete'||k==='backspace'){ e.preventDefault(); $('#selDel').click(); return; }
   const map={b:'pencil',d:'dither',e:'eraser',g:'fill',i:'picker',l:'line',u:'rect',o:'ellipse',m:'move',s:'shade',a:'select',k:'outline'};
   if(map[k]){ setTool(map[k]); return; }
-  if(k==='h'){
-    if(!view.terrainGuide || view.terrainGuideMode==='off'){
-      view.terrainGuide=true; view.terrainGuideMode='wireframe';
-    } else if(view.terrainGuideMode==='wireframe'){
-      view.terrainGuideMode='tint';
-    } else {
-      view.terrainGuideMode='off';
-    }
-    syncTerrainBar(); render(); return;
-  }
   if(k==='p'){ view.pixelPerfect = !view.pixelPerfect; syncPixelPerfectBtn(); return; }
   if(k==='x'){ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); }
   if(k==='['){ view.brush=Math.max(1,view.brush-1); view.brushEff=view.brush; $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }

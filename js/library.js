@@ -64,6 +64,14 @@ export function saveCurrent(name, asNew){
   openId=id;
   return id;
 }
+/* Thêm một bản vẽ có sẵn dữ liệu (định dạng serialize) vào thư viện mà không mở nó — vd. hai sheet
+   của một file nhân vật. Trả về id, hoặc null nếu hết chỗ. */
+export function addProject(name, data){
+  const id=newId();
+  items[id]={ name: String(name||'').trim() || ('Bản vẽ '+data.w+'×'+data.h), at: Date.now(), data };
+  if(!persist(id)){ delete items[id]; return null; }
+  return id;
+}
 export function openProject(id){
   const p=items[id];
   if(!p) return false;

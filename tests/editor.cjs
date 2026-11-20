@@ -17,13 +17,12 @@ function editor(){
   const nodes=new Map(), board=element(), win=element(), dom=element();
   const $=id=>{if(!nodes.has(id)) nodes.set(id,element()); return nodes.get(id);};
   const doc={w:32,h:32,af:0,al:0,layers:[{name:'Test',vis:true}],frames:[[new Uint32Array(1024)]],dur:[0]};
-  const view={tool:'pencil',fingerMode:'draw',brush:1,brushEff:1,pri:0xff112233,sec:0xff445566,sel:null,zoom:1,terrainLock:true};
+  const view={tool:'pencil',fingerMode:'draw',brush:1,brushEff:1,pri:0xff112233,sec:0xff445566,sel:null,zoom:1};
   let marks=0;
   dom.createElement=element; dom.querySelector=()=>null;
   const context=vm.createContext({doc,view,board,$,document:dom,window:win,Uint32Array,
     activeData:()=>doc.frames[doc.af][doc.al],blank:()=>new Uint32Array(doc.w*doc.h),
     cloneLayer:l=>JSON.parse(JSON.stringify(l)),
-    terrainConnectorIndices:()=>[2],tileRoles:()=>new Uint8Array(doc.w*doc.h),ROLE_NAMES:[],
     rgba:(r,g,b,a)=>(r|(g<<8)|(b<<16)|(a<<24))>>>0,
     render(){},requestRender(){},PERF:false,perfMark(){},setText:(el,t)=>{el.textContent=t;},syncAll(){},paintThumbs(){},paintSwatches(){},syncColors(){},syncFingerBtn(){},
     markToday(){marks++;},shadeStep:v=>v,setZoom:z=>{view.zoom=z;}
@@ -125,20 +124,6 @@ test('palm contact on toolbar cannot change the active pen stroke',()=>{
   e.dom.listeners.pointerdown[0](contact);e.dom.listeners.click[0](contact);
   assert.equal(blocked,2);assert.equal(e.view.drawing,true);
   e.event('pointerup',1,2,2,'pen');assert.equal(e.marks(),1);
-});
-test('terrain connector lock restores an existing border pixel after a stroke',()=>{
-  const e=editor();e.doc.atlasEdit={atlasId:'terrain-test',terrainSlot:46,w:32,h:32};
-  e.doc.frames[0][0][2]=0xff010203;
-  e.stroke(2,0);
-  assert.equal(e.pixel(2,0),0xff010203);
-  e.view.terrainLock=false;e.stroke(2,0);
-  assert.equal(e.pixel(2,0),e.view.pri);
-});
-test('undo restores the atlas slot together with its pixels',()=>{
-  const e=editor();e.doc.atlasEdit={atlasId:'terrain-test',terrainSlot:46,x:96,y:80,w:16,h:16,c:6,r0:5};
-  e.run('pushUndo()');e.doc.atlasEdit={...e.doc.atlasEdit,terrainSlot:47};
-  e.run('undo()');assert.equal(e.doc.atlasEdit.terrainSlot,46);
-  e.run('redo()');assert.equal(e.doc.atlasEdit.terrainSlot,47);
 });
 test('Shift+click with the pencil draws a straight line from the previous stroke end',()=>{
   const e=editor();e.stroke(2,2);
@@ -249,4 +234,22 @@ test('undo and redo bring back which library item the drawing belongs to',()=>{
   assert.equal(e.run('libId'),'A');                               // hoàn tác về tranh của A thì lưu vào A
   e.run('redo()');
   assert.equal(e.run('libId'),'B');
+});
+// Bản lưu cũ (trước khi xưởng Terrain chuyển sang Trang Tile) còn trường liên kết 56 frame ↔ atlas.
+// Tên trường ghép từ hai mảnh để lệnh grep kiểm tra việc gỡ bỏ chỉ bắt được mã thật.
+const OLD_LINK='terrain'+'Link';
+test('an old save carrying the terrain frame link loads without bringing the link back',()=>{
+  const e=editor(), src=readFileSync(join(__dirname,'../js/storage.js'),'utf8');
+  const start=src.indexOf('export function applyData'), end=src.indexOf('\nexport ',start+1);
+  e.run('var MAX_SIDE=256,stopEditing=()=>{},setPalette=()=>{},syncPalSelect=()=>{},migrateDone=()=>{},invalidateBuf=()=>{},fitZoom=()=>{},buildExercises=()=>{};'
+    +src.slice(start,end).replace(/\bexport\s+/,''));
+  const old={w:2,h:2,version:1,layers:[{name:'A',vis:true}],frames:[[[0,0,0,0]]],
+    [OLD_LINK]:{atlasId:'t1',labels:true,slots:[0,1,2]}};
+  assert.doesNotThrow(()=>e.run('applyData('+JSON.stringify(old)+')'));
+  assert.equal(e.doc.w,2);
+  assert.equal(e.doc[OLD_LINK],undefined);
+});
+test('undo snapshots no longer record a terrain link',()=>{
+  const e=editor();e.doc[OLD_LINK]={atlasId:'t1',slots:[0]};
+  assert.equal(e.run('captureUndo()')[OLD_LINK],undefined);
 });

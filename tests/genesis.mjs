@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import * as genesis from '../js/genesis.js';
+import {toolPaletteKey} from '../js/terrainio.js';
 import {paletteApp} from './palette-env.mjs';
 import {parsePaletteText, groupColors} from '../js/palgroups.js';
 import {makeSpec, GEN_RECIPE_ORDER, GEN_ROLE_KEYS, heroSprite} from '../js/tilegen.js';
@@ -72,8 +73,8 @@ test('Genesis recipes and hero stay inside v3 and drop stale off-palette saved o
 });
 
 test('terrain tools use Master only for Master; every other palette uses Genesis v3',()=>{
-  const app=paletteApp(),src=read('js/terrainview.js');
-  vm.runInContext(src.slice(src.indexOf('export function toolPaletteKey()'),src.indexOf('const TERRAIN_CREATE_PRESETS=')).replace(/^export /gm,''),app.context);
+  const app=paletteApp(), MASTER=app.run('MASTER_NAME');
+  app.context.toolPaletteKey=()=>toolPaletteKey(app.run('paletteNameOf(appPalette)'),MASTER);
   for(const [name,key] of [[genesis.GENESIS_NAME,'genesis'],['Genesis v3 · Lá (4 màu)','genesis'],['Master Palette (92 màu)','master']]){
     app.context.appPalette=app.run('PALETTES['+JSON.stringify(name)+']');
     assert.equal(app.run('toolPaletteKey()'),key,name);
@@ -82,18 +83,24 @@ test('terrain tools use Master only for Master; every other palette uses Genesis
   assert.equal(app.run('toolPaletteKey()'),'genesis');
 });
 
-test('reopening the quick generator removes stale colors even when its palette key is unchanged',()=>{
-  const src=read('js/tilegenview.js');
-  const start=src.indexOf('function syncPalette(){'),end=src.indexOf('export function openQuick()',start);
+// Trang Tile (tilequick.js): bảng theo bộ đang mở (host.paletteKey).
+test('Tile page quick generator removes stale colors even when its palette key is unchanged',()=>{
+  const src=read('js/tilequick.js');
+  const start=src.indexOf('function syncPalette(){'),end=src.indexOf('\n}\n',start)+3;
+  assert.ok(start>0 && end>start);
   const st={palette:'genesis',strata:[{colors:{r0:'#382733',k1:'#63C74D'}}]};
-  let saves=0;
-  const context=vm.createContext({st,toolPaletteKey:()=> 'genesis',palName:()=> 'v3',
-    PALETTES:{v3:genesis.GENESIS_COLORS},save(){saves++;}});
+  let saves=0, key='genesis';
+  const context=vm.createContext({st,paletteKey:()=>key,palName:()=>st.palette==='master'?'m':'v3',
+    PALETTES:{v3:genesis.GENESIS_COLORS,m:['#63c74d']},save(){saves++;}});
   vm.runInContext(src.slice(start,end),context);
   assert.equal(vm.runInContext('syncPalette()',context),true);
   assert.deepEqual(st.strata[0].colors,{k1:'#63C74D'});
   assert.equal(saves,1);
   assert.equal(vm.runInContext('syncPalette()',context),false);
+  key='master';
+  assert.equal(vm.runInContext('syncPalette()',context),true);
+  assert.equal(st.palette,'master');
+  assert.deepEqual(st.strata[0].colors,{k1:'#63C74D'});
 });
 
 test('copying a legacy localStorage save to IndexedDB does not overwrite its adopted v3 palette',async()=>{

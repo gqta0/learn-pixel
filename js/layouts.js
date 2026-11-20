@@ -2,7 +2,7 @@
    Mỗi khuôn là dữ liệu thuần: danh sách ô, chỗ đặt trong ảnh atlas, cách chọn ô theo hàng xóm,
    và chế độ terrain của Godot. Không DOM — kiểm thử bằng Node. */
 import { BLOB_47_MASKS, TERRAIN_TILES, TERRAIN_CELLS, TERRAIN_COPY_CELLS, ATLAS_COLS, ATLAS_ROWS,
-         normalizeMask, tileRoles, terrainSlot, terrainArt, terrainPixels, shapeInset } from './terrain.js';
+         normalizeMask, tileRoles, terrainSlot, terrainConnectorIndices, terrainArt, terrainPixels, shapeInset } from './terrain.js';
 
 /* bit hàng xóm 8 hướng (giống terrain.js): N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128 */
 const N8=[[0,-1,1],[1,0,2],[0,1,4],[-1,0,8],[1,-1,16],[1,1,32],[-1,1,64],[-1,-1,128]];
@@ -69,6 +69,17 @@ export function layoutRoles(layout,slot,size,shape='inset'){
   if(layout.match==='sides') return tileRoles(BLOB_47_MASKS.indexOf(sidesToBlob(slot)),size,shape);
   if(layout.match==='corners') return cornerRoles(slot,size);
   return null;
+}
+/* pixel nối ở mép ô (phải giữ nguyên để ô ghép liền với hàng xóm); khuôn nối góc / tự do không có */
+export function connectorIndices(layout,slot,size,shape='inset'){
+  if(layout.match==='blob') return terrainConnectorIndices(slot,size,shape);
+  if(layout.match==='sides') return terrainConnectorIndices(BLOB_47_MASKS.indexOf(sidesToBlob(slot)),size,shape);
+  return [];
+}
+/* bản sao của `after` với các pixel ở idx lấy lại từ `before` — chỉ pixel nối đã có màu (đục hẳn);
+   pixel nối còn trong suốt thì vẫn cho vẽ lên */
+export function keepConnectors(before,after,idx){
+  const out=after.slice(); for(const i of idx) if((before[i]>>>24)===255) out[i]=before[i]; return out;
 }
 /* tranh mẫu khi tạo bộ mới: khối đặc theo vai, đủ để có ngay một bộ chạy được rồi vẽ đè */
 export function seedPixels(layout,slot,size,colors,shape='inset'){

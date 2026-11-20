@@ -184,7 +184,8 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
    cả một chi dưới mọi màu của chi đó nên khớp gối, khớp khuỷu liền một khối). Thường chỉ cần vẽ một tay, một
    chân: phía xa dùng lại, tối đi. Ngực nằm trên cả hai chân để vạt áo dài phủ được xuống.
    - **Tay, chân phía xa** (sáu ô *… xa*, cùng khổ và chỗ khớp với ô gần; trên sheet Thân, tay chân gần nằm
-     bên trái thân — nhãn **Trái (gần)** — ô xa đối xứng bên phải — **Phải (xa)** — ba vạt áo ở hàng dưới): để trống là phía xa dùng nét phía gần
+     bên trái thân — nhãn **Trái (gần)** — ô xa đối xứng bên phải — **Phải (xa)** — ba vạt áo ở hàng dưới; ô xa cũng có khối mờ dáng
+     mẫu, tối hơn một bậc, để vẽ theo — chỉ là hướng dẫn, rối không lấy nó thay ô xa trống): để trống là phía xa dùng nét phía gần
      tối đi; ô xa có nét thì phía xa dùng đúng nét đó, không tối thêm. **⧉ Chép từ bên gần** (một ô) hoặc
      **⧉ Chép cả 6 miếng xa** chép nét bên gần sang, tối đi một bậc theo dải màu của bảng (màu ngoài bảng thì
      tối đi thường), một bước hoàn tác — chỉ còn sửa chỗ khác nhau (tay áo, giày, băng tay…).
@@ -208,6 +209,16 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
    khối mẫu để vẫn thấy cả người. **▢ Viền máy** tắt viền 1 px để soi màu sát mép miếng; dãy **Miếng hiện trên
    rối** chạm để ẩn / hiện từng miếng (cả phía gần lẫn xa), **Hiện hết** để bật lại. Hai thứ này chỉ đổi phần xem
    (rối trong thẻ và rối nổi trên canvas), file xuất luôn đủ miếng, có viền.
+   - **⬇ Lưu nhân vật (.json)**: sheet Đầu và sheet Thân đang ghép (kể cả nét chưa cất của bản đang vẽ) thành một
+     file `<tên>.nhanvat.json` (`lo-pixel.character.v1`) — chuyển máy, gửi bạn, cất dự phòng. Khối mẫu / Không hiện
+     thì file thiếu sheet đó. **📂 Mở nhân vật (.json)**: hai sheet vào thư viện 📁 thành bản mới (sheet còn tên mặc
+     định thì gọi theo tên nhân vật), rối ghép luôn nhân vật đó; đang mở một sheet cùng loại thì hỏi có mở sheet của
+     nhân vật mới không (bản đang vẽ được cất trước). File hỏng hay không phải nhân vật thì báo lý do, không thêm gì.
+     File mẫu `data/samples/mau-de-tu-ao-lam.nhanvat.json` (Đệ tử áo lam): miếng gần tô phẳng + đổ bóng, sáu ô xa
+     chép từ bên gần tối đi một bậc trong dải Genesis v3 — mở bằng 📂 Mở nhân vật để xem bộ xa nên trông thế nào.
+   - Hướng dẫn trên sheet có viền tối quanh mọi chấm, nét và chữ nên thấy rõ trên ô ca-rô sáng lẫn tối và trên mọi
+     màu miếng: chấm đỏ = khớp xoay, chấm xanh = chỗ gắn, chấm vàng có nhãn = mốc đầu, vòng xanh lá = sọ, khung hồng
+     = vùng tóc / phụ kiện.
 4. **Xuất** — **⬇ Xuất mọi động tác (ZIP)**: mỗi động tác một PNG một hàng khung, tên theo kiểu game đang đọc
    (`run_71x99_8f.png`, `skill_02_71x99_18f.png`…), kèm `puppet_bake.json` (khổ khung, điểm chân, fps, lặp).
    Khổ khung giống nhau ở mọi động tác và tính từ khung xương, nên vẽ lại miếng không làm lệch điểm chân.
@@ -222,7 +233,9 @@ báo nếu bản làm mới đổi lại thứ tự này.
 
 ## Trang Tile (`tile.html`) — nhiều bộ tile, nhiều khuôn, tile hoạt ảnh
 
-Mở bằng nút **🧱 Trang Tile** trong thẻ Terrain, hoặc vào thẳng `tile.html`. Trang này tách riêng khỏi trang Vẽ.
+Ở trang Vẽ: nút **🧱 Tile** trên thanh dưới (điện thoại), **🧱 Trang Tile** ở thẻ File hoặc trong bảng
+Atlas; hoặc vào thẳng `tile.html`. Trang này tách riêng khỏi trang Vẽ; mọi việc của xưởng Terrain 56 cũ
+(thẻ Terrain trên trang Vẽ, nay đã gỡ) giờ làm ở đây.
 
 - **Bốn khuôn:**
   - **Terrain 56**: blob 47 + 9 biến thể, atlas 10×7.
@@ -236,37 +249,52 @@ Mở bằng nút **🧱 Trang Tile** trong thẻ Terrain, hoặc vào thẳng `t
   - *Một ô*: chỉ hiện ô đang vẽ, to nhất.
   - Bút quấn mép (W), gương ngang, gợi ý vai pixel (H), hoàn tác theo ô.
 - **Tile hoạt ảnh:** mỗi ô có khung riêng và thời lượng riêng, có bóng khung trước, chạy thử ngay trong khung vẽ và trên Soi map.
+- **Các thẻ dưới khung vẽ:** **Bộ ô** (lưới mọi ô theo đúng chỗ trong atlas, chạm để vẽ) · **Soi map** ·
+  **Soi lỗi** · **Chi tiết** · **⚡ Tạo nhanh**. Bộ Terrain 56 dùng đủ năm thẻ, xem
+  [Terrain 56](#terrain-56--template-có-hướng-dẫn-pixel) bên dưới.
 - **Soi map 16×10:** vẽ vật liệu lên map, ô tự chọn theo khuôn. Chạm một ô trên map để mở ô đó.
 - **⬇ Godot:** ZIP gồm `tileset.png`, `tileset.tres` và `layout.json`.
   - Ảnh xếp khung theo khối: khối k chứa khung k của mọi ô.
   - `.tres` đặt terrain mode theo khuôn (0 góc + cạnh, 1 góc, 2 cạnh), có peering bit, va chạm và `animation_*` cho ô hoạt ảnh.
-- **Nhập / xuất khác:** nhập Terrain 56 đang có ở trang Vẽ thành một bộ (bản ở trang Vẽ giữ nguyên); lưu và mở `.tileset.json`; nạp PNG atlas vào bộ đang mở.
+- **Menu ⋯ (nhập / xuất):** nhân bản, đổi tên, xoá bộ; ⬇ PNG atlas (mọi khung); 💾 lưu và
+  📂 mở `.tileset.json`; 🖼 nạp PNG atlas vào bộ đang mở. Với bộ Terrain 56 có thêm các bản xuất
+  của xưởng cũ (xem dưới). **🧩 Nhập Terrain 56 từ trang Vẽ** chép atlas Terrain đang có ở trang
+  Vẽ thành một bộ (bản ở trang Vẽ giữ nguyên).
 - **Cảnh báo tab cũ:** một tab Lò Pixel cũ còn giữ kho lưu thì trang Tile nhắc tải lại tab đó.
 
-Trang Vẽ có thêm `?perf` trên địa chỉ: góc màn hình hiện thời gian vẽ, chấm đầu nét và kết thúc nét, để đo trên máy thật.
+### Terrain 56 — template có hướng dẫn pixel
 
-## Terrain 56 — template có hướng dẫn pixel
+Tạo bằng **＋ Bộ mới → Terrain 56** (16 hoặc 32 px, dáng mép, preset màu), bằng **⚡ Tạo nhanh**,
+hoặc mở file cũ. Năm thẻ của Trang Tile, mỗi thẻ một việc:
 
-Mở **Terrain** từ thanh Terrain trên tablet, tab File/Atlas hoặc tab Terrain trên thanh
-dưới mobile. Workbench trình bày 56 slot theo nhóm hình học; ID atlas vẫn giữ nguyên.
+- **Bộ ô** — 56 ô theo atlas 10×7; chạm một ô để vẽ. Khi vẽ, **👁** bật gợi ý vai pixel
+  (phím **H** đổi Khung viền → Phủ mờ → Tắt; chỉ hiện trên màn hình, không vào file xuất),
+  **🔒 Khoá nối** (phím **K**) giữ nguyên pixel connector đã có ở mép để khỏi vô tình khoét thủng.
+- **Soi map** — vẽ vật liệu lên map, ô tự chọn theo mask và biến thể.
+- **Soi lỗi** — soi mối nối (alpha / màu-vân / cả hai), **◎ Ô cần sửa**, và cách làm 13 ô lõi:
+  **⚙ Ghép 34 ô**, **⧉ Biến thể ← ô gốc**.
+- **Chi tiết** — vai trò từng pixel của ô đang mở, công thức mép, các ô nối được theo N/E/S/W;
+  bấm một ô nối để xem hai ô ghép cạnh nhau.
+- **⚡ Tạo nhanh** — dựng cả bộ từ công thức (dưới đây).
 
-Màn Terrain chia sáu thẻ, mỗi thẻ một việc: **Bộ ô** (chọn ô, ô đang chọn luôn nằm ở
-thanh dưới cùng với nút vẽ) · **⚡ Tạo nhanh** · **Chi tiết** (vai trò pixel, ô nối được;
-trên màn rộng nằm sẵn cạnh lưới) · **Tạo bộ** · **Soi lỗi** · **Xuất**.
+Xuất nằm trong menu **⋯** (chỉ hiện với bộ Terrain 56): **Atlas PNG sạch**, **PNG có chú thích**,
+**Godot 4 mapping (.json)**, **JSON layout**, **Cả bộ một file** (`terrain56-pack.json`) và **Dự án
+Terrain** (`terrain56-project.json`). **📂 Mở bộ .json / dự án Terrain** mở lại cả project lẫn pack
+xuất từ trang Vẽ trước đây, kể cả atlas bố cục cũ 8×7. **⬇ Godot** trên thanh trên xuất ZIP như mọi khuôn.
 
-### ⚡ Tạo nhanh từ công thức
+#### ⚡ Tạo nhanh từ công thức
 
 Dựng cả bộ 56 ô bằng thuật toán trong vài giây, đẹp sẵn để chỉnh tiếp bằng tay.
-Bên trái là bản đồ xem trước (**Bậc thang · Hang · Đảo bay · Cắt lớp 6 tầng**) có
-trang trí và nhân vật cao đúng ô **🎮 Cỡ trong game**. Bên phải làm theo ba bước:
+Bản đồ xem trước (**Bậc thang · Hang · Đảo bay · Cắt lớp 6 tầng**) có trang trí và nhân vật
+cao theo **🎮 Cỡ trong game** đã chọn ở trang Vẽ. Các thẻ chỉnh làm theo ba bước:
 
 1. **Công thức** — sáu kiểu **đá khối sạch** (khối đá xếp so le, mạch vữa rõ, mặt phẳng — kiểu
    tile sạch): **· cỏ**, **rêu · rễ** (đá nâu đất, dây rêu rủ, rễ luồn mạch vữa), **sâu · mạch
    ngọc**, **mạch lam**, **hang tinh thể**, **linh thạch tím** (mạch vữa sáng linh khí, tinh thể
    **mọc xiên**); cùng các kiểu cũ Đá ấm · cỏ, Cuội rêu · rễ, Hang tinh thể lam, Băng tuyết,
-   Đường làng lát đá, Đá sâu · mạch lam, Linh thạch tím. Màu lấy từ **bảng màu đang vẽ**
-   (như thẻ Tạo bộ): chọn Master thì theo Master; mọi bảng khác (kể cả nhóm Genesis v3) dùng bảng tổng **Genesis v3**. Đổi bảng ở
-   khung vẽ thì bộ ô đổi theo. Mỗi công thức có sẵn bảng **màu theo vai trò** (viền, nền, đá, mặt
+   Đường làng lát đá, Đá sâu · mạch lam, Linh thạch tím. Màu lấy từ **bảng màu của bộ đang mở**:
+   bộ dùng Master thì theo Master; mọi bảng khác (kể cả nhóm Genesis v3) dùng bảng tổng **Genesis v3**.
+   Mở bộ khác thì công thức đổi màu theo. Mỗi công thức có sẵn bảng **màu theo vai trò** (viền, nền, đá, mặt
    trên, lớp phủ, linh khí, rễ, hoa) lấy đúng mã trong bảng đó; màu anh đổi tay chỉ giữ khi bảng mới
    cũng có màu ấy.
 2. **Chỉnh** — 5 thanh chính: **Cỡ đá, Mật độ đá, Lớp phủ, Rủ xuống, Linh khí**; chọn kiểu
@@ -275,10 +303,10 @@ trang trí và nhân vật cao đúng ô **🎮 Cỡ trong game**. Bên phải l
    vết nứt, sỏi, rễ, kiểu ruột (đá khối xếp so le / tảng đá trong nền tối / cuội xếp kín),
    kiểu mặt (không viền — khối đá chạy thẳng lên mặt / cuội bo tròn / đá phiến), hướng nắng,
    và đổi màu từng vai trò (chỉ chọn được màu của bảng gốc).
-3. **Đưa vào atlas** — chưa có bộ thì tạo bộ mới; có rồi thì ghi vào bộ đang mở.
+3. **Đưa vào bộ** — chưa có bộ Terrain 56 thì tạo bộ mới; có rồi thì ghi vào bộ đang mở.
    **Ghi** cho chọn phạm vi (cả 56 ô, chỉ ô có mặt trên, chỉ 4 ô ruột, ô có trần, ô có
    tường). **Giữ ô đã sửa tay** nhận ra ô nào anh vẽ lại sau lần tạo trước và không đè;
-   **🔒 Khoá** giữ thêm ô đang chọn ở thẻ Bộ ô. Ghi xong app soi lại mối nối của cả atlas.
+   **🔒 Khoá ô** giữ thêm ô đang mở ở khung vẽ. Ghi xong app soi lại mối nối của cả bộ.
 
 Vì sao ghép đâu cũng liền: phần ruột là một tấm vân **lặp vòng** đúng bằng một ô, nên đá
 được vắt qua mép ô mà không lộ lưới; mặt trên, tường và trần là dải cuội tính theo
@@ -294,7 +322,8 @@ sáng linh khí và cụm tinh thể xiên. **↕ Nội suy tầng 2–5** cho c
 tầng 1 xuống tầng 6. Bản đồ **Cắt lớp 6 tầng** xếp chồng cả sáu để xem chỗ chuyển tầng.
 
 Xuất: **Trang trí rời** (`decor.png`: cỏ, hoa, mầm, tinh thể, sỏi, nhũ… mỗi thứ một ô) và
-**Cả 6 tầng (ZIP)**, giải nén thẳng vào thư mục Godot (ô “Thư mục Godot” ở thẻ Xuất của khung vẽ).
+**Cả 6 tầng (ZIP)**, giải nén thẳng vào thư mục Godot (thư mục hỏi khi bấm **⬇ Godot**, dùng chung với ô
+“Thư mục Godot” ở thẻ File của trang Vẽ).
 ZIP chỉ có sáu thư mục, mỗi thư mục đúng bốn file:
 
 ```
@@ -322,38 +351,38 @@ chặn lượt tải; dưới nút luôn có link tải lại. Cài đặt của
 
 File xuất (JSON layout, Godot, pack, project) ghi `edgeShape` và gợi ý `collision`.
 
-**Hai cách làm**, chọn ở thẻ Tạo bộ:
+**Hai cách làm**:
 
 - **Vẽ tay cả 56 ô** — mặc định.
 - **Vẽ 13 ô lõi, app ghép phần còn lại** — 13 ô lõi là khối 3×3 cơ bản và 4 ô lõm một góc;
   chúng phủ hơn 99% bản đồ thường gặp. Mỗi ô blob là bốn góc phần tư, mỗi góc chỉ có 5
   trạng thái, nên 34 ô còn lại dựng được từ 13 ô này. App **chỉ ghép khi bấm ⚙ Ghép 34 ô**
-  và có hỏi lại; ô lõi và biến thể không bị đụng. **⧉ Biến thể ← ô gốc** chép ô gốc vào 9 ô
-  biến thể để chỉ còn việc sửa cho khác đi.
+  (thẻ Soi lỗi) và có hỏi lại; ô lõi và biến thể không bị đụng. **⧉ Biến thể ← ô gốc** chép
+  ô gốc vào 9 ô biến thể để chỉ còn việc sửa cho khác đi.
 
-1. Chọn 16×16 hoặc 32×32, bấm **Tạo bộ 56 ô**. App dựng khối nền đá để vẽ tiếp;
-   có thể chọn nhanh preset **Đá lạnh / Đá ấm / Đất / Blue Qi / Qi xanh dương / Sky/Water / Qi Violet** hoặc chọn **Nền** và
-   **Cạnh** trực tiếp từ bảng gốc của bộ tạo (Genesis v3 mặc định; Master giữ bảng Master). Các bậc sáng/tối
-   của khối nền được bắt về màu gần nhất trong bảng. Nếu đã có atlas, xuất PNG cũ trước khi đồng ý thay.
-2. Chọn tile để đọc vai trò pixel, cạnh hở, góc lồi/lõm và các tile nối hợp lệ theo
-   N/E/S/W. Khối cơ bản được xếp thành sơ đồ 3×3; các nhóm góc lõm, khối rời và biến thể
-   đi theo thứ tự hình học. Bấm mã tile hàng xóm để chuyển thẳng sang tile đó và xem hai ô ghép cạnh nhau.
-3. **Ghi ô cũ & sửa ô chọn** mở tile trong editor đầy đủ. Có thể tắt lớp hướng dẫn,
-   vẽ bằng bút/S-Pen rồi **Ghi lại**. Mở workbench sẽ soi cả nét chưa ghi của ô đó.
-   Nút **↻ Đồng bộ 56** ghi toàn bộ frame đang link vào atlas ngay khi cần; không phải
-   bấm **Tạo bộ 56 ô** lại và không dựng lại dữ liệu.
-4. Khi sửa tile, **🔒 Điểm nối: khoá** giữ nguyên các pixel connector đã có để tránh
-   vô tình khoét thủng mép. Tắt khoá chỉ khi cần sửa connector rồi soi lại.
+1. **＋ Bộ mới → Terrain 56**, chọn 16×16 hoặc 32×32. Preset **Đá lạnh / Đá ấm / Đất / Nước + Khí /
+   Khí xanh / Trời + nước / Khí tím** dựng sẵn khối nền đá để vẽ tiếp, hoặc **Tự chọn màu** cho
+   **Nền** và **Cạnh** từ bảng gốc (Genesis v3 mặc định; Master giữ bảng Master). Các bậc sáng/tối
+   của khối nền được bắt về màu gần nhất trong bảng.
+2. Mở một ô ở thẻ **Bộ ô**, đọc vai trò pixel, cạnh hở, góc lồi/lõm và các ô nối hợp lệ theo
+   N/E/S/W ở thẻ **Chi tiết**. Bấm ô nối để sang ô đó và xem hai ô ghép cạnh nhau.
+3. Vẽ thẳng trong khung vẽ của Trang Tile (bút, S-Pen, hàng xóm thật quanh ô); mỗi nét lưu
+   ngay vào bộ, không có bước “ghi lại”.
+4. **🔒 Khoá nối** (bật sẵn) giữ nguyên các pixel connector đã có để tránh vô tình khoét thủng
+   mép. Tắt khoá chỉ khi cần sửa connector rồi soi lại.
 5. **Soi mối nối** có 3 chế độ: alpha bắt buộc, màu/vân, hoặc cả hai. Màu/vân so mỗi ô
    với các ô **cùng dáng cạnh** (cùng dãy vai trò pixel dọc cạnh, cùng hướng nối): những ô
    ấy phải vẽ cạnh đó y hệt nhau thì vân mới chạy liền dù ô nào đứng cạnh ô nào. Ô lệch số
    đông bị báo. **◎ Ô cần sửa** nhảy thẳng đến cặp lỗi gần nhất; cảnh báo màu/vân là gợi ý
    mềm, không ép style của artist.
-6. Xuất **PNG sạch**, **PNG chú thích**, **JSON layout**, **Godot mapping**,
-   **terrain56-pack.json** và **terrain56-project.json**. Project JSON chứa atlas PNG,
-   mapping và cấu hình link; mở lại sẽ tự trải đủ 56 frame theo slot `#00–#55`.
-   Chú thích/overlay không được ghi vào tranh. PNG sạch chỉ xoá pixel ở hàng/cột biên của
-   vùng "để trong suốt" (chỗ mối nối alpha đòi trống); cỏ mọc, nhũ rủ trong phần thụt được giữ.
+6. Xuất từ menu **⋯**: **Atlas PNG sạch**, **PNG có chú thích**, **JSON layout**, **Godot 4
+   mapping**, **Cả bộ một file** (`terrain56-pack.json`) và **Dự án Terrain**
+   (`terrain56-project.json`, chứa atlas PNG và mapping). Chú thích/overlay không được ghi vào
+   tranh. PNG sạch chỉ xoá pixel ở hàng/cột biên của vùng "để trong suốt" (chỗ mối nối alpha
+   đòi trống); cỏ mọc, nhũ rủ trong phần thụt được giữ.
+
+Atlas Terrain 56 còn nằm ở trang Vẽ (bảng Atlas) vẫn mở, xem, soi map và sửa từng ô như atlas thường;
+tạo bộ mới và các công cụ riêng của Terrain chỉ còn ở Trang Tile.
 
 Ảnh atlas 10 cột × 7 hàng (layout 3): bên trái là **lưới 7×7 chuẩn cr31 “blob”** chứa 47 ô
 (xếp như [template của cr31](https://opengameart.org/content/seamless-tileset-template-ii), vẽ
@@ -379,7 +408,7 @@ mapping, project) giữ nguyên:
 | 53–55 | Biến thể trần (#38), tường trái (#24), tường phải (#42) |
 
 Đây là layout 3: nghĩa slot như layout 2, chỉ đổi chỗ đặt trong ảnh. Atlas cũ 8×7 (slot xếp
-theo thứ tự) tự chuyển sang 10×7 khi mở hoặc khi nhập project; bộ layout 1 (5 ruột + 4 mép)
+theo thứ tự) tự chuyển sang 10×7 khi mở, khi nhập vào Trang Tile hoặc khi mở project; bộ layout 1 (5 ruột + 4 mép)
 còn được chép ô sàn gốc #31 vào #50, #51 như trước. `layout.json` ghi `atlas_cells`
 (slot → [cột, hàng]) và `atlas_copies` để game không phải viết cứng vị trí.
 
@@ -413,6 +442,8 @@ python -m http.server 8123
 
 Rồi vào `http://localhost:8123`.
 
+Trang Vẽ có thêm `?perf` trên địa chỉ: góc màn hình hiện thời gian vẽ, chấm đầu nét và kết thúc nét, để đo trên máy thật.
+
 ## Cấu trúc
 
 Kiểm thử hồi quy thao tác vẽ (Node.js, không cần cài thư viện):
@@ -427,8 +458,10 @@ vùng chọn khi có vùng chọn. Đổi khổ có bốn lựa chọn: giữ �
 Dải sáng–tối giữ nguyên khi lấy màu; dùng **Tạo dải từ màu chính** để tạo lại.
 
 ```
-index.html            chỉ markup
-css/app.css           toàn bộ giao diện, khối mobile nằm cuối file
+index.html            trang Vẽ, chỉ markup
+tile.html             Trang Tile (bộ tile, Terrain 56)
+css/app.css           giao diện trang Vẽ, khối mobile nằm cuối file
+css/tile.css          giao diện Trang Tile
 js/
   dom.js              $ và $$
   color.js            toán màu, dải màu theo chất liệu
@@ -445,10 +478,21 @@ js/
   lint.js             soi bài: đếm lỗi mà giáo trình dạy bằng lời
   library.js          thư viện bản vẽ + bảng liên hoàn
   daily.js            nhịp học: bài tiếp theo, số ngày đã vẽ
-  atlas.js            quản lý atlas / tilesheet của dự án
+  atlas.js            atlas / tilesheet của dự án: nạp, cắt lưới, mượn ô ra sửa, ghi lại
   mapview.js          soi map Natural / Coverage 56 / Recipe, autotile 47/56 ô
+  masterpal.js        dữ liệu Master Palette (không DOM; palette.js xuất lại)
+  terrain.js          Terrain 56: topology blob, vai trò pixel, bố cục atlas, manifest (không DOM)
+  terrainio.js        Terrain 56: đọc/ghi project, pack, atlas cũ 8×7, dọn mép (không DOM)
+  tilegen.js          ⚡ Tạo nhanh: vẽ bộ 56 ô từ công thức (không DOM)
+  layouts.js          các khuôn tile: 56 ô blob, 4×4 nối cạnh / nối góc, lưới tự do (không DOM)
+  tileset.js          bộ tile, khung hoạt ảnh, ảnh atlas, đọc/ghi .json (không DOM)
+  tilepage.js         Trang Tile: chọn bộ, khung vẽ ô, thẻ Bộ ô / Soi map, menu ⋯
+  tilecheck.js        Trang Tile, thẻ Soi lỗi: mối nối, 13 ô lõi
+  tiledetail.js       Trang Tile, thẻ Chi tiết: vai pixel, ô nối được, cặp ghép
+  tilequick.js        Trang Tile, thẻ ⚡ Tạo nhanh
   puppet.js           Ghép rối: dựng tư thế, ghép miếng lên xương, đổ bóng, soi miếng (thuần tính toán)
   puppetview.js       Ghép rối: thẻ, rối xem trước, hướng dẫn trên sheet, xuất ZIP
+  charfile.js         Ghép rối: file .json nhân vật (sheet Đầu + Thân), ghi và kiểm khi đọc (thuần dữ liệu)
   ui.js               đồng bộ giao diện + nối mọi sự kiện
   main.js             khởi động
   content/

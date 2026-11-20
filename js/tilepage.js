@@ -4,11 +4,17 @@
 import { doc, view } from './state.js';
 import { stamp, lineStamp, rectStamp, floodFill } from './raster.js';
 import { hexToInt, intToHex } from './color.js';
-import { GENESIS_COLORS, GENESIS_FAMILIES } from './genesis.js';
-import { ROLE_COLORS, ROLE_NAMES } from './terrain.js';
-import { layoutRoles, pickSlot, contextSlots, layoutGodotTres, layoutJson } from './layouts.js';
+import { GENESIS_COLORS, GENESIS_TOKENS } from './genesis.js';
+import { MASTER_COLORS, COLOR_TOKENS } from './masterpal.js';
+import { ROLE_COLORS, ROLE_NAMES, TERRAIN_TILES, DIRECTIONS, terrainSlotCell, maskToCr31, paintTerrainGuide,
+         terrainManifest, terrainGodotManifest, ATLAS_COLS, ATLAS_ROWS } from './terrain.js';
+import { layoutRoles, connectorIndices, keepConnectors, pickSlot, contextSlots, layoutGodotTres, layoutJson } from './layouts.js';
 import { createTileset, layoutOf, tileOf, frameAt, frameCount, frameMs, addFrame, removeFrame, moveFrame, setDuration,
-         animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES } from './tileset.js';
+         animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES, TILESET_SCHEMA } from './tileset.js';
+import { parseTerrainFile, terrainSheetTo10x7, TERRAIN_CREATE_PRESETS, cleanSheet, terrainProjectJson, terrainPackJson } from './terrainio.js';
+import { mountCheck } from './tilecheck.js';
+import { mountDetail } from './tiledetail.js';
+import { mountQuick, handOverQuickStamp } from './tilequick.js';
 import { makeZip } from './zip.js';
 import { sanitizeFilename } from './manifest.js';
 import { idbAvailable, idbGet, idbSet, idbDel, idbAll, askPersist, STORES } from './idb.js';
@@ -26,7 +32,8 @@ function toast(msg,ms=2600){ const el=$('#toast'); el.textContent=msg; el.classL
 /* ---------------- trạng thái trang ---------------- */
 let ts=null, lay=null, slot=0, frame=0;
 let list=[];                                    // [{id,name,layout}] để đổ vào ô chọn bộ
-const ui={tool:'pencil',ctx:'context',guide:true,onion:false,playing:false,mapPlaying:false,mtool:'paint'};
+const GUIDE_MODES=['wireframe','tint','off'];
+const ui={tool:'pencil',ctx:'context',guide:GUIDE_MODES.includes(lsGet('lo-pixel-tile-guide'))?lsGet('lo-pixel-tile-guide'):'wireframe',lock:true,onion:false,playing:false,mapPlaying:false,mtool:'paint'};
 view.brush=1; view.brushEff=1; view.mirX=false; view.mirY=false; view.sel=null; view.lockAlpha=false; view.wrapPaint=false;
 view.pri=hexToInt('#857870');
 const useIdb=idbAvailable();
@@ -36,14 +43,17 @@ window.addEventListener('idbblocked',()=>toast('Một tab Lò Pixel cũ đang gi
 /* ---------------- hoàn tác (theo ô: nhỏ, nên giữ được nhiều bước) ---------------- */
 const undoS=[], redoS=[];
 const snap=s=>{ const t=tileOf(ts,s); return {slot:s,frame,frames:t.frames.map(f=>f.slice()),dur:t.dur.slice()}; };
+/* một bước hoàn tác có thể chứa nhiều ô: {multi:[snap…],slot,frame} (ghép 34 ô, chép biến thể…) */
+const snapOf=e=>e.multi ? {multi:e.multi.map(m=>snap(m.slot)),slot,frame} : snap(e.slot);
 function pushUndo(e){ undoS.push(e); if(undoS.length>200) undoS.shift(); redoS.length=0; syncUndo(); }
 function restoreSnap(e){
-  ts.tiles[e.slot]={frames:e.frames.map(f=>f.slice()),dur:e.dur.slice()};
-  slot=e.slot; frame=Math.min(e.frame,e.frames.length-1);
-  changed(e.slot); selectSlot(slot,frame);
+  for(const m of (e.multi||[e])){ ts.tiles[m.slot]={frames:m.frames.map(f=>f.slice()),dur:m.dur.slice()}; changed(m.slot); }
+  const t=tileOf(ts,e.slot);
+  slot=e.slot; frame=Math.min(e.frame,t.frames.length-1);
+  selectSlot(slot,frame);
 }
-function undo(){ if(!undoS.length) return; const e=undoS.pop(); redoS.push(snap(e.slot)); restoreSnap(e); syncUndo(); }
-function redo(){ if(!redoS.length) return; const e=redoS.pop(); undoS.push(snap(e.slot)); restoreSnap(e); syncUndo(); }
+function undo(){ if(!undoS.length) return; const e=undoS.pop(); redoS.push(snapOf(e)); restoreSnap(e); syncUndo(); }
+function redo(){ if(!redoS.length) return; const e=redoS.pop(); undoS.push(snapOf(e)); restoreSnap(e); syncUndo(); }
 function syncUndo(){ $('#undoBtn').disabled=!undoS.length; $('#redoBtn').disabled=!redoS.length; }
 
 /* ---------------- lưu (IndexedDB chung với trang Vẽ) ---------------- */
@@ -52,7 +62,7 @@ const TAB=Math.random().toString(36).slice(2);   // tab nào ghi bản trong Ind
 function changed(s){
   ts.rev++; pending=true;
   clearTimeout(saveT); saveT=setTimeout(save,500);
-  paintThumb(s); paintFrames(); paintMap();
+  paintThumb(s); paintFrames(); paintMap(); check?.updateSoon(); detail?.updateSoon(); quick?.updateSoon();
 }
 async function save(){
   clearTimeout(saveT);
@@ -99,6 +109,7 @@ function load(next){
   setText($('#layoutNote'),lay.name+' · ô '+ts.size+'×'+ts.size+(lay.match==='blob'||lay.match==='sides'?' · '+(ts.shape==='flush'?'kín sát mép':'thụt mép'):''));
   mapPreset();
   buildGrid(); paintPalette(); fillSelect();
+  check?.update();
   selectSlot(Math.min(slot,lay.slots.length-1),0);
 }
 async function adopt(next,msg){
@@ -117,7 +128,9 @@ function selectSlot(s,f=0){
   setText($('#slotTitle'),'#'+String(slot).padStart(2,'0')+' · '+info.title);
   $$('#grid button').forEach(b=>b.setAttribute('aria-current',String(+b.dataset.slot===slot)));
   paintFrames(); drawEditor(); paintMap();
+  for(const cb of selectCbs) cb();
 }
+const selectCbs=[];
 function stepSlot(d){ const n=lay.slots.length; selectSlot((slot+d+n)%n,0); }
 
 /* ---------------- vẽ tranh một ô lên canvas ---------------- */
@@ -155,6 +168,7 @@ function layoutEditor(){
   if(ed.style.width!==css){ ed.style.width=ed.style.height=css; }
 }
 function drawEditor(){
+  syncLockBtn();
   if(!ts) return;
   if(drawQ){ cancelAnimationFrame(drawQ); drawQ=0; }
   layoutEditor();
@@ -171,16 +185,9 @@ function drawEditor(){
   }
   ectx.globalAlpha=1;
   const ox=(c===1?0:n)*z, oy=ox, px=curData();
-  // gợi ý vai pixel: chỗ nên có đất mà còn trống thì phủ mờ màu vai; vẽ lố ra chỗ phải trong suốt thì chấm đỏ
-  const roles=ui.guide ? rolesOf(slot) : null;
-  if(roles && !ui.playing){
-    for(let i=0;i<roles.length;i++){
-      const x=i%n, y=(i/n)|0, solid=(px[i]>>>24)>0;
-      if(!solid && roles[i]){ ectx.fillStyle=ROLE_COLORS[roles[i]]+'55'; ectx.fillRect(ox+x*z,oy+y*z,z,z); }
-      // nối góc: nửa không có vật liệu chính là vật liệu nền, vẫn phải tô — không chấm đỏ
-      else if(solid && !roles[i] && lay.match!=='corners'){ ectx.fillStyle='#ff5c8a'; const d=Math.max(lw,z>>2); ectx.fillRect(ox+x*z+(z-d>>1),oy+y*z+(z-d>>1),d,d); }
-    }
-  }
+  // gợi ý vai pixel theo khuôn: khung viền hoặc phủ mờ; dải cyan ở mép nối
+  const roles=ui.guide!=='off' ? rolesOf(slot) : null;
+  if(roles && !ui.playing) paintGuide(ectx,roles,n,z,ox,oy,ui.guide);
   if(z>=6){
     ectx.strokeStyle='rgba(255,255,255,0.07)'; ectx.lineWidth=lw; ectx.beginPath();
     for(let i=1;i<n*c;i++){ ectx.moveTo(i*z+lw/2,0); ectx.lineTo(i*z+lw/2,ed.height); ectx.moveTo(0,i*z+lw/2); ectx.lineTo(ed.width,i*z+lw/2); }
@@ -190,6 +197,30 @@ function drawEditor(){
     ectx.strokeStyle='rgba(255,180,63,0.9)'; ectx.lineWidth=lw; ectx.strokeRect(ox+lw/2,oy+lw/2,n*z-lw,n*z-lw);
     if(ui.ctx==='context' && !ui.playing) paintSeams(ctxSlots,ox,oy,z,lw);
   }
+}
+function paintGuide(g,roles,n,z,ox,oy,mode){
+  g.save();
+  const edgeW=Math.max(2,Math.min(4,Math.floor(z*(mode==='tint'?.14:.16))));
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++){
+    const role=roles[y*n+x], px=ox+x*z, py=oy+y*z;
+    if(mode==='wireframe'){
+      if(!role){ g.strokeStyle='rgba(255,92,138,.35)'; g.lineWidth=1; g.beginPath(); g.moveTo(px+3,py+z-3); g.lineTo(px+z-3,py+3); g.stroke(); }
+      else if(role===1){ g.strokeStyle='rgba(101,126,140,.3)'; g.lineWidth=1; g.strokeRect(px+.5,py+.5,z-1,z-1); }
+      else { g.fillStyle=ROLE_COLORS[role]; g.globalAlpha=.08; g.fillRect(px,py,z,z);
+        g.strokeStyle=ROLE_COLORS[role]; g.globalAlpha=.85; g.lineWidth=1.5; g.strokeRect(px+1,py+1,z-2,z-2); }
+    } else {
+      g.fillStyle=role?ROLE_COLORS[role]:'#ff5c8a'; g.globalAlpha=role===1?.12:role?.28:.15; g.fillRect(px,py,z,z);
+    }
+    if(role && (x===0||y===0||x===n-1||y===n-1)){
+      g.strokeStyle='#58d5ff'; g.globalAlpha=.9; g.lineWidth=edgeW; g.beginPath();
+      if(y===0){ g.moveTo(px,py+edgeW/2); g.lineTo(px+z,py+edgeW/2); }
+      if(y===n-1){ g.moveTo(px,py+z-edgeW/2); g.lineTo(px+z,py+z-edgeW/2); }
+      if(x===0){ g.moveTo(px+edgeW/2,py); g.lineTo(px+edgeW/2,py+z); }
+      if(x===n-1){ g.moveTo(px+z-edgeW/2,py); g.lineTo(px+z-edgeW/2,py+z); }
+      g.stroke();
+    }
+  }
+  g.restore();
 }
 /* soi mối nối ngay trên khung: pixel cạnh ô giữa và cạnh đối diện của ô hàng xóm phải cùng đặc hoặc cùng trống */
 function paintSeams(ctxSlots,ox,oy,z,lw){
@@ -258,7 +289,7 @@ ed.addEventListener('pointermove',e=>{
   const p=toLocal(edPos(e)), n=ts.size;
   if(!stroke){
     if(p.x>=0&&p.y>=0&&p.x<n&&p.y<n){
-      const r=ui.guide?rolesOf(slot):null;
+      const r=ui.guide!=='off'?rolesOf(slot):null;
       setText($('#edHint'),p.x+', '+p.y+(r?' · '+ROLE_NAMES[r[p.y*n+p.x]]:''));
     }
     return;
@@ -284,6 +315,8 @@ function cancelStroke(){
 }
 function commit(before){
   const now=curData(), was=before.frames[frame];
+  // khoá nối: pixel ở mép nối về lại như trước nét vẽ, cả nét vẽ vẫn chỉ là một bước hoàn tác
+  if(was && ui.lock){ const idx=connectorIndices(lay,slot,ts.size,ts.shape); if(idx.length) now.set(keepConnectors(was,now,idx)); }
   if(was && now.some((v,i)=>v!==was[i])){ pushUndo(before); changed(slot); }
   drawEditor();
 }
@@ -385,7 +418,21 @@ $('#brushBtn').addEventListener('click',e=>{ view.brush=view.brush%3+1; view.bru
 const toggle=(id,get,set)=>$(id).addEventListener('click',e=>{ set(!get()); e.currentTarget.setAttribute('aria-pressed',get()); drawEditor(); });
 toggle('#wrapBtn',()=>view.wrapPaint,v=>{ view.wrapPaint=v; });
 toggle('#mirBtn',()=>view.mirX,v=>{ view.mirX=v; });
-toggle('#guideBtn',()=>ui.guide,v=>{ ui.guide=v; });
+const GUIDE_NAMES={wireframe:'Khung viền',tint:'Phủ mờ',off:'Tắt'};
+function syncGuideBtn(){
+  const b=$('#guideBtn'); b.setAttribute('aria-pressed',String(ui.guide!=='off'));
+  b.title='Gợi ý vai pixel: '+GUIDE_NAMES[ui.guide]+' (H đổi chế độ)'; b.dataset.mode=ui.guide;
+}
+$('#guideBtn').addEventListener('click',()=>{
+  ui.guide=GUIDE_MODES[(GUIDE_MODES.indexOf(ui.guide)+1)%3]; lsSet('lo-pixel-tile-guide',ui.guide); syncGuideBtn(); drawEditor();
+});
+syncGuideBtn();
+function syncLockBtn(){
+  const b=$('#lockBtn'), has=!!ts && connectorIndices(lay,slot,ts.size,ts.shape).length>0;
+  b.hidden=!has; b.setAttribute('aria-pressed',String(ui.lock));
+  b.title='Khoá nối: '+(ui.lock?'bật — pixel ở mép nối được giữ nguyên khi vẽ':'tắt — vẽ đè được cả pixel mép nối')+' (K)';
+}
+$('#lockBtn').addEventListener('click',()=>{ ui.lock=!ui.lock; syncLockBtn(); });
 $('#undoBtn').addEventListener('click',undo);
 $('#redoBtn').addEventListener('click',redo);
 $$('[data-ctx]').forEach(b=>b.addEventListener('click',()=>{
@@ -406,6 +453,7 @@ window.addEventListener('keydown',e=>{
   else if(k==='w') $('#wrapBtn').click();
   else if(k==='m') $('#mirBtn').click();
   else if(k==='h') $('#guideBtn').click();
+  else if(k==='k') $('#lockBtn').click();
   else if(e.key==='ArrowRight'){ e.preventDefault(); stepSlot(1); }
   else if(e.key==='ArrowLeft'){ e.preventDefault(); stepSlot(-1); }
   else if(k===']'){ selectSlot(slot,frame+1); }
@@ -499,41 +547,130 @@ $('#mapPlay').addEventListener('click',e=>{
   const loop=now=>{ if(!ui.mapPlaying) return; mapT=now-t0; paintMap(); requestAnimationFrame(loop); };
   if(ui.mapPlaying) requestAnimationFrame(loop); else paintMap();
 });
+const PANES={grid:'#paneGrid',map:'#paneMap',check:'#paneCheck',detail:'#paneDetail',quick:'#paneQuick'};
 $$('.tp-tabs [role=tab]').forEach(t=>t.addEventListener('click',()=>{
   $$('.tp-tabs [role=tab]').forEach(o=>o.setAttribute('aria-selected',String(o===t)));
-  $('#paneGrid').hidden=t.dataset.pane!=='grid'; $('#paneMap').hidden=t.dataset.pane!=='map';
+  for(const [k,sel] of Object.entries(PANES)) $(sel).hidden=t.dataset.pane!==k;
   paintMap();
+  if(t.dataset.pane==='quick') quick.open();
 }));
 window.addEventListener('resize',()=>paintMap());
 
+/* ---------------- host chung cho các tab phụ (Soi lỗi, …) ---------------- */
+const host={
+  ts:()=>ts, slot:()=>slot,
+  onSelect:cb=>{ selectCbs.push(cb); },
+  select:s=>selectSlot(s,0),
+  /* ghi nhiều ô trong MỘT bước hoàn tác: ô được ghi còn đúng một khung là tranh mới
+     (khung hoạt ảnh cũ bỏ đi — hoàn tác trả lại đủ mọi khung) */
+  writeSlots(list){
+    const before={multi:list.map(([s])=>snap(s)),slot,frame};
+    let any=false;
+    for(const [s,px] of list){
+      const t=tileOf(ts,s);
+      if(t.frames.length===1 && !px.some((v,i)=>v!==t.frames[0][i])) continue;
+      ts.tiles[s]={frames:[px.slice()],dur:[0]}; any=true;
+    }
+    if(!any) return;
+    pushUndo(before);
+    for(const [s] of list) changed(s);
+    selectSlot(slot,frame);
+  },
+  refresh(){ buildGrid(); selectSlot(slot,frame); check?.update(); },
+  /* bộ đang mở dùng Master Palette thì 'master', mọi bảng khác 'genesis' (như toolPaletteKey ở trang Vẽ) */
+  paletteKey(){
+    const p=ts?.palette||[], m=new Set(MASTER_COLORS);
+    return p.length===m.size && p.every(h=>m.has(h.toLowerCase())) ? 'master' : 'genesis';
+  },
+  /* bộ 56 ô mới từ tranh có sẵn (⚡ Tạo nhanh): mở ngay, lưu, hiện trong danh sách; bộ cũ giữ nguyên */
+  createFromTiles(size,shape,tiles,name){
+    const next=createTileset({name:name||'Bộ 56 ô tạo nhanh',layout:'blob56',size,shape,palette:PAL_DATA[host.paletteKey()]});
+    tiles.forEach((px,s)=>{ next.tiles[s]={frames:[px.slice()],dur:[0]}; });
+    adopt(next,'Đã tạo bộ “'+next.name+'”.');
+    return next;
+  }
+};
+const PAL_DATA={master:MASTER_COLORS,genesis:GENESIS_COLORS};
+const check=mountCheck(host);
+const detail=mountDetail(host);
+const quick=mountQuick(host);
+
 /* ---------------- tạo bộ mới ---------------- */
 const dlg=$('#newDlg'), form=dlg.querySelector('form').elements;   // .elements: form.name là tên của thẻ form, không phải ô Tên
-for(const [key,f] of Object.entries(GENESIS_FAMILIES)){
-  const o=document.createElement('option'); o.value=key; o.textContent=f.name; form.seed.append(o);
+/* Màu dựng sẵn: Nền / Cạnh chọn theo nhóm của Master hoặc Genesis v3, như ô "Tạo bộ" ở trang Vẽ (PAL_DATA ở trên) */
+const tokenOf=hex=>COLOR_TOKENS[hex]||GENESIS_TOKENS[hex];
+const picks={Base:{group:$('#tpNewBaseGroup'),color:$('#tpNewBase')},Edge:{group:$('#tpNewEdgeGroup'),color:$('#tpNewEdge')}};
+function colorGroups(){
+  const groups=new Map();
+  for(const hex of new Set(PAL_DATA[form.pal.value].map(h=>h.toLowerCase()))){
+    const meta=tokenOf(hex), group=meta?.group||'Chung';
+    if(['Skin','Silk','Cinnabar','Genesis v3 · Da'].includes(group)) continue;   // dải nhân vật không phải màu đất đá
+    if(!groups.has(group)) groups.set(group,[]);
+    groups.get(group).push({hex,meta});
+  }
+  return groups;
 }
-form.seed.value='stone';
+function showPick(key){
+  const hex=picks[key].color.value, meta=hex&&tokenOf(hex);
+  const chip=$('#tpNew'+key+'Chip'); chip.style.background=hex||'transparent'; chip.title=meta?`${meta.group}: ${meta.desc} (${hex})`:hex||'';
+  $('#tpNew'+key+'Name').textContent=meta?.desc||meta?.token||''; $('#tpNew'+key+'Hex').textContent=hex||'';
+}
+function fillColors(key,groups,preferred){
+  const items=groups.get(picks[key].group.value)||[], sel=picks[key].color;
+  sel.replaceChildren(...items.map(({hex,meta})=>{
+    const o=document.createElement('option'); o.value=hex; o.textContent=(meta?.token||'Màu')+' · '+hex;
+    o.title=meta?`${meta.group} · ${meta.token} · ${hex} · ${meta.desc}`:hex; return o;
+  }));
+  if(items.some(i=>i.hex===preferred)) sel.value=preferred;
+  else if(items.length) sel.value=items[key==='Edge'?items.length-1:Math.floor((items.length-1)/2)].hex;
+  showPick(key);
+}
+function pickColors(base,edge){     // chọn nhóm chứa màu rồi màu; màu không có trong bảng thì giữ lựa chọn cũ
+  const groups=colorGroups();
+  for(const [key,hex] of [['Base',base],['Edge',edge]]){
+    const g=picks[key].group, groupOf=hx=>[...groups].find(([,it])=>it.some(i=>i.hex===hx))?.[0];
+    const cur=picks[key].color.value;
+    g.replaceChildren(...[...groups].map(([name,items])=>{ const o=document.createElement('option'); o.value=name; o.textContent=`${name} · ${items.length}`; return o; }));
+    g.value=groupOf(hex)||groupOf(cur)||groups.keys().next().value||'';
+    fillColors(key,groups,hex||cur);
+  }
+}
+function applyPreset(){
+  const p=TERRAIN_CREATE_PRESETS[form.pal.value][form.preset.value];
+  if(p) pickColors(p.base,p.edge); else pickColors(picks.Base.color.value,picks.Edge.color.value);
+}
 function syncNewForm(){
   const l=form.layout.value;
   $('#freeDims').hidden=l!=='free';
   $('#shapeRow').hidden=l==='corners16'||l==='free';
-  form.seed.disabled=l==='free';
+  $('#colorBlock').hidden=l==='free';
+  $('#tpNewPicks').hidden=!form.preset.value;
 }
+form.preset.addEventListener('change',()=>{ applyPreset(); syncNewForm(); });
+form.pal.addEventListener('change',applyPreset);
+for(const key of ['Base','Edge']){
+  picks[key].group.addEventListener('change',()=>{ fillColors(key,colorGroups()); form.preset.value='custom'; syncNewForm(); });
+  picks[key].color.addEventListener('change',()=>{ showPick(key); form.preset.value='custom'; });
+}
+form.preset.value='stone'; applyPreset();
 form.layout.addEventListener('change',syncNewForm);
 function openNew(){ syncNewForm(); dlg.showModal(); }
 $('#tsNew').addEventListener('click',openNew);
 $('#emptyNew').addEventListener('click',openNew);
 dlg.querySelector('form').addEventListener('submit',async e=>{
   if(e.submitter?.value!=='ok') return;            // method=dialog: nút nào bấm thì hộp tự đóng
-  const fam=GENESIS_FAMILIES[form.seed.value], l=form.layout.value;
-  const colors=fam && l!=='free' ? {base:fam.ramp[Math.floor(fam.ramp.length/2)],edge:fam.ramp[fam.ramp.length-1],palette:GENESIS_COLORS,low:true} : null;
+  const l=form.layout.value, pal=PAL_DATA[form.pal.value], base=picks.Base.color.value, edge=picks.Edge.color.value;
+  // {base,edge,palette} như create() của trang Vẽ: các bậc sáng/tối của khối nền được bắt về màu trong bảng
+  const colors=form.preset.value && l!=='free' && base && edge ? {base,edge,palette:pal,low:true} : null;
   const next=createTileset({name:form.name.value.trim()||'Bộ tile mới',layout:l,cols:+form.cols.value,rows:+form.rows.value,
-    size:+form.size.value,shape:form.shape.value,palette:GENESIS_COLORS,colors});
+    size:+form.size.value,shape:form.shape.value,palette:colors?pal:GENESIS_COLORS,colors});
   slot=0; await adopt(next,'Đã tạo bộ “'+next.name+'”.');
 });
 
 /* ---------------- menu ⋯: nhân bản, đổi tên, nhập / xuất ---------------- */
 const menu=$('#tsMenu');
-$('#tsMore').addEventListener('click',e=>{ e.stopPropagation(); menu.hidden=!menu.hidden; });
+$('#tsMore').addEventListener('click',e=>{ e.stopPropagation(); menu.hidden=!menu.hidden; syncTerrainMenu(); });
+function syncTerrainMenu(){ const on=ts?.layout==='blob56'; menu.querySelectorAll('.t56').forEach(b=>{ b.hidden=!on; }); }
 document.addEventListener('click',e=>{ if(!menu.hidden && !menu.contains(e.target)) menu.hidden=true; });
 function download(name,blob){
   const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=name;
@@ -553,17 +690,19 @@ async function imageData(file){
   const g=cv.getContext('2d',{willReadFrequently:true}); g.drawImage(im,0,0);
   return {w:im.width,h:im.height,data:new Uint32Array(g.getImageData(0,0,im.width,im.height).data.buffer)};
 }
+/* Atlas/dự án Terrain 56 → ảnh 10×7 (đổi từ bố cục cũ 8×7 nếu cần); ném lỗi tiếng Việt nếu sai khổ */
+const terrainSheet=terrainSheetTo10x7;
 async function importTerrain56(){
   let a=null; try{ a=JSON.parse(lsGet(ATLAS_KEY)||'null'); }catch(_){}
-  if(!a?.png || a.terrain!=='lo-pixel.terrain56.v1') return toast('Trang Vẽ chưa có atlas Terrain 56 nào (thẻ 🧩 Terrain → Tạo bộ).',4000);
+  if(!a?.png || a.terrain!=='lo-pixel.terrain56.v1') return toast('Trang Vẽ không có atlas Terrain 56 cũ nào — tạo bộ bằng ＋ Bộ mới.',4000);
   if(!TILE_SIZES.includes(a.tw)) return toast('Khổ ô '+a.tw+' chưa hỗ trợ.');
   try{
-    const sh=await imageData(a.png);
-    if(sh.w!==a.tw*10 || sh.h!==a.tw*7) return toast('Atlas còn bố cục cũ: mở thẻ Terrain ở trang Vẽ một lần để chuyển bố cục rồi thử lại.',4500);
+    const sh=terrainSheet(await imageData(a.png),a.layout,a.tw);
     slot=0;
-    await adopt(fromSheet(sh,{name:a.name||'Terrain 56',layout:'blob56',size:a.tw,shape:a.shape,palette:GENESIS_COLORS}),
-      'Đã nhập Terrain 56 từ trang Vẽ thành bộ mới. Bản ở trang Vẽ giữ nguyên.');
-  }catch(err){ toast('Không nhập được: '+err.message); }
+    const next=fromSheet(sh,{name:a.name||'Terrain 56',layout:'blob56',size:a.tw,shape:a.shape,palette:GENESIS_COLORS});
+    handOverQuickStamp(a.id,next.id);   // ⚡ dấu tạo nhanh cũ (theo id atlas Vẽ) đi theo bộ mới
+    await adopt(next,'Đã nhập Terrain 56 từ trang Vẽ thành bộ mới. Bản ở trang Vẽ giữ nguyên.');
+  }catch(err){ toast('Không nhập được: '+err.message,4000); }
 }
 async function exportGodot(){
   await save();
@@ -579,6 +718,35 @@ async function exportGodot(){
   download(base+'_godot.zip',new Blob([zip],{type:'application/zip'}));
   toast('Đã xuất '+base+'_godot.zip · giải nén vào '+dir+(Object.keys(anim).length?' · '+Object.keys(anim).length+' ô hoạt ảnh':''),4000);
 }
+/* ---------------- xuất Terrain 56 (chỉ bộ blob56) ---------------- */
+function cleanedSheetCanvas(){ return sheetCanvas(cleanSheet(sheetPixels(ts),ts.size,ts.shape)); }
+function annotationCanvas(){
+  const n=ts.size, cv=document.createElement('canvas'); cv.width=180*ATLAS_COLS; cv.height=88+174*ATLAS_ROWS;
+  const g=cv.getContext('2d'), id=s=>'#'+String(s).padStart(2,'0');
+  g.fillStyle='#101018'; g.fillRect(0,0,cv.width,cv.height);
+  g.fillStyle='#e8e8f2'; g.font='bold 24px sans-serif'; g.fillText('TERRAIN 56 · lưới cr31 blob 7×7 (47 ô) + biến thể 3×3: 3 ruột · 3 sàn · trần + 2 tường',24,34);
+  g.font='14px sans-serif'; g.fillText('Cyan: nối liền · Hồng mờ: trong suốt · Vàng: sàn · Tím: tường · Cam: góc lõm · Hồng: góc lồi',24,62);
+  TERRAIN_TILES.forEach(t=>{
+    const [cc,cr]=terrainSlotCell(t.slot), x=cc*180, y=88+cr*174;
+    g.strokeStyle='#434360'; g.strokeRect(x+4,y,172,166);
+    g.imageSmoothingEnabled=false; g.drawImage(sheetCanvas({w:n,h:n,data:frameAt(ts,t.slot,0)}),x+10,y+8,80,80);
+    g.save(); g.translate(x+10,y+8); paintTerrainGuide(g,t.slot,n,80/n,'wireframe',ts.shape); g.restore();
+    g.fillStyle='#e8e8f2'; g.font='bold 13px sans-serif'; g.fillText(id(t.slot)+' mask '+t.mask+(t.slot<47?' · cr31 '+maskToCr31(t.mask):''),x+10,y+108);
+    g.font='12px sans-serif'; g.fillText(t.title,x+10,y+127,157);
+    g.fillText('Nối: '+(DIRECTIONS.filter(d=>t.mask&d.bit).map(d=>d.key).join(' ')||'không'),x+10,y+147,157);
+  });
+  return cv;
+}
+const jsonBlob=(o,pretty)=>new Blob([JSON.stringify(o,null,pretty?2:undefined)],{type:'application/json'});
+async function exportTerrain(act){
+  await save();
+  if(act==='t-clean') download(sanitizeFilename(ts.name,'terrain56')+'.png',await pngBlob(cleanedSheetCanvas()));
+  else if(act==='t-annot') download('terrain56-annotated.png',await pngBlob(annotationCanvas()));
+  else if(act==='t-godot') download('terrain56-godot-mapping.json',jsonBlob(terrainGodotManifest(ts.size,ts.shape),true));
+  else if(act==='t-layout') download('terrain56-layout.json',jsonBlob(terrainManifest(ts.size,ts.shape),true));
+  else if(act==='t-pack') download('terrain56-pack.json',jsonBlob(terrainPackJson(ts,cleanedSheetCanvas().toDataURL('image/png'),annotationCanvas().toDataURL('image/png'))));
+  else if(act==='t-project') download('terrain56-project.json',jsonBlob(terrainProjectJson(ts,cleanedSheetCanvas().toDataURL('image/png'))));
+}
 menu.addEventListener('click',async e=>{
   const act=e.target.closest('[data-act]')?.dataset.act; if(!act) return;
   menu.hidden=true;
@@ -587,6 +755,7 @@ menu.addEventListener('click',async e=>{
   else if(act==='png'){ download(sanitizeFilename(ts.name,'tileset')+'.png',await pngBlob(sheetCanvas(sheetPixels(ts,{blocks:frameCount(ts)})))); }
   else if(act==='json'){ download(sanitizeFilename(ts.name,'tileset')+'.tileset.json',new Blob([JSON.stringify(toJSON(ts))],{type:'application/json'})); }
   else if(act==='terrain') importTerrain56();
+  else if(act.startsWith('t-')){ if(ts?.layout==='blob56') exportTerrain(act).catch(err=>toast('Không xuất được: '+err.message,4000)); }
   else if(act==='delete'){
     if(!confirm('Xoá hẳn bộ “'+ts.name+'”? Không hoàn tác được — lưu .json trước nếu cần giữ.')) return;
     const id=ts.id; clearTimeout(saveT); pending=false;
@@ -596,10 +765,17 @@ menu.addEventListener('click',async e=>{
     if(list.length) await openSet(list[0].id); else showEmpty();
   }
 });
-$('#tsOpenJson').addEventListener('change',async e=>{
+for(const inp of [$('#tsOpenJson'),$('#emptyOpenJson')]) inp.addEventListener('change',async e=>{
   const f=e.target.files[0]; e.target.value=''; menu.hidden=true; if(!f) return;
   try{
-    let next=fromJSON(JSON.parse(await f.text()));
+    const d=JSON.parse(await f.text());
+    let next;
+    if(d?.schema===TILESET_SCHEMA) next=fromJSON(d);
+    else{
+      const t=parseTerrainFile(d);
+      next=fromSheet(terrainSheet(await imageData(t.png),t.layout,t.size),
+        {name:t.name,layout:'blob56',size:t.size,shape:t.shape,palette:GENESIS_COLORS});
+    }
     if(list.some(r=>r.id===next.id)) next=cloneTileset(next);
     slot=0; await adopt(next,'Đã mở “'+next.name+'” thành một bộ trong danh sách.');
   }catch(err){ toast('Không đọc được file: '+err.message,4000); }
@@ -625,6 +801,8 @@ $('#tsOpenPng').addEventListener('change',async e=>{
   }catch(err){ toast('Không nạp được: '+err.message); }
 });
 $('#emptyTerrain').addEventListener('click',importTerrain56);
+/* chưa có bộ nào: ⚡ dựng ngay bộ 56 ô từ công thức đang chọn rồi mở thẻ Tạo nhanh để chỉnh tiếp */
+$('#emptyQuick').addEventListener('click',()=>{ slot=0; if(quick.apply()) $('.tp-tabs [data-pane=quick]').click(); });
 $('#tsGodot').addEventListener('click',exportGodot);
 $('#tsSel').addEventListener('change',async e=>{ await save(); slot=0; await openSet(e.target.value); });
 

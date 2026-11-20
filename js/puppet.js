@@ -209,11 +209,14 @@ function cellEmptiness(P,sheets){
 
 /* ---------------- khối mẫu (blockout) ---------------- */
 export const BLOCK_COLORS={skin:hexToInt('#f3bfa2'), cloth:hexToInt('#806f95')};
-/* các viên nhộng của từng miếng, vẽ thành pixel trên sheet — làm lớp mờ hướng dẫn và làm "bóng ma" trên rối */
-export function blockoutSheet(P,kind){
+/* các viên nhộng của từng miếng, vẽ thành pixel trên sheet — làm lớp mờ hướng dẫn và làm "bóng ma" trên rối.
+   Ô xa mặc định để trống: khối mẫu này còn dùng thay ô chưa vẽ trên rối, mà ô xa trống nghĩa là "dùng nét phía gần
+   tối đi". opt.far=true (lớp mờ hướng dẫn trên sheet) thì ô xa cũng có dáng mẫu, tối hơn một bậc như phía xa. */
+export function blockoutSheet(P,kind,{far=false}={}){
   const S=P.sheets[kind], [w,h]=S.size, px=new Uint32Array(w*h);
   for(const [part,c] of Object.entries(S.parts)){
-    if(isFarCell(P,part)) continue;                  // ô xa để trống: chỉ vẽ khi muốn phía xa khác phía gần
+    const isFar=isFarCell(P,part);
+    if(isFar && !far) continue;
     const caps=P.shapes[part]?.length ? P.shapes[part] : [];
     for(const [ax,ay,bx,by,ra,rb,mat] of caps){
       const Ax=c.joint[0]+ax, Ay=c.joint[1]+ay, Bx=c.joint[0]+bx, By=c.joint[1]+by;
@@ -221,7 +224,7 @@ export function blockoutSheet(P,kind){
       for(let y=c.rect[1];y<c.rect[3];y++) for(let x=c.rect[0];x<c.rect[2];x++){
         const t=Math.max(0,Math.min(1,((x+0.5-Ax)*vx+(y+0.5-Ay)*vy)/L2));
         const d=Math.hypot(x+0.5-Ax-vx*t,y+0.5-Ay-vy*t);
-        if(d<=ra+(rb-ra)*t) px[y*w+x]=BLOCK_COLORS[mat]||BLOCK_COLORS.cloth;
+        if(d<=ra+(rb-ra)*t){ const v=BLOCK_COLORS[mat]||BLOCK_COLORS.cloth; px[y*w+x]=isFar ? darken(v,FAR_SHADE) : v; }
       }
     }
   }
