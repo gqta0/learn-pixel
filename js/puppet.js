@@ -156,6 +156,14 @@ const darken=(v,k)=>rgba(Math.round((v&255)*k),Math.round(((v>>8)&255)*k),Math.r
    opt.hide: các miếng không vẽ (cả phía gần lẫn xa) · opt.outline=false: bỏ viền · opt.flaps: điểm vạt áo (flapPoints) — dùng bakeAt cho gọn. Ô vạt áo trống nghĩa là
    nhân vật không mặc áo dài, nên không lấy khối mẫu thay vào. Trả về {px, who}: who[i] = 1 + chỉ số miếng trong PARTS_OF(P) ở pixel đó. */
 export function partsOf(P){ return [...Object.keys(P.sheets.head.parts),...Object.keys(P.sheets.body.parts)]; }
+/* Viền nhóm tay gần không vẽ đè lên thân ở vai: bỏ pixel viền cách khớp vai gần ≤ SHOULDER_GAP px (tâm pixel tới khớp)
+   mà nằm trên chỗ nhóm trước đã vẽ — nếu không, một vệt tối cắt ngang chỗ tay nối vào người. */
+const SHOULDER_GAP=4;
+/* Viền đáy ngực không kẻ vạch tối ngang hông: bỏ pixel viền của nhóm ngực nằm trên phần thân dưới (hông, chân, vạt áo)
+   hoặc trên viền của nhóm trước, ở mọi chỗ từ khớp eo trở xuống dọc xương ngực (u ≤ WAIST_ABOVE, u đo từ khớp eo về phía
+   cổ) — đáy ngực vẽ dài (vạt trước áo) cũng vậy. Trên nền trống và trên tay phía xa, ngực vẫn có viền. */
+const WAIST_ABOVE=2;
+const LOWER_BODY=new Set(['pelvis','thigh','shin','foot','far_thigh','far_shin','far_foot','flap_left','flap_back','flap_right']);
 export function bake(P,sheets,f,box,opt={}){
   const W=box.w, H=box.h, out=new Uint32Array(W*H), who=new Uint8Array(W*H), names=partsOf(P);
   const gpx=new Uint32Array(W*H), gwho=new Uint8Array(W*H), gsrc=new Uint8Array(W*H), empty=cellEmptiness(P,sheets);
@@ -188,9 +196,19 @@ export function bake(P,sheets,f,box,opt={}){
     }
     if(!any) continue;
     cleanTurn(gpx,gwho,gsrc,W,H);
+    const sj=P.draw_order[g].some(e=>e.bone==='near_upper_arm') && joints(P,f).near_upper_arm;
+    const sx=sj && box.fx+sj[0], sy=sj && box.fy+sj[1];
+    const wj=P.draw_order[g].some(e=>e.part==='chest') && joints(P,f).chest;
+    const wx=wj && box.fx+wj[0], wy=wj && box.fy+wj[1], wl=wj && Math.hypot(wj[2]-wj[0],wj[3]-wj[1]);
+    const ux=wj && (wj[2]-wj[0])/wl, uy=wj && (wj[3]-wj[1])/wl;           // hướng eo → cổ
     if(opt.outline!==false) for(let y=0;y<H;y++) for(let x=0;x<W;x++){   // viền cả nhóm nằm dưới mọi màu của nhóm
       const i=y*W+x;
       if(gpx[i]) continue;
+      if(sj && out[i] && Math.hypot(x+0.5-sx,y+0.5-sy)<=SHOULDER_GAP) continue;
+      if(wj && out[i] && (who[i]===0 || LOWER_BODY.has(names[who[i]-1]))){
+        const u=(x+0.5-wx)*ux+(y+0.5-wy)*uy;
+        if(u<=WAIST_ABOVE) continue;
+      }
       if((x>0&&gpx[i-1])||(x<W-1&&gpx[i+1])||(y>0&&gpx[i-W])||(y<H-1&&gpx[i+W])){ out[i]=OUTLINE; who[i]=0; }
     }
     for(let i=0;i<W*H;i++) if(gpx[i]){ out[i]=gpx[i]; who[i]=gwho[i]; }
@@ -420,19 +438,20 @@ export function lintSheet(P,kind,px,palette){
 /* ---------------- xuất ---------------- */
 export const sheetFileName=(clip,box,n)=>clip+'_'+box.w+'x'+box.h+'_'+n+'f.png';
 /* mọi clip, mỗi clip một hàng khung khoá: [{clip, n, fps, loop, w, h, px}] */
-export function bakeClips(P,sheets,box=frameBox(P)){
+/* opt.outline=false: không thêm viền máy (người vẽ tự vẽ viền vào miếng) */
+export function bakeClips(P,sheets,box=frameBox(P),opt={}){
   return Object.entries(P.clips).map(([name,clip])=>{
     const n=clip.frames.length, W=box.w*n, px=new Uint32Array(W*box.h);
     for(let i=0;i<n;i++){
-      const f=bakeAt(P,sheets,clip,i/clip.fps,box).px;
+      const f=bakeAt(P,sheets,clip,i/clip.fps,box,{outline:opt.outline}).px;
       for(let y=0;y<box.h;y++) px.set(f.subarray(y*box.w,(y+1)*box.w), y*W+i*box.w);
     }
     return {clip:name, n, fps:clip.fps, loop:!!clip.loop, w:W, h:box.h, px, file:sheetFileName(name,box,n)};
   });
 }
-export function bakeManifest(P,box,baked,names={}){
+export function bakeManifest(P,box,baked,names={},opt={}){
   return {format:'genesis.puppet.bake.v1', source:P.format, head:names.head||null, body:names.body||null,
-    frame:{w:box.w,h:box.h}, feet:{x:box.fx,y:box.fy}, outline:OUTLINE_HEX,
+    frame:{w:box.w,h:box.h}, feet:{x:box.fx,y:box.fy}, height:P.height, outline:opt.outline===false ? null : OUTLINE_HEX,
     note:'feet: điểm chân trong khung (pixel, gốc trên-trái, y là mặt đất). Mỗi file một clip, một hàng khung.',
     clips:Object.fromEntries(baked.map(b=>[b.clip,{file:b.file,frames:b.n,fps:b.fps,loop:b.loop}]))};
 }

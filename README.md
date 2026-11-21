@@ -206,9 +206,10 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
    Ghép rối có cỡ thật ×1, ×2 và phóng to. Chọn động tác, ▶/⏸, ◀ ▶ từng khung, thanh **Tư thế** để kéo chậm
    từng chút. Chọn bản Đầu và bản Thân nào trong thư viện ghép với nhau. **◧ Chỉ miếng này** + kéo thanh Tư
    thế để xem một miếng qua mọi góc xoay; **◌ Bóng khối** chồng mờ dáng mẫu để so khối; ô chưa vẽ tạm hiện
-   khối mẫu để vẫn thấy cả người. **▢ Viền máy** tắt viền 1 px để soi màu sát mép miếng; dãy **Miếng hiện trên
-   rối** chạm để ẩn / hiện từng miếng (cả phía gần lẫn xa), **Hiện hết** để bật lại. Hai thứ này chỉ đổi phần xem
-   (rối trong thẻ và rối nổi trên canvas), file xuất luôn đủ miếng, có viền.
+   khối mẫu để vẫn thấy cả người. **▢ Viền tự động** (mặc định tắt) thêm viền 1 px `#251c24` quanh từng nhóm miếng
+   sau khi ghép, cả trên rối lẫn trong file xuất — bật khi miếng vẽ không có viền, để tắt khi tự vẽ viền vào miếng
+   (`puppet_bake.json` ghi `outline: null` khi tắt). Dãy **Miếng hiện trên rối** chạm để ẩn / hiện từng miếng
+   (cả phía gần lẫn xa), **Hiện hết** để bật lại — chỉ đổi phần xem, file xuất luôn đủ miếng.
    - **⬇ Lưu nhân vật (.json)**: sheet Đầu và sheet Thân đang ghép (kể cả nét chưa cất của bản đang vẽ) thành một
      file `<tên>.nhanvat.json` (`lo-pixel.character.v1`) — chuyển máy, gửi bạn, cất dự phòng. Khối mẫu / Không hiện
      thì file thiếu sheet đó. **📂 Mở nhân vật (.json)**: hai sheet vào thư viện 📁 thành bản mới (sheet còn tên mặc

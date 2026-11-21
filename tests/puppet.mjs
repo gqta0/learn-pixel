@@ -198,6 +198,7 @@ test('export bakes one row per clip, named the way the game reads sheets',()=>{
   assert.deepEqual([run.w,run.h,run.n,run.fps,run.loop],[box.w*8,box.h,8,15,true]);
   const m=bakeManifest(P,box,baked,{body:'Thân'});
   assert.deepEqual(m.feet,{x:box.fx,y:box.fy});
+  assert.equal(m.height,P.height); assert.equal(m.height,64);
   assert.equal(m.clips.skill_02.frames,18);
 });
 
@@ -383,4 +384,59 @@ test('a body sheet drawn on the 69x112 layout carries over: canvas 76x112, flap 
   const oldJoint={flap_left:20.08, flap_back:34.08, flap_right:48.08};
   for(const [part,[,dx]] of Object.entries(old)) assert.ok(Math.abs(oldJoint[part]+dx-P.sheets.body.parts[part].joint[0])<1e-9, part);
   assert.equal(out.filter(Boolean).length,4);
+});
+
+test('auto outline off: baked clips add no outline pixel and the manifest says outline null',()=>{
+  const body=blank('body'), box=frameBox(P), cloth=rgba(120,90,160);
+  for(const part of ['thigh','shin','chest','pelvis']) fillCell(body,P.sheets.body.parts[part].rect,cloth);
+  const off=bakeClips(P,{body},box,{outline:false}), on=bakeClips(P,{body},box);
+  assert.ok(off.every(b=>!b.px.includes(OUTLINE)), 'không có pixel viền khi tắt');
+  assert.ok(off.some(b=>b.px.includes(cloth)), 'vẫn có nét vẽ');
+  assert.ok(on.some(b=>b.px.includes(OUTLINE)), 'mặc định của bakeClips vẫn có viền');
+  assert.equal(bakeManifest(P,box,off,{},{outline:false}).outline,null);
+  assert.equal(bakeManifest(P,box,on).outline,'#251c24');
+});
+
+test('auto outline: the near arm adds no dark arc over the body at the shoulder, keeps it elsewhere',()=>{
+  const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, arm=['upper_arm','forearm','hand'];
+  const solid=v=>v && v!==OUTLINE;
+  let kept=0;
+  for(const [clip,i] of [['idle',0],['jump',5],['run',2],['punch',2]]){
+    const f=keyPose(P.clips[clip],i), [jx,jy]=joints(P,f).near_upper_arm, sx=box.fx+jx, sy=box.fy+jy;
+    const near=k=>Math.hypot(k%W+0.5-sx,Math.floor(k/W)+0.5-sy)<=4;
+    const base=bake(P,{body},f,box,{hide:arm}).px, full=bake(P,{body},f,box).px;
+    full.forEach((v,k)=>{
+      if(!solid(base[k]) || v!==OUTLINE) return;                 // viền nhóm tay nằm trên chỗ thân đã vẽ
+      if(near(k)){ assert.fail(clip+' '+i+': viền tay đè lên thân ở vai ('+(k%W)+','+Math.floor(k/W)+')'); }
+      else kept++;
+    });
+    assert.ok(!bake(P,{body},f,box,{outline:false}).px.includes(OUTLINE));
+  }
+  assert.ok(kept>0,'xa vai, viền tay vẫn vẽ đè lên thân');
+});
+
+test('auto outline: the chest draws no dark line across the hips, keeps its outline elsewhere',()=>{
+  // tay xa vẽ riêng ở ô xa, ô tay gần để trống: tay gần (vẽ sau ngực) không có nét nào, chỉ còn viền của ngực
+  const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, names=partsOf(P), arm=['upper_arm','forearm','hand'];
+  for(const p of arm){ body.px=copyNearToFar(P,body.px,body.px,body.w,'far_'+p,GENESIS_COLORS,GENESIS_TOKENS).px; fillCell(body,P.sheets.body.parts[p].rect,0); }
+  const later=['head','hair_front','accessory'];                    // nhóm đầu vẽ sau ngực: ẩn
+  const lower=new Set(['pelvis','thigh','shin','foot','far_thigh','far_shin','far_foot','flap_left','flap_back','flap_right']);
+  let above=0, overFar=0;
+  for(const [clip,i] of [['idle',0],['idle',2],['run',2],['jump',0]]){
+    const f=keyPose(P.clips[clip],i), fl=flapPoints(P,P.clips[clip],i/P.clips[clip].fps), [wx,wy,nx,ny]=joints(P,f).chest;
+    const L=Math.hypot(nx-wx,ny-wy), u=k=>((k%W+0.5-box.fx-wx)*(nx-wx)+(Math.floor(k/W)+0.5-box.fy-wy)*(ny-wy))/L;
+    const base=bake(P,{body},f,box,{flaps:fl,hide:[...later,'chest']}), full=bake(P,{body},f,box,{flaps:fl,hide:later}).px;
+    full.forEach((v,k)=>{
+      if(v!==OUTLINE) return;
+      if(base.px[k]===v) return;                                  // viền này có sẵn từ nhóm trước, không phải của ngực
+      const id=base.who[k], under=base.px[k] ? (id ? names[id-1] : 'outline') : null;
+      const inBand=u(k)<=2;                                       // từ khớp eo trở xuống
+      if(inBand && (under==='outline' || lower.has(under))) assert.fail(clip+' '+i+': viền ngực kẻ ngang hông ('+(k%W)+','+Math.floor(k/W)+')');
+      if(!under && u(k)>2) above++;
+      if(['far_upper_arm','far_forearm','far_hand'].includes(under)) overFar++;   // tay phía xa
+    });
+    assert.ok(!bake(P,{body},f,box,{flaps:fl,outline:false}).px.includes(OUTLINE));
+  }
+  assert.ok(above>0,'phía trên dải, ngực vẫn có viền');
+  assert.ok(overFar>0,'ngực vẫn có viền đè lên tay phía xa');
 });
