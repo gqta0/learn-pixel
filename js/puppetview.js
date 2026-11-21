@@ -17,7 +17,7 @@ import { decodeProject, sanitizeFilename } from './manifest.js';
 import { makeZip } from './zip.js';
 import { rgbaPngBytes, offerDownload } from './savefile.js';
 import { frameAt, flapPoints, frameBox, bake, isFarCell, farCellOf, copyNearToFar, blockoutSheet, cellAt, attachPoints, skullCentre, SLOT_ZONES, partsOf,
-  LIGHTS, baseColour, shadeRamp, shadeCell, lintSheet, bakeClips, bakeManifest, sheetFileName, PART_VI, SHEET_VI } from './puppet.js';
+  LIGHTS, baseColour, shadeRamp, shadeCell, lintSheet, bakeClips, bakeManifest, sheetFileName, PART_VI, SHEET_VI, oldLayout, upgradeLayer } from './puppet.js';
 
 let P=null, box=null, block=null;                 // dữ liệu rối, khổ khung, sheet khối mẫu
 const rig={clip:'run', t:0, playing:true, part:null, ghost:false, fill:true, only:false, pip:true, pipZoom:0,
@@ -48,7 +48,8 @@ function flatProject(id){
   const hit=libCache.get(id); if(hit && hit.at===p.at) return hit.sheet;
   const d=decodeProject(p.data), out=new Uint32Array(d.w*d.h), fr=d.frames[Math.min(p.data.af||0,d.frames.length-1)];
   fr.forEach((a,li)=>{ if(d.layers[li]?.vis) for(let i=0;i<out.length;i++) if(a[i]) out[i]=blendOver(out[i],a[i]); });
-  const sheet={w:d.w,h:d.h,px:out};
+  const L=oldLayout(p.data.puppet,d.w,d.h);
+  const sheet=L ? {w:L.to[0],h:L.to[1],px:upgradeLayer(L,out)} : {w:d.w,h:d.h,px:out};
   libCache.set(id,{at:p.at,sheet});
   return sheet;
 }
@@ -70,7 +71,7 @@ function fillSources(){
     const sel=$(kind==='head'?'#rigSrcHead':'#rigSrcBody'), opts=[];
     if(doc.puppet===kind && !cid) opts.push(['cur','Bản đang vẽ']);
     Object.entries(items).filter(([,p])=>p.data?.puppet===kind).sort((a,b)=>b[1].at-a[1].at)
-      .forEach(([id,p])=>{ const old=p.data.w!==P.sheets[kind].size[0]||p.data.h!==P.sheets[kind].size[1];
+      .forEach(([id,p])=>{ const old=(p.data.w!==P.sheets[kind].size[0]||p.data.h!==P.sheets[kind].size[1]) && !oldLayout(kind,p.data.w,p.data.h);
         if(!old || id===cid) opts.push(['lib:'+id,(id===cid?'✏️ ':'')+p.name+(old?' (khổ cũ '+p.data.w+'×'+p.data.h+')':'')]); });
     opts.push(['block','Khối mẫu (chưa vẽ)'],['none','Không hiện']);
     const mine = doc.puppet===kind ? (cid ? 'lib:'+cid : 'cur') : null;
@@ -421,6 +422,18 @@ function runRigLint(){
   out.innerHTML=rows.map(([k,t])=>'<p class="lint '+k+'">'+(k==='ok'?'✓':'⚠')+' '+t+'</p>').join('');
 }
 
+/* bản đang mở theo bố cục ô cũ mà rig còn biết cách dời (OLD_LAYOUTS): đổi khổ + dời ô ngay, một bước hoàn tác */
+function upgradeDoc(){
+  const L=P && doc.puppet && oldLayout(doc.puppet,doc.w,doc.h);
+  if(!L || L.to[0]!==P.sheets[doc.puppet].size[0] || L.to[1]!==P.sheets[doc.puppet].size[1]) return false;   // chỉ khi khổ đích đúng là khổ rig hiện tại
+  pushUndo();
+  doc.frames=doc.frames.map(f=>f.map(px=>upgradeLayer(L,px)));
+  doc.w=L.to[0]; doc.h=L.to[1]; view.sel=null;
+  invalidateBuf(); syncAll();
+  toast('Sheet '+SHEET_VI[doc.puppet]+' theo bố cục cũ '+L.from.join('×')+' đã chuyển sang '+L.to.join('×')+' (ô mới dời đúng chỗ). Hoàn tác được.',5000);
+  return true;
+}
+
 /* ---------------- dựng khung ---------------- */
 function createSheet(kind){
   if(!P) return;
@@ -562,6 +575,7 @@ export function bindPuppet(){
   document.querySelector('.tab[data-pane="pRig"]').addEventListener('click',()=>{ fillSources(); paintParts(); paintGuides(); runRigLint(); schedule(); });
   window.addEventListener('pixelrender',()=>{
     const key=(currentId()||'')+'|'+doc.puppet+'|'+doc.w+'x'+doc.h;
+    if(key!==lastKey && upgradeDoc()) return;           // syncAll vẽ lại, lượt sau lo phần còn lại
     if(key!==lastKey){ lastKey=key; clearShadeSee(); fillSources(); paintParts(); paintGuides(); runRigLint(); }
     schedule();
   });
@@ -584,6 +598,6 @@ export function bindPuppet(){
     $('#rigExample').textContent=sheetFileName('run',box,P.clips.run.frames.length);
     $('#rigInfo').textContent='Khung xương '+P.bones.length+' xương · '+Object.keys(P.clips).length+' động tác · khung xuất '+box.w+'×'+box.h+', điểm chân ('+box.fx+', '+box.fy+').';
     await libraryReady;
-    lastKey=''; fillSources(); paintParts(); paintShow(); paintGuides(); runRigLint(); render(); tick();
+    lastKey=''; upgradeDoc(); fillSources(); paintParts(); paintShow(); paintGuides(); runRigLint(); render(); tick();
   }).catch(err=>{ $('#rigInfo').textContent='Không nạp được data/puppet.json ('+err.message+'). Mở trang qua máy chủ (python -m http.server).'; });
 }
