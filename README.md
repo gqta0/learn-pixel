@@ -175,7 +175,7 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
 (chạy, nhảy, ngồi, đấm, bay, kiếm pháp…). Mở ở thẻ **Ghép rối** cột phải (điện thoại: 💾 File → Ghép rối).
 
 1. **Dựng khung** — **+ Sheet Đầu 103×69** (sọ + mặt, tóc sau, tóc trước, phụ kiện — riêng từng nhân vật)
-   hoặc **+ Sheet Thân 69×112** (cổ, ngực, hông, tay, chân, tay chân phía xa, ba vạt áo — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
+   hoặc **+ Sheet Thân 76×112** (cổ, ngực, hông, tay, chân, tay chân phía xa, ba vạt áo — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
    trong thư viện 📁. Trên canvas có hướng dẫn: khối mờ của dáng mẫu, khung ô kèm tên miếng, **chấm đỏ** là
    khớp miếng xoay quanh, **chấm xanh** là chỗ miếng sau gắn vào; sheet Đầu thêm mốc (crown, tie, forehead,
    ear, nape, chin) và vùng nên vẽ của tóc/phụ kiện. Hướng dẫn chỉ hiện trên màn hình, khoá sẵn, tắt/bật ở
@@ -230,6 +230,9 @@ Dữ liệu khung xương là `data/puppet.json` (định dạng `genesis.puppet
 `data/puppet.json`, rồi chạy kiểm thử (`node --test tests/puppet.mjs` soi định dạng và vị trí khớp).
 **Bàn chân vẽ đè lên cẳng chân** (thứ tự đùi → cẳng chân → bàn chân trong `GROUPS` của `tools/character.py`); kiểm thử
 báo nếu bản làm mới đổi lại thứ tự này.
+Bản làm mới đổi bố cục ô (vd. Thân 69×112 → 76×112 khi ba vạt áo to ra) thì thêm một dòng vào `OLD_LAYOUTS`
+trong `js/puppet.js` (khổ cũ, khổ mới, ô nào dời bao nhiêu): sheet vẽ theo bố cục cũ mở ra là tự đổi khổ và dời ô
+(một bước hoàn tác), sheet trong thư viện ghép lên rối cũng được dời theo.
 
 ## Trang Tile (`tile.html`) — nhiều bộ tile, nhiều khuôn, tile hoạt ảnh
 

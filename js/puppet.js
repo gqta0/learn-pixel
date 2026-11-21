@@ -246,6 +246,26 @@ function cellEmptiness(P,sheets){
   return out;
 }
 
+/* ---------------- bố cục sheet cũ ---------------- */
+/* Khổ sheet cũ → khổ mới, và ô nào dời đi bao nhiêu (nguyên pixel, giữ đúng chỗ nét so với khớp).
+   Pixel ngoài các ô dời giữ nguyên chỗ. Thêm một dòng mỗi lần bên rig đổi bố cục mà muốn bản vẽ cũ đi theo. */
+export const OLD_LAYOUTS=[
+  {kind:'body', from:[69,112], to:[76,112], move:[            // vạt áo rộng (áo bào): ba ô vạt to ra
+    [[14,81,27,111],-8,0], [[28,81,41,111],3,0], [[42,81,55,111],14,0]]},
+];
+export const oldLayout=(kind,w,h)=>OLD_LAYOUTS.find(l=>l.kind===kind && l.from[0]===w && l.from[1]===h)||null;
+/* một mảng pixel theo bố cục cũ → mảng theo bố cục mới (đổi khổ rồi dời ô) */
+export function upgradeLayer(L,px){
+  const [w,h]=L.from, [W,H]=L.to, out=new Uint32Array(W*H);
+  const moved=(x,y)=>L.move.some(([r])=>x>=r[0]&&y>=r[1]&&x<r[2]&&y<r[3]);
+  for(let y=0;y<Math.min(h,H);y++) for(let x=0;x<Math.min(w,W);x++) if(!moved(x,y)) out[y*W+x]=px[y*w+x];
+  for(const [r,dx,dy] of L.move) for(let y=r[1];y<r[3];y++) for(let x=r[0];x<r[2];x++){
+    const v=px[y*w+x], X=x+dx, Y=y+dy;
+    if(v && X>=0&&Y>=0&&X<W&&Y<H) out[Y*W+X]=v;
+  }
+  return out;
+}
+
 /* ---------------- khối mẫu (blockout) ---------------- */
 export const BLOCK_COLORS={skin:hexToInt('#f3bfa2'), cloth:hexToInt('#806f95')};
 /* các viên nhộng của từng miếng, vẽ thành pixel trên sheet — làm lớp mờ hướng dẫn và làm "bóng ma" trên rối.

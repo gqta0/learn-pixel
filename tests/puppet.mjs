@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {frameAt, keyPose, joints, placements, frameBox, bake, bakeAt, flapPoints, isFlap, blockoutSheet, cellAt, attachPoints, shadeRamp, shadeCell,
-  lintSheet, bakeClips, bakeManifest, sheetFileName, partsOf, isFarCell, nearOf, farCellOf, copyNearToFar, OUTLINE, FAR_SHADE, BLOCK_COLORS, LIGHTS, SLOT_ZONES} from '../js/puppet.js';
+  lintSheet, bakeClips, bakeManifest, sheetFileName, partsOf, isFarCell, nearOf, farCellOf, copyNearToFar, OUTLINE, FAR_SHADE, BLOCK_COLORS, oldLayout, upgradeLayer, LIGHTS, SLOT_ZONES} from '../js/puppet.js';
 import {GENESIS_FAMILIES, GENESIS_COLORS, GENESIS_TOKENS} from '../js/genesis.js';
 
 const P=JSON.parse(readFileSync(new URL('../data/puppet.json',import.meta.url),'utf8'));
@@ -29,7 +29,7 @@ const REF=[
 test('the shipped puppet.json is the genesis.puppet.v1 export with both sheets and 14 clips',()=>{
   assert.equal(P.format,'genesis.puppet.v1');
   assert.deepEqual(P.sheets.head.size,[103,69]);
-  assert.deepEqual(P.sheets.body.size,[69,112]);
+  assert.deepEqual(P.sheets.body.size,[76,112]);
   assert.deepEqual(P.sheets.body.parts.chest.rect,[25,15,44,60]);
   // bố cục có nghĩa: tay, chân gần ở bên trái thân, ô xa ở bên phải, đối xứng qua cột giữa
   const S=P.sheets.body.parts;
@@ -359,4 +359,28 @@ test('turned parts leave few stray pixels: spikes per frame over every key frame
     }
   }
   assert.ok(spikes/frames<0.5, 'spikes per frame '+(spikes/frames).toFixed(2));    // trước khi snap + dọn: 2.5
+});
+
+test('a body sheet drawn on the 69x112 layout carries over: canvas 76x112, flap cells moved by their joint offset',()=>{
+  const L=oldLayout('body',69,112);
+  assert.ok(L && !oldLayout('body',76,112) && !oldLayout('head',69,112));
+  assert.deepEqual(L.to,P.sheets.body.size);
+  const w=69, px=new Uint32Array(w*112), put=(x,y,v)=>{ px[y*w+x]=v; };
+  const chest=P.sheets.body.parts.chest.rect, C=rgba(1,2,3);
+  put(chest[0]+2,chest[1]+3,C);
+  const old={flap_left:[[14,81],-8], flap_back:[[28,81],3], flap_right:[[42,81],14]};
+  Object.entries(old).forEach(([part,[[x0,y0]]],i)=>put(x0+5,y0+7,rgba(10+i,20,30)));
+  const out=upgradeLayer(L,px), W=L.to[0];
+  assert.equal(out.length,76*112);
+  assert.equal(out[(chest[1]+3)*W+chest[0]+2],C);                                  // ô thân không dời
+  Object.entries(old).forEach(([part,[[x0,y0],dx]],i)=>{
+    const x=x0+5+dx, y=y0+7, r=P.sheets.body.parts[part].rect;
+    assert.equal(out[y*W+x],rgba(10+i,20,30),part);
+    assert.ok(x>=r[0]&&x<r[2]&&y>=r[1]&&y<r[3], part+' rơi vào ô mới');
+    if(dx) assert.equal(out[y*W+x0+5],0, part+' không còn ở chỗ cũ');
+  });
+  // dời đúng theo khớp: khớp ô cũ + độ dời = khớp ô mới
+  const oldJoint={flap_left:20.08, flap_back:34.08, flap_right:48.08};
+  for(const [part,[,dx]] of Object.entries(old)) assert.ok(Math.abs(oldJoint[part]+dx-P.sheets.body.parts[part].joint[0])<1e-9, part);
+  assert.equal(out.filter(Boolean).length,4);
 });
