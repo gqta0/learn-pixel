@@ -198,6 +198,7 @@ test('export bakes one row per clip, named the way the game reads sheets',()=>{
   assert.deepEqual([run.w,run.h,run.n,run.fps,run.loop],[box.w*8,box.h,8,15,true]);
   const m=bakeManifest(P,box,baked,{body:'Thân'});
   assert.deepEqual(m.feet,{x:box.fx,y:box.fy});
+  assert.equal(m.height,P.height); assert.equal(m.height,64);
   assert.equal(m.clips.skill_02.frames,18);
 });
 

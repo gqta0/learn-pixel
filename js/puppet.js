@@ -432,7 +432,7 @@ export function bakeClips(P,sheets,box=frameBox(P)){
 }
 export function bakeManifest(P,box,baked,names={}){
   return {format:'genesis.puppet.bake.v1', source:P.format, head:names.head||null, body:names.body||null,
-    frame:{w:box.w,h:box.h}, feet:{x:box.fx,y:box.fy}, outline:OUTLINE_HEX,
+    frame:{w:box.w,h:box.h}, feet:{x:box.fx,y:box.fy}, height:P.height, outline:OUTLINE_HEX,
     note:'feet: điểm chân trong khung (pixel, gốc trên-trái, y là mặt đất). Mỗi file một clip, một hàng khung.',
     clips:Object.fromEntries(baked.map(b=>[b.clip,{file:b.file,frames:b.n,fps:b.fps,loop:b.loop}]))};
 }
