@@ -414,3 +414,29 @@ test('auto outline: the near arm adds no dark arc over the body at the shoulder,
   }
   assert.ok(kept>0,'xa vai, viền tay vẫn vẽ đè lên thân');
 });
+
+test('auto outline: the chest draws no dark line across the hips, keeps its outline elsewhere',()=>{
+  // tay xa vẽ riêng ở ô xa, ô tay gần để trống: tay gần (vẽ sau ngực) không có nét nào, chỉ còn viền của ngực
+  const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, names=partsOf(P), arm=['upper_arm','forearm','hand'];
+  for(const p of arm){ body.px=copyNearToFar(P,body.px,body.px,body.w,'far_'+p,GENESIS_COLORS,GENESIS_TOKENS).px; fillCell(body,P.sheets.body.parts[p].rect,0); }
+  const later=['head','hair_front','accessory'];                    // nhóm đầu vẽ sau ngực: ẩn
+  const lower=new Set(['pelvis','thigh','shin','foot','far_thigh','far_shin','far_foot','flap_left','flap_back','flap_right']);
+  let above=0, overFar=0;
+  for(const [clip,i] of [['idle',0],['idle',2],['run',2],['jump',0]]){
+    const f=keyPose(P.clips[clip],i), fl=flapPoints(P,P.clips[clip],i/P.clips[clip].fps), [wx,wy,nx,ny]=joints(P,f).chest;
+    const L=Math.hypot(nx-wx,ny-wy), u=k=>((k%W+0.5-box.fx-wx)*(nx-wx)+(Math.floor(k/W)+0.5-box.fy-wy)*(ny-wy))/L;
+    const base=bake(P,{body},f,box,{flaps:fl,hide:[...later,'chest']}), full=bake(P,{body},f,box,{flaps:fl,hide:later}).px;
+    full.forEach((v,k)=>{
+      if(v!==OUTLINE) return;
+      if(base.px[k]===v) return;                                  // viền này có sẵn từ nhóm trước, không phải của ngực
+      const id=base.who[k], under=base.px[k] ? (id ? names[id-1] : 'outline') : null;
+      const inBand=u(k)>=-6 && u(k)<=2;
+      if(inBand && (under==='outline' || lower.has(under))) assert.fail(clip+' '+i+': viền ngực kẻ ngang hông ('+(k%W)+','+Math.floor(k/W)+')');
+      if(!under && u(k)>2) above++;
+      if(['far_upper_arm','far_forearm','far_hand'].includes(under)) overFar++;   // tay phía xa
+    });
+    assert.ok(!bake(P,{body},f,box,{flaps:fl,outline:false}).px.includes(OUTLINE));
+  }
+  assert.ok(above>0,'phía trên dải, ngực vẫn có viền');
+  assert.ok(overFar>0,'ngực vẫn có viền đè lên tay phía xa');
+});
