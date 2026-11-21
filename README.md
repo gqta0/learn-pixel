@@ -220,7 +220,7 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
      màu miếng: chấm đỏ = khớp xoay, chấm xanh = chỗ gắn, chấm vàng có nhãn = mốc đầu, vòng xanh lá = sọ, khung hồng
      = vùng tóc / phụ kiện.
 4. **Xuất** — **⬇ Xuất mọi động tác (ZIP)**: mỗi động tác một PNG một hàng khung, tên theo kiểu game đang đọc
-   (`run_73x99_8f.png`, `skill_02_73x99_18f.png`…), kèm `puppet_bake.json` (khổ khung, điểm chân, fps, lặp).
+   (`run_71x99_8f.png`, `skill_02_71x99_18f.png`…), kèm `puppet_bake.json` (khổ khung, điểm chân, fps, lặp).
    Khổ khung giống nhau ở mọi động tác và tính từ khung xương, nên vẽ lại miếng không làm lệch điểm chân.
    Ô chọn *Khối mẫu* cũng xuất ra khối mẫu — chọn *Không hiện* nếu chưa muốn xuất phần đó.
 
