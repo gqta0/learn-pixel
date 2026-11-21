@@ -385,3 +385,14 @@ test('a body sheet drawn on the 69x112 layout carries over: canvas 76x112, flap 
   for(const [part,[,dx]] of Object.entries(old)) assert.ok(Math.abs(oldJoint[part]+dx-P.sheets.body.parts[part].joint[0])<1e-9, part);
   assert.equal(out.filter(Boolean).length,4);
 });
+
+test('auto outline off: baked clips add no outline pixel and the manifest says outline null',()=>{
+  const body=blank('body'), box=frameBox(P), cloth=rgba(120,90,160);
+  for(const part of ['thigh','shin','chest','pelvis']) fillCell(body,P.sheets.body.parts[part].rect,cloth);
+  const off=bakeClips(P,{body},box,{outline:false}), on=bakeClips(P,{body},box);
+  assert.ok(off.every(b=>!b.px.includes(OUTLINE)), 'không có pixel viền khi tắt');
+  assert.ok(off.some(b=>b.px.includes(cloth)), 'vẫn có nét vẽ');
+  assert.ok(on.some(b=>b.px.includes(OUTLINE)), 'mặc định của bakeClips vẫn có viền');
+  assert.equal(bakeManifest(P,box,off,{},{outline:false}).outline,null);
+  assert.equal(bakeManifest(P,box,on).outline,'#251c24');
+});

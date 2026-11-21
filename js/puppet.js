@@ -420,19 +420,20 @@ export function lintSheet(P,kind,px,palette){
 /* ---------------- xuất ---------------- */
 export const sheetFileName=(clip,box,n)=>clip+'_'+box.w+'x'+box.h+'_'+n+'f.png';
 /* mọi clip, mỗi clip một hàng khung khoá: [{clip, n, fps, loop, w, h, px}] */
-export function bakeClips(P,sheets,box=frameBox(P)){
+/* opt.outline=false: không thêm viền máy (người vẽ tự vẽ viền vào miếng) */
+export function bakeClips(P,sheets,box=frameBox(P),opt={}){
   return Object.entries(P.clips).map(([name,clip])=>{
     const n=clip.frames.length, W=box.w*n, px=new Uint32Array(W*box.h);
     for(let i=0;i<n;i++){
-      const f=bakeAt(P,sheets,clip,i/clip.fps,box).px;
+      const f=bakeAt(P,sheets,clip,i/clip.fps,box,{outline:opt.outline}).px;
       for(let y=0;y<box.h;y++) px.set(f.subarray(y*box.w,(y+1)*box.w), y*W+i*box.w);
     }
     return {clip:name, n, fps:clip.fps, loop:!!clip.loop, w:W, h:box.h, px, file:sheetFileName(name,box,n)};
   });
 }
-export function bakeManifest(P,box,baked,names={}){
+export function bakeManifest(P,box,baked,names={},opt={}){
   return {format:'genesis.puppet.bake.v1', source:P.format, head:names.head||null, body:names.body||null,
-    frame:{w:box.w,h:box.h}, feet:{x:box.fx,y:box.fy}, height:P.height, outline:OUTLINE_HEX,
+    frame:{w:box.w,h:box.h}, feet:{x:box.fx,y:box.fy}, height:P.height, outline:opt.outline===false ? null : OUTLINE_HEX,
     note:'feet: điểm chân trong khung (pixel, gốc trên-trái, y là mặt đất). Mỗi file một clip, một hàng khung.',
     clips:Object.fromEntries(baked.map(b=>[b.clip,{file:b.file,frames:b.n,fps:b.fps,loop:b.loop}]))};
 }

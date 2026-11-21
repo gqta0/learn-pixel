@@ -21,12 +21,12 @@ import { frameAt, flapPoints, frameBox, bake, isFarCell, farCellOf, copyNearToFa
 
 let P=null, box=null, block=null;                 // dữ liệu rối, khổ khung, sheet khối mẫu
 const rig={clip:'run', t:0, playing:true, part:null, ghost:false, fill:true, only:false, pip:true, pipZoom:0,
-  lock:true, light:'↖', shadeSee:false, outline:true, hidden:[]};   // outline, hidden: chỉ cho phần xem, không vào file xuất
+  lock:true, light:'↖', shadeSee:false, autoOutline:false, hidden:[]};   // hidden: chỉ cho phần xem · autoOutline: viền máy, cả xem lẫn xuất
 const guideOn={shapes:true, cells:true, joints:true, anchors:true};
 const GUIDE_NAMES={shapes:'Khối mờ (dáng mẫu)', cells:'Khung ô + tên miếng', joints:'Khớp: đỏ = điểm xoay, xanh = chỗ gắn miếng sau', anchors:'Mốc đầu + vùng tóc/phụ kiện'};
 try{ Object.assign(rig, JSON.parse(localStorage.getItem('lo-pixel-rig')||'{}'), {playing:true, shadeSee:false, t:0}); }catch(_){}
 if(!Array.isArray(rig.hidden)) rig.hidden=[];
-const remember=()=>{ try{ const {clip,ghost,fill,pip,pipZoom,lock,light,outline,hidden}=rig; localStorage.setItem('lo-pixel-rig',JSON.stringify({clip,ghost,fill,pip,pipZoom,lock,light,outline,hidden})); }catch(_){} };
+const remember=()=>{ try{ const {clip,ghost,fill,pip,pipZoom,lock,light,autoOutline,hidden}=rig; localStorage.setItem('lo-pixel-rig',JSON.stringify({clip,ghost,fill,pip,pipZoom,lock,light,autoOutline,hidden})); }catch(_){} };
 
 /* ---------------- sheet đang vẽ ---------------- */
 const isSheet=()=>P && (doc.puppet==='head'||doc.puppet==='body') &&
@@ -91,7 +91,7 @@ function pose(){
   const f=frameAt(clipObj(),rig.t), flaps=flapPoints(P,clipObj(),rig.t), sheets={head:sheetFor('head'),body:sheetFor('body')};
   const only=rig.only && rig.part ? rig.part : null;
   // Chỉ miếng này thắng danh sách ẩn: đang soi riêng một miếng thì luôn thấy nó
-  const fig=bake(P,sheets,f,box,{only, flaps, fill:rig.fill ? block : null, outline:rig.outline, hide:only ? [] : rig.hidden});
+  const fig=bake(P,sheets,f,box,{only, flaps, fill:rig.fill ? block : null, outline:rig.autoOutline, hide:only ? [] : rig.hidden});
   if(rig.ghost && (ghostCache.t!==rig.t || ghostCache.clip!==rig.clip))
     ghostCache={t:rig.t,clip:rig.clip,px:bake(P,block,f,box,{outline:false, flaps}).px};
   return {fig, ghost:rig.ghost ? ghostCache.px : null};
@@ -460,9 +460,9 @@ function exportAll(){
   const sheets={head:sheetFor('head'),body:sheetFor('body')};
   if(!sheets.head && !sheets.body){ toast('Chọn ít nhất một sheet Đầu hoặc Thân để xuất.'); return; }
   const name=k=>{ const v=src[k]; return v==='block'?'khoi-mau':v==='none'||!v?null:v==='cur'?doc.name:(getLibraryItems()[v.slice(4)]?.name||doc.name); };
-  const baked=bakeClips(P,sheets,box);
+  const baked=bakeClips(P,sheets,box,{outline:rig.autoOutline});
   const files=baked.map(b=>({name:b.file, data:rgbaPngBytes(b.w,b.h,b.px)}));
-  files.push({name:'puppet_bake.json', data:JSON.stringify(bakeManifest(P,box,baked,{head:name('head'),body:name('body')}),null,2)});
+  files.push({name:'puppet_bake.json', data:JSON.stringify(bakeManifest(P,box,baked,{head:name('head'),body:name('body')},{outline:rig.autoOutline}),null,2)});
   const zip=sanitizeFilename([name('head'),name('body')].filter(Boolean).join('_'),'roi')+'_roi.zip';
   offerDownload(makeZip(files),zip,'application/zip',$('#rigNote'));
   toast('Đã xuất '+baked.length+' động tác, khung '+box.w+'×'+box.h+'.');
@@ -539,7 +539,7 @@ export function bindPuppet(){
   toggleBtn('#rigFill','fill');
   toggleBtn('#rigOnly','only',()=>{ if(rig.only && !rig.part) toast('Chọn một miếng để xem riêng.'); });
   toggleBtn('#rigPipBtn','pip');
-  toggleBtn('#rigOutline','outline');
+  toggleBtn('#rigOutline','autoOutline');
   $('#rigShowAll').addEventListener('click',()=>{ rig.hidden=[]; remember(); paintShow(); schedule(); });
   toggleBtn('#rigLock','lock',()=>{ if(!rig.lock && isSheet()){ view.sel=null; render(); } else if(rig.part && isSheet()){ view.sel=cellRect(rig.part); render(); } });
   $('#rigPipHide').addEventListener('click',()=>{ rig.pip=false; remember(); $('#rigPipBtn').classList.remove('on'); $('#rigPipBtn').setAttribute('aria-pressed','false'); schedule(); });
