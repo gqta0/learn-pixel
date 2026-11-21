@@ -156,6 +156,9 @@ const darken=(v,k)=>rgba(Math.round((v&255)*k),Math.round(((v>>8)&255)*k),Math.r
    opt.hide: các miếng không vẽ (cả phía gần lẫn xa) · opt.outline=false: bỏ viền · opt.flaps: điểm vạt áo (flapPoints) — dùng bakeAt cho gọn. Ô vạt áo trống nghĩa là
    nhân vật không mặc áo dài, nên không lấy khối mẫu thay vào. Trả về {px, who}: who[i] = 1 + chỉ số miếng trong PARTS_OF(P) ở pixel đó. */
 export function partsOf(P){ return [...Object.keys(P.sheets.head.parts),...Object.keys(P.sheets.body.parts)]; }
+/* Viền nhóm tay gần không vẽ đè lên thân ở vai: bỏ pixel viền cách khớp vai gần ≤ SHOULDER_GAP px (tâm pixel tới khớp)
+   mà nằm trên chỗ nhóm trước đã vẽ — nếu không, một vệt tối cắt ngang chỗ tay nối vào người. */
+const SHOULDER_GAP=4;
 export function bake(P,sheets,f,box,opt={}){
   const W=box.w, H=box.h, out=new Uint32Array(W*H), who=new Uint8Array(W*H), names=partsOf(P);
   const gpx=new Uint32Array(W*H), gwho=new Uint8Array(W*H), gsrc=new Uint8Array(W*H), empty=cellEmptiness(P,sheets);
@@ -188,9 +191,12 @@ export function bake(P,sheets,f,box,opt={}){
     }
     if(!any) continue;
     cleanTurn(gpx,gwho,gsrc,W,H);
+    const sj=P.draw_order[g].some(e=>e.bone==='near_upper_arm') && joints(P,f).near_upper_arm;
+    const sx=sj && box.fx+sj[0], sy=sj && box.fy+sj[1];
     if(opt.outline!==false) for(let y=0;y<H;y++) for(let x=0;x<W;x++){   // viền cả nhóm nằm dưới mọi màu của nhóm
       const i=y*W+x;
       if(gpx[i]) continue;
+      if(sj && out[i] && Math.hypot(x+0.5-sx,y+0.5-sy)<=SHOULDER_GAP) continue;
       if((x>0&&gpx[i-1])||(x<W-1&&gpx[i+1])||(y>0&&gpx[i-W])||(y<H-1&&gpx[i+W])){ out[i]=OUTLINE; who[i]=0; }
     }
     for(let i=0;i<W*H;i++) if(gpx[i]){ out[i]=gpx[i]; who[i]=gwho[i]; }

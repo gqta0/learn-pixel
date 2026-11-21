@@ -396,3 +396,21 @@ test('auto outline off: baked clips add no outline pixel and the manifest says o
   assert.equal(bakeManifest(P,box,off,{},{outline:false}).outline,null);
   assert.equal(bakeManifest(P,box,on).outline,'#251c24');
 });
+
+test('auto outline: the near arm adds no dark arc over the body at the shoulder, keeps it elsewhere',()=>{
+  const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, arm=['upper_arm','forearm','hand'];
+  const solid=v=>v && v!==OUTLINE;
+  let kept=0;
+  for(const [clip,i] of [['idle',0],['jump',5],['run',2],['punch',2]]){
+    const f=keyPose(P.clips[clip],i), [jx,jy]=joints(P,f).near_upper_arm, sx=box.fx+jx, sy=box.fy+jy;
+    const near=k=>Math.hypot(k%W+0.5-sx,Math.floor(k/W)+0.5-sy)<=4;
+    const base=bake(P,{body},f,box,{hide:arm}).px, full=bake(P,{body},f,box).px;
+    full.forEach((v,k)=>{
+      if(!solid(base[k]) || v!==OUTLINE) return;                 // viền nhóm tay nằm trên chỗ thân đã vẽ
+      if(near(k)){ assert.fail(clip+' '+i+': viền tay đè lên thân ở vai ('+(k%W)+','+Math.floor(k/W)+')'); }
+      else kept++;
+    });
+    assert.ok(!bake(P,{body},f,box,{outline:false}).px.includes(OUTLINE));
+  }
+  assert.ok(kept>0,'xa vai, viền tay vẫn vẽ đè lên thân');
+});
