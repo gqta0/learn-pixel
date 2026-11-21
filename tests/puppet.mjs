@@ -430,7 +430,7 @@ test('auto outline: the chest draws no dark line across the hips, keeps its outl
       if(v!==OUTLINE) return;
       if(base.px[k]===v) return;                                  // viền này có sẵn từ nhóm trước, không phải của ngực
       const id=base.who[k], under=base.px[k] ? (id ? names[id-1] : 'outline') : null;
-      const inBand=u(k)>=-6 && u(k)<=2;
+      const inBand=u(k)<=2;                                       // từ khớp eo trở xuống
       if(inBand && (under==='outline' || lower.has(under))) assert.fail(clip+' '+i+': viền ngực kẻ ngang hông ('+(k%W)+','+Math.floor(k/W)+')');
       if(!under && u(k)>2) above++;
       if(['far_upper_arm','far_forearm','far_hand'].includes(under)) overFar++;   // tay phía xa

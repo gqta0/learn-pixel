@@ -159,10 +159,10 @@ export function partsOf(P){ return [...Object.keys(P.sheets.head.parts),...Objec
 /* Viền nhóm tay gần không vẽ đè lên thân ở vai: bỏ pixel viền cách khớp vai gần ≤ SHOULDER_GAP px (tâm pixel tới khớp)
    mà nằm trên chỗ nhóm trước đã vẽ — nếu không, một vệt tối cắt ngang chỗ tay nối vào người. */
 const SHOULDER_GAP=4;
-/* Viền nhóm ngực không kẻ vạch tối ngang hông: bỏ pixel viền nằm trên phần thân dưới (hông, chân, vạt áo) hoặc trên viền
-   của nhóm trước, chỉ trong dải quanh khớp eo dọc xương ngực: WAIST_BELOW ≤ u ≤ WAIST_ABOVE, u đo từ khớp eo về phía cổ.
-   Ngoài dải (vd. áo dài vẽ trong ô ngực) và trên tay phía xa, ngực vẫn có viền. */
-const WAIST_BELOW=-6, WAIST_ABOVE=2;
+/* Viền đáy ngực không kẻ vạch tối ngang hông: bỏ pixel viền của nhóm ngực nằm trên phần thân dưới (hông, chân, vạt áo)
+   hoặc trên viền của nhóm trước, ở mọi chỗ từ khớp eo trở xuống dọc xương ngực (u ≤ WAIST_ABOVE, u đo từ khớp eo về phía
+   cổ) — đáy ngực vẽ dài (vạt trước áo) cũng vậy. Trên nền trống và trên tay phía xa, ngực vẫn có viền. */
+const WAIST_ABOVE=2;
 const LOWER_BODY=new Set(['pelvis','thigh','shin','foot','far_thigh','far_shin','far_foot','flap_left','flap_back','flap_right']);
 export function bake(P,sheets,f,box,opt={}){
   const W=box.w, H=box.h, out=new Uint32Array(W*H), who=new Uint8Array(W*H), names=partsOf(P);
@@ -207,7 +207,7 @@ export function bake(P,sheets,f,box,opt={}){
       if(sj && out[i] && Math.hypot(x+0.5-sx,y+0.5-sy)<=SHOULDER_GAP) continue;
       if(wj && out[i] && (who[i]===0 || LOWER_BODY.has(names[who[i]-1]))){
         const u=(x+0.5-wx)*ux+(y+0.5-wy)*uy;
-        if(u>=WAIST_BELOW && u<=WAIST_ABOVE) continue;
+        if(u<=WAIST_ABOVE) continue;
       }
       if((x>0&&gpx[i-1])||(x<W-1&&gpx[i+1])||(y>0&&gpx[i-W])||(y<H-1&&gpx[i+W])){ out[i]=OUTLINE; who[i]=0; }
     }
