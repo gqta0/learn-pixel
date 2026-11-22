@@ -156,8 +156,8 @@ const darken=(v,k)=>rgba(Math.round((v&255)*k),Math.round(((v>>8)&255)*k),Math.r
    opt.hide: các miếng không vẽ (cả phía gần lẫn xa) · opt.outline=false: bỏ viền · opt.flaps: điểm vạt áo (flapPoints) — dùng bakeAt cho gọn. Ô vạt áo trống nghĩa là
    nhân vật không mặc áo dài, nên không lấy khối mẫu thay vào. Trả về {px, who}: who[i] = 1 + chỉ số miếng trong PARTS_OF(P) ở pixel đó. */
 export function partsOf(P){ return [...Object.keys(P.sheets.head.parts),...Object.keys(P.sheets.body.parts)]; }
-/* Viền nhóm tay gần không vẽ đè lên thân ở vai: bỏ pixel viền cách khớp vai gần ≤ SHOULDER_GAP px (tâm pixel tới khớp)
-   mà nằm trên chỗ nhóm trước đã vẽ — nếu không, một vệt tối cắt ngang chỗ tay nối vào người. */
+/* Không kẻ viền ngang chỗ tay nối vào người: nhóm tay gần bỏ pixel viền cách khớp vai gần ≤ SHOULDER_GAP px (tâm pixel
+   tới khớp) mà nằm trên chỗ nhóm trước đã vẽ; nhóm ngực cũng vậy quanh khớp vai xa (tay xa vẽ trước ngực). */
 const SHOULDER_GAP=4;
 /* Viền đáy ngực không kẻ vạch tối ngang hông: bỏ pixel viền của nhóm ngực nằm trên phần thân dưới (hông, chân, vạt áo)
    hoặc trên viền của nhóm trước, ở mọi chỗ từ khớp eo trở xuống dọc xương ngực (u ≤ WAIST_ABOVE, u đo từ khớp eo về phía
@@ -196,9 +196,10 @@ export function bake(P,sheets,f,box,opt={}){
     }
     if(!any) continue;
     cleanTurn(gpx,gwho,gsrc,W,H);
-    const sj=P.draw_order[g].some(e=>e.bone==='near_upper_arm') && joints(P,f).near_upper_arm;
-    const sx=sj && box.fx+sj[0], sy=sj && box.fy+sj[1];
     const wj=P.draw_order[g].some(e=>e.part==='chest') && joints(P,f).chest;
+    // vai gần: nhóm tay gần vẽ đè lên ngực · vai xa: nhóm ngực vẽ đè lên tay xa
+    const sj=(P.draw_order[g].some(e=>e.bone==='near_upper_arm') && joints(P,f).near_upper_arm) || (wj && joints(P,f).far_upper_arm);
+    const sx=sj && box.fx+sj[0], sy=sj && box.fy+sj[1];
     const wx=wj && box.fx+wj[0], wy=wj && box.fy+wj[1], wl=wj && Math.hypot(wj[2]-wj[0],wj[3]-wj[1]);
     const ux=wj && (wj[2]-wj[0])/wl, uy=wj && (wj[3]-wj[1])/wl;           // hướng eo → cổ
     if(opt.outline!==false) for(let y=0;y<H;y++) for(let x=0;x<W;x++){   // viền cả nhóm nằm dưới mọi màu của nhóm

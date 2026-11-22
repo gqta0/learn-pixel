@@ -428,6 +428,22 @@ test('auto outline: the near arm adds no dark arc over the body at the shoulder,
   assert.ok(kept>0,'xa vai, viền tay vẫn vẽ đè lên thân');
 });
 
+test('auto outline: the chest adds no dark line over the far arm at the far shoulder (cast 5)',()=>{
+  // tay xa vẽ riêng ở ô xa, ô tay gần để trống; nhóm đầu vẽ sau ngực: ẩn
+  const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, arm=['upper_arm','forearm','hand'], later=['head','hair_front','accessory'];
+  for(const p of arm){ body.px=copyNearToFar(P,body.px,body.px,body.w,'far_'+p,GENESIS_COLORS,GENESIS_TOKENS).px; fillCell(body,P.sheets.body.parts[p].rect,0); }
+  for(const [clip,i] of [['cast',5],['cast',6],['jab',8]]){
+    const f=keyPose(P.clips[clip],i), [jx,jy]=joints(P,f).far_upper_arm, sx=box.fx+jx, sy=box.fy+jy;
+    const base=bake(P,{body},f,box,{hide:[...later,'chest']}).px, full=bake(P,{body},f,box,{hide:later}).px;
+    let seam=0;
+    full.forEach((v,k)=>{
+      if(v!==OUTLINE || !base[k] || base[k]===OUTLINE) return;      // viền ngực nằm trên tay xa
+      if(Math.hypot(k%W+0.5-sx,Math.floor(k/W)+0.5-sy)<=4) seam++;
+    });
+    assert.equal(seam,0,clip+' '+i+': viền ngực cắt ngang vai tay xa');
+  }
+});
+
 test('auto outline: the chest draws no dark line across the hips, keeps its outline elsewhere',()=>{
   // tay xa vẽ riêng ở ô xa, ô tay gần để trống: tay gần (vẽ sau ngực) không có nét nào, chỉ còn viền của ngực
   const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, names=partsOf(P), arm=['upper_arm','forearm','hand'];
