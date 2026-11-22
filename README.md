@@ -174,8 +174,8 @@ Nhân vật 64 px của Project Genesis không vẽ từng khung. Mình vẽ **m
 hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 xương và tự ra mọi khung của 14 động tác
 (chạy, nhảy, ngồi, đấm, bay, kiếm pháp…). Mở ở thẻ **Ghép rối** cột phải (điện thoại: 💾 File → Ghép rối).
 
-1. **Dựng khung** — **+ Sheet Đầu 118×79** (sọ + mặt, tóc sau, tóc trước, phụ kiện — riêng từng nhân vật)
-   hoặc **+ Sheet Thân 76×99** (cổ, ngực, hông, tay, chân, tay chân phía xa, ba vạt áo — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
+1. **Dựng khung** — **+ Sheet Đầu 109×73** (sọ + mặt, tóc sau, tóc trước, phụ kiện — riêng từng nhân vật)
+   hoặc **+ Sheet Thân 76×103** (cổ, ngực, hông, tay, chân, tay chân phía xa, ba vạt áo — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
    trong thư viện 📁. Trên canvas có hướng dẫn: khối mờ của dáng mẫu, khung ô kèm tên miếng, **chấm đỏ** là
    khớp miếng xoay quanh, **chấm xanh** là chỗ miếng sau gắn vào; sheet Đầu thêm mốc (crown, tie, forehead,
    ear, nape, chin) và vùng nên vẽ của tóc/phụ kiện. Hướng dẫn chỉ hiện trên màn hình, khoá sẵn, tắt/bật ở
@@ -222,7 +222,7 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
      màu miếng: chấm đỏ = khớp xoay, chấm xanh = chỗ gắn, chấm vàng có nhãn = mốc đầu, vòng xanh lá = sọ, khung hồng
      = vùng tóc / phụ kiện.
 4. **Xuất** — **⬇ Xuất mọi động tác (ZIP)**: mỗi động tác một PNG một hàng khung, tên theo kiểu game đang đọc
-   (`run_76x89_8f.png`, `skill_02_76x89_18f.png`…), kèm `puppet_bake.json` (khổ khung, điểm chân, fps, lặp).
+   (`run_74x88_8f.png`, `skill_02_74x88_18f.png`…), kèm `puppet_bake.json` (khổ khung, điểm chân, fps, lặp).
    Khổ khung giống nhau ở mọi động tác và tính từ khung xương, nên vẽ lại miếng không làm lệch điểm chân.
    Ô chọn *Khối mẫu* cũng xuất ra khối mẫu — chọn *Không hiện* nếu chưa muốn xuất phần đó.
 
@@ -234,7 +234,7 @@ Dữ liệu khung xương là `data/puppet.json` (định dạng `genesis.puppet
 báo nếu bản làm mới đổi lại thứ tự này.
 Bản làm mới chỉ dời ô (vd. vạt áo to ra) thì thêm một dòng vào `OLD_LAYOUTS` trong `js/puppet.js` (khổ cũ, khổ mới,
 ô nào dời bao nhiêu): sheet vẽ theo bố cục cũ mở ra là tự đổi khổ và dời ô (một bước hoàn tác), sheet trong thư viện
-ghép lên rối cũng được dời theo. Bản làm mới đổi cả tỉ lệ người (như khung chibi 2,3 đầu: Đầu 118×79, Thân 76×99) thì
+ghép lên rối cũng được dời theo. Bản làm mới đổi cả tỉ lệ người (như khung chibi: Đầu 109×73, Thân 76×103; các khổ trước đó như 118×79 / 76×99, 103×69 / 76×112 đều là khung cũ) thì
 không dời: sheet vẽ cho khung cũ vẫn giữ nguyên trong thư viện, mở ra trang báo rõ là vẽ cho khung cũ và cần vẽ lại.
 
 ## Trang Tile (`tile.html`) — nhiều bộ tile, nhiều khuôn, tile hoạt ảnh
