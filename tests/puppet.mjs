@@ -29,7 +29,7 @@ const REF=[
 test('the shipped puppet.json is the genesis.puppet.v1 export with both sheets and 14 clips',()=>{
   assert.equal(P.format,'genesis.puppet.v1');
   assert.deepEqual(P.sheets.head.size,[109,73]);                  // khung chibi, đầu 38%
-  assert.deepEqual(P.sheets.body.size,[82,109]);                   // thân rộng thêm 2 px mỗi miếng
+  assert.deepEqual(P.sheets.body.size,[88,109]);                   // thân rộng thêm 2 px mỗi miếng, hàng vạt nới rộng
   assert.deepEqual(P.sheets.body.parts.chest.rect,[31,18,51,65]);
   // bố cục có nghĩa: tay, chân gần ở bên trái thân, ô xa ở bên phải, đối xứng qua cột giữa
   const S=P.sheets.body.parts;
@@ -363,29 +363,23 @@ test('turned parts leave few stray pixels: spikes per frame over every key frame
   assert.ok(spikes/frames<0.5, 'spikes per frame '+(spikes/frames).toFixed(2));    // trước khi snap + dọn: 2.5
 });
 
-test('a body sheet drawn on 76x103 carries over to 82x109: every cell moves by its joint offset, overflow is dropped',()=>{
-  const L=oldLayout('body',76,103);
-  assert.ok(L); assert.deepEqual(L.to,P.sheets.body.size);
-  const w=76, px=new Uint32Array(w*103), cells=P.sheets.body.parts, name=Object.keys(cells);
-  // một pixel ở tâm mỗi ô cũ, màu riêng từng ô
-  const at=L.move.map(([r])=>[Math.floor((r[0]+r[2])/2), Math.floor((r[1]+r[3])/2)]);
-  at.forEach(([x,y],i)=>{ px[y*w+x]=rgba(10+i,20,30); });
-  px[79*w+75]=rgba(9,9,9);                                         // ngoài mọi ô (vd. nét lạc): giữ chỗ
-  const out=upgradeLayer(L,px), W=L.to[0];
-  assert.equal(out.length,82*109);
-  L.move.forEach(([r,dx,dy,to],i)=>{
-    const x=at[i][0]+dx, y=at[i][1]+dy;
-    assert.equal(out[y*W+x],rgba(10+i,20,30),'ô '+i);
-    assert.ok(x>=to[0]&&x<to[2]&&y>=to[1]&&y<to[3]);
+for(const [from,n] of [[[76,103],18],[[82,109],18]]) test('a body sheet drawn on '+from.join('x')+' carries over to the current body sheet: every cell moves by its offset, side flaps arrive whole',()=>{
+  const L=oldLayout('body',...from);
+  assert.ok(L); assert.deepEqual(L.to,P.sheets.body.size); assert.equal(L.move.length,n);
+  const [w,h]=from, cells=P.sheets.body.parts, name=Object.keys(cells), W=L.to[0];
+  L.move.forEach(([,,,to],i)=>assert.deepEqual(to,cells[name[i]].rect,name[i]));      // ô đích là ô hiện tại
+  // một pixel ở tâm và một ở bốn góc của mỗi ô cũ: tất cả tới đúng chỗ cũ + độ dời, không mất pixel nào
+  const px=new Uint32Array(w*h), want=[];
+  L.move.forEach(([r,dx,dy],i)=>{
+    for(const [x,y] of [[Math.floor((r[0]+r[2])/2),Math.floor((r[1]+r[3])/2)],[r[0],r[1]],[r[2]-1,r[1]],[r[0],r[3]-1],[r[2]-1,r[3]-1]]){
+      const v=rgba(10+i,20+want.length%200,30); px[y*w+x]=v; want.push([x+dx,y+dy,v]);
+    }
   });
-  // ô đích là ô hiện tại
-  L.move.forEach(([,dx,dy,to],i)=>assert.deepEqual(to,cells[name[i]].rect,name[i]));
-  assert.equal(out[79*W+75],rgba(9,9,9));
-  // vạt trái lệch 3/4 sang trái: cột trong cùng của ô cũ dời ra ngoài ô mới thì bỏ, không tràn sang ô vạt sau
-  const fl=L.move[name.indexOf('flap_left')], [r,dx,dy,to]=fl, edge=new Uint32Array(w*103);
-  edge[(r[1]+2)*w+r[2]-1]=rgba(200,0,0);
-  const moved=upgradeLayer(L,edge);
-  assert.ok(r[2]-1+dx>=to[2] && !moved.includes(rgba(200,0,0)));
+  px[0]=rgba(9,9,9); want.push([0,0,rgba(9,9,9)]);                                      // góc sheet, ngoài mọi ô: giữ chỗ
+  const out=upgradeLayer(L,px);
+  assert.equal(out.length,L.to[0]*L.to[1]);
+  for(const [x,y,v] of want) assert.equal(out[y*W+x],v,x+','+y);
+  assert.equal(out.filter(Boolean).length,want.length);
 });
 
 test('old builds are not migrated; upgradeLayer still grows a sheet and moves listed cells by whole pixels',()=>{
@@ -416,22 +410,46 @@ test('auto outline off: baked clips add no outline pixel and the manifest says o
   assert.equal(bakeManifest(P,box,on).outline,'#251c24');
 });
 
-test('auto outline: the near arm adds no dark arc over the body at the shoulder, keeps it elsewhere',()=>{
-  const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, arm=['upper_arm','forearm','hand'];
-  const solid=v=>v && v!==OUTLINE;
+test('auto outline: no dark line on the near shoulder cap over the chest, every frame; the arm keeps its outline below the shoulder',()=>{
+  // anh khoanh ở idle khung 0: đoạn viền từ đỉnh vai xuống tới ngang khớp vai — bỏ đoạn đó, giữ phần dưới
+  const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, arm=['upper_arm','forearm','hand'], names=partsOf(P);
+  const solid=v=>v && v!==OUTLINE, keeps=new Set(['idle0','run1','run5','jump3','punch4','cast5','slash4']);
   let kept=0;
-  for(const [clip,i] of [['idle',0],['jump',5],['run',2],['punch',2]]){
-    const f=keyPose(P.clips[clip],i), [jx,jy]=joints(P,f).near_upper_arm, sx=box.fx+jx, sy=box.fy+jy;
-    const near=k=>Math.hypot(k%W+0.5-sx,Math.floor(k/W)+0.5-sy)<=4;
-    const base=bake(P,{body},f,box,{hide:arm}).px, full=bake(P,{body},f,box).px;
-    full.forEach((v,k)=>{
+  for(const [clip,c] of Object.entries(P.clips)) for(let i=0;i<c.frames.length;i++){
+    const f=keyPose(c,i), [jx,jy,ex,ey]=joints(P,f).near_upper_arm, sx=box.fx+jx, sy=box.fy+jy;
+    const al=Math.hypot(ex-jx,ey-jy), ax=(ex-jx)/al, ay=(ey-jy)/al;
+    const base=bake(P,{body},f,box,{hide:arm}).px, F=bake(P,{body},f,box);
+    let below=0;
+    F.px.forEach((v,k)=>{
       if(!solid(base[k]) || v!==OUTLINE) return;                 // viền nhóm tay nằm trên chỗ thân đã vẽ
-      if(near(k)){ assert.fail(clip+' '+i+': viền tay đè lên thân ở vai ('+(k%W)+','+Math.floor(k/W)+')'); }
-      else kept++;
+      const x=k%W+0.5-sx, y=Math.floor(k/W)+0.5-sy;
+      if(Math.hypot(x,y)<=4) assert.fail(clip+' '+i+': viền tay đè lên thân sát vai ('+(k%W)+','+Math.floor(k/W)+')');
+      const by=[k-1,k+1,k-W,k+W].map(n=>names[F.who[n]-1]).filter(p=>arm.includes(p));
+      if(!by.length || !by.every(p=>p==='upper_arm')) return;   // viền cẳng tay, bàn tay: giữ
+      if(x*ax+y*ay<=0) assert.fail(clip+' '+i+': chỏm vai gần còn viền ('+(k%W)+','+Math.floor(k/W)+')');
+      below++;
     });
-    assert.ok(!bake(P,{body},f,box,{outline:false}).px.includes(OUTLINE));
+    if(keeps.has(clip+i)) assert.ok(below>0, clip+' '+i+': mất cả viền cánh tay dưới vai');
+    kept+=below;
   }
-  assert.ok(kept>0,'xa vai, viền tay vẫn vẽ đè lên thân');
+  assert.ok(kept>0);
+  assert.ok(!bake(P,{body},keyPose(P.clips.idle,0),box,{outline:false}).px.includes(OUTLINE));
+});
+
+test('auto outline: the chest adds no dark line over the far arm at the far shoulder (cast 5)',()=>{
+  // tay xa vẽ riêng ở ô xa, ô tay gần để trống; nhóm đầu vẽ sau ngực: ẩn
+  const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, arm=['upper_arm','forearm','hand'], later=['head','hair_front','accessory'];
+  for(const p of arm){ body.px=copyNearToFar(P,body.px,body.px,body.w,'far_'+p,GENESIS_COLORS,GENESIS_TOKENS).px; fillCell(body,P.sheets.body.parts[p].rect,0); }
+  for(const [clip,i] of [['cast',5],['cast',6],['jab',8]]){
+    const f=keyPose(P.clips[clip],i), [jx,jy]=joints(P,f).far_upper_arm, sx=box.fx+jx, sy=box.fy+jy;
+    const base=bake(P,{body},f,box,{hide:[...later,'chest']}).px, full=bake(P,{body},f,box,{hide:later}).px;
+    let seam=0;
+    full.forEach((v,k)=>{
+      if(v!==OUTLINE || !base[k] || base[k]===OUTLINE) return;      // viền ngực nằm trên tay xa
+      if(Math.hypot(k%W+0.5-sx,Math.floor(k/W)+0.5-sy)<=4) seam++;
+    });
+    assert.equal(seam,0,clip+' '+i+': viền ngực cắt ngang vai tay xa');
+  }
 });
 
 test('auto outline: the chest draws no dark line across the hips, keeps its outline elsewhere',()=>{

@@ -156,8 +156,8 @@ const darken=(v,k)=>rgba(Math.round((v&255)*k),Math.round(((v>>8)&255)*k),Math.r
    opt.hide: các miếng không vẽ (cả phía gần lẫn xa) · opt.outline=false: bỏ viền · opt.flaps: điểm vạt áo (flapPoints) — dùng bakeAt cho gọn. Ô vạt áo trống nghĩa là
    nhân vật không mặc áo dài, nên không lấy khối mẫu thay vào. Trả về {px, who}: who[i] = 1 + chỉ số miếng trong PARTS_OF(P) ở pixel đó. */
 export function partsOf(P){ return [...Object.keys(P.sheets.head.parts),...Object.keys(P.sheets.body.parts)]; }
-/* Viền nhóm tay gần không vẽ đè lên thân ở vai: bỏ pixel viền cách khớp vai gần ≤ SHOULDER_GAP px (tâm pixel tới khớp)
-   mà nằm trên chỗ nhóm trước đã vẽ — nếu không, một vệt tối cắt ngang chỗ tay nối vào người. */
+/* Không kẻ viền ngang chỗ tay nối vào người: nhóm tay gần bỏ pixel viền cách khớp vai gần ≤ SHOULDER_GAP px (tâm pixel
+   tới khớp) mà nằm trên chỗ nhóm trước đã vẽ; nhóm ngực cũng vậy quanh khớp vai xa (tay xa vẽ trước ngực). */
 const SHOULDER_GAP=4;
 /* Viền đáy ngực không kẻ vạch tối ngang hông: bỏ pixel viền của nhóm ngực nằm trên phần thân dưới (hông, chân, vạt áo)
    hoặc trên viền của nhóm trước, ở mọi chỗ từ khớp eo trở xuống dọc xương ngực (u ≤ WAIST_ABOVE, u đo từ khớp eo về phía
@@ -196,15 +196,21 @@ export function bake(P,sheets,f,box,opt={}){
     }
     if(!any) continue;
     cleanTurn(gpx,gwho,gsrc,W,H);
-    const sj=P.draw_order[g].some(e=>e.bone==='near_upper_arm') && joints(P,f).near_upper_arm;
-    const sx=sj && box.fx+sj[0], sy=sj && box.fy+sj[1];
     const wj=P.draw_order[g].some(e=>e.part==='chest') && joints(P,f).chest;
+    // vai gần: nhóm tay gần vẽ đè lên ngực · vai xa: nhóm ngực vẽ đè lên tay xa
+    const sj=(P.draw_order[g].some(e=>e.bone==='near_upper_arm') && joints(P,f).near_upper_arm) || (wj && joints(P,f).far_upper_arm);
+    const sx=sj && box.fx+sj[0], sy=sj && box.fy+sj[1];
+    // chỏm vai gần: viền cánh tay trên nằm từ khớp vai trở lên (dọc xương, phía nào cũng vậy) không vẽ đè lên thân
+    const ua=P.draw_order[g].some(e=>e.bone==='near_upper_arm') && names.indexOf('upper_arm')+1;
+    const al=ua && Math.hypot(sj[2]-sj[0],sj[3]-sj[1]), ax=ua && (sj[2]-sj[0])/al, ay=ua && (sj[3]-sj[1])/al;
     const wx=wj && box.fx+wj[0], wy=wj && box.fy+wj[1], wl=wj && Math.hypot(wj[2]-wj[0],wj[3]-wj[1]);
     const ux=wj && (wj[2]-wj[0])/wl, uy=wj && (wj[3]-wj[1])/wl;           // hướng eo → cổ
     if(opt.outline!==false) for(let y=0;y<H;y++) for(let x=0;x<W;x++){   // viền cả nhóm nằm dưới mọi màu của nhóm
       const i=y*W+x;
       if(gpx[i]) continue;
       if(sj && out[i] && Math.hypot(x+0.5-sx,y+0.5-sy)<=SHOULDER_GAP) continue;
+      if(ua && out[i] && (x+0.5-sx)*ax+(y+0.5-sy)*ay<=0
+        && [x>0&&i-1,x<W-1&&i+1,y>0&&i-W,y<H-1&&i+W].every(k=>k===false || !gpx[k] || gwho[k]===ua)) continue;
       if(wj && out[i] && (who[i]===0 || LOWER_BODY.has(names[who[i]-1]))){
         const u=(x+0.5-wx)*ux+(y+0.5-wy)*uy;
         if(u<=WAIST_ABOVE) continue;
@@ -269,10 +275,10 @@ function cellEmptiness(P,sheets){
    Pixel ngoài các ô dời giữ nguyên chỗ. Thêm một dòng mỗi lần bên rig đổi bố cục mà muốn bản vẽ cũ đi theo.
    Bố cục chỉ dời ô thì thêm được; đổi cả tỉ lệ (như khung chibi) thì không: nét vẽ cho tỉ lệ khác, phải vẽ lại.
    (Dòng Thân 69×112 → 76×112 của bản vạt áo rộng đã bỏ khi đổi sang khung chibi.)
-   Mỗi ô: [ô cũ, dx, dy, ô mới] — pixel dời ra ngoài ô mới thì bỏ (vd. vạt trái/phải lệch 3/4 về một phía bản lề).
-   ponytail: chỉ chuyển một bước; khổ cũ hơn nữa thì báo vẽ lại. */
-export const OLD_LAYOUTS=[
-  {kind:'body', from:[76,103], to:[82,109], move:[            // thân rộng thêm 2 px mỗi miếng, vạt trái/phải lệch 3/4
+   Mỗi ô: [ô cũ, dx, dy, ô mới] — pixel dời ra ngoài ô mới thì bỏ (chốt an toàn; các dòng hiện tại đều vừa trọn).
+   ponytail: mỗi khổ cũ một dòng thẳng tới khổ hiện tại; khổ cũ hơn nữa thì báo vẽ lại. */
+export const OLD_LAYOUTS=[                  // thân rộng thêm 2 px mỗi miếng, vạt trái/phải lệch 3/4, hàng vạt nới cho vạt cũ vừa trọn
+  {kind:'body', from:[76,103], to:[88,109], move:[   // 76x103
     [[4,1,14,17],-1,1,[2,1,14,19]],   // upper_arm
     [[4,18,13,33],-1,3,[2,20,13,37]],   // forearm
     [[4,34,14,44],-1,5,[2,38,14,50]],   // hand
@@ -288,9 +294,29 @@ export const OLD_LAYOUTS=[
     [[62,1,72,17],7,1,[68,1,80,19]],   // far_upper_arm
     [[62,18,71,33],7,3,[68,20,79,37]],   // far_forearm
     [[62,34,72,44],7,5,[68,38,80,50]],   // far_hand
-    [[1,80,25,102],5,6,[1,86,27,108]],   // flap_left
-    [[26,80,50,102],3,6,[28,86,54,108]],   // flap_back
-    [[51,80,75,102],1,6,[55,86,81,108]],   // flap_right
+    [[1,80,25,102],5,6,[1,86,30,108]],   // flap_left
+    [[26,80,50,102],6,6,[31,86,57,108]],   // flap_back
+    [[51,80,75,102],7,6,[58,86,87,108]],   // flap_right
+  ]},
+  {kind:'body', from:[82,109], to:[88,109], move:[   // 82x109
+    [[2,1,14,19],0,0,[2,1,14,19]],   // upper_arm
+    [[2,20,13,37],0,0,[2,20,13,37]],   // forearm
+    [[2,38,14,50],0,0,[2,38,14,50]],   // hand
+    [[16,1,29,20],0,0,[16,1,29,20]],   // thigh
+    [[16,21,28,39],0,0,[16,21,28,39]],   // shin
+    [[15,40,30,50],0,0,[15,40,30,50]],   // foot
+    [[36,1,47,17],0,0,[36,1,47,17]],   // neck
+    [[31,18,51,65],0,0,[31,18,51,65]],   // chest
+    [[34,66,49,85],0,0,[34,66,49,85]],   // pelvis
+    [[53,1,66,20],0,0,[53,1,66,20]],   // far_thigh
+    [[54,21,66,39],0,0,[54,21,66,39]],   // far_shin
+    [[52,40,67,50],0,0,[52,40,67,50]],   // far_foot
+    [[68,1,80,19],0,0,[68,1,80,19]],   // far_upper_arm
+    [[68,20,79,37],0,0,[68,20,79,37]],   // far_forearm
+    [[68,38,80,50],0,0,[68,38,80,50]],   // far_hand
+    [[1,86,27,108],0,0,[1,86,30,108]],   // flap_left
+    [[28,86,54,108],3,0,[31,86,57,108]],   // flap_back
+    [[55,86,81,108],6,0,[58,86,87,108]],   // flap_right
   ]},
 ];
 export const oldLayout=(kind,w,h)=>OLD_LAYOUTS.find(l=>l.kind===kind && l.from[0]===w && l.from[1]===h)||null;
