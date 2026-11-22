@@ -266,11 +266,10 @@ function cellEmptiness(P,sheets){
 
 /* ---------------- bố cục sheet cũ ---------------- */
 /* Khổ sheet cũ → khổ mới, và ô nào dời đi bao nhiêu (nguyên pixel, giữ đúng chỗ nét so với khớp).
-   Pixel ngoài các ô dời giữ nguyên chỗ. Thêm một dòng mỗi lần bên rig đổi bố cục mà muốn bản vẽ cũ đi theo. */
-export const OLD_LAYOUTS=[
-  {kind:'body', from:[69,112], to:[76,112], move:[            // vạt áo rộng (áo bào): ba ô vạt to ra
-    [[14,81,27,111],-8,0], [[28,81,41,111],3,0], [[42,81,55,111],14,0]]},
-];
+   Pixel ngoài các ô dời giữ nguyên chỗ. Thêm một dòng mỗi lần bên rig đổi bố cục mà muốn bản vẽ cũ đi theo.
+   Bố cục chỉ dời ô thì thêm được; đổi cả tỉ lệ (như khung 2,3 đầu) thì không: nét vẽ cho tỉ lệ khác, phải vẽ lại.
+   (Dòng Thân 69×112 → 76×112 của bản vạt áo rộng đã bỏ khi đổi sang khung chibi.) */
+export const OLD_LAYOUTS=[];
 export const oldLayout=(kind,w,h)=>OLD_LAYOUTS.find(l=>l.kind===kind && l.from[0]===w && l.from[1]===h)||null;
 /* một mảng pixel theo bố cục cũ → mảng theo bố cục mới (đổi khổ rồi dời ô) */
 export function upgradeLayer(L,px){
