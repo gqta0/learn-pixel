@@ -410,12 +410,16 @@ function paintGuides(){
   }
 }
 
+/* bản vẽ cho khung xương cũ (khổ khác, không có cách dời ô): giữ nguyên, nói rõ là phải vẽ lại */
+const oldBuildNote=()=>'Sheet '+SHEET_VI[doc.puppet]+' này vẽ cho khung xương cũ (khổ '+doc.w+'×'+doc.h+'; khung hiện tại dùng '+
+  P.sheets[doc.puppet].size.join('×')+'). Tỉ lệ người đã đổi nên không tự chuyển được — bản này vẫn giữ nguyên trong thư viện. '+
+  'Bấm + Sheet '+SHEET_VI[doc.puppet]+' để dựng sheet mới rồi vẽ lại (mở bản cũ bên cạnh để chép màu).';
+
 /* ---------------- soi miếng ---------------- */
 function runRigLint(){
   const out=$('#rigLint');
   if(!isSheet()){
-    out.innerHTML='<p class="kbd">'+(doc.puppet ? 'Bản này khổ '+doc.w+'×'+doc.h+', sheet '+SHEET_VI[doc.puppet]+' hiện là '+P.sheets[doc.puppet].size.join('×')+
-      ' — có thể là bản theo bố cục ô cũ. Dựng sheet mới rồi chép từng miếng sang đúng ô (chọn vùng, ⧉ Chép, 📋 Dán); đổi khổ thôi thì các ô hàng dưới vẫn lệch chỗ.' : 'Dựng hoặc mở một sheet Đầu/Thân để soi.')+'</p>';
+    out.innerHTML='<p class="kbd">'+(doc.puppet ? oldBuildNote() : 'Dựng hoặc mở một sheet Đầu/Thân để soi.')+'</p>';
     return;
   }
   const rows=lintSheet(P,doc.puppet,flatDoc().px,palette);
@@ -449,7 +453,7 @@ function createSheet(kind){
   view.sel=null; rig.part=null;
   invalidateBuf(); syncAll();
   const id=saveCurrent(doc.name,true);
-  focusPart(Object.keys(cellsOf(kind))[kind==='head'?0:6],true);   // đầu: ô Đầu · thân: ô Đùi
+  focusPart(kind==='head'?'head':'thigh',true);
   fillSources(); paintGuides(); runRigLint();
   toast(id ? 'Đã dựng sheet '+SHEET_VI[kind]+' và cất vào thư viện 📁. Vẽ vào ô, rối chạy ngay ở góc canvas.' : 'Đã dựng sheet, nhưng trình duyệt hết chỗ nên chưa cất vào thư viện.',4200);
 }
@@ -576,6 +580,7 @@ export function bindPuppet(){
   window.addEventListener('pixelrender',()=>{
     const key=(currentId()||'')+'|'+doc.puppet+'|'+doc.w+'x'+doc.h;
     if(key!==lastKey && upgradeDoc()) return;           // syncAll vẽ lại, lượt sau lo phần còn lại
+    if(key!==lastKey && P && doc.puppet && !isSheet()) toast(oldBuildNote(),7000);
     if(key!==lastKey){ lastKey=key; clearShadeSee(); fillSources(); paintParts(); paintGuides(); runRigLint(); }
     schedule();
   });
