@@ -175,7 +175,7 @@ hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 
 (chạy, nhảy, ngồi, đấm, bay, kiếm pháp…). Mở ở thẻ **Ghép rối** cột phải (điện thoại: 💾 File → Ghép rối).
 
 1. **Dựng khung** — **+ Sheet Đầu 109×73** (sọ + mặt, tóc sau, tóc trước, phụ kiện — riêng từng nhân vật)
-   hoặc **+ Sheet Thân 82×109** (cổ, ngực, hông, tay, chân, tay chân phía xa, ba vạt áo — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
+   hoặc **+ Sheet Thân 88×109** (cổ, ngực, hông, tay, chân, tay chân phía xa, ba vạt áo — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
    trong thư viện 📁. Trên canvas có hướng dẫn: khối mờ của dáng mẫu, khung ô kèm tên miếng, **chấm đỏ** là
    khớp miếng xoay quanh, **chấm xanh** là chỗ miếng sau gắn vào; sheet Đầu thêm mốc (crown, tie, forehead,
    ear, nape, chin) và vùng nên vẽ của tóc/phụ kiện. Hướng dẫn chỉ hiện trên màn hình, khoá sẵn, tắt/bật ở
@@ -232,9 +232,9 @@ Dữ liệu khung xương là `data/puppet.json` (định dạng `genesis.puppet
 `data/puppet.json`, rồi chạy kiểm thử (`node --test tests/puppet.mjs` soi định dạng và vị trí khớp).
 **Bàn chân vẽ đè lên cẳng chân** (thứ tự đùi → cẳng chân → bàn chân trong `GROUPS` của `tools/character.py`); kiểm thử
 báo nếu bản làm mới đổi lại thứ tự này.
-Bản làm mới chỉ dời ô (vd. Thân 76×103 → 82×109 khi mỗi miếng rộng thêm 2 px; pixel dời ra ngoài ô mới thì bỏ) thì thêm một dòng vào `OLD_LAYOUTS` trong `js/puppet.js` (khổ cũ, khổ mới,
+Bản làm mới chỉ dời ô (vd. Thân 76×103 hay 82×109 → 88×109 khi mỗi miếng rộng thêm 2 px và hàng vạt nới ra) thì thêm một dòng vào `OLD_LAYOUTS` trong `js/puppet.js` (khổ cũ, khổ mới,
 ô nào dời bao nhiêu): sheet vẽ theo bố cục cũ mở ra là tự đổi khổ và dời ô (một bước hoàn tác), sheet trong thư viện
-ghép lên rối cũng được dời theo. Bản làm mới đổi cả tỉ lệ người (như khung chibi: Đầu 109×73, Thân 82×109; các khổ trước đó như 118×79 / 76×99, 103×69 / 76×112 đều là khung cũ) thì
+ghép lên rối cũng được dời theo. Bản làm mới đổi cả tỉ lệ người (như khung chibi: Đầu 109×73, Thân 88×109; các khổ trước đó như 118×79 / 76×99, 103×69 / 76×112 đều là khung cũ) thì
 không dời: sheet vẽ cho khung cũ vẫn giữ nguyên trong thư viện, mở ra trang báo rõ là vẽ cho khung cũ và cần vẽ lại.
 
 ## Trang Tile (`tile.html`) — nhiều bộ tile, nhiều khuôn, tile hoạt ảnh

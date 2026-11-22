@@ -29,7 +29,7 @@ const REF=[
 test('the shipped puppet.json is the genesis.puppet.v1 export with both sheets and 14 clips',()=>{
   assert.equal(P.format,'genesis.puppet.v1');
   assert.deepEqual(P.sheets.head.size,[109,73]);                  // khung chibi, đầu 38%
-  assert.deepEqual(P.sheets.body.size,[82,109]);                   // thân rộng thêm 2 px mỗi miếng
+  assert.deepEqual(P.sheets.body.size,[88,109]);                   // thân rộng thêm 2 px mỗi miếng, hàng vạt nới rộng
   assert.deepEqual(P.sheets.body.parts.chest.rect,[31,18,51,65]);
   // bố cục có nghĩa: tay, chân gần ở bên trái thân, ô xa ở bên phải, đối xứng qua cột giữa
   const S=P.sheets.body.parts;
@@ -363,29 +363,23 @@ test('turned parts leave few stray pixels: spikes per frame over every key frame
   assert.ok(spikes/frames<0.5, 'spikes per frame '+(spikes/frames).toFixed(2));    // trước khi snap + dọn: 2.5
 });
 
-test('a body sheet drawn on 76x103 carries over to 82x109: every cell moves by its joint offset, overflow is dropped',()=>{
-  const L=oldLayout('body',76,103);
-  assert.ok(L); assert.deepEqual(L.to,P.sheets.body.size);
-  const w=76, px=new Uint32Array(w*103), cells=P.sheets.body.parts, name=Object.keys(cells);
-  // một pixel ở tâm mỗi ô cũ, màu riêng từng ô
-  const at=L.move.map(([r])=>[Math.floor((r[0]+r[2])/2), Math.floor((r[1]+r[3])/2)]);
-  at.forEach(([x,y],i)=>{ px[y*w+x]=rgba(10+i,20,30); });
-  px[79*w+75]=rgba(9,9,9);                                         // ngoài mọi ô (vd. nét lạc): giữ chỗ
-  const out=upgradeLayer(L,px), W=L.to[0];
-  assert.equal(out.length,82*109);
-  L.move.forEach(([r,dx,dy,to],i)=>{
-    const x=at[i][0]+dx, y=at[i][1]+dy;
-    assert.equal(out[y*W+x],rgba(10+i,20,30),'ô '+i);
-    assert.ok(x>=to[0]&&x<to[2]&&y>=to[1]&&y<to[3]);
+for(const [from,n] of [[[76,103],18],[[82,109],18]]) test('a body sheet drawn on '+from.join('x')+' carries over to the current body sheet: every cell moves by its offset, side flaps arrive whole',()=>{
+  const L=oldLayout('body',...from);
+  assert.ok(L); assert.deepEqual(L.to,P.sheets.body.size); assert.equal(L.move.length,n);
+  const [w,h]=from, cells=P.sheets.body.parts, name=Object.keys(cells), W=L.to[0];
+  L.move.forEach(([,,,to],i)=>assert.deepEqual(to,cells[name[i]].rect,name[i]));      // ô đích là ô hiện tại
+  // một pixel ở tâm và một ở bốn góc của mỗi ô cũ: tất cả tới đúng chỗ cũ + độ dời, không mất pixel nào
+  const px=new Uint32Array(w*h), want=[];
+  L.move.forEach(([r,dx,dy],i)=>{
+    for(const [x,y] of [[Math.floor((r[0]+r[2])/2),Math.floor((r[1]+r[3])/2)],[r[0],r[1]],[r[2]-1,r[1]],[r[0],r[3]-1],[r[2]-1,r[3]-1]]){
+      const v=rgba(10+i,20+want.length%200,30); px[y*w+x]=v; want.push([x+dx,y+dy,v]);
+    }
   });
-  // ô đích là ô hiện tại
-  L.move.forEach(([,dx,dy,to],i)=>assert.deepEqual(to,cells[name[i]].rect,name[i]));
-  assert.equal(out[79*W+75],rgba(9,9,9));
-  // vạt trái lệch 3/4 sang trái: cột trong cùng của ô cũ dời ra ngoài ô mới thì bỏ, không tràn sang ô vạt sau
-  const fl=L.move[name.indexOf('flap_left')], [r,dx,dy,to]=fl, edge=new Uint32Array(w*103);
-  edge[(r[1]+2)*w+r[2]-1]=rgba(200,0,0);
-  const moved=upgradeLayer(L,edge);
-  assert.ok(r[2]-1+dx>=to[2] && !moved.includes(rgba(200,0,0)));
+  px[0]=rgba(9,9,9); want.push([0,0,rgba(9,9,9)]);                                      // góc sheet, ngoài mọi ô: giữ chỗ
+  const out=upgradeLayer(L,px);
+  assert.equal(out.length,L.to[0]*L.to[1]);
+  for(const [x,y,v] of want) assert.equal(out[y*W+x],v,x+','+y);
+  assert.equal(out.filter(Boolean).length,want.length);
 });
 
 test('old builds are not migrated; upgradeLayer still grows a sheet and moves listed cells by whole pixels',()=>{
