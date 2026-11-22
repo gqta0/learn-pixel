@@ -158,7 +158,7 @@ const darken=(v,k)=>rgba(Math.round((v&255)*k),Math.round(((v>>8)&255)*k),Math.r
 export function partsOf(P){ return [...Object.keys(P.sheets.head.parts),...Object.keys(P.sheets.body.parts)]; }
 /* Không kẻ viền ngang chỗ tay nối vào người: nhóm tay gần bỏ pixel viền cách khớp vai gần ≤ SHOULDER_GAP px (tâm pixel
    tới khớp) mà nằm trên chỗ nhóm trước đã vẽ; nhóm ngực cũng vậy quanh khớp vai xa (tay xa vẽ trước ngực). */
-const SHOULDER_GAP=4, SEAM_DOWN=7;
+const SHOULDER_GAP=4;
 /* Viền đáy ngực không kẻ vạch tối ngang hông: bỏ pixel viền của nhóm ngực nằm trên phần thân dưới (hông, chân, vạt áo)
    hoặc trên viền của nhóm trước, ở mọi chỗ từ khớp eo trở xuống dọc xương ngực (u ≤ WAIST_ABOVE, u đo từ khớp eo về phía
    cổ) — đáy ngực vẽ dài (vạt trước áo) cũng vậy. Trên nền trống và trên tay phía xa, ngực vẫn có viền. */
@@ -200,20 +200,17 @@ export function bake(P,sheets,f,box,opt={}){
     // vai gần: nhóm tay gần vẽ đè lên ngực · vai xa: nhóm ngực vẽ đè lên tay xa
     const sj=(P.draw_order[g].some(e=>e.bone==='near_upper_arm') && joints(P,f).near_upper_arm) || (wj && joints(P,f).far_upper_arm);
     const sx=sj && box.fx+sj[0], sy=sj && box.fy+sj[1];
-    // đường nối tay gần vào ngực: viền cánh tay trên phía ngực, từ vai xuống ≤ SEAM_DOWN px dọc xương
+    // chỏm vai gần: viền cánh tay trên nằm từ khớp vai trở lên (dọc xương, phía nào cũng vậy) không vẽ đè lên thân
     const ua=P.draw_order[g].some(e=>e.bone==='near_upper_arm') && names.indexOf('upper_arm')+1;
     const al=ua && Math.hypot(sj[2]-sj[0],sj[3]-sj[1]), ax=ua && (sj[2]-sj[0])/al, ay=ua && (sj[3]-sj[1])/al;
-    const cj=ua && joints(P,f).chest, side=ua && Math.sign(ax*((cj[1]+cj[3])/2-sj[1])-ay*((cj[0]+cj[2])/2-sj[0]));   // phía có ngực
     const wx=wj && box.fx+wj[0], wy=wj && box.fy+wj[1], wl=wj && Math.hypot(wj[2]-wj[0],wj[3]-wj[1]);
     const ux=wj && (wj[2]-wj[0])/wl, uy=wj && (wj[3]-wj[1])/wl;           // hướng eo → cổ
     if(opt.outline!==false) for(let y=0;y<H;y++) for(let x=0;x<W;x++){   // viền cả nhóm nằm dưới mọi màu của nhóm
       const i=y*W+x;
       if(gpx[i]) continue;
       if(sj && out[i] && Math.hypot(x+0.5-sx,y+0.5-sy)<=SHOULDER_GAP) continue;
-      if(ua && out[i]){
-        const px=x+0.5-sx, py=y+0.5-sy, t=px*ax+py*ay, n=ax*py-ay*px;
-        if(t<=SEAM_DOWN && Math.sign(n)===side && [x>0&&i-1,x<W-1&&i+1,y>0&&i-W,y<H-1&&i+W].every(k=>k===false || !gpx[k] || gwho[k]===ua)) continue;
-      }
+      if(ua && out[i] && (x+0.5-sx)*ax+(y+0.5-sy)*ay<=0
+        && [x>0&&i-1,x<W-1&&i+1,y>0&&i-W,y<H-1&&i+W].every(k=>k===false || !gpx[k] || gwho[k]===ua)) continue;
       if(wj && out[i] && (who[i]===0 || LOWER_BODY.has(names[who[i]-1]))){
         const u=(x+0.5-wx)*ux+(y+0.5-wy)*uy;
         if(u<=WAIST_ABOVE) continue;

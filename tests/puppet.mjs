@@ -410,27 +410,30 @@ test('auto outline off: baked clips add no outline pixel and the manifest says o
   assert.equal(bakeManifest(P,box,on).outline,'#251c24');
 });
 
-test('auto outline: no dark line where the near arm joins the chest (shoulder, 7 px down the front), keeps it elsewhere',()=>{
-  const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, arm=['upper_arm','forearm','hand'];
-  const solid=v=>v && v!==OUTLINE;
+test('auto outline: no dark line on the near shoulder cap over the chest, every frame; the arm keeps its outline below the shoulder',()=>{
+  // anh khoanh ở idle khung 0: đoạn viền từ đỉnh vai xuống tới ngang khớp vai — bỏ đoạn đó, giữ phần dưới
+  const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, arm=['upper_arm','forearm','hand'], names=partsOf(P);
+  const solid=v=>v && v!==OUTLINE, keeps=new Set(['idle0','run1','run5','jump3','punch4','cast5','slash4']);
   let kept=0;
-  for(const [clip,i] of [['idle',0],['jump',5],['run',2],['run',5],['punch',2],['cast',5]]){
-    const f=keyPose(P.clips[clip],i), [jx,jy]=joints(P,f).near_upper_arm, sx=box.fx+jx, sy=box.fy+jy;
-    const near=k=>Math.hypot(k%W+0.5-sx,Math.floor(k/W)+0.5-sy)<=4;
-    const base=bake(P,{body},f,box,{hide:arm}).px, F=bake(P,{body},f,box), full=F.px, names=partsOf(P);
-    const J=joints(P,f), [,,ex,ey]=J.near_upper_arm, al=Math.hypot(ex-jx,ey-jy), ax=(ex-jx)/al, ay=(ey-jy)/al, c=J.chest;
-    const side=Math.sign(ax*((c[1]+c[3])/2-jy)-ay*((c[0]+c[2])/2-jx));   // phía có ngực
-    full.forEach((v,k)=>{
+  for(const [clip,c] of Object.entries(P.clips)) for(let i=0;i<c.frames.length;i++){
+    const f=keyPose(c,i), [jx,jy,ex,ey]=joints(P,f).near_upper_arm, sx=box.fx+jx, sy=box.fy+jy;
+    const al=Math.hypot(ex-jx,ey-jy), ax=(ex-jx)/al, ay=(ey-jy)/al;
+    const base=bake(P,{body},f,box,{hide:arm}).px, F=bake(P,{body},f,box);
+    let below=0;
+    F.px.forEach((v,k)=>{
       if(!solid(base[k]) || v!==OUTLINE) return;                 // viền nhóm tay nằm trên chỗ thân đã vẽ
-      if(near(k)){ assert.fail(clip+' '+i+': viền tay đè lên thân ở vai ('+(k%W)+','+Math.floor(k/W)+')'); }
+      const x=k%W+0.5-sx, y=Math.floor(k/W)+0.5-sy;
+      if(Math.hypot(x,y)<=4) assert.fail(clip+' '+i+': viền tay đè lên thân sát vai ('+(k%W)+','+Math.floor(k/W)+')');
       const by=[k-1,k+1,k-W,k+W].map(n=>names[F.who[n]-1]).filter(p=>arm.includes(p));
-      const px=k%W+0.5-sx, py=Math.floor(k/W)+0.5-sy, t=px*ax+py*ay, n=ax*py-ay*px;
-      if(by.length && by.every(p=>p==='upper_arm') && t<=7 && Math.sign(n)===side) assert.fail(clip+' '+i+': đường nối tay gần vào ngực còn viền ('+(k%W)+','+Math.floor(k/W)+')');
-      kept++;
+      if(!by.length || !by.every(p=>p==='upper_arm')) return;   // viền cẳng tay, bàn tay: giữ
+      if(x*ax+y*ay<=0) assert.fail(clip+' '+i+': chỏm vai gần còn viền ('+(k%W)+','+Math.floor(k/W)+')');
+      below++;
     });
-    assert.ok(!bake(P,{body},f,box,{outline:false}).px.includes(OUTLINE));
+    if(keeps.has(clip+i)) assert.ok(below>0, clip+' '+i+': mất cả viền cánh tay dưới vai');
+    kept+=below;
   }
-  assert.ok(kept>0,'xa vai, viền tay vẫn vẽ đè lên thân');
+  assert.ok(kept>0);
+  assert.ok(!bake(P,{body},keyPose(P.clips.idle,0),box,{outline:false}).px.includes(OUTLINE));
 });
 
 test('auto outline: the chest adds no dark line over the far arm at the far shoulder (cast 5)',()=>{
