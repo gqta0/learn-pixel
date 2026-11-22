@@ -268,17 +268,40 @@ function cellEmptiness(P,sheets){
 /* Khổ sheet cũ → khổ mới, và ô nào dời đi bao nhiêu (nguyên pixel, giữ đúng chỗ nét so với khớp).
    Pixel ngoài các ô dời giữ nguyên chỗ. Thêm một dòng mỗi lần bên rig đổi bố cục mà muốn bản vẽ cũ đi theo.
    Bố cục chỉ dời ô thì thêm được; đổi cả tỉ lệ (như khung chibi) thì không: nét vẽ cho tỉ lệ khác, phải vẽ lại.
-   (Dòng Thân 69×112 → 76×112 của bản vạt áo rộng đã bỏ khi đổi sang khung chibi.) */
-export const OLD_LAYOUTS=[];
+   (Dòng Thân 69×112 → 76×112 của bản vạt áo rộng đã bỏ khi đổi sang khung chibi.)
+   Mỗi ô: [ô cũ, dx, dy, ô mới] — pixel dời ra ngoài ô mới thì bỏ (vd. vạt trái/phải lệch 3/4 về một phía bản lề).
+   ponytail: chỉ chuyển một bước; khổ cũ hơn nữa thì báo vẽ lại. */
+export const OLD_LAYOUTS=[
+  {kind:'body', from:[76,103], to:[82,109], move:[            // thân rộng thêm 2 px mỗi miếng, vạt trái/phải lệch 3/4
+    [[4,1,14,17],-1,1,[2,1,14,19]],   // upper_arm
+    [[4,18,13,33],-1,3,[2,20,13,37]],   // forearm
+    [[4,34,14,44],-1,5,[2,38,14,50]],   // hand
+    [[16,1,27,18],1,1,[16,1,29,20]],   // thigh
+    [[16,19,26,35],1,3,[16,21,28,39]],   // shin
+    [[15,36,28,44],1,5,[15,40,30,50]],   // foot
+    [[34,1,43,15],3,1,[36,1,47,17]],   // neck
+    [[29,16,47,61],3,3,[31,18,51,65]],   // chest
+    [[32,62,45,79],3,5,[34,66,49,85]],   // pelvis
+    [[49,1,60,18],5,1,[53,1,66,20]],   // far_thigh
+    [[50,19,60,35],5,3,[54,21,66,39]],   // far_shin
+    [[48,36,61,44],5,5,[52,40,67,50]],   // far_foot
+    [[62,1,72,17],7,1,[68,1,80,19]],   // far_upper_arm
+    [[62,18,71,33],7,3,[68,20,79,37]],   // far_forearm
+    [[62,34,72,44],7,5,[68,38,80,50]],   // far_hand
+    [[1,80,25,102],5,6,[1,86,27,108]],   // flap_left
+    [[26,80,50,102],3,6,[28,86,54,108]],   // flap_back
+    [[51,80,75,102],1,6,[55,86,81,108]],   // flap_right
+  ]},
+];
 export const oldLayout=(kind,w,h)=>OLD_LAYOUTS.find(l=>l.kind===kind && l.from[0]===w && l.from[1]===h)||null;
 /* một mảng pixel theo bố cục cũ → mảng theo bố cục mới (đổi khổ rồi dời ô) */
 export function upgradeLayer(L,px){
   const [w,h]=L.from, [W,H]=L.to, out=new Uint32Array(W*H);
   const moved=(x,y)=>L.move.some(([r])=>x>=r[0]&&y>=r[1]&&x<r[2]&&y<r[3]);
   for(let y=0;y<Math.min(h,H);y++) for(let x=0;x<Math.min(w,W);x++) if(!moved(x,y)) out[y*W+x]=px[y*w+x];
-  for(const [r,dx,dy] of L.move) for(let y=r[1];y<r[3];y++) for(let x=r[0];x<r[2];x++){
+  for(const [r,dx,dy,to=[0,0,W,H]] of L.move) for(let y=r[1];y<r[3];y++) for(let x=r[0];x<r[2];x++){
     const v=px[y*w+x], X=x+dx, Y=y+dy;
-    if(v && X>=0&&Y>=0&&X<W&&Y<H) out[Y*W+X]=v;
+    if(v && X>=to[0]&&Y>=to[1]&&X<to[2]&&Y<to[3]) out[Y*W+X]=v;
   }
   return out;
 }
