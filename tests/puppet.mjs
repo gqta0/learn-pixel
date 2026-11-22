@@ -410,18 +410,23 @@ test('auto outline off: baked clips add no outline pixel and the manifest says o
   assert.equal(bakeManifest(P,box,on).outline,'#251c24');
 });
 
-test('auto outline: the near arm adds no dark arc over the body at the shoulder, keeps it elsewhere',()=>{
+test('auto outline: no dark line where the near arm joins the chest (shoulder, 7 px down the front), keeps it elsewhere',()=>{
   const body=blockoutSheet(P,'body'), box=frameBox(P), W=box.w, arm=['upper_arm','forearm','hand'];
   const solid=v=>v && v!==OUTLINE;
   let kept=0;
-  for(const [clip,i] of [['idle',0],['jump',5],['run',2],['punch',2]]){
+  for(const [clip,i] of [['idle',0],['jump',5],['run',2],['run',5],['punch',2],['cast',5]]){
     const f=keyPose(P.clips[clip],i), [jx,jy]=joints(P,f).near_upper_arm, sx=box.fx+jx, sy=box.fy+jy;
     const near=k=>Math.hypot(k%W+0.5-sx,Math.floor(k/W)+0.5-sy)<=4;
-    const base=bake(P,{body},f,box,{hide:arm}).px, full=bake(P,{body},f,box).px;
+    const base=bake(P,{body},f,box,{hide:arm}).px, F=bake(P,{body},f,box), full=F.px, names=partsOf(P);
+    const J=joints(P,f), [,,ex,ey]=J.near_upper_arm, al=Math.hypot(ex-jx,ey-jy), ax=(ex-jx)/al, ay=(ey-jy)/al, c=J.chest;
+    const side=Math.sign(ax*((c[1]+c[3])/2-jy)-ay*((c[0]+c[2])/2-jx));   // phía có ngực
     full.forEach((v,k)=>{
       if(!solid(base[k]) || v!==OUTLINE) return;                 // viền nhóm tay nằm trên chỗ thân đã vẽ
       if(near(k)){ assert.fail(clip+' '+i+': viền tay đè lên thân ở vai ('+(k%W)+','+Math.floor(k/W)+')'); }
-      else kept++;
+      const by=[k-1,k+1,k-W,k+W].map(n=>names[F.who[n]-1]).filter(p=>arm.includes(p));
+      const px=k%W+0.5-sx, py=Math.floor(k/W)+0.5-sy, t=px*ax+py*ay, n=ax*py-ay*px;
+      if(by.length && by.every(p=>p==='upper_arm') && t<=7 && Math.sign(n)===side) assert.fail(clip+' '+i+': đường nối tay gần vào ngực còn viền ('+(k%W)+','+Math.floor(k/W)+')');
+      kept++;
     });
     assert.ok(!bake(P,{body},f,box,{outline:false}).px.includes(OUTLINE));
   }
