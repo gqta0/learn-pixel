@@ -4,11 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LÒ PIXEL — Trang Tile</title>
-<link rel="stylesheet" href="css/tile.css">
+<link id="tileStyles" rel="stylesheet" href="css/tile.css">
+<link rel="stylesheet" href="css/workspaces.css">
 </head>
-<body data-theme="dark">
+<body data-theme="dark" data-workspace="tile">
 <header class="tp-top">
-  <a class="btn" href="index.html" title="Về trang Vẽ">✏️ <span class="wide">Trang Vẽ</span></a>
+  <nav class="workspace-nav" aria-label="Nhóm chức năng">
+    <a href="index.html">Vẽ thường</a>
+    <a href="puppet.html">Ghép rối</a>
+    <a href="tile.html" aria-current="page">Vẽ tile</a>
+  </nav>
+  <a class="btn" href="tile.html?panel=atlas">Atlas</a>
+  <button class="btn" id="tileTheme" type="button" aria-label="Đổi nền sáng/tối">☀</button>
+  <span id="tileSave" role="status"></span>
   <select id="tsSel" aria-label="Bộ tile đang mở"></select>
   <button class="btn" id="tsNew" title="Tạo bộ tile mới">＋ <span class="wide">Bộ mới</span></button>
   <button class="btn" id="tsMore" aria-haspopup="menu" title="Nhân bản, đổi tên, xoá, nhập / xuất">⋯</button>
@@ -78,13 +86,18 @@
     </div>
   </section>
 
-  <section class="tp-side">
+  <section class="tp-side" id="tilePanel" data-drawer="closed">
+    <div class="tile-drawer-controls">
+      <button class="btn" id="tileDrawer" type="button" aria-controls="tilePanelContent" aria-expanded="false">Bảng điều khiển</button>
+      <button class="btn" id="tileDrawerExpand" type="button" aria-controls="tilePanelContent" aria-expanded="false" hidden>Mở rộng</button>
+    </div>
+    <div id="tilePanelContent">
     <nav class="tp-tabs" role="tablist">
-      <button role="tab" data-pane="grid" aria-selected="true">Bộ ô</button>
-      <button role="tab" data-pane="map" aria-selected="false">Soi map</button>
-      <button role="tab" data-pane="check" aria-selected="false">Soi lỗi<b class="tp-badge" id="chkBadge" hidden></b></button>
-      <button role="tab" data-pane="detail" aria-selected="false">Chi tiết</button>
-      <button role="tab" data-pane="quick" aria-selected="false" title="Tạo nhanh cả bộ 56 ô từ một công thức">⚡<span class="tp-tab-long"> Tạo nhanh</span></button>
+      <button role="tab" data-pane="grid" data-panel="paneGrid" aria-selected="true">Bộ ô</button>
+      <button role="tab" data-pane="map" data-panel="paneMap" aria-selected="false">Soi map</button>
+      <button role="tab" data-pane="check" data-panel="paneCheck" aria-selected="false">Soi lỗi<b class="tp-badge" id="chkBadge" hidden></b></button>
+      <button role="tab" data-pane="detail" data-panel="paneDetail" aria-selected="false">Chi tiết</button>
+      <button role="tab" data-pane="quick" data-panel="paneQuick" aria-selected="false" title="Tạo nhanh cả bộ 56 ô từ một công thức">⚡<span class="tp-tab-long"> Tạo nhanh</span></button>
     </nav>
     <div class="tp-pane" id="paneGrid">
       <p class="tp-note" id="layoutNote"></p>
@@ -212,6 +225,7 @@
       </div>
     </div>
     <div class="tp-pane" id="paneMap" hidden>
+      <a class="btn" href="tile.html?panel=map">Soi map nâng cao</a>
       <div class="tp-maptools">
         <button class="btn tiny on" data-mtool="paint" title="Vẽ vật liệu lên map">🖌 Vẽ</button>
         <button class="btn tiny" data-mtool="erase" title="Xoá vật liệu">🧽 Xoá</button>
@@ -221,6 +235,7 @@
       </div>
       <div class="tp-mapwrap"><canvas id="map"></canvas></div>
       <p class="tp-note">Chạm một ô trên map để mở ô đó trong khung vẽ (khi đang ở 🖌 thì giữ và kéo để vẽ vật liệu).</p>
+    </div>
     </div>
   </section>
 </main>
@@ -299,6 +314,6 @@
   </form>
 </dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script type="module" src="js/tilepage.js"></script>
+<script type="module" src="js/tile-entry.js"></script>
 </body>
 </html>

@@ -30,7 +30,7 @@ export const view = {
   zoom:12, grid:true, onion:false, symLine:false, drawing:false,
   mirX:false, mirY:false,
   tool:'pencil', brush:1,
-  pri: hexToInt('#ffb43f'), sec: hexToInt('#2e2e42'),
+  pri: hexToInt('#ffa600'), sec: hexToInt('#251c24'),
   playing:false, fps:8, tile3:false, pingPong:false, soloLayer:false,
   lockAlpha:false, sel:null, shadeDir:1, gridStep:8, realSize:false,   // tô khối đi lên (+1) hay đi xuống (-1) trên dải
   ref:null, refOp:0.5,

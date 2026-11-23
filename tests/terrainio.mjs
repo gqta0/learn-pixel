@@ -2,7 +2,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {slotPixels,legacySheetTo10x7,terrainSheetTo10x7,parseTerrainFile,terrainProjectJson,terrainPackJson,cleanSheet,toolPaletteKey,seamReport,planApply,handOverStamp,TERRAIN_CREATE_PRESETS} from '../js/terrainio.js';
-import {createTileset,frameAt,fromSheet,sheetPixels} from '../js/tileset.js';
+import {createTileset,frameAt,fromSheet,sheetPixels,TILE_SIZES} from '../js/tileset.js';
 import {checkSeams,checkColorSeams,legacyTerrainCell,TERRAIN_TILES,ATLAS_COLS,ATLAS_ROWS,tileRoles,terrainSlotCells} from '../js/terrain.js';
 
 const URL='data:image/png;base64,AAAA';
@@ -128,4 +128,12 @@ test('handOverStamp moves a stamp to the new set id and leaves others alone',()=
   assert.equal(st.atlasId,'a1','input not mutated');
   assert.equal(handOverStamp(st,'zz','s2'),null);
   assert.equal(handOverStamp(null,'a1','s2'),null);
+});
+
+test('Terrain project and pack parse all supported tile sizes',()=>{
+  for(const size of TILE_SIZES){
+    const ts=createTileset({layout:'blob56',size});
+    for(const file of [terrainProjectJson(ts,URL),terrainPackJson(ts,URL,URL)])
+      assert.equal(parseTerrainFile(file).size,size);
+  }
 });

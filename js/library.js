@@ -1,9 +1,10 @@
+import { drawingWorkspace } from './project-data.js';
 /* Thư viện bản vẽ: giữ nhiều bức cùng lúc thay vì mỗi lần dựng bài lại xoá bức cũ.
    Lưu trong IndexedDB, mỗi bức một bản ghi (nén RLE như file dự án). localStorage chỉ còn là
    đường lui khi trình duyệt chặn IndexedDB, và là nơi đọc dữ liệu cũ để chép sang một lần. */
 import { $, toast } from './dom.js';
 import { doc } from './state.js';
-import { serialize, applyData, download } from './storage.js';
+import { serialize, applyData, download, flushSave, autosave } from './storage.js';
 import { idbAvailable, idbAll, idbSet, idbDel, askPersist, STORES } from './idb.js';
 
 const KEY='lo-pixel-projects';
@@ -54,14 +55,43 @@ export function isBlank(){
 function defaultName(){
   return 'Bản vẽ '+doc.w+'×'+doc.h;
 }
+const drawingRecord=(name,previous)=>({
+  name:name || previous?.name || defaultName(),
+  at:Date.now(),
+  data:serialize()
+});
+
+export async function saveSheetToLibrary(){
+  const previousId=openId, frames=doc.frames;
+  const id=previousId || newId(), previous=items[id];
+  const record=drawingRecord(previous ? undefined : doc.name,previous);
+  if(useIdb){
+    askPersist();
+    await idbSet(STORES.projects,id,record);
+    items[id]=record;
+  }else{
+    items[id]=record;
+    if(!writeLocal()){
+      if(previous) items[id]=previous;
+      else delete items[id];
+      throw new Error('Không còn chỗ lưu trong trình duyệt');
+    }
+  }
+  if(openId===previousId && doc.frames===frames){
+    openId=id;
+    autosave();
+  }
+  return record.name;
+}
+
 /* Cất bức đang vẽ. Trả về id, hoặc null nếu hết chỗ. */
 export function saveCurrent(name, asNew){
   const id = (!asNew && openId) || newId();
   const prev=items[id];
-  items[id] = { name: name || (prev&&prev.name) || defaultName(),
-                at: Date.now(), data: serialize() };
+  items[id]=drawingRecord(name,prev);
   if(!persist(id)){ if(prev) items[id]=prev; else delete items[id]; return null; }
   openId=id;
+  autosave();
   return id;
 }
 /* Thêm một bản vẽ có sẵn dữ liệu (định dạng serialize) vào thư viện mà không mở nó — vd. hai sheet
@@ -147,7 +177,17 @@ function paint(){
     b.className='libthumb';
     b.title='Mở "'+p.name+'"';
     b.appendChild(thumb(p,96));
-    b.addEventListener('click', ()=>{
+    b.addEventListener('click', async ()=>{
+      const workspace=document.body.dataset.workspace;
+      const target=drawingWorkspace(p.data);
+      if(workspace!==target){
+        if(await flushSave()===false) return;
+        const url=new URL({puppet:'puppet.html', atlas:'tile.html?panel=atlas', draw:'index.html'}[target], location.href);
+        url.searchParams.set('project',id);
+        location.href=url.href;
+        return;
+      }
+      if(currentId()===id){ closeLibrary(); return; }
       if(!askKeep()) return;
       openProject(id); closeLibrary();
     });
@@ -181,7 +221,8 @@ function when(t){
 }
 /* Trước khi mở bức khác: cất bức đang vẽ nếu nó có nét và chưa nằm trong thư viện. */
 function askKeep(){
-  if(isBlank() || openId) return true;
+  if(isBlank()) return true;
+  if(openId) return !!saveCurrent();
   const c=confirm('Cất bản đang vẽ vào thư viện trước khi mở bức khác?\nBấm Cancel để bỏ nó đi.');
   if(c && !saveCurrent()){ alert('Trình duyệt hết chỗ lưu. Hãy xoá bớt bản vẽ cũ rồi thử lại.'); return false; }
   return true;

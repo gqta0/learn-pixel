@@ -27,13 +27,14 @@ function editor(){
     render(){},requestRender(){},PERF:false,perfMark(){},setText:(el,t)=>{el.textContent=t;},syncAll(){},paintThumbs(){},paintSwatches(){},syncColors(){},syncFingerBtn(){},
     markToday(){marks++;},shadeStep:v=>v,setZoom:z=>{view.zoom=z;}
   });
-  for(const file of ['history','raster','input']){
+  for(const file of ['history','pixel-brush','raster','input']){
     const source=readFileSync(join(__dirname,'../js',file+'.js'),'utf8')
       .replace(/^import\s[\s\S]*?;\s*$/gm,'')
       .replace(/^export\s*\{[^}]*\};/gm,'').replace(/\bexport\s+/g,'');
     vm.runInContext(source,context,{filename:file+'.js'});
   }
   const run=source=>vm.runInContext(source,context);
+  run('bindHistoryView(syncAll)');
   function event(type,id,x=2,y=2,pointerType='mouse',extra={}){
     const e={pointerId:id,pointerType,clientX:x+.5,clientY:y+.5,button:0,buttons:type==='pointerup'?0:1,
       target:board,preventDefault(){},stopImmediatePropagation(){},...extra};
@@ -241,8 +242,10 @@ const OLD_LINK='terrain'+'Link';
 test('an old save carrying the terrain frame link loads without bringing the link back',()=>{
   const e=editor(), src=readFileSync(join(__dirname,'../js/storage.js'),'utf8');
   const start=src.indexOf('export function applyData'), end=src.indexOf('\nexport ',start+1);
-  e.run('var MAX_SIDE=256,stopEditing=()=>{},setPalette=()=>{},syncPalSelect=()=>{},migrateDone=()=>{},invalidateBuf=()=>{},fitZoom=()=>{},buildExercises=()=>{};'
-    +src.slice(start,end).replace(/\bexport\s+/,''));
+  const codec=readFileSync(join(__dirname,'../js/project-data.js'),'utf8')
+    .replace(/^import .*;$/m,'').replace(/\bexport\s+/g,'');
+  e.run('var refreshDrawing=syncAll,MAX_SIDE=256,stopEditing=()=>{},setPalette=()=>{},syncPalSelect=()=>{},migrateDone=()=>{},invalidateBuf=()=>{},fitZoom=()=>{},buildExercises=()=>{};'
+    +codec+'\n'+src.slice(start,end).replace(/\bexport\s+/,''));
   const old={w:2,h:2,version:1,layers:[{name:'A',vis:true}],frames:[[[0,0,0,0]]],
     [OLD_LINK]:{atlasId:'t1',labels:true,slots:[0,1,2]}};
   assert.doesNotThrow(()=>e.run('applyData('+JSON.stringify(old)+')'));

@@ -1,3 +1,6 @@
+import { V4_NAME, V4_COLORS, V4_RAMPS } from '../js/genesis-v4.js';
+import { buildMaterialRamp, materialRampDefault } from '../js/material-ramp.js';
+import { rampHueProfile, buildRamp, hexToInt, rgbToHsl } from '../js/color.js';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -21,8 +24,8 @@ test('Genesis v3 groups split the source HEX exactly, 4–5 colours each, dark t
     assert.ok(read('palettes/genesis-v3.md').includes('| '+id+' | '+f.name+' | '+f.ramp.length+' | '+f.ramp.join(' ')+' |'),id);
   }
   const app=paletteApp();
-  assert.equal(app.run('DEFAULT_PAL_NAME'),genesis.GENESIS_NAME);
-  assert.deepEqual([...app.run('palette')],genesis.GENESIS_COLORS);
+  assert.equal(app.run('DEFAULT_PAL_NAME'),V4_NAME);
+  assert.deepEqual([...app.run('palette')],V4_COLORS);
   assert.equal(Object.keys(genesis.GENESIS_PALETTES).length,20);
   for(const [name,colors] of Object.entries(genesis.GENESIS_PALETTES))
     assert.deepEqual([...app.run('PALETTES['+JSON.stringify(name)+']')],colors);
@@ -103,18 +106,47 @@ test('Tile page quick generator removes stale colors even when its palette key i
   assert.deepEqual(st.strata[0].colors,{k1:'#63C74D'});
 });
 
-test('copying a legacy localStorage save to IndexedDB does not overwrite its adopted v3 palette',async()=>{
+test('copying a legacy localStorage save preserves the source and adopts v3 in the drawing draft',async()=>{
   const app=paletteApp(),c=app.context;
   app.saved.set('test-save',JSON.stringify({palette:V1}));
   let persisted;
-  Object.assign(c,{useIdb:true,bootDone:false,SAVE_KEY:'test-save',STORES:{kv:'kv'},
-    $:()=>({textContent:''}),idbGet:async()=>null,
-    idbSet:async(_store,_key,data)=>{persisted=data.palette;},
+  Object.assign(c,{useIdb:true,bootDone:false,saveFailed:false,SAVE_KEY:'test-save',draftKey:'test-save-draw',workspace:'draw',
+    drawingWorkspace:()=> 'draw',STORES:{kv:'kv'},saveStatus(){},adoptCurrent(){},idbGet:async()=>null,
     applyData:data=>app.run('setPalette('+JSON.stringify(data.palette)+')'),
-    writeSave:()=>{persisted=[...app.run('palette')];}});
+    queueSave:async()=>{persisted=[...app.run('palette')]; return true;}});
   c.localStorage.removeItem=key=>app.saved.delete(key);
   const src=read('js/storage.js');
-  vm.runInContext(src.slice(src.indexOf('export async function loadSave()'),src.indexOf('export async function clearSave()')).replace(/^export /gm,''),c);
+  vm.runInContext(src.slice(src.indexOf('async function readDraft('),src.indexOf('export async function clearSave()')).replace(/^export /gm,''),c);
   assert.equal(await vm.runInContext('loadSave()',c),true);
   assert.deepEqual(persisted,genesis.GENESIS_COLORS);
+  assert.deepEqual(JSON.parse(app.saved.get('test-save')).palette,V1);
+});
+
+test('green presets retain the hue steps between adjacent Genesis colors',()=>{
+  const expected={olive:3.7,leaf:38.7,jade:10.4,sage:24.9};
+  for(const [key,percent] of Object.entries(expected)){
+    const colors=genesis.GENESIS_FAMILIES[key].ramp, profile=rampHueProfile(colors);
+    assert.equal(profile.percent,percent,key);
+    const ramp=buildRamp(profile.base,colors.length,percent*0.6,'Lá / cỏ',profile);
+    const hues=ramp.map(hex=>{
+      const rgb=hexToInt(hex);
+      return rgbToHsl(rgb&255,(rgb>>8)&255,(rgb>>16)&255)[0];
+    });
+    for(const [i,delta] of profile.deltas.entries()){
+      assert.ok(Math.abs(hues[i+1]-hues[i]-delta)<3,key+' bậc '+(i+1));
+    }
+  }
+});
+
+test('Genesis v4 matches the 218-color board and preserves the center HEX for each material ramp',()=>{
+  assert.equal(V4_RAMPS.length,41);
+  assert.equal(V4_COLORS.length,218);
+  assert.deepEqual(parsePaletteText(read('palettes/genesis-v4.hex')),V4_COLORS);
+  for(const {colors} of V4_RAMPS){
+    for(const material of ['Gỗ','Đá','Kim loại','Gốm / đất nung','Da người','Lửa / năng lượng']){
+      const ramp=buildMaterialRamp(colors[2],5,materialRampDefault(material),material);
+      assert.equal(ramp[2],colors[2]);
+      assert.equal(new Set(ramp).size,5);
+    }
+  }
 });

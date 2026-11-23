@@ -2,11 +2,12 @@
 import { $, setText, setHidden } from './dom.js';
 import { doc, view, TH } from './state.js';
 import { buf, compositeToBuf, inside, clampSel, layerLength } from './raster.js';
-import { autosave } from './storage.js';
 
 export const board = $('#board');
 const ctx = board.getContext('2d');
 let centerOnRender=false;
+let onRender=()=>{};
+export function bindRenderEffect(effect){ onRender=effect; }
 /* Khổ khung chứa chỉ đọc lại khi nó đổi (ResizeObserver), không đọc mỗi lần vẽ. */
 let padDirty=true;
 const wrapEl=$('#wrap');
@@ -44,9 +45,10 @@ export function setGuides(g){ guides=g; }
 const dpr = () => Math.max(1, window.devicePixelRatio || 1);
 
 export function render(){
+  if(!board.isConnected) return;
   const t0=PERF ? performance.now() : 0;
   if(rq){ cancelAnimationFrame(rq); rq=0; }
-  autosave();
+  onRender();
   clampSel();                       // khổ canvas vừa đổi thì cắt vùng chọn cho vừa tranh
   const d=dpr();
   const wrap=wrapEl;

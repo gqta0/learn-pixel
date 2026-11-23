@@ -1,3 +1,4 @@
+import { showEditorTab } from './editor-layout.js';
 /* Dụng cụ vẽ, chủ đề sáng/tối, và chuyển khung nhìn trên điện thoại. */
 import { $, $$ } from './dom.js';
 import { view, setTH } from './state.js';
@@ -160,10 +161,7 @@ export function setTheme(name){
 export function setView(v){
   document.body.dataset.view=v;
   $$('#mnav button').forEach(b=>b.setAttribute('aria-current', b.dataset.view===v?'true':'false'));
-  const map={learn:'pHoc', ex:'pHoc', th:'pHoc', file:'pFile'};
-  if(map[v]){
-    $$('.tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.pane===map[v]?'true':'false'));
-    $$('.pane').forEach(p=>p.classList.toggle('on', p.id===map[v]));
-  }
+  if (v==='learn' || v==='ex' || v==='th') showEditorTab('pHoc');
+  if (v==='colors') showEditorTab('pColor');
   window.dispatchEvent(new CustomEvent('viewchange', {detail: {view: v}}));
 }

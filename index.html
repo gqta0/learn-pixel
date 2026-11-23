@@ -5,15 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LÒ PIXEL — Xưởng luyện vẽ pixel art cho game 2D</title>
 <link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/workspaces.css">
 </head>
-<body>
+<body data-workspace="draw">
 <div class="app">
 
   <div class="topbar">
-    <div class="brand"><b>Lò Pixel</b><span>xưởng luyện asset 2D</span></div>
-    <div class="prog">Tiến độ: <b id="progText">0/0</b></div>
+    <nav class="workspace-nav" aria-label="Nhóm chức năng">
+      <a href="index.html" aria-current="page">Vẽ thường</a>
+      <a href="puppet.html">Ghép rối</a>
+      <a href="tile.html">Vẽ tile</a>
+    </nav>
+    <div class="workspace-meta">
+      <span id="workspaceTitle" class="workspace-title"></span>
+      <span id="workspaceSave" class="workspace-save" role="status"></span>
+    </div>
+    <div class="prog" hidden>Tiến độ: <b id="progText">0/0</b></div>
     <button class="btn tiny" id="btnUndo" title="Hoàn tác (Ctrl+Z)">↶</button>
     <button class="btn tiny" id="btnRedo" title="Làm lại (Ctrl+Y)">↷</button>
+    <button class="btn tiny primary rig-library-save" id="rigSaveSheet" type="button">Lưu vào thư viện</button>
     <button class="btn tiny" id="libBtn" title="Bản vẽ của bạn">📁</button>
     <button class="btn tiny" id="themeBtn" title="Đổi nền sáng/tối">☀</button>
   </div>
@@ -60,7 +70,7 @@
       <div class="block color-block">
         <p class="eyebrow">Màu</p>
         <div class="colors">
-          <input type="color" id="colPick" value="#ffb43f">
+          <input type="color" id="colPick" value="#ffa600">
           <button class="chip" id="chipPri" title="Màu chính — mở bảng màu nhanh" aria-label="Màu chính — mở bảng màu nhanh"></button>
           <div class="chip sec" id="chipSec" title="Màu phụ (Shift+bấm ô màu)"></div>
           <button class="btn tiny" id="swapCol" title="Đổi chỗ (X)">⇆</button>
@@ -94,21 +104,35 @@
         </div>
       </div>
 
-      <div class="block">
+      <div class="block" id="rampBlock">
         <p class="eyebrow">Dải màu theo chất liệu</p>
         <p class="kbd" style="margin:0 0 6px">Dải sáng–tối có <b>lệch tông</b>: nền tảng của tô khối. Chọn chất liệu để có đúng kiểu tương phản.</p>
-        <div class="row">
-          <select id="matSel" class="grow"></select>
+        <label class="mini" for="rampFamily">1. Màu gốc từ Genesis v4</label>
+        <select id="rampFamily" class="ramp-family">
+          <option value="">Màu chính hoặc nhập HEX</option>
+        </select>
+        <div id="rampSamples" class="ramp ramp-samples" role="group" aria-label="Màu mẫu từ tối đến sáng" hidden></div>
+        <p class="kbd" id="rampDeltas" hidden></p>
+        <div class="row ramp-base-row">
+          <label class="mini grow" for="rampHex">Màu gốc</label>
+          <input type="color" id="rampColor" aria-label="Chọn màu gốc" value="#ffa600">
+          <input type="text" id="rampHex" aria-label="Mã HEX màu gốc" value="#ffa600" maxlength="7" spellcheck="false" autocomplete="off">
         </div>
-        <div class="row">
-          <label class="mini grow">Số bậc</label>
-          <select id="rampSteps"><option>3</option><option selected>5</option><option>7</option><option>9</option></select>
-        </div>
-        <div class="row"><label class="mini grow">Lệch tông <b id="hsLbl">28°</b></label></div>
-        <input type="range" id="hueShift" min="0" max="60" value="28">
+        <p class="kbd" id="rampHexError" role="status" hidden>Dùng mã HEX 3 hoặc 6 ký tự, ví dụ #63c74d.</p>
+        <label class="mini" for="matSel">2. Chất liệu</label>
+        <select id="matSel" class="ramp-family"></select>
+        <details>
+          <summary>Tinh chỉnh</summary>
+          <div class="row">
+            <label class="mini grow" for="rampSteps">Số bậc</label>
+            <select id="rampSteps"><option>3</option><option>4</option><option selected>5</option><option>7</option><option>9</option></select>
+          </div>
+        <div class="row"><label for="hueShift" class="mini grow">Lệch tông <b id="hsLbl">10%</b></label></div>
+        <input type="range" id="hueShift" min="0" max="100" step="0.1" value="10">
+        </details>
+
         <div class="ramp" id="rampOut"></div>
-        <p class="kbd">Màu gốc: <b id="rampBase"></b></p>
-        <div class="row"><button class="btn tiny grow" id="rampNew">Tạo dải từ màu chính</button></div>
+        <div class="row"><button class="btn tiny grow" id="rampNew">Lấy màu chính làm gốc</button><button class="btn tiny grow" id="rampUseBase">Vẽ bằng màu gốc</button></div>
         <div class="row"><button class="btn tiny grow" id="rampAdd">Đưa dải vào bảng màu</button></div>
         <p class="kbd" style="margin:7px 0 0">Dụng cụ <b>◐ Tô khối (S)</b> đi trên đúng dải này: bấm để sáng lên 1 bậc, chuột phải để tối đi.</p>
       </div>
@@ -420,6 +444,12 @@
             <canvas id="rigSmall" title="Cỡ thật ×1 và ×2"></canvas>
             <canvas id="rigBig" title="Phóng to — chạm một miếng để tới ô của nó"></canvas>
           </div>
+          <div class="row" style="margin-top:8px">
+            <p class="mini grow" id="rigShowLabel" style="margin:0">Ẩn / hiện theo dáng T</p>
+            <button class="btn tiny" id="rigShowAll" title="Hiện lại mọi miếng">Hiện hết</button>
+          </div>
+          <div class="rig-show-sides"><span>Phía gần</span><span>Phía xa</span></div>
+          <div class="rig-show" id="rigShow" role="group" aria-labelledby="rigShowLabel"></div>
           <div class="row" style="margin-top:7px">
             <select id="rigClip" class="grow" aria-label="Động tác"></select>
             <button class="btn tiny" id="rigPrev" title="Khung trước">◀</button>
@@ -447,11 +477,6 @@
             <button class="btn tiny on" id="rigPipBtn" aria-pressed="true" title="Rối nhỏ nổi ở góc canvas, chạy ngay khi vẽ">▣ Rối trên canvas</button>
             <button class="btn tiny" id="rigOutline" aria-pressed="false" title="Viền 1 px máy tự thêm quanh từng nhóm miếng sau khi ghép — cả rối xem lẫn file xuất. Để tắt nếu anh tự vẽ viền vào miếng">▢ Viền tự động</button>
           </div>
-          <div class="row" style="margin-top:8px">
-            <p class="mini grow" id="rigShowLabel" style="margin:0">Miếng hiện trên rối (chạm để ẩn / hiện)</p>
-            <button class="btn tiny" id="rigShowAll" title="Hiện lại mọi miếng">Hiện hết</button>
-          </div>
-          <div class="rig-parts rig-show" id="rigShow" style="margin-top:5px"></div>
           <p class="kbd" style="margin:5px 0 0">Ẩn miếng và tắt viền chỉ để soi lúc vẽ — file xuất luôn đủ miếng, có viền.</p>
         </div>
 
@@ -571,6 +596,7 @@
       <p class="eyebrow" style="margin:0;flex:1">Bản vẽ của bạn <span class="kbd" id="libCount"></span></p>
       <button class="btn tiny" id="libSheet" title="Xếp mọi bản vẽ thành một tấm PNG để soi cả bộ">🖼 Bảng liên hoàn</button>
       <button class="btn tiny" id="libPack" title="Xuất mọi bản vẽ thành một file ZIP: sheet PNG, Godot .tres và manifest.json. Cách chia sheet theo ô “Gói” ở thẻ File → Xuất.">⬇ Xuất cả thư viện (ZIP)</button>
+      <button class="btn tiny primary rig-library-save" id="rigLibSave" type="button">Lưu sheet</button>
       <button class="btn tiny primary" id="libSave">Cất bản đang vẽ</button>
       <button class="btn tiny" id="libClose">✕ Đóng</button>
     </div>
@@ -682,10 +708,10 @@
 
   <nav class="mnav" id="mnav">
     <button data-view="draw" aria-current="true">✏️<span>Vẽ</span></button>
-    <button data-view="tools" aria-current="false">🎨<span>Màu</span></button>
-    <a href="tile.html" title="Trang Tile: bộ Terrain 56 và các khuôn tile khác">🧱<span>Tile</span></a>
+    <button data-view="tools" aria-current="false"><span>Cọ</span></button>
+    <button data-view="colors" aria-current="false"><span>Màu</span></button>
     <button data-view="learn" aria-current="false">🎓<span>Học vẽ</span></button>
-    <button data-view="file" aria-current="false">💾<span>File</span></button>
+    <button data-view="file" aria-current="false" aria-controls="editorPanel" aria-expanded="false"><span>Bảng điều khiển</span></button>
   </nav>
 </div>
 <dialog id="resizeDialog" aria-labelledby="resizeTitle">
@@ -701,6 +727,6 @@
     </div>
   </form>
 </dialog>
-<script type="module" src="js/main.js"></script>
+<script type="module" src="js/editor-entry.js"></script>
 </body>
 </html>

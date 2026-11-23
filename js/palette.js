@@ -1,12 +1,14 @@
 /* Bảng màu: bộ dựng sẵn, thư viện bảng màu của bạn, ô màu, và dải màu theo chất liệu. */
 import { $ } from './dom.js';
 import { view, doc } from './state.js';
-import { MATERIALS, buildRamp, hexToInt, intToHex, intToCss, rgbToHsl } from './color.js';
+import { rampHueProfile, hexToInt, intToHex, intToCss, rgbToHsl } from './color.js';
 import { autosave } from './storage.js';
 import { onLongPress, popover } from './popup.js';
 import { parsePaletteText } from './palgroups.js';
 import { GENESIS_NAME, GENESIS_COLORS, GENESIS_PALETTES, GENESIS_TOKENS } from './genesis.js';
 export { GENESIS_NAME } from './genesis.js';
+import { V4_NAME, V4_COLORS, V4_TOKENS, V4_GROUPS, V4_RAMPS, V4_COMMON, V4_ACCENTS, V4_SHADE_TOKENS } from './genesis-v4.js';
+import { MATERIAL_RAMP_PRESETS, materialRampDefault, buildMaterialRamp } from './material-ramp.js';
 import { COLOR_TOKENS, MASTER_NAME, MASTER_COLORS } from './masterpal.js';
 export { COLOR_TOKENS, MASTER_NAME, MASTER_COLORS } from './masterpal.js';
 /* MASTER_NAME, MASTER_COLORS và COLOR_TOKENS nay nằm ở masterpal.js (dữ liệu thuần); xuất lại ở đây để mọi nơi import cũ vẫn chạy. */
@@ -25,10 +27,11 @@ export const MASTER_REMAP = {
 for(const [cu,moi] of Object.entries(MASTER_REMAP))
   if(!COLOR_TOKENS[cu]) COLOR_TOKENS[cu]={...COLOR_TOKENS[moi], legacy:true, desc:'màu cũ của Master 88 → nay là '+moi};
 
-export const DEFAULT_PAL_NAME = GENESIS_NAME;
+export const DEFAULT_PAL_NAME = V4_NAME;
 Object.assign(COLOR_TOKENS,GENESIS_TOKENS);
 
 export const PALETTES = {
+  [V4_NAME]: V4_COLORS,
   [GENESIS_NAME]: GENESIS_COLORS,
   ...GENESIS_PALETTES,
   [MASTER_NAME]: MASTER_COLORS,
@@ -84,9 +87,21 @@ export function fillPalSelect(keep){
   sel.value = (PALETTES[cur]||isUserPal(cur)) ? cur : DEFAULT_PAL_NAME;
   $('#palDel').style.display = isUserPal(sel.value) ? '' : 'none';
 
+  const family=$('#rampFamily');
+  if(family.options.length===1){
+    let index=0;
+    for(const {name,ramps} of V4_GROUPS){
+      const group=document.createElement('optgroup');
+      group.label=name;
+      for(const ramp of ramps) group.append(new Option(ramp.name,String(index++)));
+      family.append(group);
+    }
+    family.add(new Option('Màu dùng chung','common'));
+    family.add(new Option('Màu điểm nhấn','accents'));
+  }
   const m=$('#matSel');
   if(!m.options.length){
-    Object.keys(MATERIALS).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; m.appendChild(o); });
+    Object.keys(MATERIAL_RAMP_PRESETS).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; m.appendChild(o); });
     m.value='Chung (mặc định)';
   }
 }
@@ -150,11 +165,21 @@ function swatchMenu(el,hex,i){
     {label:'Bỏ khỏi bảng', fn:()=>{ palette.splice(i,1); syncColors(); }}
   ]);
 }
-function createSwatchBtn(hex, i, cur, sec, dung){
+function usesV4(){
+  return palette.length===V4_COLORS.length && palette.every((hex,index)=>hex===V4_COLORS[index]);
+}
+export function shadingTokens(){
+  return usesV4() ? V4_SHADE_TOKENS : COLOR_TOKENS;
+}
+function colorToken(hex,isV4){
+  const key=hex.toLowerCase();
+  return isV4 ? V4_TOKENS[key] : COLOR_TOKENS[key];
+}
+function createSwatchBtn(hex, i, cur, sec, dung, isV4){
   const b=document.createElement('button');
   b.className='swatch'+(dung.has(hex)?' used':'');
   b.style.background=hex;
-  const meta = COLOR_TOKENS[hex.toLowerCase()];
+  const meta = colorToken(hex,isV4);
   let info = hex;
   if(meta){
     info = `[${meta.group}] ${meta.token} (${hex}): ${meta.desc}`;
@@ -174,6 +199,7 @@ export function paintSwatches(){
   autosave();
   const box=$('#swatches'); box.innerHTML='';
   const cur=intToHex(view.pri), sec=intToHex(view.sec), dung=usedInFrame();
+  const isV4=usesV4();
   let n=0;
   palette.forEach(hex=>{ if(dung.has(hex)) n++; });
 
@@ -181,7 +207,7 @@ export function paintSwatches(){
     box.classList.add('is-grouped');
     const groups = new Map();
     palette.forEach((hex,i)=>{
-      const meta = COLOR_TOKENS[hex.toLowerCase()];
+      const meta = colorToken(hex,isV4);
       const grp = meta ? meta.group : 'Chung';
       if(!groups.has(grp)) groups.set(grp, []);
       groups.get(grp).push({hex, i});
@@ -198,7 +224,7 @@ export function paintSwatches(){
       const sBox=document.createElement('div');
       sBox.className='pal-group-swatches';
       items.forEach(it=>{
-        sBox.appendChild(createSwatchBtn(it.hex, it.i, cur, sec, dung));
+        sBox.appendChild(createSwatchBtn(it.hex, it.i, cur, sec, dung, isV4));
       });
       gEl.appendChild(sBox);
       box.appendChild(gEl);
@@ -206,7 +232,7 @@ export function paintSwatches(){
   } else {
     box.classList.remove('is-grouped');
     palette.forEach((hex,i)=>{
-      box.appendChild(createSwatchBtn(hex, i, cur, sec, dung));
+      box.appendChild(createSwatchBtn(hex, i, cur, sec, dung, isV4));
     });
   }
 
@@ -273,13 +299,77 @@ export function syncColors(){
 /* ---------------- dải màu theo chất liệu ---------------- */
 export let rampCols=[];                       // dải màu đang hiện — dụng cụ Tô khối đi trên dải này
 let rampBase=null;
-export function rampFromCurrent(){ rampBase=intToHex(view.pri); paintRamp(); }
+function selectedRamp(){
+  const key=$('#rampFamily').value;
+  return key==='' || key==='common' ? null : V4_RAMPS[Number(key)];
+}
+
+function updateSamples(){
+  const row=selectedRamp(), key=$('#rampFamily').value;
+  const colors=row?.colors ?? ({common:V4_COMMON, accents:V4_ACCENTS}[key] || []);
+  const note=$('#rampDeltas');
+  note.hidden=!row;
+  if(row){
+    const profile=rampHueProfile(colors);
+    const format=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:1,signDisplay:'exceptZero'});
+    note.textContent='Lệch giữa từng bậc mẫu: '+profile.deltas.map(deg=>format.format(deg)+'°').join(' · ');
+  }
+  const box=$('#rampSamples');
+  box.hidden=!colors.length;
+  box.replaceChildren();
+  box.style.gridTemplateColumns='repeat('+colors.length+',1fr)';
+  for(const [index,hex] of colors.entries()){
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='swatch';
+    button.style.background=hex;
+    button.textContent=String(index+1);
+    button.title=hex;
+    button.setAttribute('aria-label','Bậc '+(index+1)+' · '+hex);
+    button.addEventListener('click',()=>setRampBase(hex));
+    box.append(button);
+  }
+}
+
+export function setRampFamily(){
+  const row=selectedRamp();
+  if(row) rampBase=row.colors[2];
+  updateSamples();
+  paintRamp();
+}
+
+export function setRampMaterial(){
+  $('#hueShift').value=materialRampDefault($('#matSel').value);
+  paintRamp();
+}
+
+export function setRampBase(value){
+  const hex=value.trim().replace(/^#/,'').toLowerCase();
+  const valid=/^(?:[0-9a-f]{3}|[0-9a-f]{6})$/.test(hex);
+  $('#rampHexError').hidden=valid;
+  $('#rampHex').setAttribute('aria-invalid',String(!valid));
+  if(!valid) return;
+  rampBase=intToHex(hexToInt(hex));
+  paintRamp();
+}
+
+export function useRampBase(){
+  if(!rampBase) return;
+  view.pri=hexToInt(rampBase);
+  syncColors();
+}
+export function rampFromCurrent(){ setRampBase(intToHex(view.pri)); }
 export function paintRamp(){
   const steps=parseInt($('#rampSteps').value,10);
-  const shift=parseInt($('#hueShift').value,10);
+  const percent=Number($('#hueShift').value);
   if(!rampBase) rampBase=intToHex(view.pri);
-  rampCols=buildRamp(rampBase, steps, shift, $('#matSel').value);
-  $('#rampBase').textContent=rampBase;
+  rampCols=buildMaterialRamp(rampBase, steps, percent, $('#matSel').value);
+  $('#rampHex').value=rampBase;
+  $('#rampHex').setAttribute('aria-invalid','false');
+  $('#rampHexError').hidden=true;
+  $('#rampColor').value=rampBase;
+  for(const button of $('#rampSamples').children)
+    button.setAttribute('aria-pressed',String(button.title===rampBase));
   const box=$('#rampOut'); box.innerHTML='';
   box.style.gridTemplateColumns='repeat('+steps+',1fr)';
   rampCols.forEach(hex=>{
@@ -288,7 +378,7 @@ export function paintRamp(){
     b.addEventListener('click', ()=>{ view.pri=hexToInt(hex); syncColors(); });
     box.appendChild(b);
   });
-  $('#hsLbl').textContent = shift+'°';
+  $('#hsLbl').textContent = new Intl.NumberFormat('vi-VN',{maximumFractionDigits:1}).format(percent)+'%';
 }
 /* --- Tô khối theo dải (kiểu shading ink của Aseprite) --- */
 export function shadeStep(v, dir){
@@ -315,8 +405,9 @@ export function openQuickPalette(anchor, onOpenTools, all=false){
   }
   items.push({heading:all?'Toàn bộ bảng màu':'Màu gần đây'});
   const colors=all ? palette : [...new Set([...recentColors,...palette.slice(0,8)])].slice(0,8);
+  const isV4=usesV4();
   colors.forEach(hex => {
-    const meta = COLOR_TOKENS[hex.toLowerCase()];
+    const meta = colorToken(hex,isV4);
     const title = meta ? `[${meta.group}] ${meta.token} (${hex}): ${meta.desc}` : hex;
     items.push({
       color: hex,

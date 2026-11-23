@@ -1,6 +1,5 @@
 /* Hoàn tác / làm lại: chụp lại toàn bộ tài liệu, giữ 80 bước gần nhất. */
 import { doc, view, cloneLayer } from './state.js';
-import { syncAll } from './ui.js';
 
 /* Mỗi bước hoàn tác là một bản chụp cả tài liệu, nên phải chặn theo DUNG LƯỢNG
    chứ không theo số bước: 128×128 với 6 lớp × 8 khung là 3 MB một bản chụp,
@@ -13,6 +12,8 @@ let bytes=0;
    không đè lên bản đang mở. main.js nối vào đây — không import library.js để khỏi vòng import. */
 let docId={get:()=>null, set:()=>{}};
 export function bindDocId(get,set){ docId={get,set}; }
+let refreshHistoryView=()=>{};
+export function bindHistoryView(refresh){ refreshHistoryView=refresh; }
 const sizeOf = s => s.frames.length * s.layers.length * s.w * s.h * 4;
 function trim(){
   while(undoStack.length && (undoStack.length>MAX_STEPS || bytes>MAX_BYTES))
@@ -49,12 +50,12 @@ export function undo(){
   redoStack.push(captureUndo());
   const s=undoStack.pop(); bytes-=sizeOf(s);
   restore(s);
-  syncAll();
+  refreshHistoryView();
 }
 export function redo(){
   if(!redoStack.length) return;
   const s=captureUndo();
   undoStack.push(s); bytes+=sizeOf(s);
   restore(redoStack.pop());
-  syncAll();
+  refreshHistoryView();
 }
