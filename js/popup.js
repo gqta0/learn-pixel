@@ -46,6 +46,7 @@ export function closePopup(restoreFocus=true){
   if(!pop) return false;
   pop.remove(); pop=null;
   document.removeEventListener('pointerdown', outside, true);
+  if(popAnchor?.hasAttribute('aria-expanded')) popAnchor.setAttribute('aria-expanded','false');
   if(restoreFocus && popAnchor?.isConnected) popAnchor.focus({preventScroll:true});
   popAnchor=null;
   return true;
@@ -73,12 +74,14 @@ document.addEventListener('keydown', e=>{
 }, true);
 window.addEventListener('resize', ()=>{ if(pop && !pop.classList.contains('is-pinned')) closePopup(); });
 
-/* items: [{label | color, on, title, fn}] */
+/* items: [{label | color, on, title, fn}] hoặc hàm dựng nội dung nhận phần tử chứa. */
 export function popover(anchor, title, items, options={}){
   closePopup(false);
   popAnchor=anchor;
   pop=document.createElement('div');
   pop.className='popup';
+  if(options.className) pop.classList.add(options.className);
+  if(anchor.hasAttribute('aria-expanded')) anchor.setAttribute('aria-expanded','true');
   pop.setAttribute('role','dialog'); pop.setAttribute('aria-label',title || 'Tuỳ chọn');
 
   let isPinned = !!options.isPinned;
@@ -110,7 +113,8 @@ export function popover(anchor, title, items, options={}){
     pop.appendChild(h);
   }
   const box=document.createElement('div'); box.className='popitems';
-  items.forEach(it=>{
+  if(typeof items==='function') items(box);
+  else items.forEach(it=>{
     if(it.heading){
       const label=document.createElement('p'); label.className='popsection'; label.textContent=it.heading;
       box.appendChild(label); return;
@@ -141,7 +145,10 @@ export function popover(anchor, title, items, options={}){
 
   let x=r.left, y=r.bottom+6;
   if(x+p.width  > innerWidth-8)  x = innerWidth-8-p.width;
-  if(y+p.height > maxBottom) y = r.top-6-p.height;
+  if(options.side==='right'){
+    x=Math.min(r.right+6, innerWidth-8-p.width);
+    y=Math.min(r.top, maxBottom-p.height);
+  }else if(y+p.height > maxBottom) y = r.top-6-p.height;
   if(y < 8) y = 8;
   if(y+p.height > maxBottom){
     pop.style.maxHeight = Math.max(140, maxBottom - y) + 'px';
@@ -149,5 +156,9 @@ export function popover(anchor, title, items, options={}){
   pop.style.left=Math.max(8,x)+'px';
   pop.style.top =Math.max(8,y)+'px';
   document.addEventListener('pointerdown', outside, true);
-  if(!isPinned) box.querySelector('button')?.focus({preventScroll:true});
+  if(!isPinned){
+    const focus=box.querySelector('[autofocus]');
+    if(focus) focus.focus();
+    else box.querySelector('button')?.focus({preventScroll:true});
+  }
 }

@@ -57,11 +57,14 @@ export function layoutEditor(mode) {
 
   const strip=get('.filmstrip');
   strip.id='editorFrames';
-  const stripToggle=create('button',{type:'button',class:'btn tiny frame-strip-toggle','aria-controls':strip.id,'aria-expanded':'true'},'Khung hình');
-  get('.stagebar').append(stripToggle);
+  const stripToggle=create('button',{
+    type:'button', class:'btn tiny frame-strip-toggle',
+    'aria-controls':strip.id, 'aria-expanded':'false'
+  },'Khung hình');
+  get('.stagebar').prepend(stripToggle);
   stripToggle.addEventListener('click',()=>{
-    const collapsed=strip.classList.toggle('collapsed');
-    stripToggle.setAttribute('aria-expanded',String(!collapsed));
+    const expanded=strip.classList.toggle('expanded');
+    stripToggle.setAttribute('aria-expanded',String(expanded));
   });
 
   let selected;

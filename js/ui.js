@@ -1,3 +1,4 @@
+import { openFloatingColor } from './floating-color.js';
 /* Keo dán giao diện: đồng bộ toàn bộ bảng điều khiển và nối mọi nút bấm.
    Chỉ ở đây mới được phép biết về cả tài liệu lẫn DOM. */
 import { MAX_SIDE } from './sheet.js';
@@ -150,6 +151,12 @@ if(penActionEl){
   });
 }
 
+$('#floatingColor').addEventListener('click',e=>{
+  openFloatingColor(e.currentTarget,palette,intToHex(view.pri),hex=>{
+    view.pri=hexToInt(hex);
+    syncColors();
+  });
+});
 $('#qbUndo').addEventListener('click', undo);
 $('#qbColor').addEventListener('click', ()=>openQuickPalette($('#qbColor'), ()=>setView(document.body.dataset.workspace==='puppet'?'tools':'colors')));
 $$('.quickbar .qb[data-q]').forEach(b=>{ b.addEventListener('click', ()=>setTool(b.dataset.q)); attachMods(b, b.dataset.q); });

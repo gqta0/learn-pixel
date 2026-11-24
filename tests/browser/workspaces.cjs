@@ -10,6 +10,58 @@ const countPixels = page => page.evaluate(async () => {
   return activeData().filter(Boolean).length;
 });
 
+async function checkTouchLayout(browser, width, height) {
+  const page = await browser.newPage({ viewport:{width,height}, hasTouch:true, isMobile:true });
+  page.setDefaultTimeout(10000);
+  try {
+    await page.goto(origin+'/index.html');
+    await page.waitForFunction(() => document.querySelector('#palSel')?.value.startsWith('Genesis'));
+    await page.locator('#mnav [data-view=colors]').tap();
+    const pencil=page.locator('#quickbar [data-q=pencil]');
+    await pencil.tap();
+    assert.equal(await pencil.evaluate(button=>{
+      const rect=button.getBoundingClientRect();
+      const toolbar=button.parentElement.getBoundingClientRect();
+      return rect.height>=44 && rect.top>=toolbar.top && rect.bottom<=toolbar.bottom &&
+        button.contains(document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2));
+    }),true,'The pencil is fully visible and tappable with the color panel open');
+    const diamond=page.locator('#floatingColor');
+    await diamond.tap();
+    const colors=page.getByRole('dialog',{name:'Dải màu chính',exact:true});
+    const rail=colors.getByRole('group',{name:'Chọn dải'});
+    const shades=colors.getByRole('group',{name:'Các màu cùng dải'});
+    await rail.getByRole('button',{name:'Vàng',exact:true}).tap();
+    assert.equal(await shades.getByRole('button').count(),5);
+    assert.equal(await shades.getByRole('button',{name:'#FFA600',exact:true}).count(),1);
+    assert.equal(await diamond.getAttribute('aria-expanded'),'true');
+    await rail.getByRole('button',{name:'Màu dùng chung',exact:true}).tap();
+    assert.equal(await shades.getByRole('button').count(),6);
+    await shades.getByRole('button',{name:'#251C24',exact:true}).tap();
+    assert.equal(await page.locator('#colPick').inputValue(),'#251c24');
+    assert.match(await diamond.getAttribute('aria-label'),/#251C24$/);
+    assert.equal(await diamond.getAttribute('aria-expanded'),'false');
+    const [canvas,panel]=await Promise.all([
+      page.locator('#wrap').boundingBox(),page.locator('#editorPanel').boundingBox()
+    ]);
+    assert.ok(canvas.height>=200 && canvas.y+canvas.height<=panel.y+.5,'The editor panel reserves canvas space');
+
+    await page.goto(origin+'/tile.html');
+    await page.locator('#emptyNew').tap();
+    await page.locator('#newDlg button[value=ok]').tap();
+    await page.locator('#ed').waitFor();
+    await page.locator('#tileDrawer').tap();
+    const [tileCanvas,tilePanel]=await Promise.all([
+      page.locator('#edWrap').boundingBox(),page.locator('#tilePanel').boundingBox()
+    ]);
+    assert.ok(tileCanvas.height>=160 && tileCanvas.y+tileCanvas.height<=tilePanel.y+.5,'The tile panel leaves the canvas visible');
+    await page.locator('.tp-tools [data-tool=pencil]').tap();
+    await page.locator('#grid button[data-slot="46"]').tap();
+    assert.equal(await page.locator('#tilePanel').getAttribute('data-drawer'),'closed');
+  } finally {
+    await page.close();
+  }
+}
+
 async function run() {
   const browser = await chromium.launch({executablePath:process.env.LEARN_PIXEL_CHROMIUM});
   try {
@@ -172,6 +224,7 @@ async function run() {
       }
     }
     assert.deepEqual(errors,[]);
+    for(const [width,height] of [[390,844],[800,1280]]) await checkTouchLayout(browser,width,height);
     console.log('PASS: drawing draft, tabs, puppet export, atlas/map handoff, tile edits, Godot ZIP, mobile panel');
   } finally { await browser.close(); }
 }

@@ -46,7 +46,10 @@
       <strong id="slotTitle">—</strong>
       <button class="btn tiny" id="slotNext" title="Ô sau (→)">▶</button>
     </div>
-    <div class="tp-canvaswrap" id="edWrap"><canvas id="ed"></canvas></div>
+    <div class="tp-canvaswrap" id="edWrap">
+      <canvas id="ed"></canvas>
+      <button type="button" id="floatingColor" class="floating-color" aria-label="Chọn màu chính" aria-haspopup="dialog" aria-expanded="false"></button>
+    </div>
     <p class="tp-hint" id="edHint" role="status" aria-live="polite"></p>
     <div class="tp-tools" role="toolbar" aria-label="Dụng cụ">
       <button data-tool="pencil" class="on" title="Bút (B)">✏️</button>

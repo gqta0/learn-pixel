@@ -197,18 +197,19 @@
       </div>
 
       <div class="canvasarea">
+      <button type="button" id="floatingColor" class="floating-color" aria-label="Chọn màu chính" aria-haspopup="dialog" aria-expanded="false"></button>
       <div class="quickbar" id="quickbar">
         <button class="qb" data-q="pencil" aria-pressed="true" title="Bút">✏️</button>
+        <button class="qb qbcol" id="qbColor" title="Màu đang dùng — bấm để mở bảng màu"><i></i></button>
         <button class="qb" data-q="dither" aria-pressed="false" title="Chấm hạt dither">░</button>
         <button class="qb" data-q="eraser" aria-pressed="false" title="Xoá">🧽</button>
+        <button class="qb" id="qbUndo" title="Hoàn tác">↶</button>
         <button class="qb" data-q="picker" aria-pressed="false" title="Hút màu">💧</button>
         <button class="qb" data-q="fill" aria-pressed="false" title="Tô loang">🪣</button>
         <button class="qb" data-q="outline" aria-pressed="false" title="Viền nhanh bằng màu chính — chạm giữ để chọn kiểu góc">◻</button>
         <button class="qb" data-q="shade" aria-pressed="false" title="Tô khối theo dải">◐</button>
         <button class="qb" data-q="select" aria-pressed="false" title="Chọn vùng">⬚</button>
-        <button class="qb" id="qbUndo" title="Hoàn tác">↶</button>
         <button class="qb" id="fingerBtn" title="Ngón tay: vẽ hay di chuyển">✋</button>
-        <button class="qb qbcol" id="qbColor" title="Màu đang dùng — bấm để mở bảng màu"><i></i></button>
       </div>
 
       <div class="canvaswrap" id="wrap">
@@ -231,10 +232,10 @@
       </div>
 
       <div class="filmstrip">
-        <div style="flex:1;min-width:0">
+        <div class="frame-track">
           <p class="eyebrow" style="margin-bottom:6px">Khung hình <span class="kbd" id="layerLenInfo" style="text-transform:none;letter-spacing:0"></span></p>
           <div class="frames" id="frames"></div>
-          <div class="row" style="margin-top:6px">
+          <div class="row frame-edit" style="margin-top:6px">
             <button class="btn tiny" id="frAdd">+ Khung trống</button>
             <button class="btn tiny" id="frDup">⧉ Nhân bản</button>
             <button class="btn tiny" id="frDel">✕ Xoá</button>

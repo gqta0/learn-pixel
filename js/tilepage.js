@@ -1,3 +1,4 @@
+import { openFloatingColor, paintFloatingColor } from './floating-color.js';
 import { initTabs } from './tabs.js';
 import { bindDrawerDrag } from './drawer.js';
 /* Trang Tile: nhiều bộ tile, nhiều khuôn (56 ô blob, 4×4 nối cạnh, 4×4 nối góc, lưới tự do), tile hoạt ảnh.
@@ -420,12 +421,21 @@ $('#playBtn').addEventListener('click',()=>togglePlay());
 
 /* ---------------- bảng màu ---------------- */
 function paletteOf(){ return ts?.palette?.length ? ts.palette : GENESIS_COLORS; }
+function selectPaintColor(hex){
+  view.pri=hexToInt(hex);
+  if(ui.tool==='eraser'||ui.tool==='picker') setTool('pencil');
+  paintPalette();
+}
+$('#floatingColor').addEventListener('click',e=>{
+  openFloatingColor(e.currentTarget,paletteOf(),intToHex(view.pri),selectPaintColor);
+});
 function paintPalette(){
   const box=$('#pal'), cur=intToHex(view.pri).toLowerCase();
+  paintFloatingColor($('#floatingColor'), cur);
   box.replaceChildren(...paletteOf().map(hex=>{
     const b=document.createElement('button'); b.style.background=hex; b.title=hex;
     if(hex.toLowerCase()===cur) b.classList.add('on');
-    b.addEventListener('click',()=>{ view.pri=hexToInt(hex); if(ui.tool==='eraser'||ui.tool==='picker') setTool('pencil'); paintPalette(); });
+    b.addEventListener('click',()=>selectPaintColor(hex));
     return b;
   }));
   const add=document.createElement('label'); add.title='Thêm màu vào bảng của bộ này'; add.textContent='＋';

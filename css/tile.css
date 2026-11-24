@@ -16,6 +16,7 @@ html,body{margin:0}
 body{background:var(--ink);color:var(--text);font:14px/1.4 var(--sans);min-height:100vh;
   padding:0 0 env(safe-area-inset-bottom);-webkit-tap-highlight-color:transparent}
 button,select,input{font:inherit;color:inherit}
+a.btn{color:var(--text)}
 .btn,.tp-tools button,.tp-seg button,.tp-menu button,.tp-menu .as-btn{
   background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:40px;
   cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}

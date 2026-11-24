@@ -3,6 +3,7 @@ import { $ } from './dom.js';
 import { view, doc } from './state.js';
 import { rampHueProfile, hexToInt, intToHex, intToCss, rgbToHsl } from './color.js';
 import { autosave } from './storage.js';
+import { paintFloatingColor } from './floating-color.js';
 import { onLongPress, popover } from './popup.js';
 import { parsePaletteText } from './palgroups.js';
 import { GENESIS_NAME, GENESIS_COLORS, GENESIS_PALETTES, GENESIS_TOKENS } from './genesis.js';
@@ -288,6 +289,7 @@ export function syncColors(){
   const old=recentColors.indexOf(hex);
   if(old>=0) recentColors.splice(old,1);
   recentColors.unshift(hex); recentColors.length=Math.min(8,recentColors.length);
+  paintFloatingColor($('#floatingColor'), hex);
   $('#chipPri').style.background = intToCss(view.pri);
   $('#chipSec').style.background = intToCss(view.sec);
   $('#qbColor').firstElementChild.style.background = intToCss(view.pri);
