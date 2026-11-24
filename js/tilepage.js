@@ -11,7 +11,7 @@ import { ROLE_COLORS, ROLE_NAMES, TERRAIN_TILES, DIRECTIONS, terrainSlotCell, ma
          terrainManifest, terrainGodotManifest, ATLAS_COLS, ATLAS_ROWS } from './terrain.js';
 import { layoutRoles, connectorIndices, keepConnectors, pickSlot, contextSlots, layoutGodotTres, layoutJson } from './layouts.js';
 import { createTileset, layoutOf, tileOf, frameAt, frameCount, frameMs, addFrame, removeFrame, moveFrame, setDuration,
-         animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES, TILESET_SCHEMA } from './tileset.js';
+         animations, sheetPixels, fromSheet, cloneTileset, toJSON, fromJSON, toStore, TILE_SIZES, TILESET_SCHEMA, MAX_FRAMES } from './tileset.js';
 import { parseTerrainFile, terrainSheetTo10x7, TERRAIN_CREATE_PRESETS, cleanSheet, terrainProjectJson, terrainPackJson } from './terrainio.js';
 import { mountCheck } from './tilecheck.js';
 import { mountDetail } from './tiledetail.js';
@@ -48,26 +48,32 @@ window.addEventListener('idbblocked',()=>toast('Một tab Lò Pixel cũ đang gi
 const undoS=[], redoS=[];
 const snap=s=>{ const t=tileOf(ts,s); return {slot:s,frame,frames:t.frames.map(f=>f.slice()),dur:t.dur.slice()}; };
 /* một bước hoàn tác có thể chứa nhiều ô: {multi:[snap…],slot,frame} (ghép 34 ô, chép biến thể…) */
-const snapOf=e=>e.multi ? {multi:e.multi.map(m=>snap(m.slot)),slot,frame} : snap(e.slot);
+const snapOf=e=>e.multi ? {...e,multi:e.multi.map(m=>snap(m.slot)),slot,frame} : snap(e.slot);
 function pushUndo(e){ undoS.push(e); if(undoS.length>200) undoS.shift(); redoS.length=0; syncUndo(); }
-function restoreSnap(e){
-  for(const m of (e.multi||[e])){ ts.tiles[m.slot]={frames:m.frames.map(f=>f.slice()),dur:m.dur.slice()}; changed(m.slot); }
+function restoreSnap(e,forward){
+  const entries=e.multi||[e];
+  for(const m of entries) ts.tiles[m.slot]={frames:m.frames.map(f=>f.slice()),dur:m.dur.slice()};
+  e.recordGeneration?.(forward);
+  markChanged(entries.map(m=>m.slot));
   const t=tileOf(ts,e.slot);
   slot=e.slot; frame=Math.min(e.frame,t.frames.length-1);
   selectSlot(slot,frame);
 }
-function undo(){ if(!undoS.length) return; const e=undoS.pop(); redoS.push(snapOf(e)); restoreSnap(e); syncUndo(); }
-function redo(){ if(!redoS.length) return; const e=redoS.pop(); undoS.push(snapOf(e)); restoreSnap(e); syncUndo(); }
+function undo(){ if(!undoS.length) return; const e=undoS.pop(); redoS.push(snapOf(e)); restoreSnap(e,false); syncUndo(); }
+function redo(){ if(!redoS.length) return; const e=redoS.pop(); undoS.push(snapOf(e)); restoreSnap(e,true); syncUndo(); }
 function syncUndo(){ $('#undoBtn').disabled=!undoS.length; $('#redoBtn').disabled=!redoS.length; }
 
 /* ---------------- lưu (IndexedDB chung với trang Vẽ) ---------------- */
 let saveT=0, pending=false, loadedAt=0;
 const TAB=Math.random().toString(36).slice(2);   // tab nào ghi bản trong IndexedDB — để biết bản đó có phải của tab khác
-function changed(s){
+function markChanged(slots){
   ts.rev++; pending=true;
+  if(useIdb) setText($('#tileSave'),'Chưa lưu');
   clearTimeout(saveT); saveT=setTimeout(save,500);
-  paintThumb(s); paintFrames(); paintMap(); check?.updateSoon(); detail?.updateSoon(); quick?.updateSoon();
+  for(const s of slots) paintThumb(s);
+  check?.updateSoon(); detail?.updateSoon(); quick?.updateSoon();
 }
+function changed(s){ markChanged([s]); paintFrames(); paintMap(); }
 let saving=null;
 async function save(){
   clearTimeout(saveT);
@@ -96,7 +102,7 @@ async function writeTileset(){
     await idbSet(STORES.tilesets,ts.id,rec);
     loadedAt=rec.updated;
     bc?.postMessage({type:'tileset',id:ts.id,rev:rec.rev});
-    $('#tileSave').textContent='Đã lưu';
+    $('#tileSave').textContent=pending?'Chưa lưu':'Đã lưu';
     return true;
   }catch(err){
     pending=true;
@@ -140,16 +146,18 @@ function load(next){
   selectSlot(Math.min(slot,lay.slots.length-1),0);
 }
 async function adopt(next,msg){
-  if(await save()===false) return;
+  if(await save()===false) return null;
   next.rev=Math.max(1,next.rev||0); pending=true;
   load(next); pending=true; loadedAt=0;
   const saved=await save(); await refreshList();
   if(msg && saved!==false) toast(msg);
+  return saved!==false && ts===next ? next : null;
 }
 
 /* ---------------- ô đang vẽ ---------------- */
 const curData=()=>tileOf(ts,slot).frames[frame];
 function selectSlot(s,f=0){
+  cancelStroke();
   slot=s; const t=tileOf(ts,slot); frame=Math.max(0,Math.min(f,t.frames.length-1));
   const info=lay.slots[slot];
   setText($('#slotTitle'),'#'+String(slot).padStart(2,'0')+' · '+info.title);
@@ -271,6 +279,18 @@ function paintSeams(ctxSlots,ox,oy,z,lw){
 
 /* ---------------- nét vẽ ---------------- */
 let stroke=null;           // {id,type,before,base,start,last,col,wrapWas}
+const fingerButton=$('#tileFinger');
+fingerButton.addEventListener('click',()=>{
+  fingerButton.setAttribute('aria-pressed',String(fingerButton.getAttribute('aria-pressed')!=='true'));
+});
+// Chặn cả thao tác trên thanh công cụ và cú bấm trình duyệt tạo lúc nhấc lòng bàn tay.
+function blockPalm(event){
+  if(stroke?.type!=='pen' || (event.type==='pointerdown' && event.pointerType!=='touch')) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}
+document.addEventListener('pointerdown',blockPalm,true);
+document.addEventListener('touchstart',blockPalm,{capture:true,passive:false});
 function edPos(e){
   const r=ed.getBoundingClientRect(), n=ts.size*edCells;
   return {gx:Math.floor((e.clientX-r.left)/r.width*n),gy:Math.floor((e.clientY-r.top)/r.height*n)};
@@ -280,8 +300,12 @@ const mod=(v,n)=>((v%n)+n)%n;
 ed.addEventListener('contextmenu',e=>e.preventDefault());
 ed.addEventListener('pointerdown',e=>{
   if(!ts) return;
+  if(e.pointerType==='mouse' && e.button!==0 && e.button!==2) return;
+  if(e.pointerType==='pen') fingerButton.hidden=false;
+  if(e.pointerType==='touch' && !fingerButton.hidden && fingerButton.getAttribute('aria-pressed')==='false') return;
   if(stroke){ if(e.pointerType==='pen' && stroke.type==='touch') cancelStroke(); else return; }
   e.preventDefault();
+  ed.focus({preventScroll:true});
   if(ui.playing) togglePlay(false);
   const g=edPos(e), n=ts.size;
   if(edCells===3 && ui.ctx==='context'){
@@ -305,7 +329,7 @@ ed.addEventListener('pointerdown',e=>{
     floodFill(data,wrapOn?mod(p.x,n):p.x,wrapOn?mod(p.y,n):p.y,col);
     commit(before); return;
   }
-  stroke={id:e.pointerId,type:e.pointerType,before,start:p,last:p,col,tool,base:data.slice(),wrapWas:view.wrapPaint};
+  stroke={id:e.pointerId,type:e.pointerType,before,start:p,last:p,col,tool,data,base:before.frames[frame],wrapWas:view.wrapPaint};
   view.wrapPaint=wrapOn;
   try{ ed.setPointerCapture(e.pointerId); }catch(_){}
   if(tool==='pencil'||tool==='eraser') stamp(data,p.x,p.y,col);
@@ -338,7 +362,7 @@ function endStroke(e){
 }
 function cancelStroke(){
   if(!stroke) return;
-  curData().set(stroke.base); view.wrapPaint=stroke.wrapWas; stroke=null; drawEditor();
+  stroke.data.set(stroke.base); view.wrapPaint=stroke.wrapWas; stroke=null; requestDraw();
 }
 function commit(before){
   const now=curData(), was=before.frames[frame];
@@ -348,7 +372,7 @@ function commit(before){
   drawEditor();
 }
 ed.addEventListener('pointerup',endStroke);
-ed.addEventListener('pointercancel',cancelStroke);
+ed.addEventListener('pointercancel',e=>{ if(e.pointerId===stroke?.id) cancelStroke(); });
 ed.addEventListener('lostpointercapture',e=>{ if(stroke && e.pointerId===stroke.id) endStroke(e); });
 ed.addEventListener('pointerleave',()=>{ if(!stroke) setText($('#edHint'),''); });
 if(typeof ResizeObserver==='function') new ResizeObserver(()=>{ if(ts) requestDraw(); }).observe($('#edWrap'));
@@ -396,6 +420,7 @@ function paintFrames(){
     b.title='Khung '+(i+1)+' · '+frameMs(t,i)+' ms';
   });
   const ms=$('#frMs'); if(document.activeElement!==ms) ms.value=t.dur[frame]||'';
+  $('#frAdd').disabled=t.frames.length>=MAX_FRAMES;
   $('#frDel').disabled=t.frames.length<2; $('#frLeft').disabled=frame===0; $('#frRight').disabled=frame>=t.frames.length-1;
 }
 function frameOp(fn){
@@ -470,6 +495,7 @@ $$('[data-ctx]').forEach(b=>b.addEventListener('click',()=>{
 $('#slotPrev').addEventListener('click',()=>stepSlot(-1));
 $('#slotNext').addEventListener('click',()=>stepSlot(1));
 window.addEventListener('keydown',e=>{
+  if(stroke) return;
   if(e.defaultPrevented || !ts || $('#newDlg').open) return;
   if(e.target.matches('input,select,textarea') || e.target.closest('.workspace-nav, [role=tablist]')) return;
   if(e.code==='Space' && e.target.closest('button, a')) return;
@@ -608,20 +634,19 @@ const host={
   select:s=>selectSlot(s,0),
   /* ghi nhiều ô trong MỘT bước hoàn tác: ô được ghi còn đúng một khung là tranh mới
      (khung hoạt ảnh cũ bỏ đi — hoàn tác trả lại đủ mọi khung) */
-  writeSlots(list){
-    const before={multi:list.map(([s])=>snap(s)),slot,frame};
-    let any=false;
+  writeSlots(list,recordGeneration=null){
+    const before={multi:[],slot,frame,recordGeneration};
     for(const [s,px] of list){
       const t=tileOf(ts,s);
-      if(t.frames.length===1 && !px.some((v,i)=>v!==t.frames[0][i])) continue;
-      ts.tiles[s]={frames:[px.slice()],dur:[0]}; any=true;
+      if(t.frames.length===1 && !t.dur[0] && !px.some((v,i)=>v!==t.frames[0][i])) continue;
+      before.multi.push(snap(s));
+      ts.tiles[s]={frames:[px.slice()],dur:[0]};
     }
-    if(!any) return;
+    if(!before.multi.length && !recordGeneration) return;
     pushUndo(before);
-    for(const [s] of list) changed(s);
+    markChanged(before.multi.map(m=>m.slot));
     selectSlot(slot,frame);
   },
-  refresh(){ buildGrid(); selectSlot(slot,frame); check?.update(); },
   /* bộ đang mở dùng Master Palette thì 'master', mọi bảng khác 'genesis' (như toolPaletteKey ở trang Vẽ) */
   paletteKey(){
     const p=ts?.palette||[], m=new Set(MASTER_COLORS);
@@ -631,8 +656,7 @@ const host={
   createFromTiles(size,shape,tiles,name){
     const next=createTileset({name:name||'Bộ 56 ô tạo nhanh',layout:'blob56',size,shape,palette:PAL_DATA[host.paletteKey()]});
     tiles.forEach((px,s)=>{ next.tiles[s]={frames:[px.slice()],dur:[0]}; });
-    adopt(next,'Đã tạo bộ “'+next.name+'”.');
-    return next;
+    return adopt(next);
   }
 };
 const PAL_DATA={master:MASTER_COLORS,genesis:GENESIS_COLORS};
@@ -688,8 +712,8 @@ function syncNewForm(){
   const l=form.layout.value;
   $('#freeDims').hidden=l!=='free';
   $('#shapeRow').hidden=l==='corners16'||l==='free';
-  $('#colorBlock').hidden=l==='free';
-  $('#tpNewPicks').hidden=!form.preset.value;
+  form.preset.closest('label').hidden=l==='free';
+  $('#tpNewPicks').hidden=l==='free'||!form.preset.value;
 }
 form.preset.addEventListener('change',()=>{ applyPreset(); syncNewForm(); });
 form.pal.addEventListener('change',applyPreset);
@@ -708,7 +732,7 @@ dlg.querySelector('form').addEventListener('submit',async e=>{
   // {base,edge,palette} như create() của trang Vẽ: các bậc sáng/tối của khối nền được bắt về màu trong bảng
   const colors=form.preset.value && l!=='free' && base && edge ? {base,edge,palette:pal,low:true} : null;
   const next=createTileset({name:form.name.value.trim()||'Bộ tile mới',layout:l,cols:+form.cols.value,rows:+form.rows.value,
-    size:+form.size.value,shape:form.shape.value,palette:colors?pal:GENESIS_COLORS,colors});
+    size:+form.size.value,shape:form.shape.value,palette:pal,colors});
   slot=0; await adopt(next,'Đã tạo bộ “'+next.name+'”.');
 });
 
@@ -831,6 +855,7 @@ $('#tsOpenPng').addEventListener('change',async e=>{
   try{
     const sh=await imageData(f), bw=lay.cols*ts.size, blocks=Math.floor(sh.w/bw);
     if(blocks<1 || sh.h<lay.rows*ts.size) return toast('Ảnh cần ít nhất '+bw+'×'+(lay.rows*ts.size)+' px cho khuôn này.',4000);
+    if(blocks>MAX_FRAMES) return toast('Ảnh có '+blocks+' khung. Mỗi bộ hỗ trợ tối đa '+MAX_FRAMES+' khung.',4000);
     if(!confirm('Thay tranh mọi ô của “'+ts.name+'” bằng ảnh này ('+blocks+' khung)? Không hoàn tác được.')) return;
     const n=ts.size;
     for(const t of lay.slots){
@@ -838,17 +863,20 @@ $('#tsOpenPng').addEventListener('change',async e=>{
       for(let b=0;b<blocks;b++){
         const px=new Uint32Array(n*n);
         for(let y=0;y<n;y++){ const at=(r*n+y)*sh.w+b*bw+c*n; px.set(sh.data.subarray(at,at+n),y*n); }
-        if(b===0 || px.some((v,i)=>v!==frames[0][i])) frames.push(px);
+        frames.push(px);
       }
+      // PNG không ghi số khung riêng của ô; chỉ rút gọn khi cả dải là một hình tĩnh.
+      if(frames.every(px=>px===frames[0] || px.every((v,i)=>v===frames[0][i]))) frames.length=1;
       ts.tiles[t.slot]={frames,dur:frames.map(()=>0)};
     }
     undoS.length=redoS.length=0; syncUndo();
-    changed(slot); buildGrid(); selectSlot(slot,0); toast('Đã nạp ảnh vào bộ.');
+    changed(slot); buildGrid(); selectSlot(slot,0);
+    if(await save()!==false) toast('Đã nạp ảnh vào bộ.');
   }catch(err){ toast('Không nạp được: '+err.message); }
 });
 $('#emptyTerrain').addEventListener('click',importTerrain56);
 /* chưa có bộ nào: ⚡ dựng ngay bộ 56 ô từ công thức đang chọn rồi mở thẻ Tạo nhanh để chỉnh tiếp */
-$('#emptyQuick').addEventListener('click',()=>{ slot=0; if(quick.apply()) $('.tp-tabs [data-pane=quick]').click(); });
+$('#emptyQuick').addEventListener('click',async ()=>{ slot=0; if(await quick.apply()) $('.tp-tabs [data-pane=quick]').click(); });
 $('#tsGodot').addEventListener('click',exportGodot);
 $('#tsSel').addEventListener('change',async e=>{ if(await save()===false){ fillSelect(); return; } slot=0; await openSet(e.target.value); });
 

@@ -312,8 +312,9 @@ cao theo **🎮 Cỡ trong game** đã chọn ở trang Vẽ. Các thẻ chỉnh
    và đổi màu từng vai trò (chỉ chọn được màu của bảng gốc).
 3. **Đưa vào bộ** — chưa có bộ Terrain 56 thì tạo bộ mới; có rồi thì ghi vào bộ đang mở.
    **Ghi** cho chọn phạm vi (cả 56 ô, chỉ ô có mặt trên, chỉ 4 ô ruột, ô có trần, ô có
-   tường). **Giữ ô đã sửa tay** nhận ra ô nào anh vẽ lại sau lần tạo trước và không đè;
-   **🔒 Khoá ô** giữ thêm ô đang mở ở khung vẽ. Ghi xong app soi lại mối nối của cả bộ.
+   tường). **Giữ ô đã sửa tay** bảo vệ cả ô vẽ từ đầu, ô đã sửa sau lần tạo trước và ô có hoạt ảnh.
+   **🔒 Khoá ô** giữ riêng ô đang mở. Mỗi bộ nhớ các ô khoá của mình khi anh chuyển qua lại.
+   Ghi xong app soi lại mối nối của cả bộ.
 
 Vì sao ghép đâu cũng liền: phần ruột là một tấm vân **lặp vòng** đúng bằng một ô, nên đá
 được vắt qua mép ô mà không lộ lưới; mặt trên, tường và trần là dải cuội tính theo
@@ -457,6 +458,8 @@ Khi máy đã có Playwright và Chromium, chạy smoke test với máy chủ t�
 
 ```bash
 node tests/browser/workspaces.cjs
+node tests/browser/tile-quick.cjs
+node --test tests/browser/tile-import.cjs
 ```
 
 Đặt `LEARN_PIXEL_URL` nếu máy chủ dùng cổng khác và `LEARN_PIXEL_CHROMIUM` nếu dùng Chromium cài sẵn của hệ thống.

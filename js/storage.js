@@ -4,7 +4,7 @@ import { currentId, adoptCurrent } from './library.js';
 import { $, toast } from './dom.js';
 import { doc, view, activeData, cloneLayer } from './state.js';
 import { frameToCanvas, invalidateBuf, layerLength } from './raster.js';
-import { pushUndo } from './history.js';
+import { pushUndo, captureUndo } from './history.js';
 import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
 import { palette, setPalette, paintSwatches, fillPalSelect, paletteNameOf, PALETTES, MASTER_NAME } from './palette.js';
@@ -74,21 +74,34 @@ export function exportGodotFrames(){
 let refreshDrawing=()=>{};
 export function bindDrawingView(refresh){ refreshDrawing=refresh; }
 
+export function drawingSettings(){
+  return {name:doc.name||'Bản vẽ không tên',palette:palette.slice(),fps:view.fps};
+}
+export function restoreDrawingSettings(d){
+  doc.name=d.name || 'Bản vẽ không tên';
+  if(Number.isInteger(d.fps) && d.fps>=1 && d.fps<=60){
+    view.fps=d.fps;
+    const f=$('#fps'); if(f) f.value=d.fps;
+  }
+  if(d.palette) setPalette(d.palette);
+  syncPalSelect();
+}
 export function serialize(){
   return {
-    app:'lo-pixel', version:2, name:doc.name||'Bản vẽ không tên',
+    app:'lo-pixel', version:2, ...drawingSettings(),
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
-    layers:structuredClone(doc.layers), palette:palette.slice(),
+    layers:structuredClone(doc.layers),
     frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur.slice(), atlasEdit:doc.atlasEdit ? {...doc.atlasEdit} : null,
-    anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0, puppet:doc.puppet||null, fps:view.fps,
+    anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0, puppet:doc.puppet||null,
     done: Array.from(doneSet)
   };
 }
-export function applyData(d){
+export function applyData(d,{libraryId,importFile=false}={}){
   const {w,h,layers,decoded}=decodeDrawing(d);
+  if(importFile) pushUndo(captureUndo(true));
   stopEditing();                       // tranh khác rồi thì không còn gắn với ô atlas nào
-  doc.name = d.name || 'Bản vẽ không tên';
-  const nameEl = $('#projName'); if(nameEl) nameEl.value = doc.name;
+  if(libraryId!==undefined) adoptCurrent(libraryId);
+  view.sel=null;
   doc.w=w; doc.h=h;
   doc.layers=layers.map((l,i)=>cloneLayer({...l,name:l.name||'Lớp '+(i+1)},decoded.length));
   doc.frames=decoded;
@@ -100,9 +113,7 @@ export function applyData(d){
   doc.anchor = Number.isFinite(ax)&&Number.isFinite(ay)&&ax>=0&&ax<=w&&ay>=0&&ay<=h ? {x:ax,y:ay} : null;
   doc.charH = Number(d.charH)>0 ? Math.min(Number(d.charH),h) : 0;
   doc.puppet = d.puppet==='head'||d.puppet==='body' ? d.puppet : null;
-  if(Number.isInteger(d.fps) && d.fps>=1 && d.fps<=60){ view.fps=d.fps; const f=$('#fps'); if(f) f.value=d.fps; }
-  if(d.palette){ setPalette(d.palette); }
-  syncPalSelect();
+  restoreDrawingSettings(d);
   if(d.done) migrateDone(d.done);
   invalidateBuf(); fitZoom(); buildExercises(); refreshDrawing();
 }
@@ -125,7 +136,7 @@ export function exportJson(){
 export function importJson(file){
   const fr=new FileReader();
   fr.onload=()=>{
-    try{ pushUndo(); applyData(JSON.parse(fr.result)); }
+    try{ applyData(JSON.parse(fr.result),{libraryId:null,importFile:true}); }
     catch(err){ alert('Không đọc được file: '+err.message); }
   };
   fr.readAsText(file);
@@ -231,8 +242,7 @@ export async function loadSave(){
       if(legacy && drawingWorkspace(legacy)===workspace) data=legacy;
     }
     if(!data){ bootDone=true; saveStatus('Bản mới'); return false; }
-    adoptCurrent(data.libraryId);
-    applyData(data);
+    applyData(data,{libraryId:data.libraryId??null});
     if(initial) await queueSave();
     adoptDefaultPalette();
     bootDone=true;

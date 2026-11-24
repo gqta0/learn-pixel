@@ -244,7 +244,7 @@ test('an old save carrying the terrain frame link loads without bringing the lin
   const start=src.indexOf('export function applyData'), end=src.indexOf('\nexport ',start+1);
   const codec=readFileSync(join(__dirname,'../js/project-data.js'),'utf8')
     .replace(/^import .*;$/m,'').replace(/\bexport\s+/g,'');
-  e.run('var refreshDrawing=syncAll,MAX_SIDE=256,stopEditing=()=>{},setPalette=()=>{},syncPalSelect=()=>{},migrateDone=()=>{},invalidateBuf=()=>{},fitZoom=()=>{},buildExercises=()=>{};'
+  e.run('var refreshDrawing=syncAll,MAX_SIDE=256,stopEditing=()=>{},restoreDrawingSettings=()=>{},migrateDone=()=>{},invalidateBuf=()=>{},fitZoom=()=>{},buildExercises=()=>{};'
     +codec+'\n'+src.slice(start,end).replace(/\bexport\s+/,''));
   const old={w:2,h:2,version:1,layers:[{name:'A',vis:true}],frames:[[[0,0,0,0]]],
     [OLD_LINK]:{atlasId:'t1',labels:true,slots:[0,1,2]}};

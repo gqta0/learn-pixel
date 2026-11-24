@@ -13,13 +13,16 @@ let bytes=0;
 let docId={get:()=>null, set:()=>{}};
 export function bindDocId(get,set){ docId={get,set}; }
 let refreshHistoryView=()=>{};
-export function bindHistoryView(refresh){ refreshHistoryView=refresh; }
+let readSettings=()=>null, restoreSettings=()=>{};
+export function bindHistoryView(refresh, read=readSettings, restore=restoreSettings){
+  refreshHistoryView=refresh; readSettings=read; restoreSettings=restore;
+}
 const sizeOf = s => s.frames.length * s.layers.length * s.w * s.h * 4;
 function trim(){
   while(undoStack.length && (undoStack.length>MAX_STEPS || bytes>MAX_BYTES))
     bytes -= sizeOf(undoStack.shift());
 }
-export function captureUndo(){
+export function captureUndo(withSettings=false){
   return {
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers: doc.layers.map(l=>cloneLayer(l)),
@@ -27,7 +30,7 @@ export function captureUndo(){
     dur: doc.dur.slice(), sel:view.sel ? {...view.sel} : null,
     atlasEdit:doc.atlasEdit ? {...doc.atlasEdit} : null,
     anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0, puppet:doc.puppet||null,    // đổi khổ dời điểm chân: hoàn tác phải trả về cùng lúc
-    lib:docId.get()
+    lib:docId.get(), settings:withSettings ? readSettings() : null
   };
 }
 function restore(s){
@@ -39,6 +42,7 @@ function restore(s){
   doc.atlasEdit=s.atlasEdit ? {...s.atlasEdit} : null;
   doc.anchor=s.anchor ? {...s.anchor} : null; doc.charH=s.charH||0; doc.puppet=s.puppet||null;
   docId.set(s.lib??null);
+  if(s.settings) restoreSettings(s.settings);
 }
 export function pushUndo(s=captureUndo()){
   undoStack.push(s); bytes+=sizeOf(s);
@@ -47,15 +51,15 @@ export function pushUndo(s=captureUndo()){
 }
 export function undo(){
   if(!undoStack.length) return;
-  redoStack.push(captureUndo());
   const s=undoStack.pop(); bytes-=sizeOf(s);
+  redoStack.push(captureUndo(!!s.settings));
   restore(s);
   refreshHistoryView();
 }
 export function redo(){
   if(!redoStack.length) return;
-  const s=captureUndo();
+  const next=redoStack.pop(), s=captureUndo(!!next.settings);
   undoStack.push(s); bytes+=sizeOf(s);
-  restore(redoStack.pop());
+  restore(next);
   refreshHistoryView();
 }

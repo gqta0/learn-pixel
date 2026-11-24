@@ -4,7 +4,7 @@ import { doc, view, setTH } from './state.js';
 import { fitZoom, render, bindRenderEffect } from './render.js';
 import { fillPalSelect } from './palette.js';
 import { buildTools, setView, syncFingerBtn } from './tools.js';
-import { loadSave, flushSave, autosave, bindDrawingView } from './storage.js';
+import { loadSave, flushSave, autosave, bindDrawingView, drawingSettings, restoreDrawingSettings } from './storage.js';
 import { syncAll, applyTrack, bindEditorFeatures } from './ui.js';
 import { paintDaily } from './daily.js';
 import { buildExercises, TRACKS } from './content/exercises.js';
@@ -18,7 +18,7 @@ import { bindDocId, bindHistoryView } from './history.js';
 import { currentId, adoptCurrent, libraryReady, openProject, getLibraryItems, keepBeforeReplace } from './library.js';
 
 bindDocId(currentId, adoptCurrent);
-bindHistoryView(syncAll);
+bindHistoryView(syncAll,drawingSettings,restoreDrawingSettings);
 bindDrawingView(syncAll);
 bindRenderEffect(autosave);
 
@@ -101,6 +101,7 @@ async function boot(){
   render();
 }
 await boot();
+$('.app').inert=false;
 
 /* rời trang: ẩn tab / đóng tab thì ghi nốt nét vừa vẽ ngay; bấm một liên kết sang trang khác (Trang Tile…)
    thì đợi ghi xong rồi mới chuyển, vì IndexedDB không kịp ghi khi trang bị gỡ giữa chừng */

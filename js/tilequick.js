@@ -2,8 +2,8 @@
    có nhân vật đúng cỡ game, rồi đưa thẳng vào bộ 56 ô đang mở — ô anh đã sửa tay thì giữ nguyên.
    Phần vẽ nằm ở tilegen.js (thuần dữ liệu); ở đây chỉ có giao diện, lưu cài đặt và xuất file.
    Không biết gì về phần còn lại của trang: mọi thứ đi qua `host` do tilepage.js dựng:
-   host = {ts(), slot(), select(s), writeSlots([[slot,Uint32Array]…]), refresh(), onSelect(cb),
-           createFromTiles(size,shape,tiles,name) → ts, paletteKey() → 'master'|'genesis'}. */
+   host = {ts(), slot(), select(s), writeSlots([[slot,Uint32Array]…]), onSelect(cb),
+           createFromTiles(size,shape,tiles,name) → Promise<ts|null>, paletteKey() → 'master'|'genesis'}. */
 import { $, toast } from './dom.js';
 import { view } from './state.js';
 import { makeZip } from './zip.js';
@@ -274,23 +274,50 @@ function rollGroup(group){
 
 /* ---------------- ô đã sửa tay, ô khoá ---------------- */
 function hashPx(px){ let h=0x811c9dc5; for(let i=0;i<px.length;i++){ h^=px[i]; h=Math.imul(h,16777619); } return h>>>0; }
-function readStamp(){ try{ return JSON.parse(localStorage.getItem(STAMP))||null; }catch(_){ return null; } }
-function writeStamp(s){ try{ localStorage.setItem(STAMP,JSON.stringify(s)); }catch(_){} }
+function readStamp(id){
+  try{
+    const raw=localStorage.getItem(STAMP+':'+id) ?? localStorage.getItem(STAMP);
+    const stamp=JSON.parse(raw);
+    return stamp?.atlasId===id ? stamp : null;
+  }catch(_){ return null; }
+}
+function writeStamp(s){ try{ localStorage.setItem(STAMP+':'+s.atlasId,JSON.stringify(s)); }catch(_){} }
+/* Hoàn tác lần tạo nhanh chỉ đổi dấu của các ô vừa ghi, giữ cả khoá đặt sau đó. */
+function generationChange(id,slots,tiles){
+  const previous=readStamp(id)?.hashes||{};
+  const changes=slots.map(slot=>({slot,before:previous[slot],after:hashPx(tiles[slot])}))
+    .filter(change=>change.before!==change.after);
+  if(!changes.length) return null;
+  return forward=>{
+    const stamp=readStamp(id)||{atlasId:id,locks:[]};
+    stamp.hashes||={};
+    for(const {slot,before,after} of changes){
+      if(forward) stamp.hashes[slot]=after;
+      else if(before===undefined) delete stamp.hashes[slot];
+      else stamp.hashes[slot]=before;
+    }
+    writeStamp(stamp);
+  };
+}
 /* atlas Vẽ cũ nhập thành bộ mới (id mới): dấu ⚡ cũ chuyển sang id bộ mới để ô sửa tay / ô khoá còn nguyên */
 export function handOverQuickStamp(fromId,toId){
-  const s=handOverStamp(readStamp(),fromId,toId); if(s) writeStamp(s);
+  const s=handOverStamp(readStamp(fromId),fromId,toId); if(s) writeStamp(s);
 }
 /* trạng thái khoá của bộ đang mở: ô đã sửa tay sau lần tạo nhanh gần nhất (tranh khác đi, hoặc đã
-   thêm khung hoạt ảnh — ghi đè sẽ mất cả hai) + ô khoá bằng tay. Dấu chỉ nhớ một bộ: bộ tạo nhanh gần nhất. */
+   thêm khung hoạt ảnh — ghi đè sẽ mất cả hai) + ô khoá bằng tay. */
 function lockState(){
-  const a=terrainTarget(); if(!a) return {known:false,edited:new Set(),locks:new Set()};
-  const ts=host.ts(), stamp=readStamp(), mine=stamp?.atlasId===a.id;
-  const edited=new Set(), locks=new Set(mine?stamp.locks||[]:[]);
-  if(mine){
-    const px=slotPixels(ts);
-    TERRAIN_TILES.forEach(t=>{ const h=stamp.hashes?.[t.slot]; if(h!=null && (h!==hashPx(px[t.slot]) || tileOf(ts,t.slot).frames.length>1)) edited.add(t.slot); });
+  const ts=host.ts(), a=terrainTarget(), stamp=a && readStamp(a.id);
+  const edited=new Set(), untracked=new Set(), locks=new Set(stamp?.locks||[]);
+  if(a){
+    for(const {slot} of TERRAIN_TILES){
+      const tile=tileOf(ts,slot), px=tile.frames[0], h=stamp?.hashes?.[slot];
+      const customTiming=tile.frames.length>1 || tile.dur[0]>0;
+      if(h==null){
+        if(customTiming || px.some(v=>v!==0)){ edited.add(slot); untracked.add(slot); }
+      }else if(customTiming || h!==hashPx(px)) edited.add(slot);
+    }
   }
-  return {known:mine,edited,locks};
+  return {known:Object.keys(stamp?.hashes||{}).length>0,edited,untracked,locks};
 }
 const ids=set=>[...set].sort((a,b)=>a-b).map(s=>'#'+String(s).padStart(2,'0')).join(', ');
 const shapeText=s=>s==='flush'?'kín sát mép':'thụt mép';
@@ -305,7 +332,7 @@ function syncTarget(){
   const L=lockState(), parts=[];
   if(same && L.locks.size) parts.push('🔒 khoá '+ids(L.locks));
   if(same && L.edited.size) parts.push('✎ đã sửa tay '+ids(L.edited));
-  if(same && !L.known) parts.push('Bộ này chưa từng tạo nhanh — ghi sẽ hỏi lại trước khi đè.');
+  if(same && L.untracked.size) parts.push('Ô có tranh chưa từng tạo nhanh được giữ khi bật “Giữ ô đã sửa tay”.');
   lock.textContent=parts.join(' · ')||(same?'Không có ô khoá.':'');
   const slot=host?.slot()??0, lb=$('#tqLockSel');
   lb.disabled=!same;
@@ -313,8 +340,8 @@ function syncTarget(){
 }
 function toggleLock(){
   const a=terrainTarget(); if(!a) return;
-  const stamp=readStamp(), slot=host.slot();
-  const s=stamp?.atlasId===a.id ? stamp : {atlasId:a.id,hashes:{},locks:[]};
+  const slot=host.slot();
+  const s=readStamp(a.id) || {atlasId:a.id,hashes:{},locks:[]};
   s.locks=s.locks||[];
   const at=s.locks.indexOf(slot);
   if(at>=0) s.locks.splice(at,1); else s.locks.push(slot);
@@ -323,35 +350,36 @@ function toggleLock(){
 
 /* ---------------- đưa vào bộ 56 ô ---------------- */
 /* trả về true nếu đã ghi / đã tạo bộ */
-function apply(){
+async function apply(){
   syncPalette();                                // bấm từ màn trống (thẻ chưa mở lần nào): màu theo bộ sắp có
   const s=cur(), n=st.size, shape=st.shape, x=build(s,n,shape);
   const a=terrainTarget();
-  let written=[];
+  let ts=host.ts();
   if(sameTarget(a)){
     const L=lockState();
     const plan=planApply({scopeTest:SCOPES[st.scope].test,locks:L.locks,edited:L.edited,keepEdited:st.keepEdited,known:L.known});
-    if(!plan.slots.length){ toast('Không còn ô nào để ghi — mọi ô trong phạm vi đều đang khoá hoặc đã sửa tay.'); return false; }
-    if(plan.ask && !confirm('Bộ đang mở chưa từng được tạo nhanh, có thể là tranh anh vẽ tay.\n\nGhi đè '+
+    if(!plan.slots.length){ toast('Mọi ô trong phạm vi đang được giữ. Mở khoá hoặc bỏ chọn “Giữ ô đã sửa tay” để ghi đè.',4200); return false; }
+    if((plan.ask || plan.slots.some(slot=>L.untracked.has(slot))) && !confirm('Phạm vi này có ô chưa từng tạo nhanh.\n\nGhi '+
       plan.slots.length+' ô bằng công thức “'+GEN_RECIPES[s.recipe].title+'”? (Hoàn tác được bằng Ctrl+Z.)')) return false;
-    host.writeSlots(plan.slots.map(slot=>[slot,x.tiles[slot].slice()]));
-    written=plan.slots;
-    toast('Đã ghi '+written.length+' ô'+(plan.kept?' · giữ '+plan.kept+' ô khoá/sửa tay':'')+'. Ctrl+Z để hoàn tác.',3200);
+    const record=generationChange(ts.id,plan.slots,x.tiles);
+    host.writeSlots(plan.slots.map(slot=>[slot,x.tiles[slot]]),record);
+    record?.(true);
+    toast('Đã ghi '+plan.slots.length+' ô'+(plan.kept?' · giữ '+plan.kept+' ô khoá/sửa tay':'')+'. Ctrl+Z để hoàn tác.',3200);
   } else {
-    host.createFromTiles(n,shape,x.tiles.map(t=>t.slice()),'⚡ '+GEN_RECIPES[s.recipe].title+' · '+n+' px');
-    written=TERRAIN_TILES.map(t=>t.slot);
+    const buttons=[$('#tqApply'),$('#emptyQuick')];
+    buttons.forEach(b=>{ b.disabled=true; });
+    try{
+      ts=await host.createFromTiles(n,shape,x.tiles,'⚡ '+GEN_RECIPES[s.recipe].title+' · '+n+' px');
+    } finally { buttons.forEach(b=>{ b.disabled=false; }); }
+    if(!ts) return false;
+    generationChange(ts.id,TERRAIN_TILES.map(t=>t.slot),x.tiles)?.(true);
     toast('Đã tạo bộ 56 ô '+n+' px từ “'+GEN_RECIPES[s.recipe].title+'”. Xem ở thẻ Bộ ô.',3200);
   }
-  // ghi dấu tranh vừa sinh để lần sau nhận ra ô nào anh đã sửa tay
-  const ts=host.ts(), px=slotPixels(ts), old=readStamp();
-  const stamp=old?.atlasId===ts.id ? old : {atlasId:ts.id,hashes:{},locks:[]};
-  stamp.hashes=stamp.hashes||{};
-  written.forEach(slot=>{ stamp.hashes[slot]=hashPx(px[slot]); });
-  writeStamp(stamp);
+  const px=slotPixels(ts);
   const issues=checkSeams(px,n,shape).length+checkColorSeams(px,n,shape).length;
   $('#tqApplyNote').textContent=issues ? '⚠ Sau khi ghi, bộ có '+issues+' chỗ nối lệch (thường do ô khoá vẽ theo kiểu khác) — mở thẻ Soi lỗi để xem.' :
     '✓ Bộ sau khi ghi: 56 ô nối liền mọi cặp.';
-  host.refresh(); syncTarget();
+  syncTarget();
   return true;
 }
 

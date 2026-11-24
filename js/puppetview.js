@@ -56,6 +56,7 @@ function flatProject(id){
 }
 /* nguồn của từng sheet: 'cur' (bản đang vẽ, chưa cất) · 'lib:<id>' · 'block' (khối mẫu) · 'none' */
 const src={head:null, body:null}, picked={head:false, body:false};   // picked: người dùng tự chọn ở ô chọn
+const lastMine={head:null,body:null};
 function sheetFor(kind){
   const v=src[kind];
   if(!v || v==='none') return null;
@@ -76,8 +77,10 @@ function fillSources(){
         if(!old || id===cid) opts.push(['lib:'+id,(id===cid?'✏️ ':'')+p.name+(old?' (khổ cũ '+p.data.w+'×'+p.data.h+')':'')]); });
     opts.push(['block','Khối mẫu (chưa vẽ)'],['none','Không hiện']);
     const mine = doc.puppet===kind ? (cid ? 'lib:'+cid : 'cur') : null;
+    if(mine && mine!==lastMine[kind]) picked[kind]=false;
+    lastMine[kind]=mine;
     const keep=picked[kind] && opts.some(o=>o[0]===src[kind]) ? src[kind] : null;
-    src[kind] = mine || keep || (opts.find(o=>o[0].startsWith('lib:'))||opts.find(o=>o[0]==='block'))[0];
+    src[kind] = keep || mine || (opts.find(o=>o[0].startsWith('lib:'))||opts.find(o=>o[0]==='block'))[0];
     sel.replaceChildren(...opts.map(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; return o; }));
     sel.value=src[kind];
   }

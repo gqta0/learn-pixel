@@ -1,6 +1,6 @@
 /* Tab "Soi lỗi" của trang Tile: báo cáo mối nối + công cụ 13 ô lõi (chỉ khuôn 56 ô blob).
    Không biết gì về DOM của phần còn lại của trang: mọi thứ đi qua `host` do tilepage.js dựng:
-   host = {ts(), slot(), select(s), writeSlots([[slot,Uint32Array]…]), refresh()}. */
+   host = {ts(), slot(), select(s), writeSlots([[slot,Uint32Array]…])}. */
 import { CORE_SLOTS, composeTile, variantBase } from './terrain.js';
 import { slotPixels, seamReport } from './terrainio.js';
 

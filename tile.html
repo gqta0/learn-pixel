@@ -46,7 +46,7 @@
       <strong id="slotTitle">—</strong>
       <button class="btn tiny" id="slotNext" title="Ô sau (→)">▶</button>
     </div>
-    <div class="tp-canvaswrap" id="edWrap"><canvas id="ed"></canvas></div>
+    <div class="tp-canvaswrap" id="edWrap"><canvas id="ed" tabindex="0" aria-label="Vẽ ô tile đang chọn"></canvas></div>
     <p class="tp-hint" id="edHint" role="status" aria-live="polite"></p>
     <div class="tp-tools" role="toolbar" aria-label="Dụng cụ">
       <button data-tool="pencil" class="on" title="Bút (B)">✏️</button>
@@ -64,6 +64,7 @@
       <span class="sep"></span>
       <button id="undoBtn" title="Hoàn tác (Ctrl+Z)">↶</button>
       <button id="redoBtn" title="Làm lại (Ctrl+Y)">↷</button>
+      <button id="tileFinger" aria-pressed="false" title="Bật hoặc tắt vẽ bằng ngón tay khi dùng bút" hidden>Vẽ bằng ngón tay</button>
     </div>
     <div class="tp-seg" role="radiogroup" aria-label="Khung nhìn">
       <button data-ctx="context" class="on" role="radio" aria-checked="true" title="Ô đang vẽ ở giữa, 8 ô hàng xóm thật quanh nó — chạm ô hàng xóm để sang vẽ ô đó">▦ Hàng xóm</button>

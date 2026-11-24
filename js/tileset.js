@@ -134,7 +134,10 @@ export function fromJSON(d){
   const slots=new Set(lay.slots.map(t=>String(t.slot)));
   for(const [slot,t] of Object.entries(d.tiles||{})){
     if(!slots.has(slot)) continue;
-    if(!Array.isArray(t?.frames) || !t.frames.length || t.frames.length>MAX_FRAMES) throw new Error('ô '+slot+': khung không hợp lệ');
+    if(!Array.isArray(t?.frames) || !t.frames.length) throw new Error('ô '+slot+': khung không hợp lệ');
+    // Bản cũ từng cho nhập PNG dài vào IndexedDB. Giữ nguyên những khung gốc đã lưu.
+    if(t.frames.length>MAX_FRAMES && !t.frames.every(f=>f instanceof Uint32Array))
+      throw new Error('ô '+slot+': tối đa '+MAX_FRAMES+' khung');
     const frames=t.frames.map(f=>{
       if(f instanceof Uint32Array){ if(f.length!==len) throw new Error('ô '+slot+': sai khổ'); return f.slice(); }
       return unrle(f,len);

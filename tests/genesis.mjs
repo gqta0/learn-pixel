@@ -88,7 +88,7 @@ test('terrain tools use Master only for Master; every other palette uses Genesis
 
 // Trang Tile (tilequick.js): bảng theo bộ đang mở (host.paletteKey).
 test('Tile page quick generator removes stale colors even when its palette key is unchanged',()=>{
-  const src=read('js/tilequick.js');
+  const src=read('js/tilequick.js').replace(/\r\n/g,'\n');
   const start=src.indexOf('function syncPalette(){'),end=src.indexOf('\n}\n',start)+3;
   assert.ok(start>0 && end>start);
   const st={palette:'genesis',strata:[{colors:{r0:'#382733',k1:'#63C74D'}}]};

@@ -204,7 +204,7 @@ body:not([data-workspace="puppet"]) .rig-library-save { display: none; }
     min-height: 0;
     min-width: 0;
   }
-  body[data-workspace] .mnav, body[data-workspace] .drawer-expand,
+  body[data-workspace] .mnav, body[data-workspace] .col.right .drawer-expand,
   body[data-workspace] .quickbar { display: none; }
   body[data-workspace] .canvasarea { flex-direction: column; }
   body[data-workspace] .stagebar { flex-wrap: nowrap; overflow-x: auto; }
@@ -239,12 +239,14 @@ body:not([data-workspace="puppet"]) .rig-library-save { display: none; }
     grid-template-rows: minmax(0,1fr) auto;
   }
   body[data-workspace] .workspace > .stage {
+    grid-area: 1 / 1;
     display: flex;
     position: relative;
     min-height: 0;
     min-width: 0;
   }
   body[data-workspace] .workspace > .col {
+    grid-area: 2 / 1;
     display: none;
     position: static;
     width: auto;
@@ -259,9 +261,12 @@ body:not([data-workspace="puppet"]) .rig-library-save { display: none; }
   body[data-workspace] .mnav { display: flex; }
   body[data-workspace] .mnav button { min-height: 44px; }
   body[data-workspace] .col.right .drawer-expand { display: flex; }
+  body[data-workspace] .col.left .tools { grid-template-columns: repeat(7,minmax(0,1fr)); }
+  body[data-workspace] .col.left .tool { aspect-ratio: auto; min-height: 48px; }
   body[data-workspace] .quickbar {
     position: static;
     display: flex;
+    flex: 0 0 auto;
     flex-direction: row;
     flex-wrap: nowrap;
     justify-content: flex-start;

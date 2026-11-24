@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 const {readFile} = require('node:fs/promises');
 const {join} = require('node:path');
 const {chromium} = require('playwright');
+const testPuppetProjects = require('./puppet-projects.cjs');
+const testTabletDrawing = require('./tablet-drawing.cjs');
 
 const origin = process.env.LEARN_PIXEL_URL || 'http://127.0.0.1:8123';
 const countPixels = page => page.evaluate(async () => {
@@ -13,6 +15,8 @@ const countPixels = page => page.evaluate(async () => {
 async function run() {
   const browser = await chromium.launch({executablePath:process.env.LEARN_PIXEL_CHROMIUM});
   try {
+    await testPuppetProjects(browser, origin);
+    await testTabletDrawing(browser, origin);
     const page = await browser.newPage({viewport:{width:1440,height:900}});
     page.setDefaultTimeout(12000);
     const errors = [];

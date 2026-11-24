@@ -8,6 +8,15 @@ import {BLOB_47_MASKS, TERRAIN_TILES} from '../js/terrain.js';
 
 const COLORS={base:'#5e788c',edge:'#b4c5d1'};
 
+test('an older IndexedDB atlas with 33 frames reopens without dropping the last pose',()=>{
+  const stored=toStore(createTileset({layout:'free',cols:1,rows:1,size:8}));
+  stored.tiles[0].frames=Array.from({length:33},(_,i)=>new Uint32Array(64).fill(0xff000000+i));
+  const recovered=fromJSON(stored);
+  assert.equal(frameCount(recovered),33);
+  assert.equal(frameAt(recovered,0,32)[0],0xff000020);
+  assert.equal(addFrame(recovered,0,32),-1);
+});
+
 test('every layout lists each slot once and every slot has its own atlas cell inside the grid',()=>{
   for(const id of LAYOUT_IDS){
     const L=getLayout(id,{cols:3,rows:2});

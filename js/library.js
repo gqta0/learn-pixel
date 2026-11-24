@@ -105,8 +105,7 @@ export function addProject(name, data){
 export function openProject(id){
   const p=items[id];
   if(!p) return false;
-  applyData(p.data);
-  openId=id;
+  applyData(p.data,{libraryId:id});
   return true;
 }
 export function removeProject(id){ delete items[id]; persist(id); }
