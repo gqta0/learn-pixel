@@ -4,6 +4,8 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 👉 **Dùng ngay:** https://<tên-github>.github.io/lo-pixel/
 
+Thanh điều hướng mở ba trang [Vẽ thường](index.html), [Ghép rối](puppet.html) và [Vẽ tile](tile.html). Vẽ thường và Ghép rối dùng chung thư viện, mỗi trang khôi phục bản nháp riêng. Atlas và Soi map nâng cao mở từ Vẽ tile. Bản nháp cũ được đọc theo loại tài nguyên, rồi lưu vào trang tương ứng khi chưa có bản nháp riêng.
+
 ## Có gì trong này
 
 **Trình vẽ**
@@ -17,9 +19,9 @@ Xưởng luyện vẽ pixel art cho game 2D — trình vẽ + giáo trình, thu�
 
 **Màu**
 - Panel sinh dải màu lệch tông theo **chất liệu** (kim loại, gỗ, đá, da người, lá, vải, thuỷ tinh, vàng, lửa).
-- Bảng mặc định **Genesis v3**: **91 HEX** lấy nguyên từ project-genesis, chia **20 nhóm 4–5 màu** theo tông (tối → sáng).
-  Chọn từng nhóm trong ô bảng màu, hoặc bật **Phân loại nhóm** để xem bảng tổng. Xem [bảng nhóm và file HEX](palettes/genesis-v3.md).
-  Bản tự lưu còn bảng mặc định cũ (Master, Genesis v1) được nâng lên v3 một lần, không đổi pixel; bảng đã chỉnh tay giữ nguyên.
+- **Genesis v4** là bảng mặc định cho bản vẽ mới và Ghép rối. Bảng có **218 mã HEX**, gồm 41 dải 5 bậc, 6 màu dùng chung và 12 màu điểm nhấn (một số mã dùng ở nhiều vị trí). [Tệp HEX](palettes/genesis-v4.hex)
+- Trong **Dải màu theo chất liệu**, chọn màu gốc từ các ô mẫu Genesis v4, từ màu chính hoặc bằng mã HEX, rồi chọn chất liệu. Dải sinh bằng OKLCH và giữ đúng HEX gốc ở bậc giữa. Trong **Tinh chỉnh**, mặc định 5 bậc. Gỗ dùng 1%, da và vải 6%, gốm 18%, các chất liệu còn lại 10%. Mức 10% tương ứng trung bình khoảng 6° lệch giữa hai bậc trước khi quy về không gian màu của màn hình.
+- **Genesis v3** vẫn có trong danh sách. Bản vẽ đã lưu giữ bảng màu trong dự án, và chức năng Tạo nhanh Terrain tiếp tục dùng bộ công thức Genesis v3 hoặc Master. [Bảng v3](palettes/genesis-v3.md)
 - **⬆ Nhập .hex** (khung Màu): nhập bảng màu từ file `.hex` của Lospec, `.gpl` của GIMP/Aseprite hoặc `.txt` có
   mã `#RRGGBB`, lưu vào “Của bạn” và dùng luôn.
 - Các bảng khác gồm Master Palette 92 màu, PICO-8, DawnBringer 16, Sweetie 16, Nông trại 24, Hang động và Xám 8 bậc. Master vẫn giữ các token chất liệu cho Terrain và ⚡ Tạo nhanh.
@@ -172,7 +174,7 @@ App xin trình duyệt giữ dữ liệu lâu dài; dù vậy vẫn nên **Xuấ
 
 Nhân vật 64 px của Project Genesis không vẽ từng khung. Mình vẽ **một lần** các miếng phẳng (đầu, ngực,
 hông, bắp tay, cẳng tay, đùi…), app ghim miếng lên khung xương 15 xương và tự ra mọi khung của 14 động tác
-(chạy, nhảy, ngồi, đấm, bay, kiếm pháp…). Mở ở thẻ **Ghép rối** cột phải (điện thoại: 💾 File → Ghép rối).
+(chạy, nhảy, ngồi, đấm, bay, kiếm pháp…). Mở **Ghép rối** trên thanh điều hướng để vẽ sheet và xem nhân vật trong cùng trang.
 
 1. **Dựng khung** — **+ Sheet Đầu 109×73** (sọ + mặt, tóc sau, tóc trước, phụ kiện — riêng từng nhân vật)
    hoặc **+ Sheet Thân 88×109** (cổ, ngực, hông, tay, chân, tay chân phía xa, ba vạt áo — một bộ cho cả môn phái). Bản vẽ mới nằm luôn
@@ -239,8 +241,7 @@ không dời: sheet vẽ cho khung cũ vẫn giữ nguyên trong thư viện, m�
 
 ## Trang Tile (`tile.html`) — nhiều bộ tile, nhiều khuôn, tile hoạt ảnh
 
-Ở trang Vẽ: nút **🧱 Tile** trên thanh dưới (điện thoại), **🧱 Trang Tile** ở thẻ File hoặc trong bảng
-Atlas; hoặc vào thẳng `tile.html`. Trang này tách riêng khỏi trang Vẽ; mọi việc của xưởng Terrain 56 cũ
+Chọn **Vẽ tile** từ thanh điều hướng hoặc mở thẳng `tile.html`. Trang này tách riêng khỏi trang Vẽ; mọi việc của xưởng Terrain 56 cũ
 (thẻ Terrain trên trang Vẽ, nay đã gỡ) giờ làm ở đây.
 
 - **Bốn khuôn:**
@@ -450,7 +451,19 @@ Rồi vào `http://localhost:8123`.
 
 Trang Vẽ có thêm `?perf` trên địa chỉ: góc màn hình hiện thời gian vẽ, chấm đầu nét và kết thúc nét, để đo trên máy thật.
 
+### Kiểm tra ba trang trên trình duyệt
+
+Khi máy đã có Playwright và Chromium, chạy smoke test với máy chủ tĩnh ở trên. Script dùng một phiên trình duyệt riêng để kiểm bản nháp cũ, đổi trang/tab, Ghép rối, Atlas và xuất bộ tile.
+
+```bash
+node tests/browser/workspaces.cjs
+```
+
+Đặt `LEARN_PIXEL_URL` nếu máy chủ dùng cổng khác và `LEARN_PIXEL_CHROMIUM` nếu dùng Chromium cài sẵn của hệ thống.
+
 ## Cấu trúc
+
+Xem [audit chức năng và kế hoạch refactor ba nhóm](docs/refactor-audit.md) để tra cứu ranh giới Vẽ thông thường, Ghép rối và Vẽ tile, cùng các hợp đồng dữ liệu cần giữ.
 
 Kiểm thử hồi quy thao tác vẽ (Node.js, không cần cài thư viện):
 
@@ -464,7 +477,8 @@ vùng chọn khi có vùng chọn. Đổi khổ có bốn lựa chọn: giữ �
 Dải sáng–tối giữ nguyên khi lấy màu; dùng **Tạo dải từ màu chính** để tạo lại.
 
 ```
-index.html            trang Vẽ, chỉ markup
+index.html            Vẽ thường và markup trình sửa pixel dùng chung
+puppet.html           Ghép rối
 tile.html             Trang Tile (bộ tile, Terrain 56)
 css/app.css           giao diện trang Vẽ, khối mobile nằm cuối file
 css/tile.css          giao diện Trang Tile

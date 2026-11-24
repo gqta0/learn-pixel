@@ -1,3 +1,4 @@
+import { paintPixel, paintStamp, paintLine, paintRect, paintFill, pixelInSelection } from './pixel-brush.js';
 /* Lõi raster: ghép lớp thành ảnh và mọi thao tác đặt pixel.
    Thuần tính toán — không đụng tới giao diện, không tự vẽ lại màn hình. */
 import { rgba } from './color.js';
@@ -97,41 +98,16 @@ export function isDitherHit(x, y, pat){
 }
 
 export function put(data,x,y,col){
-  if(view.wrapPaint){ x=((x%doc.w)+doc.w)%doc.w; y=((y%doc.h)+doc.h)%doc.h; }   // bút quấn mép: tràn mép này hiện ở mép kia
-  if(!inside(x,y)) return;
-  const i=idx(x,y);
-  if(view.lockAlpha && !data[i]) return;         // khoá alpha: chỉ vẽ lên chỗ đã có pixel
-  if(view.sel && !inSel(x,y)) return;            // có vùng chọn thì chỉ vẽ trong vùng
-  if(typeof col!=='function'){ data[i]=col; return; }
-  if(strokeSeen){ if(strokeSeen.has(i)) return; strokeSeen.add(i); }
-  data[i]=col(data[i], x, y);
+  paintPixel(data,x,y,col,doc.w,doc.h,view,strokeSeen);
 }
 export function stamp(data,x,y,col){
-  const b=view.brushEff||view.brush, o=Math.floor((b-1)/2);
-  for(let dy=0;dy<b;dy++) for(let dx=0;dx<b;dx++){
-    const px=x-o+dx, py=y-o+dy;
-    put(data,px,py,col);
-    if(view.mirX) put(data,doc.w-1-px,py,col);
-    if(view.mirY) put(data,px,doc.h-1-py,col);
-    if(view.mirX&&view.mirY) put(data,doc.w-1-px,doc.h-1-py,col);
-  }
+  paintStamp(data,x,y,col,doc.w,doc.h,view,strokeSeen);
 }
 export function lineStamp(data,x0,y0,x1,y1,col){
-  let dx=Math.abs(x1-x0), dy=Math.abs(y1-y0);
-  let sx=x0<x1?1:-1, sy=y0<y1?1:-1, err=dx-dy;
-  for(;;){
-    stamp(data,x0,y0,col);
-    if(x0===x1&&y0===y1) break;
-    const e2=2*err;
-    if(e2>-dy){ err-=dy; x0+=sx; }
-    if(e2<dx){ err+=dx; y0+=sy; }
-  }
+  paintLine(data,x0,y0,x1,y1,col,doc.w,doc.h,view,strokeSeen);
 }
 export function rectStamp(data,x0,y0,x1,y1,col,filled){
-  const ax=Math.min(x0,x1), bx=Math.max(x0,x1), ay=Math.min(y0,y1), by=Math.max(y0,y1);
-  for(let y=ay;y<=by;y++) for(let x=ax;x<=bx;x++){
-    if(filled || x===ax||x===bx||y===ay||y===by) stamp(data,x,y,col);
-  }
+  paintRect(data,x0,y0,x1,y1,col,filled,doc.w,doc.h,view,strokeSeen);
 }
 export function ellipseStamp(data,x0,y0,x1,y1,col,filled){
   const ax=Math.min(x0,x1), bx=Math.max(x0,x1), ay=Math.min(y0,y1), by=Math.max(y0,y1);
@@ -145,26 +121,7 @@ export function ellipseStamp(data,x0,y0,x1,y1,col,filled){
   }
 }
 export function floodFill(data,x,y,col,global=false){
-  if(!inside(x,y)) return;
-  const target=data[idx(x,y)];
-  if(target===col) return;
-  if(view.lockAlpha && !target) return;          // khoá alpha: không loang ra vùng trống
-  if(global){                                    // Shift+tô: đổi mọi ô cùng màu, liền hay không
-    for(let cy=0;cy<doc.h;cy++) for(let cx=0;cx<doc.w;cx++){
-      const i=idx(cx,cy);
-      if(data[i]===target && inSel(cx,cy)) data[i]=col;
-    }
-    return;
-  }
-  const st=[x,y];
-  while(st.length){
-    const cy=st.pop(), cx=st.pop();
-    if(!inside(cx,cy) || !inSel(cx,cy)) continue;
-    const i=idx(cx,cy);
-    if(data[i]!==target) continue;
-    data[i]=col;
-    st.push(cx+1,cy, cx-1,cy, cx,cy+1, cx,cy-1);
-  }
+  paintFill(data,x,y,col,global,doc.w,doc.h,view);
 }
 /* wrap: phần trôi khỏi mép này hiện lại ở mép đối diện — cách soi mối nối tile.
    Chỉ áp dụng khi dịch cả lớp; vùng chọn thì luôn dịch thường. */
@@ -226,8 +183,7 @@ export function rotateData(data,cw=true){
 }
 /* ---------------- vùng chọn & bộ nhớ tạm ---------------- */
 export function inSel(x,y){
-  const s=view.sel;
-  return !s || (x>=s.x && y>=s.y && x<s.x+s.w && y<s.y+s.h);
+  return pixelInSelection(x,y,view.sel);
 }
 /* Khổ canvas đổi thì vùng chọn cũ có thể nằm ngoài tranh. Để nguyên là mọi nét
    vẽ bị chặn hết mà người dùng không thấy vùng chọn đâu để mà bỏ. */

@@ -1,3 +1,5 @@
+import { rle, decodeDrawing, drawingWorkspace } from './project-data.js';
+import { currentId, adoptCurrent } from './library.js';
 /* Xuất PNG / spritesheet / .json, mở lại dự án, và lưu tự động vào trình duyệt. */
 import { $, toast } from './dom.js';
 import { doc, view, activeData, cloneLayer } from './state.js';
@@ -5,13 +7,12 @@ import { frameToCanvas, invalidateBuf, layerLength } from './raster.js';
 import { pushUndo } from './history.js';
 import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
-import { palette, setPalette, paintSwatches, fillPalSelect, paletteNameOf, PALETTES, MASTER_NAME, DEFAULT_PAL_NAME } from './palette.js';
-import { GENESIS_COLORS } from './genesis.js';
+import { palette, setPalette, paintSwatches, fillPalSelect, paletteNameOf, PALETTES, MASTER_NAME } from './palette.js';
+import { GENESIS_COLORS, GENESIS_NAME } from './genesis.js';
 import { doneSet, buildExercises, migrateDone } from './content/exercises.js';
-import { spriteFramesTres, pixelizeImage, medianCut, MAX_SIDE } from './sheet.js';
-import { syncAll } from './ui.js';
+import { spriteFramesTres, pixelizeImage, medianCut } from './sheet.js';
 import { stopEditing } from './atlas.js';
-import { idbAvailable, idbGet, idbSet, idbDel, storageUsage, STORES } from './idb.js';
+import { idbAvailable, idbGet, idbSet, idbDel, STORES } from './idb.js';
 
 export function download(name, url){
   const a=document.createElement('a'); a.href=url; a.download=name;
@@ -70,53 +71,21 @@ export function exportGodotFrames(){
   try{ localStorage.setItem('lo-pixel-godot-dir',dir); }catch(_){}
   return {tres:base+'.tres',png:dir+png};
 }
-/* Nén RLE từng lớp: pixel art toàn mảng màu liền nhau nên một lớp 128×128
-   trống rỗng còn 2 số thay vì 16384. Đây là thứ giữ bản lưu không vượt quota. */
-function rle(a){
-  const o=[]; let v=a[0], n=1;
-  for(let i=1;i<a.length;i++){ if(a[i]===v) n++; else { o.push(v,n); v=a[i]; n=1; } }
-  o.push(v,n);
-  return o;
-}
-function unrle(o,len){
-  if(!Array.isArray(o) || o.length%2) throw new Error('dữ liệu RLE không hợp lệ');
-  const a=new Uint32Array(len);
-  let i=0;
-  for(let k=0;k<o.length && i<len;k+=2){
-    const count=Number(o[k+1]);
-    if(!Number.isInteger(count) || count<1) throw new Error('dữ liệu RLE không hợp lệ');
-    if(i+count>len) throw new Error('dữ liệu RLE thừa pixel');
-    const end=i+count; a.fill(o[k],i,end); i=end;
-  }
-  if(i!==len) throw new Error('dữ liệu RLE thiếu pixel');
-  return a;
-}
+let refreshDrawing=()=>{};
+export function bindDrawingView(refresh){ refreshDrawing=refresh; }
+
 export function serialize(){
   return {
     app:'lo-pixel', version:2, name:doc.name||'Bản vẽ không tên',
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
-    layers:doc.layers, palette:palette,
-    frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur, atlasEdit:doc.atlasEdit,
-    anchor:doc.anchor, charH:doc.charH||0, puppet:doc.puppet||null, fps:view.fps,
+    layers:structuredClone(doc.layers), palette:palette.slice(),
+    frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur.slice(), atlasEdit:doc.atlasEdit ? {...doc.atlasEdit} : null,
+    anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0, puppet:doc.puppet||null, fps:view.fps,
     done: Array.from(doneSet)
   };
 }
 export function applyData(d){
-  const w=Number(d?.w), h=Number(d?.h), layers=d?.layers, frames=d?.frames;
-  if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||w>MAX_SIDE||h>MAX_SIDE)
-    throw new Error('khổ tranh không hợp lệ (tối đa '+MAX_SIDE+'×'+MAX_SIDE+')');
-  if(!Array.isArray(layers)||!layers.length||layers.some(l=>!l||typeof l!=='object'))
-    throw new Error('danh sách lớp không hợp lệ');
-  if(!Array.isArray(frames)||!frames.length||frames.some(f=>!Array.isArray(f)||f.length!==layers.length))
-    throw new Error('danh sách khung/lớp không hợp lệ');
-  if(d.palette!==undefined && (!Array.isArray(d.palette) ||
-     d.palette.some(h=>typeof h!=='string'||!/^#[0-9a-f]{6}$/i.test(h))))
-    throw new Error('bảng màu không hợp lệ');
-  if(d.dur!==undefined && !Array.isArray(d.dur)) throw new Error('thời lượng khung không hợp lệ');
-  if(d.done!==undefined && !Array.isArray(d.done)) throw new Error('tiến độ bài học không hợp lệ');
-  const len=w*h, decode=a=>d.version>=2 ? unrle(a,len) :
-    (Array.isArray(a)&&a.length===len ? Uint32Array.from(a) : (()=>{ throw new Error('dữ liệu pixel không hợp lệ'); })());
-  const decoded=frames.map(f=>f.map(decode));
+  const {w,h,layers,decoded}=decodeDrawing(d);
   stopEditing();                       // tranh khác rồi thì không còn gắn với ô atlas nào
   doc.name = d.name || 'Bản vẽ không tên';
   const nameEl = $('#projName'); if(nameEl) nameEl.value = doc.name;
@@ -135,7 +104,7 @@ export function applyData(d){
   if(d.palette){ setPalette(d.palette); }
   syncPalSelect();
   if(d.done) migrateDone(d.done);
-  invalidateBuf(); fitZoom(); buildExercises(); syncAll();
+  invalidateBuf(); fitZoom(); buildExercises(); refreshDrawing();
 }
 /* dải màu 1px mỗi màu, nhân theo cỡ xuất — đúng dạng Lospec hay dùng */
 export function exportPalettePng(){
@@ -167,37 +136,55 @@ export function importJson(file){
    Chưa nạp xong bản lưu cũ thì không ghi: nạp IndexedDB là bất đồng bộ, và lần render đầu tiên
    của canvas trắng không được phép đè lên tranh của lần trước. */
 export const SAVE_KEY='lo-pixel-save';
+const workspace=document.body.dataset.workspace || 'draw';
+const draftKey=SAVE_KEY+'-'+workspace;
+let writing=null, saveFailed=false, draftUnreadable=false;
+
+function saveStatus(short, detail=short) {
+  $('#saveInfo').textContent=detail;
+  const label=$('#workspaceSave');
+  if(label){ label.textContent=short; label.title=detail; }
+}
 let saveT=null, bootDone=false, useIdb=idbAvailable();
 const hhmm=t=>String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
-async function usageNote(){
-  const u=await storageUsage();
-  return u && u.quota ? ' Đang dùng '+u.used.toFixed(1)+' / '+Math.round(u.quota)+' MB.' : '';
-}
 export function autosave(){
   clearTimeout(saveT);
   if(!bootDone) return;
-  saveT=setTimeout(()=>{ saveT=null; if(!view.drawing) writeSave(); }, 1200);   // chỉ lưu nét đã kết thúc, không lưu nét sắp bị huỷ bởi pinch
+  saveT=setTimeout(()=>{ saveT=null; if(!view.drawing) queueSave(); }, 1200);   // chỉ lưu nét đã kết thúc, không lưu nét sắp bị huỷ bởi pinch
 }
 /* lưu ngay nếu đang có lượt tự lưu chờ (rời trang / ẩn tab / bấm sang Trang Tile). Trả Promise khi có ghi,
    null khi không có gì chờ — để liên kết sang trang khác đợi ghi xong rồi mới đi (IndexedDB không kịp
    hoàn tất nếu trang bị gỡ giữa chừng). */
 export function flushSave(){
-  if(!bootDone || !saveT) return null;
+  if(draftUnreadable) return Promise.resolve(false);
+  if(!bootDone || view.drawing || (!saveT && !saveFailed)) return writing;
   clearTimeout(saveT); saveT=null;
-  return view.drawing ? null : writeSave();
+  return queueSave();
 }
-async function writeSave(){
-  const data=serialize();
+function queueSave(){
+  const data={...serialize(), libraryId:currentId()};
+  const task=(writing ?? Promise.resolve()).then(()=>writeSave(data));
+  writing=task;
+  task.finally(()=>{ if(writing===task) writing=null; });
+  return task;
+}
+async function writeSave(data){
+  saveStatus('Đang lưu…');
+
   try{
-    if(useIdb) await idbSet(STORES.kv,SAVE_KEY,data);
-    else localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-    $('#saveInfo').textContent='Đã lưu vào trình duyệt ('+(useIdb?'IndexedDB':'localStorage')+') lúc '+hhmm(new Date())+
-      ' — mở lại trang là có ngay.'+(useIdb ? await usageNote() : '');
+    if(useIdb) await idbSet(STORES.kv,draftKey,data);
+    else localStorage.setItem(draftKey, JSON.stringify(data));
+    saveFailed=false;
+    const storage=useIdb?'IndexedDB':'localStorage';
+    saveStatus('Đã lưu','Đã lưu vào '+storage+' lúc '+hhmm(new Date())+'.');
+    return true;
   }catch(err){
-    $('#saveInfo').textContent='Không lưu được ('+(err?.message||'trình duyệt hết chỗ')+'). Hãy Lưu dự án .json thủ công.';
+    saveFailed=true;
+    saveStatus('Lỗi lưu','Không lưu được ('+(err?.message||'trình duyệt hết chỗ')+'). Hãy lưu dự án .json.');
+    return false;
   }
 }
-/* Nạp bản lưu lần trước. Bản cũ trong localStorage được chép sang IndexedDB rồi mới xoá. */
+
 /* ô chọn bảng màu chỉ đúng tên bảng khi các màu trùng y; bảng đã chỉnh tay thì giữ nguyên ô chọn */
 function syncPalSelect(){
   const name=paletteNameOf(palette);
@@ -211,45 +198,66 @@ function adoptDefaultPalette(){
   let previous;
   try{
     previous=localStorage.getItem(DEFAULT_PAL_KEY);
-    if(previous===DEFAULT_PAL_NAME) return;
-    localStorage.setItem(DEFAULT_PAL_KEY,DEFAULT_PAL_NAME);
+    if(previous===GENESIS_NAME) return;
+    localStorage.setItem(DEFAULT_PAL_KEY,GENESIS_NAME);
   }catch(_){ return; }
   const name=paletteNameOf(palette);
   // Genesis v1 (69 màu) đã gỡ khỏi bảng dựng sẵn; v3 chứa đủ 69 màu đó nên nâng luôn, không mất màu
   const v1=palette.length===69 && palette.every(h=>GENESIS_COLORS.includes(h));
   if(!v1 && (name!==MASTER_NAME || (previous && previous!==name))) return;
-  setPalette(PALETTES[DEFAULT_PAL_NAME]);
+  setPalette(PALETTES[GENESIS_NAME]);
   syncPalSelect(); paintSwatches();
-  writeSave();          // ghi ngay, không chờ nhịp tự lưu, để lần mở sau không quay về bảng cũ
+  queueSave();
 }
+async function readDraft(key){
+  if(useIdb){
+    try {
+      const value=await idbGet(STORES.kv,key);
+      if(value) return value;
+    } catch(_) { useIdb=false; }
+  }
+  let raw=null;
+  try { raw=localStorage.getItem(key); } catch(_) {}
+  return raw ? JSON.parse(raw) : null;
+}
+
 export async function loadSave(){
-  let data=null, from='';
   try{
-    if(useIdb){
-      try{ data=await idbGet(STORES.kv,SAVE_KEY); from='IndexedDB'; }
-      catch(_){ useIdb=false; }
+    saveStatus('Đang mở…');
+    let data=await readDraft(draftKey);
+    const initial=!data;
+    if(initial && !await readDraft(draftKey+'-cleared')){
+      const legacy=await readDraft(SAVE_KEY);
+      if(legacy && drawingWorkspace(legacy)===workspace) data=legacy;
     }
-    if(!data){
-      const raw=localStorage.getItem(SAVE_KEY);
-      if(raw){ data=JSON.parse(raw); from='localStorage'; }
-    }
-    if(!data){ adoptDefaultPalette(); return false; }
+    if(!data){ bootDone=true; saveStatus('Bản mới'); return false; }
+    adoptCurrent(data.libraryId);
     applyData(data);
-    if(useIdb && from==='localStorage'){
-      await idbSet(STORES.kv,SAVE_KEY,data);
-      try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
-      from='localStorage → IndexedDB';
-    }
+    if(initial) await queueSave();
     adoptDefaultPalette();
-    $('#saveInfo').textContent='Đã mở lại bản lưu lần trước ('+from+').';
+    bootDone=true;
+    if(!saveFailed) saveStatus('Đã mở bản lưu');
     return true;
-  }catch(_){ return false; }
-  finally{ bootDone=true; }
+  }catch(err){
+    draftUnreadable=true;
+    saveStatus('Lỗi mở bản lưu', err.message);
+    return false;
+  }
 }
+
 export async function clearSave(){
-  clearTimeout(saveT); bootDone=false;          // lượt tự lưu đang chờ không được ghi lại ngay trước khi tải lại trang
-  try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
-  if(useIdb){ try{ await idbDel(STORES.kv,SAVE_KEY); }catch(_){} }
+  clearTimeout(saveT);
+  saveT=null;
+  bootDone=false;
+  await writing;
+  try {
+    if(useIdb) await idbSet(STORES.kv,draftKey+'-cleared',true);
+    try { localStorage.setItem(draftKey+'-cleared','true'); } catch(_) {}
+    try { localStorage.removeItem(draftKey); } catch(_) {}
+    if(useIdb) await idbDel(STORES.kv,draftKey);
+  } catch(err) {
+    saveStatus('Lỗi xoá bản lưu',err.message);
+  }
 }
 export function loadRef(file){
   const fr=new FileReader();

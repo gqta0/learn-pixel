@@ -55,9 +55,9 @@ test('Terrain create presets: the Genesis set uses Genesis colours, the Master s
   for(const c of part('genesis')) assert.ok(genesis.includes(c), c+' is not in Genesis v3');
 });
 
-test('Genesis v3 is the only Genesis palette and the default; no colour collides with a Master token',()=>{
+test('Genesis v3 stays available for legacy workflows and v4 is the default',()=>{
   assert.equal(GENESIS_NAME, 'Genesis v3 (91 màu)');
-  assert.match(palSrc, /export const DEFAULT_PAL_NAME = GENESIS_NAME;/);
+  assert.match(palSrc, /export const DEFAULT_PAL_NAME = V4_NAME;/);
   assert.match(palSrc, /export let palette = PALETTES\[DEFAULT_PAL_NAME\]\.slice\(\);/);
   assert.doesNotMatch(palSrc, /GENESIS_V[0-9]/);
   for(const c of GENESIS_COLORS) assert.ok(!master.includes(c), c+' trùng mã Master — token Master sẽ đè nhóm Genesis');

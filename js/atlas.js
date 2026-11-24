@@ -137,25 +137,25 @@ function save(immediate=false){
   else { saveTimer=setTimeout(doSave, 300); }
 }
 window.addEventListener('beforeunload', ()=>{ if(saveTimer) save(true); });
-export function loadAtlas(){
+export async function loadAtlas(){
   let raw=null;
   try{ raw=localStorage.getItem(KEY); }catch(_){}
   if(!raw) return;
   try{
     const d=JSON.parse(raw);
     const im=new Image();
-    im.onload=()=>{
-      if(atlas) return; // a user import/create wins over an older asynchronous restore
-      atlas={id:d.id||crypto.randomUUID(),terrain:d.terrain,layout:d.layout,shape:d.shape==='flush'?'flush':'inset',name:d.name, cv:imgToCanvas(im), tw:d.tw, th:d.th, pad:d.pad, off:d.off};
-      if(atlas.terrain===TERRAIN_SCHEMA && atlas.layout!==TERRAIN_LAYOUT && isLegacyTerrainSheet(atlas.cv,atlas.tw)){
-        const from=atlas.layout||1;
-        atlas.cv=migrateTerrainLayout(atlas.cv,atlas.tw,from);
-        atlas.layout=TERRAIN_LAYOUT;
-        save(true);
-      }
-      syncAll();
-    };
     im.src=d.png;
+    await im.decode();
+    if(atlas) return;
+    atlas={id:d.id||crypto.randomUUID(),terrain:d.terrain,layout:d.layout,shape:d.shape==='flush'?'flush':'inset',name:d.name, cv:imgToCanvas(im), tw:d.tw, th:d.th, pad:d.pad, off:d.off};
+    if(document.body.dataset.workspace==='atlas' && atlas.terrain===TERRAIN_SCHEMA && atlas.layout!==TERRAIN_LAYOUT && isLegacyTerrainSheet(atlas.cv,atlas.tw)){
+      const from=atlas.layout||1;
+      atlas.cv=migrateTerrainLayout(atlas.cv,atlas.tw,from);
+      atlas.layout=TERRAIN_LAYOUT;
+      // Toạ độ 8×7 của bản đang sửa không thể dùng để ghi vào bố cục mới.
+      if(doc.atlasEdit?.atlasId===atlas.id) doc.atlasEdit=null;
+    }
+    syncAll();
   }catch(_){}
 }
 export function forgetAtlas(){

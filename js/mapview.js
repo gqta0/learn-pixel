@@ -273,7 +273,36 @@ function selectMapCell(gx,gy){
 function editSelectedMapTile(){
   if(selectedMapCell.slot<0 || !getAtlas()) return;
   closeMapView();
-  if(editAtlasSlot(selectedMapCell.slot)) setView('draw');
+  if(editAtlasSlot(selectedMapCell.slot)){
+    if(document.body.dataset.workspace==='atlas'){
+      const url=new URL(location.href);
+      url.searchParams.set('panel','atlas');
+      url.searchParams.delete('source');
+      history.replaceState(null,'',url);
+    }
+    setView('draw');
+  }
+}
+
+let canvasSource=null;
+
+export async function restoreMapSource() {
+  try {
+    const url=sessionStorage.getItem('lo-pixel-map-canvas');
+    if(!url) return;
+    const image=new Image();
+    image.src=url;
+    await image.decode();
+    const canvas=document.createElement('canvas');
+    canvas.width=image.naturalWidth;
+    canvas.height=image.naturalHeight;
+    canvas.getContext('2d').drawImage(image,0,0);
+    canvasSource=canvas;
+  } catch(_) {}
+}
+
+function currentCanvas() {
+  return canvasSource ?? frameToCanvas(doc.af, document.createElement('canvas'), 1);
 }
 
 export function openMapView(forceSource) {
@@ -337,9 +366,8 @@ export function populateTileTray() {
   };
 
   // 1. Tile từ bản vẽ hiện tại (doc)
-  const cvDoc = document.createElement('canvas');
-  frameToCanvas(doc.af, cvDoc, 1);
-  createItem('Bản vẽ hiện tại (' + doc.w + '×' + doc.h + ')', cvDoc, { src: 'canvas', id: 'current' }, 'Vẽ');
+  const cvDoc = currentCanvas();
+  createItem('Bản vẽ hiện tại (' + cvDoc.width + '×' + cvDoc.height + ')', cvDoc, { src: 'canvas', id: 'current' }, 'Vẽ');
 
   // 2. Các ô từ Atlas
   const atlasSrc = getAtlasSource();
@@ -533,8 +561,7 @@ function renderToCanvas(targetCv, includeOverlays, atlasImage) {
   const useAtlas = (mapSource === 'atlas' && hasAt) || (mapSource === 'auto' && hasAt);
 
   let tw = 16, th = 16, pad = 0, off = 0;
-  const canvasTile = document.createElement('canvas');
-  frameToCanvas(doc.af, canvasTile, 1);
+  const canvasTile = currentCanvas();
 
   if (useAtlas) {
     tw = atlasSrc.tw || 16;
@@ -542,8 +569,8 @@ function renderToCanvas(targetCv, includeOverlays, atlasImage) {
     pad = atlasSrc.pad || 0;
     off = atlasSrc.off || 0;
   } else {
-    tw = doc.w;
-    th = doc.h;
+    tw = canvasTile.width;
+    th = canvasTile.height;
   }
 
   const GW = activePreset.w, GH = activePreset.h;

@@ -1,8 +1,9 @@
+import { initTabs } from './tabs.js';
+import { bindDrawerDrag } from './drawer.js';
 /* Trang Tile: nhiều bộ tile, nhiều khuôn (56 ô blob, 4×4 nối cạnh, 4×4 nối góc, lưới tự do), tile hoạt ảnh.
    Đây là nơi duy nhất của trang Tile biết cả tileset lẫn DOM, và giữ hoàn tác. Mỗi lần vẽ chỉ nạp
    đúng một ô vào `doc` (khổ ô × khổ ô) để dùng lại bút, tẩy, tô loang… của raster.js. */
-import { doc, view } from './state.js';
-import { stamp, lineStamp, rectStamp, floodFill } from './raster.js';
+import { paintStamp, paintLine, paintRect, paintFill } from './pixel-brush.js';
 import { hexToInt, intToHex } from './color.js';
 import { GENESIS_COLORS, GENESIS_TOKENS } from './genesis.js';
 import { MASTER_COLORS, COLOR_TOKENS } from './masterpal.js';
@@ -34,8 +35,11 @@ let ts=null, lay=null, slot=0, frame=0;
 let list=[];                                    // [{id,name,layout}] để đổ vào ô chọn bộ
 const GUIDE_MODES=['wireframe','tint','off'];
 const ui={tool:'pencil',ctx:'context',guide:GUIDE_MODES.includes(lsGet('lo-pixel-tile-guide'))?lsGet('lo-pixel-tile-guide'):'wireframe',lock:true,onion:false,playing:false,mapPlaying:false,mtool:'paint'};
-view.brush=1; view.brushEff=1; view.mirX=false; view.mirY=false; view.sel=null; view.lockAlpha=false; view.wrapPaint=false;
-view.pri=hexToInt('#857870');
+const view={brush:1, mirX:false, wrapPaint:false, pri:hexToInt('#857870')};
+const stamp=(data,x,y,col)=>paintStamp(data,x,y,col,ts.size,ts.size,view);
+const lineStamp=(data,x,y,x1,y1,col)=>paintLine(data,x,y,x1,y1,col,ts.size,ts.size,view);
+const rectStamp=(data,x,y,x1,y1,col,filled)=>paintRect(data,x,y,x1,y1,col,filled,ts.size,ts.size,view);
+const floodFill=(data,x,y,col)=>paintFill(data,x,y,col,false,ts.size,ts.size,view);
 const useIdb=idbAvailable();
 const bc=typeof BroadcastChannel==='function' ? new BroadcastChannel('lo-pixel') : null;
 window.addEventListener('idbblocked',()=>toast('Một tab Lò Pixel cũ đang giữ kho lưu — hãy tải lại hoặc đóng tab đó để trang Tile lưu được.',8000));
@@ -64,21 +68,42 @@ function changed(s){
   clearTimeout(saveT); saveT=setTimeout(save,500);
   paintThumb(s); paintFrames(); paintMap(); check?.updateSoon(); detail?.updateSoon(); quick?.updateSoon();
 }
+let saving=null;
 async function save(){
   clearTimeout(saveT);
-  if(!ts || !pending) return;
+  if(saving && await saving===false) return false;
+  if(!ts || !pending) return true;
   pending=false;
-  if(!useIdb) return;
+  if(!useIdb) return true;
+  const task=writeTileset();
+  saving=task;
+  const result=await task;
+  if(saving===task) saving=null;
+  return result;
+}
+
+async function writeTileset(){
+  $('#tileSave').textContent='Đang lưu…';
   try{
-    // tab khác vừa ghi bộ này (trang Tile mở hai cửa sổ): hỏi trước khi đè
     const cur=await idbGet(STORES.tilesets,ts.id);
     if(cur && cur.writer!==TAB && (cur.updated||0)>loadedAt &&
-       !confirm('Bộ “'+ts.name+'” vừa được sửa ở một tab khác. Ghi đè bằng bản ở tab này?')){ await openSet(ts.id); return; }
+       !confirm('Bộ “'+ts.name+'” vừa được sửa ở một tab khác. Ghi đè bằng bản ở tab này?')){
+      await openSet(ts.id);
+      $('#tileSave').textContent='Đã mở bản mới hơn';
+      return true;
+    }
     const rec={...toStore(ts),writer:TAB};
     await idbSet(STORES.tilesets,ts.id,rec);
     loadedAt=rec.updated;
-    bc?.postMessage({type:'tileset',id:ts.id,rev:ts.rev});
-  }catch(err){ pending=true; toast('Không lưu được ('+(err?.message||'hết chỗ')+'). Hãy ⋯ → Lưu bộ ra .json.',5000); }
+    bc?.postMessage({type:'tileset',id:ts.id,rev:rec.rev});
+    $('#tileSave').textContent='Đã lưu';
+    return true;
+  }catch(err){
+    pending=true;
+    $('#tileSave').textContent='Lỗi lưu';
+    toast('Không lưu được ('+(err?.message||'hết chỗ')+'). Hãy ⋯ → Lưu bộ ra .json.',5000);
+    return false;
+  }
 }
 async function refreshList(){
   if(!useIdb){ list=ts?[{id:ts.id,name:ts.name,layout:ts.layout}]:[]; fillSelect(); return; }
@@ -101,11 +126,13 @@ async function openSet(id){
 }
 function load(next){
   ts=next; lay=layoutOf(ts); pending=false;
-  doc.w=doc.h=ts.size; doc.frames=[[tileOf(ts,0).frames[0]]]; doc.af=0; doc.al=0;
   undoS.length=redoS.length=0; syncUndo();
   rolesCache.clear();
   lsSet(LAST_KEY,ts.id);
   $('#empty').hidden=true; $('#tpMain').hidden=false; $('#tsGodot').disabled=$('#tsMore').disabled=false;
+  const quickTab=$('[data-pane="quick"]');
+  if(lay.match!=='blob' && quickTab.getAttribute('aria-selected')==='true') selectTileTab('grid');
+  quickTab.hidden=lay.match!=='blob';
   setText($('#layoutNote'),lay.name+' · ô '+ts.size+'×'+ts.size+(lay.match==='blob'||lay.match==='sides'?' · '+(ts.shape==='flush'?'kín sát mép':'thụt mép'):''));
   mapPreset();
   buildGrid(); paintPalette(); fillSelect();
@@ -113,17 +140,17 @@ function load(next){
   selectSlot(Math.min(slot,lay.slots.length-1),0);
 }
 async function adopt(next,msg){
+  if(await save()===false) return;
   next.rev=Math.max(1,next.rev||0); pending=true;
   load(next); pending=true; loadedAt=0;
-  await save(); await refreshList();
-  if(msg) toast(msg);
+  const saved=await save(); await refreshList();
+  if(msg && saved!==false) toast(msg);
 }
 
 /* ---------------- ô đang vẽ ---------------- */
 const curData=()=>tileOf(ts,slot).frames[frame];
 function selectSlot(s,f=0){
   slot=s; const t=tileOf(ts,slot); frame=Math.max(0,Math.min(f,t.frames.length-1));
-  doc.frames=[[t.frames[frame]]];
   const info=lay.slots[slot];
   setText($('#slotTitle'),'#'+String(slot).padStart(2,'0')+' · '+info.title);
   $$('#grid button').forEach(b=>b.setAttribute('aria-current',String(+b.dataset.slot===slot)));
@@ -337,7 +364,7 @@ function buildGrid(){
     const tag=document.createElement('small'); tag.textContent=t.slot;
     const anim=document.createElement('i');
     b.append(cv,tag,anim);
-    b.addEventListener('click',()=>selectSlot(t.slot,0));
+    b.addEventListener('click',()=>{ selectSlot(t.slot,0); setDrawer('closed'); });
     g.append(b);
     paintThumb(t.slot,b);
   }
@@ -414,7 +441,7 @@ function paintPalette(){
 /* ---------------- dụng cụ ---------------- */
 function setTool(t){ ui.tool=t; $$('.tp-tools [data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t)); }
 $$('.tp-tools [data-tool]').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
-$('#brushBtn').addEventListener('click',e=>{ view.brush=view.brush%3+1; view.brushEff=view.brush; e.currentTarget.textContent=view.brush+'px'; });
+$('#brushBtn').addEventListener('click',e=>{ view.brush=view.brush%3+1; e.currentTarget.textContent=view.brush+'px'; });
 const toggle=(id,get,set)=>$(id).addEventListener('click',e=>{ set(!get()); e.currentTarget.setAttribute('aria-pressed',get()); drawEditor(); });
 toggle('#wrapBtn',()=>view.wrapPaint,v=>{ view.wrapPaint=v; });
 toggle('#mirBtn',()=>view.mirX,v=>{ view.mirX=v; });
@@ -443,7 +470,9 @@ $$('[data-ctx]').forEach(b=>b.addEventListener('click',()=>{
 $('#slotPrev').addEventListener('click',()=>stepSlot(-1));
 $('#slotNext').addEventListener('click',()=>stepSlot(1));
 window.addEventListener('keydown',e=>{
-  if(!ts || e.target.matches('input,select,textarea') || $('#newDlg').open) return;
+  if(e.defaultPrevented || !ts || $('#newDlg').open) return;
+  if(e.target.matches('input,select,textarea') || e.target.closest('.workspace-nav, [role=tablist]')) return;
+  if(e.code==='Space' && e.target.closest('button, a')) return;
   const k=e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey) && k==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
   if((e.ctrlKey||e.metaKey) && k==='y'){ e.preventDefault(); redo(); return; }
@@ -547,13 +576,29 @@ $('#mapPlay').addEventListener('click',e=>{
   const loop=now=>{ if(!ui.mapPlaying) return; mapT=now-t0; paintMap(); requestAnimationFrame(loop); };
   if(ui.mapPlaying) requestAnimationFrame(loop); else paintMap();
 });
-const PANES={grid:'#paneGrid',map:'#paneMap',check:'#paneCheck',detail:'#paneDetail',quick:'#paneQuick'};
-$$('.tp-tabs [role=tab]').forEach(t=>t.addEventListener('click',()=>{
-  $$('.tp-tabs [role=tab]').forEach(o=>o.setAttribute('aria-selected',String(o===t)));
-  for(const [k,sel] of Object.entries(PANES)) $(sel).hidden=t.dataset.pane!==k;
+const drawer=$('#tilePanel');
+const drawerButton=$('#tileDrawer'), expandButton=$('#tileDrawerExpand');
+function setDrawer(state){
+  const open=state!=='closed';
+  drawer.dataset.drawer=state;
+  drawerButton.setAttribute('aria-expanded',String(open));
+  expandButton.hidden=!open;
+  expandButton.setAttribute('aria-expanded',String(state==='expanded'));
+  expandButton.textContent=state==='expanded'?'Thu bảng':'Mở rộng';
+  if(open) paintMap();
+}
+drawerButton.addEventListener('click',()=>setDrawer(drawer.dataset.drawer==='closed'?'half':'closed'));
+expandButton.addEventListener('click',()=>setDrawer(drawer.dataset.drawer==='expanded'?'half':'expanded'));
+bindDrawerDrag(drawerButton,direction=>{
+  const current=drawer.dataset.drawer;
+  if(direction==='up') setDrawer(current==='closed'?'half':'expanded');
+  else setDrawer(current==='expanded'?'half':'closed');
+});
+
+const selectTileTab=initTabs($('.tp-tabs'), pane=>{
   paintMap();
-  if(t.dataset.pane==='quick') quick.open();
-}));
+  if(pane==='quick') quick.open();
+}, 'grid');
 window.addEventListener('resize',()=>paintMap());
 
 /* ---------------- host chung cho các tab phụ (Soi lỗi, …) ---------------- */
@@ -758,6 +803,7 @@ menu.addEventListener('click',async e=>{
   else if(act.startsWith('t-')){ if(ts?.layout==='blob56') exportTerrain(act).catch(err=>toast('Không xuất được: '+err.message,4000)); }
   else if(act==='delete'){
     if(!confirm('Xoá hẳn bộ “'+ts.name+'”? Không hoàn tác được — lưu .json trước nếu cần giữ.')) return;
+    if(await save()===false) return;
     const id=ts.id; clearTimeout(saveT); pending=false;
     if(useIdb) await idbDel(STORES.tilesets,id).catch(()=>{});
     bc?.postMessage({type:'tileset-deleted',id});
@@ -804,7 +850,7 @@ $('#emptyTerrain').addEventListener('click',importTerrain56);
 /* chưa có bộ nào: ⚡ dựng ngay bộ 56 ô từ công thức đang chọn rồi mở thẻ Tạo nhanh để chỉnh tiếp */
 $('#emptyQuick').addEventListener('click',()=>{ slot=0; if(quick.apply()) $('.tp-tabs [data-pane=quick]').click(); });
 $('#tsGodot').addEventListener('click',exportGodot);
-$('#tsSel').addEventListener('change',async e=>{ await save(); slot=0; await openSet(e.target.value); });
+$('#tsSel').addEventListener('change',async e=>{ if(await save()===false){ fillSelect(); return; } slot=0; await openSet(e.target.value); });
 
 /* ---------------- đồng bộ với tab khác & rời trang ---------------- */
 async function checkRemote(id){
@@ -823,7 +869,14 @@ bc?.addEventListener('message',e=>{
 // điện thoại đóng băng tab nền nên có thể lỡ tin BroadcastChannel: quay lại thì đọc lại
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); else if(ts){ refreshList(); checkRemote(ts.id); } });
 window.addEventListener('pagehide',()=>{ save(); });
-$('.tp-top a[href="index.html"]').addEventListener('click',async e=>{ if(!pending) return; e.preventDefault(); await save(); location.href='index.html'; });
+document.addEventListener('click',async e=>{
+  const link=e.target.closest('.workspace-nav a, a[href^="tile.html?panel="]');
+  if(!link || e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  if(link.href===location.href) return;
+  if(!useIdb && ts && !confirm('Bộ tile chỉ lưu trong tab này. Rời trang mà không xuất file?')) return;
+  if(await save()!==false) location.href=link.href;
+});
 
 function showEmpty(){
   $('#tpMain').hidden=true; $('#empty').hidden=false;
@@ -836,7 +889,16 @@ function showEmpty(){
 async function boot(){
   let theme=lsGet('lo-pixel-theme');
   if(!theme) theme=window.matchMedia?.('(prefers-color-scheme: light)').matches?'light':'dark';
-  document.body.dataset.theme=theme;
+  const setTheme=value=>{
+    document.body.dataset.theme=value;
+    $('#tileTheme').textContent=value==='light'?'☾':'☀';
+  };
+  setTheme(theme);
+  $('#tileTheme').addEventListener('click',()=>{
+    const next=document.body.dataset.theme==='light'?'dark':'light';
+    setTheme(next);
+    lsSet('lo-pixel-theme',next);
+  });
   if(!useIdb) toast('Trình duyệt chặn IndexedDB: bộ tile chỉ nằm trong tab này — nhớ ⋯ → Lưu .json.',6000);
   else askPersist();
   await refreshList();

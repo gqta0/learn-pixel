@@ -54,7 +54,37 @@ export const MATERIALS = {
   'Thuỷ tinh / nước': {sp:0.44, shH:232, liH:186, satK:0.40, satB:0.04},
   'Lửa / năng lượng': {sp:0.40, shH:342, liH:58,  satK:-0.12,satB:0.04}
 };
-export function buildRamp(baseHex, steps, shiftDeg, mat){
+export const MAX_RAMP_HUE_SHIFT=60;
+const LIGHT_HUE_WEIGHT=0.8;
+const hueOf=hex=>{
+  const rgb=hexToInt(hex);
+  const [h,s]=rgbToHsl(rgb&255,(rgb>>8)&255,(rgb>>16)&255);
+  return s===0 ? null : h;
+};
+
+export function rampHueProfile(colors){
+  const middle=Math.floor(colors.length/2);
+  let previous=colors.map(hueOf).find(h=>h!==null) ?? 0;
+  const hues=colors.map(hex=>{ previous=hueOf(hex) ?? previous; return previous; });
+  const deltas=hues.slice(1).map((h,i)=>((h-hues[i]+540)%360)-180);
+  const offsets=[0];
+  for(const delta of deltas) offsets.push(offsets.at(-1)+delta);
+  const mean=deltas.reduce((sum,delta)=>sum+Math.abs(delta),0)/deltas.length;
+  const percent=Math.min(100,Math.round(mean/MAX_RAMP_HUE_SHIFT*1000)/10);
+  return {base:colors[middle], middle, deltas, offsets, percent};
+}
+
+function referenceHueOffset(profile,index,steps){
+  const middle=Math.floor(steps/2), last=profile.offsets.length-1;
+  const position=index<=middle
+    ? index/middle*profile.middle
+    : profile.middle+(index-middle)/(steps-1-middle)*(last-profile.middle);
+  const lower=Math.floor(position), upper=Math.ceil(position);
+  const [a,b]=[profile.offsets[lower],profile.offsets[upper]];
+  return a+(b-a)*(position-lower)-profile.offsets[profile.middle];
+}
+
+export function buildRamp(baseHex, steps, shiftDeg, mat, hues){
   const M = MATERIALS[mat] || MATERIALS['Chung (mặc định)'];
   const r=parseInt(baseHex.slice(1,3),16), g=parseInt(baseHex.slice(3,5),16), b=parseInt(baseHex.slice(5,7),16);
   const [h,s,l] = rgbToHsl(r,g,b);
@@ -63,7 +93,9 @@ export function buildRamp(baseHex, steps, shiftDeg, mat){
     const t=(i-mid)/mid;                                   // -1 tối … +1 sáng
     const nl = Math.min(0.95, Math.max(0.05, l + t*M.sp));
     const ns = Math.min(1, Math.max(0.03, s*(1-Math.abs(t)*M.satK) + (t<0 ? M.satB*(-t) : -0.04*t)));
-    const nh = t<0 ? towardHue(h,M.shH,shiftDeg*(-t)) : towardHue(h,M.liH,shiftDeg*t*0.8);
+    const nh = hues
+      ? h+referenceHueOffset(hues,i,steps)*(hues.percent ? shiftDeg/(hues.percent*MAX_RAMP_HUE_SHIFT/100) : 0)
+      : t<0 ? towardHue(h,M.shH,shiftDeg*(-t)) : towardHue(h,M.liH,shiftDeg*t*LIGHT_HUE_WEIGHT);
     out.push(hslToHex(nh, ns, nl));
   }
   return out;

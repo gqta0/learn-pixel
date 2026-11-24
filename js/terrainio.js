@@ -1,7 +1,7 @@
 /* Terrain 56 — phần I/O thuần (không DOM): đọc/ghi file dự án, đổi atlas cũ, dọn mép trong suốt. */
 import { TERRAIN_SCHEMA, TERRAIN_LAYOUT, TERRAIN_TILES, ATLAS_COLS, ATLAS_ROWS,
   terrainSlotCells, legacyTerrainCell, tileRoles, terrainManifest, terrainGodotManifest, checkSeams, checkColorSeams } from './terrain.js';
-import { frameAt } from './tileset.js';
+import { frameAt, TILE_SIZES } from './tileset.js';
 
 /* Master giữ riêng; mọi bảng khác (kể cả nhóm Genesis v3 và bảng tự tạo) dùng bộ tổng Genesis v3. */
 export const toolPaletteKey=(paletteName,masterName)=>paletteName===masterName?'master':'genesis';
@@ -83,7 +83,7 @@ const FORMATS=['lo-pixel-terrain56-project.v1','lo-pixel-terrain56-pack.v1'];
 export function parseTerrainFile(d){
   if(d?.schema!==TERRAIN_SCHEMA || !FORMATS.includes(d.format)) throw new Error('không phải dự án Terrain 56');
   const size=Number(d.tileSize||d.manifest?.tileWidth), png=d.files?.['terrain56.png']||d.atlas?.png;
-  if(![16,32].includes(size) || typeof png!=='string' || !png.startsWith('data:image/png'))
+  if(!TILE_SIZES.includes(size) || typeof png!=='string' || !png.startsWith('data:image/png'))
     throw new Error('thiếu atlas PNG hoặc khổ tile không hợp lệ');
   const shape=(d.edgeShape||d.manifest?.edgeShape)==='flush'?'flush':'inset';
   return {name:d.name||'terrain56-'+size,size,shape,layout:d.layout||1,png};

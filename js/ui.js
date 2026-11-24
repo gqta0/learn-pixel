@@ -9,13 +9,13 @@ import { pushUndo, undo, redo } from './history.js';
 import { render, fitZoom, setZoom } from './render.js';
 import { paintThumbs, paintPreview, togglePlay } from './frames.js';
 import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.js';
-import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches, paintRamp, syncColors, rampCols,
+import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches, paintRamp, setRampFamily, setRampMaterial, setRampBase, useRampBase, syncColors, rampCols,
          attachPalettePopup, openQuickPalette, palByName, isUserPal, savePaletteAs, deleteUserPal,
          fillPalSelect, importPaletteText, addCurrentColor, sortPalette, prunePalette, paletteFromArt, rampFromCurrent } from './palette.js';
 import { mountPalettePicker } from './palpick.js';
 import { setTool, setTheme, setView, syncFingerBtn, syncPixelPerfectBtn, attachMods } from './tools.js';
-import { SAVE_KEY, clearSave, exportPng, exportSheet, exportPalettePng, exportJson, importJson, exportGodotFrames,
-         loadRef, refToPixels, refToPalette, serialize } from './storage.js';
+import { clearSave, exportPng, exportSheet, exportPalettePng, exportJson, importJson, exportGodotFrames,
+         loadRef, refToPixels, refToPalette, serialize, autosave } from './storage.js';
 import { updateProgress, TRACKS, setTrack, buildExercises } from './content/exercises.js';
 import { buildTheory } from './content/lessons.js';
 import { runLint } from './lint.js';
@@ -26,7 +26,6 @@ import { paintDaily, goToNext } from './daily.js';
 import { bindAtlas, importAtlas, syncBar as syncAtlasBar } from './atlas.js';
 import { openMapView, bindMapView } from './mapview.js';
 import { bindSheetImport } from './sheetview.js';
-import { bindPuppet } from './puppetview.js';
 
 /* ---------------- thao tác trên tài liệu ---------------- */
 /* đổi khổ canvas (ngang và dọc rời nhau), giữ hoặc bỏ phần tranh cũ.
@@ -114,6 +113,7 @@ export function syncAll(){
   $('#sizeH').value = String(doc.h);
   $('#hud').textContent = doc.w+'×'+doc.h;
   const nameEl = $('#projName'); if(nameEl) nameEl.value = doc.name || 'Bản vẽ không tên';
+  $('#workspaceTitle').textContent=doc.name || 'Bản vẽ không tên';
   paintLayers(); paintThumbs(); syncColors(); render(); updateProgress();
   syncAtlasBar();
   syncNavHeight();
@@ -151,11 +151,11 @@ if(penActionEl){
 }
 
 $('#qbUndo').addEventListener('click', undo);
-$('#qbColor').addEventListener('click', ()=>openQuickPalette($('#qbColor'), ()=>setView('tools')));
+$('#qbColor').addEventListener('click', ()=>openQuickPalette($('#qbColor'), ()=>setView(document.body.dataset.workspace==='puppet'?'tools':'colors')));
 $$('.quickbar .qb[data-q]').forEach(b=>{ b.addEventListener('click', ()=>setTool(b.dataset.q)); attachMods(b, b.dataset.q); });
-attachPalettePopup($('#qbColor'), ()=>setView('tools'));
-attachPalettePopup($('#chipPri'), ()=>setView('tools'));
-$('#chipPri').addEventListener('click', ()=>openQuickPalette($('#chipPri'), ()=>setView('tools')));
+attachPalettePopup($('#qbColor'), ()=>setView(document.body.dataset.workspace==='puppet'?'tools':'colors'));
+attachPalettePopup($('#chipPri'), ()=>setView(document.body.dataset.workspace==='puppet'?'tools':'colors'));
+$('#chipPri').addEventListener('click', ()=>openQuickPalette($('#chipPri'), ()=>setView(document.body.dataset.workspace==='puppet'?'tools':'colors')));
 $$('#mnav button').forEach(b=>b.addEventListener('click', ()=>{
   setView(b.dataset.view);
 }));
@@ -209,6 +209,13 @@ $('#palSel').addEventListener('change', e=>{
 });
 $('#rampSteps').addEventListener('change', paintRamp);
 $('#hueShift').addEventListener('input', paintRamp);
+$('#rampFamily').addEventListener('change', setRampFamily);
+$('#rampUseBase').addEventListener('click', useRampBase);
+$('#rampColor').addEventListener('input', e=>setRampBase(e.target.value));
+$('#rampHex').addEventListener('change', e=>setRampBase(e.target.value));
+$('#rampHex').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); setRampBase(e.target.value); }
+});
 $('#rampNew').addEventListener('click', rampFromCurrent);
 $('#rampAdd').addEventListener('click', ()=>{
   rampCols.forEach(c=>{ if(!palette.includes(c)) palette.push(c); });
@@ -395,7 +402,7 @@ $('#remapMaster').addEventListener('click', ()=>{
   toast(n ? 'Đã đổi '+n+' px sang mã màu '+MASTER_NAME+'.' : 'Tranh này không dùng mã màu cũ nào. Đã chuyển sang '+MASTER_NAME+'.');
 });
 $('#refToPal').addEventListener('click', ()=>refToPalette(16));
-$('#matSel').addEventListener('change', paintRamp);
+$('#matSel').addEventListener('change', setRampMaterial);
 $('#wipeSave').addEventListener('click', ()=>{
   if(!confirm('Xoá bản lưu trong trình duyệt và mở lại trang từ đầu?\nTranh hiện tại sẽ mất — lưu .json trước nếu cần.')) return;
   clearSave().then(()=>location.reload());
@@ -464,7 +471,7 @@ $('#lyMerge').addEventListener('click', mergeDown);
 
 $('#refFile').addEventListener('change', e=>{ if(e.target.files[0]) loadRef(e.target.files[0]); e.target.value=''; });
 $('#refOp').addEventListener('input', e=>{ view.refOp=+e.target.value/100; $('#refLbl').textContent=e.target.value+'%'; render(); });
-const refPick = $('#refPalPick') ? mountPalettePicker($('#refPalPick'),{auto:true,raw:true,value:'cur'}) : null;
+let refPick;
 $('#refToPix').addEventListener('click', ()=>refToPixels(refPick ? refPick.value() : {mode:'raw'}));
 $('#refClear').addEventListener('click', ()=>{ view.ref=null; render(); });
 
@@ -504,14 +511,14 @@ $('#libPack').addEventListener('click', async e=>{
 });
 $('#impJson').addEventListener('change', e=>{ if(e.target.files[0]) importJson(e.target.files[0]); e.target.value=''; });
 
-bindAtlas();
-bindMapView();
-bindSheetImport();
-bindPuppet();
-const mapPrevBtn = $('#mapPrevBtn');
-if(mapPrevBtn) mapPrevBtn.addEventListener('click', () => openMapView());
-const atMapPrev = $('#atMapPrev');
-if(atMapPrev) atMapPrev.addEventListener('click', () => openMapView('atlas'));
+export function bindEditorFeatures(openAdvancedMap) {
+  refPick = $('#refPalPick') ? mountPalettePicker($('#refPalPick'),{auto:true,raw:true,value:'cur'}) : null;
+  bindAtlas();
+  bindSheetImport();
+  bindMapView();
+  $('#mapPrevBtn').addEventListener('click', openAdvancedMap);
+  $('#atMapPrev').addEventListener('click', () => openMapView('atlas'));
+}
 
 /* Kéo thả thẳng vào trang: .json là dự án, ảnh là tấm atlas. */
 ['dragover','drop'].forEach(t=>window.addEventListener(t, e=>{
@@ -521,13 +528,6 @@ if(atMapPrev) atMapPrev.addEventListener('click', () => openMapView('atlas'));
   if(!f) return;
   if(/\.json$/i.test(f.name)) importJson(f);
   else if(/^image\//.test(f.type)) importAtlas(f);
-}));
-
-$$('.tab').forEach(t=>t.addEventListener('click', ()=>{
-  $$('.tab').forEach(x=>x.setAttribute('aria-selected', x===t?'true':'false'));
-  $$('.pane').forEach(p=>p.classList.toggle('on', p.id===t.dataset.pane));
-  const back={pHoc:'learn', pEx:'learn', pTh:'learn', pFile:'file'}[t.dataset.pane];
-  if(back && document.body.dataset.view && document.body.dataset.view!=='draw') setView(back);
 }));
 
 function setLearnFilter(mode){
@@ -547,11 +547,14 @@ if(projNameEl){
   projNameEl.value = doc.name || 'Bản vẽ không tên';
   projNameEl.addEventListener('input', e=>{
     doc.name = e.target.value.trim() || 'Bản vẽ không tên';
+    $('#workspaceTitle').textContent=doc.name;
+    autosave();
   });
 }
 
 window.addEventListener('keydown', e=>{
   if(e.defaultPrevented || view.drawing || document.querySelector('dialog[open]')) return;
+  if (e.target.closest?.('.workspace-nav, [role=tablist]')) return;
   const tag=(e.target.tagName||'').toLowerCase();
   if(tag==='input'||tag==='select'||tag==='textarea') return;
   const k=e.key.toLowerCase();
@@ -602,5 +605,5 @@ let rzT=null;
 window.addEventListener('resize', ()=>{
   syncNavHeight();
   clearTimeout(rzT);
-  rzT=setTimeout(()=>{ if(!view.drawing){ fitZoom(); render(); } },150);
+  rzT=setTimeout(()=>{ if(!view.drawing) render(); },150);
 });
