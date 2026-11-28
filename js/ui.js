@@ -169,7 +169,9 @@ if(palGrp){
 }
 
 $('#colPick').addEventListener('input', e=>{ view.pri=hexToInt(e.target.value); syncColors(); });
-$('#swapCol').addEventListener('click', ()=>{ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); });
+const swapColors=()=>{ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); };
+$('#swapCol').addEventListener('click', swapColors);
+$('#qrSwap').addEventListener('click', swapColors);
 $('#addSwatch').addEventListener('click', ()=>{
   if(!addCurrentColor()) $('#palInfo').textContent='Màu này đã có trong bảng rồi.';
 });

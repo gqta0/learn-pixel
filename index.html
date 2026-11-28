@@ -11,6 +11,7 @@
 <div class="app" inert>
 
   <div class="topbar">
+    <button class="btn tiny topbar-only-phone" id="wsMenuBtn" type="button" aria-haspopup="dialog" aria-label="Đổi trang, thư viện, sáng/tối">≡</button>
     <nav class="workspace-nav" aria-label="Nhóm chức năng">
       <a href="index.html" aria-current="page">Vẽ thường</a>
       <a href="puppet.html">Ghép rối</a>
@@ -21,11 +22,13 @@
       <span id="workspaceSave" class="workspace-save" role="status"></span>
     </div>
     <div class="prog" hidden>Tiến độ: <b id="progText">0/0</b></div>
+    <button class="btn tiny topbar-only-phone" id="zoomChip" type="button" title="Chạm để vừa khung">×12</button>
     <button class="btn tiny" id="btnUndo" title="Hoàn tác (Ctrl+Z)">↶</button>
     <button class="btn tiny" id="btnRedo" title="Làm lại (Ctrl+Y)">↷</button>
     <button class="btn tiny primary rig-library-save" id="rigSaveSheet" type="button">Lưu vào thư viện</button>
     <button class="btn tiny" id="libBtn" title="Bản vẽ của bạn">📁</button>
     <button class="btn tiny" id="themeBtn" title="Đổi nền sáng/tối">☀</button>
+    <button class="btn tiny topbar-only-phone" id="stageMenuBtn" type="button" aria-expanded="false" aria-label="Khổ, lưới và tuỳ chọn khác">⋯</button>
   </div>
 
   <div class="workspace">
@@ -207,6 +210,10 @@
       </div>
 
       <div class="canvasarea">
+      <div class="quick-ramp" id="quickRamp">
+        <div class="pal-ramp-strip" id="quickRampStrip" role="group" aria-label="Dải 5 màu của vật liệu, tối đến sáng"></div>
+        <button class="qr-swap" id="qrSwap" type="button" title="Đổi màu chính và màu phụ" aria-label="Đổi màu chính và màu phụ"><i id="qrSec"></i>⇄</button>
+      </div>
       <div class="quickbar" id="quickbar">
         <button class="qb" data-q="pencil" aria-pressed="true" title="Bút">✏️</button>
         <button class="qb" data-q="dither" aria-pressed="false" title="Chấm hạt dither">░</button>

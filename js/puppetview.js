@@ -462,6 +462,7 @@ const oldBuildNote=()=>'Sheet '+SHEET_VI[doc.puppet]+' này vẽ cho khung xươ
 
 /* ---------------- soi miếng ---------------- */
 function runRigLint(){
+  if(!P) return;                 // khung xương chưa về (hoặc không tải được): #rigInfo đã báo, chưa có gì để soi
   const out=$('#rigLint');
   if(!isSheet()){
     out.innerHTML='<p class="kbd">'+(doc.puppet ? oldBuildNote() : 'Dựng hoặc mở một sheet Đầu/Thân để soi.')+'</p>';

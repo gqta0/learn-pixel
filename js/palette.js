@@ -335,6 +335,7 @@ export function syncColors(){
   recentColors.unshift(hex); recentColors.length=Math.min(8,recentColors.length);
   $('#chipPri').style.background = intToCss(view.pri);
   $('#chipSec').style.background = intToCss(view.sec);
+  const qrSec=$('#qrSec'); if(qrSec) qrSec.style.background = intToCss(view.sec);
   $('#qbColor').firstElementChild.style.background = intToCss(view.pri);
   $('#colPick').value = intToHex(view.pri);
   paintMaterial();
@@ -365,21 +366,28 @@ export function paintMaterial(){
   }
   $('#curName').textContent = step>=0 ? ramp.name+' · '+STEP_NAMES[step] : (colorToken(hex,true)?.token || 'Màu ngoài dải');
   $('#curHex').textContent = hex.toUpperCase();
-  const strip=$('#matStrip'); strip.replaceChildren();
+  fillRampStrip($('#matStrip'), ramp, hex);
+  const quick=$('#quickRampStrip');
+  if(quick) fillRampStrip(quick, ramp, hex);
+}
+/* Vẽ 5 ô của một dải vào hộp: chạm = màu chính, Shift+chạm = màu phụ. Dùng cho khối Màu và dải nhanh dưới canvas. */
+export function fillRampStrip(box, ramp, curHex){
+  const sec=intToHex(view.sec).toLowerCase();
+  box.replaceChildren();
   ramp.colors.forEach((c,i)=>{
     const cell=document.createElement('div'); cell.className='pal-cell';
     const b=document.createElement('button');
     b.type='button'; b.className='swatch'; b.style.background=c;
     b.title=ramp.name+' · '+STEP_NAMES[i]+' ('+c+')';
     b.setAttribute('aria-label',b.title);
-    b.setAttribute('aria-current',String(c===hex));
-    if(c===intToHex(view.sec).toLowerCase()) b.classList.add('issec');
+    b.setAttribute('aria-current',String(c===curHex));
+    if(c===sec) b.classList.add('issec');
     b.addEventListener('click',e=>{
       if(e.shiftKey) view.sec=hexToInt(c); else view.pri=hexToInt(c);
       syncColors();
     });
     const t=document.createElement('code'); t.textContent=c.toUpperCase();
-    cell.append(b,t); strip.append(cell);
+    cell.append(b,t); box.append(cell);
   });
 }
 /* chọn vật liệu khác thì lấy luôn màu gốc của dải làm màu chính */

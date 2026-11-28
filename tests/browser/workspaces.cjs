@@ -5,6 +5,7 @@ const {join} = require('node:path');
 const {chromium} = require('playwright');
 const testPuppetProjects = require('./puppet-projects.cjs');
 const testTabletDrawing = require('./tablet-drawing.cjs');
+const testPhoneLayout = require('./phone-layout.cjs');
 
 const origin = process.env.LEARN_PIXEL_URL || 'http://127.0.0.1:8123';
 const countPixels = page => page.evaluate(async () => {
@@ -17,6 +18,7 @@ async function run() {
   try {
     await testPuppetProjects(browser, origin);
     await testTabletDrawing(browser, origin);
+    await testPhoneLayout(browser, origin);
     const page = await browser.newPage({viewport:{width:1440,height:900}});
     page.setDefaultTimeout(12000);
     const errors = [];
@@ -169,6 +171,13 @@ async function run() {
       for(const path of ['index.html','puppet.html','tile.html']){
         await page.goto(origin+'/'+path);
         const nav=page.getByRole('navigation',{name:'Nhóm chức năng'});
+        // điện thoại dọc ở trang Vẽ / Ghép rối: chọn trang nằm sau ≡ để thanh trên còn một hàng
+        if(width<680 && height>width && path!=='tile.html'){
+          await page.locator('#wsMenuBtn').waitFor();
+          assert.equal(await nav.isVisible(),false,path+' at '+width);
+          assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,path+' at '+width);
+          continue;
+        }
         await nav.waitFor();
         assert.equal(await nav.locator('a[aria-current=page]').count(),1);
         assert.ok(await nav.evaluate(node=>node.getBoundingClientRect().right<=innerWidth),path+' at '+width);

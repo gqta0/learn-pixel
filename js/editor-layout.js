@@ -1,5 +1,6 @@
 import { initTabs } from './tabs.js';
 import { bindDrawerDrag } from './drawer.js';
+import { popover } from './popup.js';
 
 const get = selector => document.querySelector(selector);
 const create = (tag, attrs, text) => {
@@ -161,5 +162,25 @@ export function layoutEditor(mode) {
   for(const b of navButtons) b.addEventListener('click',()=>{
     const view=b.dataset.view;
     setEditorView(view===document.body.dataset.view?'draw':view);
+  });
+  bindPhoneMenus(mode);
+}
+
+/* Điện thoại dọc: thanh trên chỉ còn một hàng. ≡ gom trang, thư viện, sáng/tối;
+   ⋯ thả thanh khổ / lưới / Thêm xuống đè lên canvas, chạm lần nữa thì thu. */
+function bindPhoneMenus(mode){
+  const ws=get('#wsMenuBtn'), stage=get('#stageMenuBtn');
+  ws?.addEventListener('click',()=>{
+    const pages=[...document.querySelectorAll('.workspace-nav a')].map(a=>({
+      label:a.textContent.trim(), on:a.getAttribute('aria-current')==='page', fn:()=>{ location.href=a.href; }
+    }));
+    const extra=[['#libBtn','📁 Thư viện bản vẽ'],['#themeBtn','☀ Nền sáng / tối']];
+    if(mode==='puppet') extra.unshift(['#rigSaveSheet','💾 Lưu sheet vào thư viện']);
+    popover(ws,'Lò Pixel',[...pages,{heading:'Khác'},
+      ...extra.filter(([sel])=>get(sel)).map(([sel,label])=>({label,fn:()=>get(sel).click()}))]);
+  });
+  stage?.addEventListener('click',()=>{
+    const open=document.body.classList.toggle('stage-open');
+    stage.setAttribute('aria-expanded',String(open));
   });
 }

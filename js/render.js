@@ -161,6 +161,8 @@ export function render(){
 
 /* ---------------- phóng to / thu nhỏ ---------------- */
 /* vừa khung: trừ đúng phần đệm thật của khung chứa, để màn hình thấp vẫn dùng hết chỗ */
+/* nhãn phóng nằm ở thanh khổ (máy tính) và chip trên thanh trên (điện thoại) */
+function showZoom(text){ for(const id of ['#zoomLbl','#zoomChip']){ const el=$(id); if(el) el.textContent=text; } }
 export function fitZoom(){
   fitOnResize=true;
   view.hover=null;
@@ -168,7 +170,7 @@ export function fitZoom(){
   const fit=Math.min((wrap.clientWidth-40)/doc.w, (wrap.clientHeight-40)/doc.h);
   view.zoom = Math.max(1, Math.min(28, Math.floor(fit)));
   centerOnRender=true;
-  $('#zoomLbl').textContent='×'+view.zoom;
+  showZoom('×'+view.zoom);
 }
 export function setZoom(z,anchor){
   fitOnResize=false;
@@ -177,7 +179,7 @@ export function setZoom(z,anchor){
   const point=anchor || {x:wr.left+wrap.clientWidth/2,y:wr.top+wrap.clientHeight/2};
   const px=(point.x-before.left)/before.width, py=(point.y-before.top)/before.height;
   view.zoom=Math.max(1,Math.min(40,z));
-  $('#zoomLbl').textContent='×'+Number(view.zoom.toFixed(1));
+  showZoom('×'+Number(view.zoom.toFixed(1)));
   render();
   const after=board.getBoundingClientRect();
   wrap.scrollLeft+=after.left+px*after.width-point.x;

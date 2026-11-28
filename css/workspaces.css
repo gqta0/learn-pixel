@@ -469,3 +469,49 @@ body[data-workspace="tile"] { min-height:100dvh; display:grid; grid-template-row
   .tq-commit div { flex-basis:100%; }
   .tq-commit #tqApply { flex:1; }
 }
+
+/* ---------- Điện thoại dọc: canvas trước hết ----------
+   Thanh trên một hàng (≡ trang · tên · ×N · ↶ ↷ · ⋯), thanh khổ / lưới thả xuống từ ⋯,
+   dòng phím tắt bỏ, dải 5 màu và thanh dụng cụ một hàng nằm dưới canvas cho ngón cái với tới. */
+.topbar-only-phone, .quick-ramp { display: none; }
+@media (max-width: 679px) and (orientation: portrait) {
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .topbar {
+    flex-wrap: nowrap; align-items: center; gap: 4px; padding-block: 1px; overflow: hidden;
+  }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) :is(.workspace-nav, #libBtn, #themeBtn, #rigSaveSheet, .workspace-save) { display: none; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .topbar-only-phone { display: inline-flex; flex: 0 0 auto; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .workspace-meta { flex: 1 1 auto; justify-content: flex-start; order: 0; flex-basis: auto; margin: 0; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) #zoomChip { font-family: var(--mono); padding: 0 6px; }
+
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .stagebar { display: none; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]).stage-open .stagebar {
+    display: flex; position: absolute; top: 0; left: 0; right: 0; z-index: 40;
+    flex-wrap: wrap; overflow: visible; box-shadow: 0 8px 24px #0006;
+  }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .ctxwrap:not(:has(.ctxbar:not([hidden]))),
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) #drawStatus { display: none; }
+
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .canvasarea { flex-direction: column; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) #wrap { order: 0; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) #quickRamp {
+    order: 1; display: flex; align-items: center; gap: 8px; flex: 0 0 40px; height: 40px;
+    padding: 0 8px; background: var(--panel); border-top: 1px solid var(--line);
+  }
+  #quickRamp .pal-ramp-strip { flex: 1 1 auto; align-items: center; }
+  #quickRamp .pal-cell code { display: none; }
+  #quickRamp .pal-cell .swatch { height: 30px; }
+  #quickRamp .pal-cell:nth-child(3) .swatch { height: 36px; }
+  #quickRamp .qr-swap {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; height: 36px; min-width: 44px;
+    padding: 0 6px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+  }
+  #quickRamp .qr-swap i { width: 18px; height: 18px; border-radius: 3px; border: 1px solid #0006; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .quickbar {
+    order: 2; flex: 0 0 52px; height: 52px; width: 100%; max-width: none; margin: 0;
+    flex-wrap: nowrap; justify-content: flex-start; align-items: center; overflow-x: auto;
+    padding: 4px 8px; gap: 6px; background: var(--panel); scrollbar-width: none;
+  }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .quickbar .qb { flex: 0 0 auto; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) #qbUndo { display: none; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) #qbColor { position: sticky; right: 0; margin-left: auto; box-shadow: -8px 0 0 4px var(--panel); }
+}
