@@ -429,7 +429,26 @@ async function checkStaleTags(browser, origin) {
   }
 }
 
+// Nhỏ: chạm giữ sát mép trên canvas thì kính lúp lật xuống dưới, không đè lên chỗ đang hút.
+async function checkLoupeAtTop(browser, origin) {
+  const {page} = await phonePage(browser, origin, '/index.html');
+  try {
+    const cdp = await page.context().newCDPSession(page);
+    const b = await page.locator('#board').boundingBox(), cell = b.width/32;
+    const pt = {x:b.x+5.5*cell, y:b.y+0.5*cell, id:1};
+    await cdp.send('Input.dispatchTouchEvent', {type:'touchStart', touchPoints:[pt]});
+    await page.waitForTimeout(550);
+    const lb = await page.locator('.loupe').boundingBox();
+    await cdp.send('Input.dispatchTouchEvent', {type:'touchEnd', touchPoints:[]});
+    const covers = pt.x >= lb.x && pt.x <= lb.x+lb.width && pt.y >= lb.y && pt.y <= lb.y+lb.height;
+    assert.equal(covers, false, `kính lúp ${JSON.stringify(lb)} đè lên điểm chạm ${pt.x},${pt.y}`);
+  } finally {
+    await page.close();
+  }
+}
+
 module.exports = async function testPhoneLayout(browser, origin) {
+  await checkLoupeAtTop(browser, origin);
   await checkLockedWriters(browser, origin);
   await checkStaleTags(browser, origin);
   await checkWideLayout(browser, origin);

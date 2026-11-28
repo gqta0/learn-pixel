@@ -20,6 +20,7 @@ let penSeen=false, gesture=null, panning=null;
 let pixelPerfectHistory=[];
 let owner=null, strokeUndo=null, strokeData=null, strokeSelection=null, spaceDown=false;
 let lastDot=null;     // điểm cuối của nét bút trước — Shift+bấm nối thẳng từ đây
+let wandAt=null;      // ô chạm của đũa thần: chọn khi nhấc, ngón thứ hai tới thì huỷ
 const LINE_TOOLS=['pencil','eraser','shade','dither'];
 const wrap=$('#wrap');
 
@@ -106,7 +107,7 @@ function hudText(p){
 }
 function cancelStroke(){
   endQuickShape();
-  view.lasso=null;
+  view.lasso=null; wandAt=null;
   if(hold && !hold.picking){ clearTimeout(hold.timer); hold=null; }
   if(!drawing) return;
   if(strokeUndo) strokeData.set(strokeUndo.frames[strokeUndo.af][strokeUndo.al]);
@@ -147,9 +148,9 @@ const taps=createTapTracker();
    Đã lệch quá 6px một lần thì cả nét không bao giờ thành hút màu nữa. */
 const HOLD_TOOLS_SKIP=['select','move','picker'];
 let hold=null;     // {id, down:{x,y,t}, cur:{x,y,t}, moved, picking, timer}
-function startHold(e){
+function startHold(e, locked=false){
   const at={x:e.clientX, y:e.clientY, t:Date.now()};
-  hold={id:e.pointerId, down:at, cur:at, moved:false, picking:false};
+  hold={id:e.pointerId, type:e.pointerType, down:at, cur:at, moved:false, picking:false, locked};
   hold.timer=setTimeout(()=>{
     if(!hold || hold.moved || !longPressReady(hold.down, {...hold.cur, t:Date.now()})) return;
     hold.picking=true;
@@ -197,13 +198,14 @@ function endHold(e){
   clearTimeout(hold.timer);
   const picked=hold.picking;
   if(picked){ if(e) pick(posFrom(e)); hideLoupe(); }
+  else if(hold.locked) toast('Lớp đang khoá');        // lớp khoá: chạm nhanh thì báo, giữ lâu thì đã hút màu
   hold=null;
   return picked;
 }
 
 wrap.addEventListener('pointerdown', e=>{
   const t0=PERF ? performance.now() : 0;
-  if(e.pointerType==='touch' && owner?.type==='pen') return;
+  if(e.pointerType==='touch' && (owner?.type==='pen' || hold?.type==='pen')) return;
   if(e.pointerType==='touch') taps.down(e.pointerId, e.clientX, e.clientY, Date.now());
   else if(e.pointerType==='pen') taps.reset();
   if(e.pointerType==='pen'){
@@ -249,14 +251,16 @@ wrap.addEventListener('pointerdown', e=>{
   }
   if(strokeTool==='select'){
     // theo màu: chọn ngay khi chạm (trên lớp đang vẽ) · lasso: gom điểm khi kéo · chữ nhật: kéo tiếp mới thành vùng
-    if(view.selMode==='wand' || view.selMode==='wandAll'){
-      view.sel=wandMask(activeData(), doc.w, doc.h, p.x, p.y, {contiguous:view.selMode==='wand'});
-      drawing=false; view.drawing=false; owner=null; render(); return;
-    }
+    if(view.selMode==='wand' || view.selMode==='wandAll'){ wandAt=p; return; }   // chọn khi nhấc: ngón thứ hai tới thì huỷ, vùng cũ còn nguyên
     view.lasso = view.selMode==='lasso' ? [p] : null;
     view.sel=null; render(); return;
   }
-  if(isLocked()){ drawing=false; view.drawing=false; owner=null; toast('Lớp đang khoá'); return; }
+  if(isLocked()){
+    drawing=false; view.drawing=false; owner=null;
+    if(e.pointerType==='pen' || e.pointerType==='touch') startHold(e, true);   // chạm giữ vẫn hút màu, không ghi gì
+    else toast('Lớp đang khoá');
+    return;
+  }
   // Ghép rối · Khoá trong ô: nét bắt đầu ở ô nào thì chỉ vẽ trong ô đó (dùng lại vùng chọn)
   // lockCell: ô chữ nhật · null = sheet rối nhưng ngoài mọi ô (vẽ / xoá tự do, để dọn được pixel lạc) · undefined = không khoá
   if(view.lockCell && strokeTool!=='move'){ const c=view.lockCell(p); if(c!==undefined){ view.sel=c; strokeSelection=c ? {...c} : null; } }
@@ -329,6 +333,7 @@ function applyStroke(rawP, col, e){
   const t=strokeTool;
   const p = constrainPoint(start, rawP, e, t);
 
+  if(t==='select' && wandAt) return;            // đũa thần không kéo thành khung
   if(t==='select' && view.lasso){
     // lúc kéo chỉ ghi đường khoanh (render vẽ nó); mặt nạ tính một lần khi nhấc bút — tranh 256×256 không giật
     const prev=view.lasso[view.lasso.length-1];
@@ -387,6 +392,7 @@ function applyStroke(rawP, col, e){
 
 wrap.addEventListener('pointermove', e=>{
   if(owner?.type==='pen' && e.pointerId!==owner.id) return;
+  if(hold?.type==='pen' && e.pointerId!==hold.id) return;   // bút đang giữ để hút màu: tay chạm vào không kéo, không chụm
   if(e.pointerType==='touch') taps.move(e.pointerId, e.clientX, e.clientY);
   if(trackHold(e)) return;                            // đang hút màu: chỉ dời kính lúp
   if(pointers.has(e.pointerId)) pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,type:e.pointerType});
@@ -450,6 +456,7 @@ function endStroke(e){
   if(view.lasso){ view.sel=lassoMask(view.lasso, doc.w, doc.h); view.lasso=null; }
   // chạm một cái bằng dụng cụ chọn = bỏ chọn
   if(strokeTool==='select' && view.sel && view.sel.w===1 && view.sel.h===1) view.sel=null;
+  if(wandAt){ view.sel=wandMask(activeData(), doc.w, doc.h, wandAt.x, wandAt.y, {contiguous:view.selMode==='wand'}); wandAt=null; }
   if(LINE_TOOLS.includes(strokeTool) && last) lastDot={x:last.x,y:last.y};
   if(preview){ strokeData.set(preview.data); setPreview(null); }
   const before=strokeUndo?.frames[strokeUndo.af][strokeUndo.al];
@@ -499,6 +506,7 @@ window.addEventListener('keyup', e=>{
   if(e.code==='Space'){ spaceDown=false; wrap.classList.remove('pan-ready'); }
 });
 window.addEventListener('blur', ()=>{
+  if(hold){ clearTimeout(hold.timer); if(hold.picking) hideLoupe(); hold=null; }
   cancelStroke(); pointers.clear(); gesture=null; panning=null; spaceDown=false;
   wrap.classList.remove('pan-ready');
 });

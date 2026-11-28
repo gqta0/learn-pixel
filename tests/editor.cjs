@@ -449,3 +449,34 @@ test('soát: lasso chỉ tính mặt nạ khi nhấc bút, lúc kéo chỉ giữ
   e.event('pointerup',1,0,6);
   assert.ok(e.run('selHas(view.sel,1,1)')); assert.equal(e.run('view.lasso'),null);
 });
+
+/* ---- lỗi nhỏ còn lại sau soát ---- */
+test('nhỏ: đang hút màu bằng bút thì chạm tay vẫn bị chặn (không hoàn tác, không kéo)',()=>{
+  const e=editor(); e.event('pointerdown',1,5,5,'pen'); e.event('pointerup',1,5,5,'pen');      // một nét để có thể bị hoàn tác
+  e.run('activeData()[3*32+3]=RED');
+  e.event('pointerdown',1,3,3,'pen'); e.tick(400);                                            // đang hút màu
+  e.tap2(20,20);
+  assert.notEqual(e.pixel(5,5),0, 'chạm tay lúc hút màu không được hoàn tác');
+  e.event('pointerup',1,3,3,'pen'); assert.equal(e.run('view.pri'),e.run('RED'));
+});
+test('nhỏ: lớp khoá vẫn chạm giữ hút màu được, không ghi pixel',()=>{
+  const e=editor(); e.run('activeData()[4*32+4]=RED; doc.layers[0].lock=true; view.pri=BLUE');
+  e.event('pointerdown',1,4,4,'pen'); e.tick(400); e.event('pointerup',1,4,4,'pen');
+  assert.equal(e.run('view.pri'),e.run('RED'));
+  assert.ok(!e.toasts.includes('Lớp đang khoá'), 'hút được thì không báo khoá');
+  e.event('pointerdown',1,6,6,'pen'); e.event('pointerup',1,6,6,'pen');
+  assert.equal(e.pixel(6,6),0); assert.ok(e.toasts.includes('Lớp đang khoá'), 'chạm nhanh vẫn báo khoá');
+});
+test('nhỏ: rời cửa sổ lúc đang hút màu thì tắt kính lúp, nhấc bút sau đó không lấy màu',()=>{
+  const e=editor(); e.run('activeData()[4*32+4]=RED; view.pri=BLUE');
+  e.event('pointerdown',1,4,4,'pen'); e.tick(400);
+  const hiddenBefore=e.loupe.hidden;
+  for(const fn of e.win.listeners.blur||[]) fn({});
+  assert.ok(e.loupe.hidden>hiddenBefore, 'kính lúp tắt');
+  e.event('pointerup',1,4,4,'pen'); assert.equal(e.run('view.pri'),e.run('BLUE'));
+});
+test('nhỏ: đũa thần bằng ngón, ngón thứ hai chạm tới thì vùng chọn cũ giữ nguyên',()=>{
+  const e=editor(); drawL(e); e.run("view.tool='select'; view.selMode='wand'; view.sel={x:20,y:20,w:3,h:3}");
+  e.tap2(2,2);
+  assert.equal(e.run('JSON.stringify(view.sel)'),'{"x":20,"y":20,"w":3,"h":3}');
+});

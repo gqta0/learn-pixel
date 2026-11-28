@@ -26,7 +26,9 @@ export function showLoupe(clientX, clientY, docX, docY){
   const wrap=document.querySelector('#wrap').getBoundingClientRect();
   const w=SIZE+12, h=SIZE+34;
   const x=Math.min(Math.max(wrap.left+4, clientX-w/2), wrap.right-w-4);
-  const y=Math.max(wrap.top+4, clientY-120-h/2);
+  // mặc định phía trên đầu bút; sát mép trên thì lật xuống dưới, không bao giờ đè lên chỗ đang hút
+  let y=clientY-120-h/2;
+  if(y<wrap.top+4) y=clientY+60;
   box.style.left=x+'px'; box.style.top=y+'px';
   box.hidden=false;
 }
