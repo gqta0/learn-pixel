@@ -135,6 +135,7 @@ async function openSet(id){
   return true;
 }
 function load(next){
+  cancelStroke();
   ts=next; lay=layoutOf(ts); pending=false;
   undoS.length=redoS.length=0; syncUndo();
   rolesCache.clear();
@@ -142,9 +143,10 @@ function load(next){
   $('#empty').hidden=true; $('#tpMain').hidden=false; $('#tsGodot').disabled=$('#tsMore').disabled=false;
   setText($('#layoutNote'),lay.name+' · ô '+ts.size+'×'+ts.size+(lay.match==='blob'||lay.match==='sides'?' · '+(ts.shape==='flush'?'kín sát mép':'thụt mép'):''));
   mapPreset();
-  buildGrid(); paintPalette(); fillSelect();
+  buildGrid(); fillSelect();
   check?.update();
   selectSlot(Math.min(slot,lay.slots.length-1),0);
+  paintPalette();
 }
 async function adopt(next,msg){
   if(await save()===false) return null;

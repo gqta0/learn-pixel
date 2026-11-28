@@ -87,6 +87,14 @@ async function run() {
       return select.value && select.value!==id && select.options.length===4;
     },existing);
     assert.equal(await page.locator('#tsSel option').count(),4,'a new generation can keep the same size and edge shape');
+    await page.locator('#tqDraw').click();
+    await page.locator('#grid button[data-slot="46"]').click();
+    await page.locator('.tp-frames summary').click();
+    await page.locator('#frAdd').click();
+    assert.equal(await page.locator('#tileFrameCount').textContent(),'2 / 2');
+    await page.selectOption('#tsSel',first);
+    await page.waitForFunction(()=>document.querySelector('#tileFrameCount').textContent==='1 / 1',
+      null,{timeout:3000});
     assert.deepEqual(errors, []);
     console.log('PASS: first generation, changing size, per-set locks and hand-drawn slots');
   } finally { await browser.close(); }
