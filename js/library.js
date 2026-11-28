@@ -4,6 +4,7 @@ import { drawingWorkspace } from './project-data.js';
    đường lui khi trình duyệt chặn IndexedDB, và là nơi đọc dữ liệu cũ để chép sang một lần. */
 import { $, toast } from './dom.js';
 import { doc } from './state.js';
+import { blendOverOp } from './color.js';
 import { serialize, applyData, download, flushSave, autosave } from './storage.js';
 import { idbAvailable, idbAll, idbSet, idbDel, askPersist, STORES } from './idb.js';
 
@@ -129,7 +130,8 @@ function renderProject(p){
   frame.forEach((lay,li)=>{
     if(d.layers[li] && d.layers[li].vis===false) return;
     const src = d.version>=2 ? unrle(lay,len) : Uint32Array.from(lay);
-    for(let i=0;i<len;i++) if(((src[i]>>>24)&255)>0) out[i]=src[i];
+    const op=d.layers[li]?.op ?? 1;
+    for(let i=0;i<len;i++) if(((src[i]>>>24)&255)>0) out[i]=blendOverOp(out[i],src[i],op);
   });
   const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
   const g=cv.getContext('2d');

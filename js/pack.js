@@ -1,10 +1,9 @@
 /* Đóng gói ZIP cho game: mọi sheet PNG (×1), file Godot SpriteFrames và manifest.json —
    cho bản đang vẽ hoặc cả thư viện một lượt. Kế hoạch và bảng kê nằm ở manifest.js. */
 import { $, toast } from './dom.js';
-import { blendOver } from './raster.js';
 import { spriteFramesTres } from './sheet.js';
 import { makeZip } from './zip.js';
-import { decodeProject, planSheets, manifestEntry, sheetBaseName, sanitizeFilename } from './manifest.js';
+import { decodeProject, planSheets, manifestEntry, sheetBaseName, sanitizeFilename, sheetPixels } from './manifest.js';
 import { sheetCols } from './storage.js';
 import { canvasPngBytes, offerDownload } from './savefile.js';
 
@@ -12,19 +11,10 @@ import { canvasPngBytes, offerDownload } from './savefile.js';
    Mã hoá đồng bộ: cả gói phải xong trong lúc lượt chạm còn hiệu lực, không thì máy tính bảng
    chặn lượt tải (xem savefile.js). */
 function sheetPng(p, plan, cols){
-  const rows=Math.ceil(plan.count/cols), W=p.w*cols, H=p.h*rows;
+  const {W,H,out}=sheetPixels(p, plan, cols);
   const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
-  const g=cv.getContext('2d'), im=g.createImageData(W,H), out=new Uint32Array(im.data.buffer);
-  for(let f=0;f<plan.count;f++){
-    const ox=(f%cols)*p.w, oy=Math.floor(f/cols)*p.h;
-    for(const li of plan.layers){
-      const src=p.frames[f]?.[li]; if(!src) continue;
-      for(let y=0;y<p.h;y++) for(let x=0;x<p.w;x++){
-        const v=src[y*p.w+x]; if(!v) continue;
-        const k=(oy+y)*W+ox+x; out[k]=blendOver(out[k],v);
-      }
-    }
-  }
+  const g=cv.getContext('2d'), im=g.createImageData(W,H);
+  new Uint32Array(im.data.buffer).set(out);
   g.putImageData(im,0,0);
   return canvasPngBytes(cv);
 }

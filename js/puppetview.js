@@ -5,7 +5,7 @@ import { showEditorTab } from './editor-layout.js';
    rối xem trước, khoá nét trong ô, đổ bóng gợi ý, soi miếng, xuất ZIP. */
 import { $, toast } from './dom.js';
 import { doc, view } from './state.js';
-import { blendOver, invalidateBuf, preview, setPreview } from './raster.js';
+import { blendOver, blendOverOp, invalidateBuf, preview, setPreview } from './raster.js';
 import { render, setZoom, setGuides, board } from './render.js';
 import { pushUndo } from './history.js';
 import { syncAll } from './ui.js';
@@ -39,7 +39,8 @@ function flatDoc(){
   fr.forEach((d,li)=>{
     if(!doc.layers[li].vis) return;
     const src=preview && preview.layer===li ? preview.data : d;
-    for(let i=0;i<out.length;i++) if(src[i]) out[i]=blendOver(out[i],src[i]);
+    const op=doc.layers[li].op ?? 1;
+    for(let i=0;i<out.length;i++) if(src[i]) out[i]=blendOverOp(out[i],src[i],op);
   });
   return {w:doc.w,h:doc.h,px:out};
 }
@@ -48,7 +49,7 @@ function flatProject(id){
   const p=getLibraryItems()[id]; if(!p) return null;
   const hit=libCache.get(id); if(hit && hit.at===p.at) return hit.sheet;
   const d=decodeProject(p.data), out=new Uint32Array(d.w*d.h), fr=d.frames[Math.min(p.data.af||0,d.frames.length-1)];
-  fr.forEach((a,li)=>{ if(d.layers[li]?.vis) for(let i=0;i<out.length;i++) if(a[i]) out[i]=blendOver(out[i],a[i]); });
+  fr.forEach((a,li)=>{ if(d.layers[li]?.vis){ const op=d.layers[li].op ?? 1; for(let i=0;i<out.length;i++) if(a[i]) out[i]=blendOverOp(out[i],a[i],op); } });
   const L=oldLayout(p.data.puppet,d.w,d.h);
   const sheet=L ? {w:L.to[0],h:L.to[1],px:upgradeLayer(L,out)} : {w:d.w,h:d.h,px:out};
   libCache.set(id,{at:p.at,sheet});

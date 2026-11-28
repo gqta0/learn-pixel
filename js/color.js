@@ -100,3 +100,24 @@ export function buildRamp(baseHex, steps, shiftDeg, mat, hues){
   }
   return out;
 }
+
+/* chồng pixel s lên pixel d — dùng chung cho ghép lớp và Gộp xuống, để gộp xong
+   nhìn y như lúc còn hai lớp */
+export function blendOver(d, s){
+  const sa=(s>>>24)&255, da=(d>>>24)&255;
+  if(sa===255 || !da) return s;                  // dưới trống: giữ nguyên màu, không bị sạm đi
+  if(!sa) return d;
+  const a = sa/255, ia = 1-a;
+  const r = Math.round((s&255)*a + (d&255)*ia);
+  const g = Math.round(((s>>8)&255)*a + ((d>>8)&255)*ia);
+  const b = Math.round(((s>>16)&255)*a + ((d>>16)&255)*ia);
+  const na = Math.round(sa + da*ia);
+  return rgba(r,g,b,na);
+}
+/* như blendOver, nhưng lớp trên có độ mờ op (0..1) — độ mờ lớp nhân vào alpha của từng pixel */
+export function blendOverOp(d, s, op=1){
+  if(op>=1) return blendOver(d, s);
+  const sa=Math.round(((s>>>24)&255)*Math.max(0,op));
+  if(!sa) return d;
+  return blendOver(d, ((s&0xffffff)|(sa<<24))>>>0);
+}

@@ -1,3 +1,4 @@
+import { blendOverOp } from './color.js';
 /* Kế hoạch xuất và bảng kê cho game: từ một dự án đã lưu (định dạng serialize) ra danh sách
    sheet cần vẽ, kèm số khung, thời lượng từng khung, điểm chân và mốc có tên.
    Thuần dữ liệu — không DOM — để kiểm thử được bằng Node; pack.js lo phần vẽ PNG và ZIP. */
@@ -20,7 +21,8 @@ export function decodeProject(d){
   const len=d.w*d.h;
   return {
     name:d.name||'ban-ve', w:d.w, h:d.h,
-    layers:(d.layers||[]).map(l=>({name:l.name, vis:l.vis!==false, marks:l.marks||{}, src:l.src||null})),
+    layers:(d.layers||[]).map(l=>({name:l.name, vis:l.vis!==false, marks:l.marks||{}, src:l.src||null,
+      ...(l.lock===true ? {lock:true} : {}), ...(Number(l.op)>=0 && Number(l.op)<1 ? {op:Number(l.op)} : {})})),
     frames:d.frames.map(f=>f.map(a=>d.version>=2 ? unrle(a,len) : Uint32Array.from(a))),
     dur:Array.isArray(d.dur)?d.dur:[], fps:Number(d.fps)>0?Number(d.fps):8,
     anchor:d.anchor||null, charH:Number(d.charH)||0
@@ -70,4 +72,22 @@ export function manifestEntry(p, plan, {file, tres=null, cols, loop=true}){
     marks:plan.marks,
     source:plan.src
   };
+}
+
+/* Ghép đúng các lớp của một sheet thành ảnh ×1 (thuần, không DOM): khung f đặt ở cột f%cols, hàng f/cols.
+   Độ mờ lớp tính vào, để sheet xuất ra giống y canvas. */
+export function sheetPixels(p, plan, cols){
+  const rows=Math.ceil(plan.count/cols), W=p.w*cols, H=p.h*rows, out=new Uint32Array(W*H);
+  for(let f=0;f<plan.count;f++){
+    const ox=(f%cols)*p.w, oy=Math.floor(f/cols)*p.h;
+    for(const li of plan.layers){
+      const src=p.frames[f]?.[li]; if(!src) continue;
+      const op=p.layers[li]?.op ?? 1;
+      for(let y=0;y<p.h;y++) for(let x=0;x<p.w;x++){
+        const v=src[y*p.w+x]; if(!v) continue;
+        const k=(oy+y)*W+ox+x; out[k]=blendOverOp(out[k],v,op);
+      }
+    }
+  }
+  return {W,H,out};
 }

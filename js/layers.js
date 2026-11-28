@@ -1,8 +1,9 @@
 /* Danh sách lớp: chọn, ẩn/hiện, đổi tên, thêm, nhân bản, gộp, xoá. */
-import { $ } from './dom.js';
-import { doc, blank, cloneLayer } from './state.js';
+import { $, toast } from './dom.js';
+import { doc, blank, cloneLayer, isLocked } from './state.js';
+import { popover } from './popup.js';
 import { pushUndo } from './history.js';
-import { blendOver } from './raster.js';
+import { blendOverOp } from './raster.js';
 import { render } from './render.js';
 import { paintThumbs } from './frames.js';
 import { syncAll } from './ui.js';
@@ -19,9 +20,27 @@ export function paintLayers(){
     const nm=document.createElement('div'); nm.className='nm'; nm.textContent=L.name;
     const rename=()=>{ const v=prompt('Tên lớp:', L.name); if(v){ pushUndo(); L.name=v; paintLayers(); render(); } };
     nm.addEventListener('dblclick', rename);
+    const op=L.op ?? 1;
+    if(L.lock || op<1){
+      const tag=document.createElement('span'); tag.className='layer-tag';
+      tag.textContent=(L.lock?'🔒':'')+(op<1?' '+Math.round(op*100)+'%':'');
+      tag.title=(L.lock?'Lớp đang khoá. ':'')+(op<1?'Độ mờ '+Math.round(op*100)+'%.':'');
+      nm.appendChild(tag);
+    }
     const ren=document.createElement('button');
-    ren.className='vis'; ren.textContent='✎'; ren.title='Đổi tên lớp';
-    ren.addEventListener('click', e=>{ e.stopPropagation(); rename(); });
+    ren.className='vis'; ren.textContent='✎'; ren.title='Đổi tên, khoá, độ mờ';
+    ren.setAttribute('aria-label','Tuỳ chọn lớp '+L.name);
+    ren.addEventListener('click', e=>{
+      e.stopPropagation();
+      const setOp=v=>{ if((L.op ?? 1)===v) return; pushUndo(); if(v>=1) delete L.op; else L.op=v; paintLayers(); render(); paintThumbs(); };
+      popover(ren, 'Lớp “'+L.name+'”', [
+        {label:'✎ Đổi tên…', fn:rename},
+        {label:L.lock?'🔓 Mở khoá':'🔒 Khoá lớp', on:!!L.lock, title:'Khoá: không vẽ, tô, dán, dời được lên lớp này',
+         fn:()=>{ if(L.lock) delete L.lock; else L.lock=true; paintLayers(); }},
+        {heading:'Độ mờ'},
+        ...[1,0.75,0.5,0.25].map(v=>({label:Math.round(v*100)+'%', on:(L.op ?? 1)===v, fn:()=>setOp(v)}))
+      ]);
+    });
     row.appendChild(vis); row.appendChild(nm); row.appendChild(ren);
     row.addEventListener('click', ()=>{ doc.al=i; paintLayers(); render(); paintThumbs(); });
     box.appendChild(row);
@@ -54,10 +73,12 @@ export function moveLayer(dir){
 }
 export function mergeDown(){
   if(doc.al===0) return;
+  if(isLocked(doc.al-1)){ toast('Lớp đang khoá'); return; }
   pushUndo();
+  const op=doc.layers[doc.al].op ?? 1;                   // độ mờ lớp trên được ghép luôn vào điểm ảnh
   doc.frames.forEach(f=>{
     const top=f[doc.al], bot=f[doc.al-1];
-    for(let i=0;i<bot.length;i++) if(top[i]) bot[i]=blendOver(bot[i],top[i]);
+    for(let i=0;i<bot.length;i++) if(top[i]) bot[i]=blendOverOp(bot[i],top[i],op);
     f.splice(doc.al,1);
   });
   const top=doc.layers[doc.al], bot=doc.layers[doc.al-1];

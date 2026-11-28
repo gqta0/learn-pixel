@@ -1,6 +1,6 @@
 /* Chuột, cảm ứng, S-Pen và bàn phím: biến thao tác của người dùng thành nét vẽ. */
 import { $, setText, toast } from './dom.js';
-import { doc, view, activeData } from './state.js';
+import { doc, view, activeData, isLocked } from './state.js';
 import { board, render, requestRender, setZoom, PERF, perfMark } from './render.js';
 import { pushUndo, captureUndo, undo, redo } from './history.js';
 import { createTapTracker, longPressReady, stillFor } from './gestures.js';
@@ -243,6 +243,7 @@ wrap.addEventListener('pointerdown', e=>{
     drawing=false; view.drawing=false; owner=null; return;
   }
   if(strokeTool==='select'){ view.sel=null; render(); return; }   // kéo tiếp mới thành vùng
+  if(isLocked()){ drawing=false; view.drawing=false; owner=null; toast('Lớp đang khoá'); return; }
   // Ghép rối · Khoá trong ô: nét bắt đầu ở ô nào thì chỉ vẽ trong ô đó (dùng lại vùng chọn)
   // lockCell: ô chữ nhật · null = sheet rối nhưng ngoài mọi ô (vẽ / xoá tự do, để dọn được pixel lạc) · undefined = không khoá
   if(view.lockCell && strokeTool!=='move'){ const c=view.lockCell(p); if(c!==undefined){ view.sel=c; strokeSelection=c ? {...c} : null; } }

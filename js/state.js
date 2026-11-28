@@ -18,6 +18,9 @@ export function blank(){ return new Uint32Array(doc.w*doc.h); }
 export function newFrame(){ return doc.layers.map(()=>blank()); }
 doc.frames.push(newFrame());
 
+/* lớp li (mặc định lớp đang chọn) đang khoá: không vẽ, không tô, không dán, không dời được */
+export function isLocked(li=doc.al){ return doc.layers[li]?.lock===true; }
+
 /* lớp đang chọn của khung đang mở */
 export function activeData(){ return doc.frames[doc.af][doc.al]; }
 
@@ -71,6 +74,9 @@ export function cleanMarks(m, frameCount=Infinity){
 }
 export function cloneLayer(l, frameCount=Infinity){
   const out={name:String(l?.name||'Lớp'), vis:l?.vis!==false};
+  if(l?.lock===true) out.lock=true;
+  const op=Number(l?.op);
+  if(Number.isFinite(op) && op>=0 && op<1) out.op=op;
   const m=cleanMarks(l?.marks, frameCount);
   if(Object.keys(m).length) out.marks=m;
   if(l?.src && typeof l.src==='object') out.src=JSON.parse(JSON.stringify(l.src));

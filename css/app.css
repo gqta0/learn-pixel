@@ -856,3 +856,6 @@ dialog h2{font-size:18px;margin:0 0 10px}
 .loupe[hidden]{display:none}
 .loupe canvas{width:90px;height:90px;border-radius:6px;image-rendering:pixelated;background:repeating-conic-gradient(#8884 0 25%,#0000 0 50%) 0 0/10px 10px}
 .loupe span{font:600 11px var(--mono);color:var(--text);white-space:nowrap}
+
+/* hàng lớp: dấu khoá và độ mờ cạnh tên */
+.layer .nm .layer-tag{margin-left:6px;font:600 11px var(--mono);color:var(--dim);white-space:nowrap}

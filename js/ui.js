@@ -2,7 +2,7 @@
    Chỉ ở đây mới được phép biết về cả tài liệu lẫn DOM. */
 import { MAX_SIDE } from './sheet.js';
 import { $, $$, syncNavHeight, toast } from './dom.js';
-import { doc, view, blank, newFrame, activeData, marksInsert, marksRemove, marksMove } from './state.js';
+import { doc, view, blank, newFrame, activeData, marksInsert, marksRemove, marksMove, isLocked } from './state.js';
 import { hexToInt, intToHex } from './color.js';
 import { invalidateBuf, flipData, rotateData, outlineData, shiftLayer, copySel, clearSel, pasteClip, normSel, layerLength } from './raster.js';
 import { pushUndo, undo, redo } from './history.js';
@@ -57,12 +57,20 @@ function changed(){
   window.dispatchEvent(new CustomEvent('pixelchange'));
   render(); paintThumbs();
 }
+/* lớp khoá: báo một câu rồi thôi, không đẩy bước hoàn tác rỗng */
+function blockLocked(li=doc.al){
+  if(!isLocked(li)) return false;
+  toast('Lớp đang khoá');
+  return true;
+}
 function flipLayer(horiz){
+  if(blockLocked()) return;
   pushUndo();
   flipData(activeData(), horiz);
   changed();
 }
 function rotateLayer(cw){
+  if(blockLocked()) return;
   const s=view.sel || {w:doc.w,h:doc.h};
   if(s.w!==s.h){
     toast(view.sel ? 'Chỉ xoay được vùng chọn vuông — vùng đang là '+s.w+'×'+s.h+'.'
@@ -74,6 +82,7 @@ function rotateLayer(cw){
   changed();
 }
 function addOutline(corners){
+  if(blockLocked()) return;
   const before=activeData().slice();
   const n=outlineData(activeData(), view.pri, corners);
   if(!n){ toast('Không có chỗ nào để thêm viền — lớp đang trống hoặc đã kín.'); return; }
@@ -83,6 +92,7 @@ function addOutline(corners){
 }
 /* đẩy lớp / vùng chọn đi một bước bằng phím mũi tên khi đang cầm dụng cụ Dịch lớp */
 function nudge(dx,dy){
+  if(blockLocked()) return;
   const s=view.sel;
   if(s){
     dx=Math.max(-s.x,Math.min(doc.w-s.x-s.w,dx));
@@ -96,6 +106,7 @@ function nudge(dx,dy){
 }
 /* đổi màu hàng loạt trên lớp hiện tại, mọi khung — quy trình palette swap */
 function replaceColor(from,to){
+  if(blockLocked()) return;
   let n=0;
   doc.frames.forEach(f=>{ const d=f[doc.al]; for(let i=0;i<d.length;i++) if(d[i]===from) n++; });
   if(!n || from===to){ toast(from===to ? 'Màu phụ và màu chính đang trùng nhau.' : 'Lớp này không có pixel nào mang màu phụ '+intToHex(from)+'.'); return; }
@@ -271,6 +282,7 @@ $('#tileBtn').addEventListener('click', e=>{
 /* ---------------- vùng chọn ---------------- */
 function selAct(fn, undoable){
   if(!view.sel && undoable!=='paste'){ toast('Chưa có vùng chọn — dùng dụng cụ ⬚ (A) hoặc Ctrl+A.'); return; }
+  if(undoable && blockLocked()) return;
   if(undoable) pushUndo();
   if(fn(activeData())===false && undoable) undo();
   render(); paintThumbs();
@@ -289,6 +301,7 @@ $('#selNone').addEventListener('click', ()=>{ view.sel=null; render(); });
    Lớp dùng chung cho mọi khung, nên khung sau cứ chọn lại đúng lớp part đó là các part nằm cùng một lớp. */
 function moveSelToLayer(target){
   const s=view.sel; if(!s) return;
+  if(blockLocked() || (target>=0 && blockLocked(target))) return;
   pushUndo();
   if(target<0){
     target=doc.al+1;
@@ -414,6 +427,7 @@ $('#wipeSave').addEventListener('click', ()=>{
   clearSave().then(()=>location.reload());
 });
 $('#clearBtn').addEventListener('click', ()=>{
+  if(blockLocked()) return;
   if(!activeData().some(v=>v)){ toast('Lớp này đang trống.'); return; }
   pushUndo(); activeData().fill(0); changed();
   toast('Đã xoá lớp "'+doc.layers[doc.al].name+'" ở khung '+(doc.af+1)+' — Ctrl+Z để lấy lại.');

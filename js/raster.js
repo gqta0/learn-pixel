@@ -1,8 +1,9 @@
 import { paintPixel, paintStamp, paintLine, paintRect, paintFill, pixelInSelection } from './pixel-brush.js';
 /* Lõi raster: ghép lớp thành ảnh và mọi thao tác đặt pixel.
    Thuần tính toán — không đụng tới giao diện, không tự vẽ lại màn hình. */
-import { rgba } from './color.js';
-import { doc, view, blank } from './state.js';
+import { rgba, blendOver, blendOverOp } from './color.js';
+import { doc, view, blank, isLocked } from './state.js';
+export { blendOver, blendOverOp };
 
 /* ---------------- ghép lớp ---------------- */
 export const buf = document.createElement('canvas');   // vùng đệm 1:1 với khổ tranh
@@ -23,19 +24,6 @@ let preview = null;     // {layer:index, data:Uint32Array} — xem trước hìn
 export { preview };
 export function setPreview(p){ preview=p; }
 
-/* chồng pixel s lên pixel d — dùng chung cho ghép lớp và Gộp xuống, để gộp xong
-   nhìn y như lúc còn hai lớp */
-export function blendOver(d, s){
-  const sa=(s>>>24)&255, da=(d>>>24)&255;
-  if(sa===255 || !da) return s;                  // dưới trống: giữ nguyên màu, không bị sạm đi
-  if(!sa) return d;
-  const a = sa/255, ia = 1-a;
-  const r = Math.round((s&255)*a + (d&255)*ia);
-  const g = Math.round(((s>>8)&255)*a + ((d>>8)&255)*ia);
-  const b = Math.round(((s>>16)&255)*a + ((d>>16)&255)*ia);
-  const na = Math.round(sa + da*ia);
-  return rgba(r,g,b,na);
-}
 /* only: chỉ ghép đúng lớp đó (kể cả khi đang ẩn) — xem/xuất riêng một lớp */
 function composite(frameIdx, target, only=-1){
   target.fill(0);
@@ -43,9 +31,10 @@ function composite(frameIdx, target, only=-1){
   for(let li=0; li<frame.length; li++){
     if(only>=0 ? li!==only : !doc.layers[li].vis) continue;
     const src = (preview && preview.layer===li && frameIdx===doc.af) ? preview.data : frame[li];
+    const op = doc.layers[li].op ?? 1;
     for(let i=0;i<target.length;i++){
       const s=src[i]; if(!s) continue;
-      target[i] = blendOver(target[i], s);
+      target[i] = blendOverOp(target[i], s, op);
     }
   }
 }
@@ -126,6 +115,7 @@ export function floodFill(data,x,y,col,global=false){
 /* wrap: phần trôi khỏi mép này hiện lại ở mép đối diện — cách soi mối nối tile.
    Chỉ áp dụng khi dịch cả lớp; vùng chọn thì luôn dịch thường. */
 export function shiftLayer(data,dx,dy,selection=null,wrap=false){
+  if(isLocked()) return false;                     // lớp khoá: không lối nào ghi được
   const s=selection || {x:0,y:0,w:doc.w,h:doc.h};
   const out=data.slice();
   if(wrap && !selection){
@@ -146,6 +136,7 @@ export function shiftLayer(data,dx,dy,selection=null,wrap=false){
    corners=false chỉ xét 4 hướng (viền bo góc, kiểu hay gặp ở sprite game).
    at={x,y} trúng một pixel đặc: chỉ viền khối liền (tính cả chéo) chứa pixel đó. */
 export function outlineData(data,col,corners=false,at=null){
+  if(isLocked()) return false;                     // lớp khoá: không lối nào ghi được
   const s=view.sel || {x:0,y:0,w:doc.w,h:doc.h};
   let solid=(x,y)=> inside(x,y) && ((data[idx(x,y)]>>>24)&255)>0;
   if(at && solid(at.x,at.y)){
@@ -171,6 +162,7 @@ export function outlineData(data,col,corners=false,at=null){
 /* Xoay 90° theo chiều kim đồng hồ (cw=false: ngược chiều). Chỉ xoay được vùng vuông:
    vùng chọn vuông, hoặc cả lớp khi canvas vuông. Trả về false nếu không xoay được. */
 export function rotateData(data,cw=true){
+  if(isLocked()) return false;                     // lớp khoá: không lối nào ghi được
   const s=view.sel || {x:0,y:0,w:doc.w,h:doc.h};
   if(s.w!==s.h) return false;
   const n=s.w, out=data.slice();
@@ -209,6 +201,7 @@ export function copySel(data){
   return true;
 }
 export function clearSel(data){
+  if(isLocked()) return false;
   const s=view.sel; if(!s) return false;
   for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++) data[idx(s.x+x,s.y+y)]=0;
   return true;
@@ -216,7 +209,7 @@ export function clearSel(data){
 /* dán vào góc trên-trái của vùng chọn; chưa chọn thì dán về đúng chỗ cũ.
    Dán xong thì vùng chọn ôm đúng mảng vừa dán, để bấm Move kéo đi được ngay. */
 export function pasteClip(data){
-  if(!clip) return false;
+  if(!clip || isLocked()) return false;
   let ox=view.sel?view.sel.x:clip.x, oy=view.sel?view.sel.y:clip.y;
   ox=Math.max(0,Math.min(ox,doc.w-1)); oy=Math.max(0,Math.min(oy,doc.h-1));
   view.sel=null;                                 // put() không được cắt mảng dán theo vùng cũ
@@ -229,6 +222,7 @@ export function pasteClip(data){
 }
 /* lật lớp theo chiều ngang hoặc dọc */
 export function flipData(data,horiz){
+  if(isLocked()) return false;                     // lớp khoá: không lối nào ghi được
   const out=data.slice(), s=view.sel || {x:0,y:0,w:doc.w,h:doc.h};
   for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++)
     out[idx(s.x+x,s.y+y)] = data[idx(s.x+(horiz?s.w-1-x:x),s.y+(horiz?y:s.h-1-y))];

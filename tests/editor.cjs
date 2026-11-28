@@ -37,14 +37,14 @@ function editor(){
   const context=vm.createContext({doc,view,board,$,document:dom,window:win,Uint32Array,
     Date:FakeDate,setTimeout:setTimeoutFake,clearTimeout:clearTimeoutFake,toast:t=>toasts.push(t),
     showLoupe(){ loupe.shown++; },hideLoupe(){ loupe.hidden++; },
-    RED:0xff0000ff,BLUE:0xffff0000,YELLOW:0xff00ffff,
+    RED:0xff0000ff,BLUE:0xffff0000,YELLOW:0xff00ffff,isLocked:(li=doc.al)=>doc.layers[li]?.lock===true,
     activeData:()=>doc.frames[doc.af][doc.al],blank:()=>new Uint32Array(doc.w*doc.h),
     cloneLayer:l=>JSON.parse(JSON.stringify(l)),
     rgba:(r,g,b,a)=>(r|(g<<8)|(b<<16)|(a<<24))>>>0,
     render(){},requestRender(){},PERF:false,perfMark(){},setText:(el,t)=>{el.textContent=t;},syncAll(){},paintThumbs(){},paintSwatches(){},syncColors(){},syncFingerBtn(){},
     markToday(){marks++;},shadeStep:v=>v,setZoom:z=>{view.zoom=z;}
   });
-  for(const file of ['gestures','history','pixel-brush','raster','input']){
+  for(const file of ['color','gestures','history','pixel-brush','raster','input']){
     const source=readFileSync(join(__dirname,'../js',file+'.js'),'utf8')
       .replace(/^import\s[\s\S]*?;\s*$/gm,'')
       .replace(/^export\s*\{[^}]*\};/gm,'').replace(/\bexport\s+/g,'');
@@ -349,4 +349,23 @@ test('giữ yên cuối nét với dụng cụ tẩy không đổi thành đư�
   e.event('pointerdown',1,2,2,'pen'); e.event('pointermove',1,6,9,'pen'); e.event('pointermove',1,12,4,'pen');
   e.tick(600); e.event('pointerup',1,12,4,'pen');
   assert.equal(e.pixel(6,9),0);      // nét tẩy cong vẫn còn
+});
+
+test('lớp khoá: nét vẽ không đổi pixel và không thêm bước',()=>{
+  const e=editor(); e.run('doc.layers[0].lock=true');
+  e.event('pointerdown',1,3,3,'pen'); e.event('pointerup',1,3,3,'pen');
+  assert.equal(e.pixel(3,3),0); assert.equal(e.marks(),0);
+  assert.ok(e.toasts.includes('Lớp đang khoá'));
+});
+test('lớp khoá: clearSel, pasteClip, shiftLayer, flipData, rotateData, outlineData không đổi pixel',()=>{
+  const e=editor(); e.run('activeData()[2*32+2]=RED; view.sel={x:0,y:0,w:8,h:8}; copySel(activeData()); doc.layers[0].lock=true');
+  const before=e.run('Array.from(activeData())');
+  assert.equal(e.run('clearSel(activeData())'),false);
+  e.run('view.sel={x:10,y:10,w:8,h:8}'); assert.equal(e.run('pasteClip(activeData())'),false);
+  e.run('view.sel=null');
+  assert.equal(e.run('shiftLayer(activeData(),3,0,null,false)'),false);
+  assert.equal(e.run('flipData(activeData(),true)'),false);
+  assert.equal(e.run('rotateData(activeData(),true)'),false);
+  assert.equal(e.run('outlineData(activeData(),BLUE,false)'),false);
+  assert.deepEqual(e.run('Array.from(activeData())'),before);
 });

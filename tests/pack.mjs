@@ -77,3 +77,13 @@ test('marks follow their frame when frames are inserted, removed or moved',()=>{
   assert.deepEqual(c,{name:'x',vis:false,marks:{0:'a'},src:{pivot:{x:1,y:2}}});
   assert.deepEqual(cleanMarks({1:'x'.repeat(40)}),{1:'x'.repeat(24)});
 });
+
+test('lớp 50% xuất ra 50% trong sheet như trên canvas',async()=>{
+  const {sheetPixels}=await import('../js/manifest.js');
+  const {rgba, blendOverOp}=await import('../js/color.js');
+  const RED=rgba(255,0,0,255), BLUE=rgba(0,0,255,255);
+  const p={w:1,h:1,layers:[{name:'nền',vis:true},{name:'mờ',vis:true,op:0.5}],frames:[[new Uint32Array([BLUE]),new Uint32Array([RED])]]};
+  const {W,H,out}=sheetPixels(p,{layers:[0,1],count:1},1);
+  assert.deepEqual([W,H],[1,1]);
+  assert.equal(out[0], blendOverOp(BLUE,RED,0.5));
+});

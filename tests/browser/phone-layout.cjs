@@ -168,7 +168,34 @@ async function checkHoldPick(browser, origin) {
   }
 }
 
+// A4: lớp khoá — Xoá lớp và Gộp xuống vào lớp khoá đều từ chối, báo "Lớp đang khoá".
+async function checkLockedLayer(browser, origin) {
+  const page = await browser.newPage({viewport:{width:1280,height:800}});
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  try {
+    await page.goto(origin+'/index.html');
+    await page.waitForFunction(() => !document.querySelector('.app')?.inert);
+    const count = () => page.evaluate(async () => { const {doc} = await import('/js/state.js'); return doc.frames[0].map(d => d.filter(Boolean).length).join(','); });
+    await page.evaluate(async () => {
+      const {doc, activeData} = await import('/js/state.js'); const {addLayer} = await import('/js/layers.js');
+      activeData()[0] = 0xff0000ff; addLayer(false); activeData()[1] = 0xffff0000;
+      doc.layers[0].lock = true; doc.al = 0;
+    });
+    const before = await count();
+    await page.locator('#clearBtn').click();
+    assert.equal(await count(), before, 'Xoá lớp không được đụng lớp khoá');
+    assert.equal(await page.locator('.toast').textContent(), 'Lớp đang khoá');
+    await page.evaluate(async () => { const {doc} = await import('/js/state.js'); const {mergeDown} = await import('/js/layers.js'); doc.al = 1; mergeDown(); });
+    assert.equal(await page.evaluate(async () => (await import('/js/state.js')).doc.layers.length), 2, 'Gộp xuống vào lớp khoá phải từ chối');
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+}
+
 module.exports = async function testPhoneLayout(browser, origin) {
+  await checkLockedLayer(browser, origin);
   await checkHoldPick(browser, origin);
   await checkPuppetWithoutRig(browser, origin);
   await checkTapUndo(browser, origin);
