@@ -1,5 +1,5 @@
 import { blendOverOp } from './color.js';
-import { cleanTags } from './tags.js';
+import { cleanTags, tagFrames } from './tags.js';
 /* Kế hoạch xuất và bảng kê cho game: từ một dự án đã lưu (định dạng serialize) ra danh sách
    sheet cần vẽ, kèm số khung, thời lượng từng khung, điểm chân và mốc có tên.
    Thuần dữ liệu — không DOM — để kiểm thử được bằng Node; pack.js lo phần vẽ PNG và ZIP. */
@@ -62,7 +62,7 @@ export function sheetBaseName(p, plan){
   return sanitizeFilename(p.name,'sprite')+(plan.layer ? '_'+sanitizeFilename(plan.layer,'lop') : '');
 }
 /* Một dòng của bảng kê. Thời lượng từng khung ra mili-giây (khung không đặt riêng thì theo fps). */
-export function manifestEntry(p, plan, {file, tres=null, cols, loop=true}){
+export function manifestEntry(p, plan, {file, tres=null, cols, loop=true, tags=null}){
   const beat=Math.round(1000/p.fps);
   return {
     name:sheetBaseName(p,plan), project:p.name, layer:plan.layer,
@@ -72,6 +72,7 @@ export function manifestEntry(p, plan, {file, tres=null, cols, loop=true}){
     pivot:plan.pivot ? {x:plan.pivot.x, y:plan.pivot.y} : null,
     characterHeight:plan.src?.charH || p.charH || null,
     marks:plan.marks,
+    ...(tags?.length ? {tags:tags.map(t=>({name:t.name, from:t.from, to:t.to, dir:t.dir, frames:tagFrames(t).filter(i=>i<plan.count)}))} : {}),
     source:plan.src
   };
 }
@@ -92,4 +93,19 @@ export function sheetPixels(p, plan, cols){
     }
   }
   return {W,H,out};
+}
+
+/* thẻ hoạt ảnh → animation của SpriteFrames: thứ tự khung theo chiều của thẻ, bỏ khung quá số ô của sheet,
+   trùng tên thì thêm _2, _3 (Godot cần tên animation khác nhau). durations theo số nhịp, chỉ số theo khung. */
+export function tagAnims(tags, count, durations, loop=true){
+  const used=new Set(), out=[];
+  for(const t of tags||[]){
+    const frames=tagFrames(t).filter(i=>i<count);
+    if(!frames.length) continue;
+    let name=t.name, k=2;
+    while(used.has(name)) name=t.name+'_'+(k++);
+    used.add(name);
+    out.push({name, frames, loop, durations:frames.map(i=>durations[i] ?? 1)});
+  }
+  return out;
 }

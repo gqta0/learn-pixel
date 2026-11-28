@@ -3,7 +3,7 @@
 import { $, toast } from './dom.js';
 import { spriteFramesTres } from './sheet.js';
 import { makeZip } from './zip.js';
-import { decodeProject, planSheets, manifestEntry, sheetBaseName, sanitizeFilename, sheetPixels } from './manifest.js';
+import { decodeProject, planSheets, manifestEntry, sheetBaseName, sanitizeFilename, sheetPixels, tagAnims } from './manifest.js';
 import { sheetCols } from './storage.js';
 import { canvasPngBytes, offerDownload } from './savefile.js';
 
@@ -34,10 +34,12 @@ export async function packProjects(projects, mode, zipName){
       const cols=sheetCols(plan.count,colPick), base=unique(sheetBaseName(p,plan));
       const png=base+'.png', tres=base+'.tres';
       files.push({name:png, data:sheetPng(p,plan,cols)});
-      const beat=1000/p.fps;
+      const beat=1000/p.fps, durations=Array.from({length:plan.count},(_,i)=>p.dur[i]>0?p.dur[i]/beat:1);
+      // thẻ hoạt ảnh chỉ khớp khi sheet đủ mọi khung (ghép chung hoặc mỗi lớp đủ khung); mỗi lớp một động tác thì bỏ qua
+      const tags=mode==='actions' && p.layers.length>1 ? null : p.tags;
       files.push({name:tres, data:spriteFramesTres({name:base,texture:dir+png,fw:p.w,fh:p.h,cols,count:plan.count,fps:p.fps,loop,
-        durations:Array.from({length:plan.count},(_,i)=>p.dur[i]>0?p.dur[i]/beat:1)})});
-      sheets.push(manifestEntry(p,plan,{file:png,tres,cols,loop}));
+        durations, anims:tagAnims(tags,plan.count,durations,loop)})});
+      sheets.push(manifestEntry(p,plan,{file:png,tres,cols,loop,tags}));
     }
   }
   if(!sheets.length){ toast('Không có lớp nào đang hiện để xuất.'); return 0; }

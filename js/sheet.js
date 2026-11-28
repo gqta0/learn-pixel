@@ -268,7 +268,9 @@ export function pixelizeSheet(src,w,h,opt){
 /* ---------------- Godot 4: SpriteFrames (.tres) ----------------
    Một file sheet PNG + file này là kéo thẳng được vào AnimatedSprite2D.
    durations: thời lượng riêng từng khung tính theo số nhịp (1 = đúng một nhịp fps). */
-export function spriteFramesTres({name='default',texture,fw,fh,cols,count,fps=8,loop=true,durations=[]}){
+/* anims (tuỳ chọn): [{name, frames:[chỉ số ô], loop, durations}] — mỗi thẻ hoạt ảnh một animation, dùng chung
+   các ô của sheet. Không có anims thì như cũ: một animation chạy hết các ô. */
+export function spriteFramesTres({name='default',texture,fw,fh,cols,count,fps=8,loop=true,durations=[],anims=null}){
   const anim=String(name).replace(/[^\w-]+/g,'_').replace(/^_+|_+$/g,'')||'default';
   const out=['[gd_resource type="SpriteFrames" load_steps='+(count+2)+' format=3]','',
     '[ext_resource type="Texture2D" path="'+texture+'" id="1_sheet"]',''];
@@ -276,8 +278,16 @@ export function spriteFramesTres({name='default',texture,fw,fh,cols,count,fps=8,
     out.push('[sub_resource type="AtlasTexture" id="AtlasTexture_'+i+'"]','atlas = ExtResource("1_sheet")',
       'region = Rect2('+(i%cols)*fw+', '+Math.floor(i/cols)*fh+', '+fw+', '+fh+')','');
   }
-  const frames=Array.from({length:count},(_,i)=>
-    '{\n"duration": '+fmt(durations[i])+',\n"texture": SubResource("AtlasTexture_'+i+'")\n}').join(', ');
+  const frameList=(idx,durs)=>idx.map((i,k)=>
+    '{\n"duration": '+fmt(durs[k])+',\n"texture": SubResource("AtlasTexture_'+i+'")\n}').join(', ');
+  if(anims?.length){
+    // tên thẻ giữ nguyên chữ có dấu (StringName của Godot nhận UTF-8), chỉ bỏ dấu nháy và gạch chéo ngược
+    const blocks=anims.map(a=>['{','"frames": ['+frameList(a.frames,a.durations||[])+'],',
+      '"loop": '+(a.loop?'true':'false')+',','"name": &"'+String(a.name).replace(/["\\]/g,'_')+'",','"speed": '+fmt(fps),'}'].join('\n'));
+    out.push('[resource]','animations = ['+blocks.join(', ')+']','');
+    return out.join('\n');
+  }
+  const frames=frameList(Array.from({length:count},(_,i)=>i), durations);
   out.push('[resource]','animations = [{','"frames": ['+frames+'],',
     '"loop": '+(loop?'true':'false')+',','"name": &"'+anim+'",','"speed": '+fmt(fps),'}]','');
   return out.join('\n');

@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {countClusters, suggestCount, suggestGrid, unionBBox, medianCut, keyOutBackground,
   pixelizeSheet, spriteFramesTres, sheetBox, fitRatio, pixelizeImage, stackSheets, spriteHeight, syncRatios, footCenter, stackLayout, verticalTravel, MAX_SIDE} from '../js/sheet.js';
 import {groupColors, pickColors} from '../js/palgroups.js';
@@ -236,4 +237,24 @@ test('a jump sheet with the arc drawn in can be pixelized in place: every frame 
   r.frames.forEach(f=>assert.ok(f.every(v=>v!==0)));                       // mọi khung lấp đầy khung 6×10
   const keep=pixelizeSheet(px,w,ch,{cols,rows:1,ratio:1,tight:true,palette:['#1e1ec8']});
   assert.equal(keep.h,35); assert.equal(keep.frames[1][0],rgba(0x1e,0x1e,0xc8)); assert.equal(keep.frames[0][0],0);
+});
+
+const FIXTURE_OLD=readFileSync(new URL('./fixtures/sprite-frames-old.tres',import.meta.url),'utf8');
+const tresArgs={name:'run',texture:'res://run.png',fw:16,fh:16,cols:4,count:6,fps:8,loop:true,durations:[1,1,2,1,1,1]};
+test('không có anims thì .tres y hệt bản cũ',()=>{ assert.equal(spriteFramesTres(tresArgs), FIXTURE_OLD); });
+test('hai thẻ thành hai animation, thẻ ping dùng thứ tự qua lại, tên tiếng Việt giữ nguyên',()=>{
+  const t=spriteFramesTres({...tresArgs,anims:[{name:'idle',frames:[0,1],loop:true,durations:[1,1]},
+                                               {name:'chạy',frames:[2,3,4,5,4,3],loop:true,durations:[2,1,1,1,1,1]}]});
+  assert.equal((t.match(/"name": &"/g)||[]).length,2);
+  assert.match(t,/"name": &"chạy"/);
+  assert.equal((t.match(/\[sub_resource type="AtlasTexture"/g)||[]).length,6);
+  const run=t.slice(t.indexOf('"name": &"idle"'));
+  assert.equal((run.match(/SubResource\("AtlasTexture_\d+"\)/g)||[]).length,6, 'animation "chạy" có 6 khung');
+  assert.ok(run.includes('SubResource("AtlasTexture_5")'));
+});
+test('tagAnims: thẻ thành animation; khung quá số khung của sheet bị bỏ; trùng tên thì thêm số',async()=>{
+  const {tagAnims}=await import('../js/manifest.js');
+  const a=tagAnims([{name:'đánh',from:1,to:3,dir:'ping'},{name:'đánh',from:4,to:9,dir:'rev'}],6,[1,2,1,1,1,1],true);
+  assert.deepEqual(a,[{name:'đánh',frames:[1,2,3,2],loop:true,durations:[2,1,1,1]},
+                      {name:'đánh_2',frames:[5,4],loop:true,durations:[1,1]}]);
 });

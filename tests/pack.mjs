@@ -87,3 +87,12 @@ test('lớp 50% xuất ra 50% trong sheet như trên canvas',async()=>{
   assert.deepEqual([W,H],[1,1]);
   assert.equal(out[0], blendOverOp(BLUE,RED,0.5));
 });
+
+test('manifest ghi thẻ khi dự án có thẻ, khung theo chiều chạy',()=>{
+  const p={name:'hero',w:1,h:1,fps:8,dur:[],layers:[{name:'L',vis:true}],frames:[[new Uint32Array(1)],[new Uint32Array(1)],[new Uint32Array(1)]],
+    tags:[{name:'đánh',from:0,to:2,dir:'ping'}]};
+  const plan=planSheets(p,'merged')[0];
+  const m=manifestEntry(p,plan,{file:'hero.png',cols:3,tags:p.tags});
+  assert.deepEqual(m.tags,[{name:'đánh',from:0,to:2,dir:'ping',frames:[0,1,2,1]}]);
+  assert.equal(manifestEntry(p,plan,{file:'hero.png',cols:3}).tags,undefined);
+});
