@@ -3,7 +3,8 @@ import { $, setText, toast } from './dom.js';
 import { doc, view, activeData } from './state.js';
 import { board, render, requestRender, setZoom, PERF, perfMark } from './render.js';
 import { pushUndo, captureUndo, undo, redo } from './history.js';
-import { createTapTracker } from './gestures.js';
+import { createTapTracker, longPressReady } from './gestures.js';
+import { showLoupe, hideLoupe } from './loupe.js';
 import { syncColors, paintSwatches, shadeStep } from './palette.js';
 import { markToday } from './daily.js';
 import { paintThumbs } from './frames.js';
@@ -103,6 +104,7 @@ function hudText(p){
   setText($('#hud'),t);
 }
 function cancelStroke(){
+  if(hold && !hold.picking){ clearTimeout(hold.timer); hold=null; }
   if(!drawing) return;
   if(strokeUndo) strokeData.set(strokeUndo.frames[strokeUndo.af][strokeUndo.al]);
   view.sel=strokeSelection;
@@ -138,6 +140,36 @@ function getEffectiveTool(e){
 /* hai ngón chạm nhanh = hoàn tác, ba ngón = làm lại; ghi nhận trước khoảng chờ 140ms sau khi chụm,
    không thì ngón thứ hai bị coi là bắt đầu chụm. Bút đang vẽ thì chạm tay bị bỏ qua ngay dòng dưới. */
 const taps=createTapTracker();
+/* chạm giữ yên 400ms (lệch ≤ 6px màn hình) bằng bút / ngón đang vẽ = hút màu, có kính lúp.
+   Đã lệch quá 6px một lần thì cả nét không bao giờ thành hút màu nữa. */
+const HOLD_TOOLS_SKIP=['select','move','picker'];
+let hold=null;     // {id, down:{x,y,t}, cur:{x,y,t}, moved, picking, timer}
+function startHold(e){
+  const at={x:e.clientX, y:e.clientY, t:Date.now()};
+  hold={id:e.pointerId, down:at, cur:at, moved:false, picking:false};
+  hold.timer=setTimeout(()=>{
+    if(!hold || hold.moved || !longPressReady(hold.down, {...hold.cur, t:Date.now()})) return;
+    hold.picking=true;
+    cancelStroke();                                   // trả lại chấm đầu nét, không thêm bước hoàn tác
+    const p=posFrom({clientX:hold.cur.x, clientY:hold.cur.y});
+    showLoupe(hold.cur.x, hold.cur.y, p.x, p.y);
+  }, 400);
+}
+function trackHold(e){
+  if(!hold || e.pointerId!==hold.id) return false;
+  hold.cur={x:e.clientX, y:e.clientY, t:Date.now()};
+  if(hold.picking){ const p=posFrom(e); showLoupe(e.clientX, e.clientY, p.x, p.y); return true; }
+  if(Math.hypot(e.clientX-hold.down.x, e.clientY-hold.down.y)>6){ hold.moved=true; clearTimeout(hold.timer); }
+  return false;
+}
+function endHold(e){
+  if(!hold || (e && e.pointerId!==hold.id)) return false;
+  clearTimeout(hold.timer);
+  const picked=hold.picking;
+  if(picked){ if(e) pick(posFrom(e)); hideLoupe(); }
+  hold=null;
+  return picked;
+}
 
 wrap.addEventListener('pointerdown', e=>{
   const t0=PERF ? performance.now() : 0;
@@ -211,6 +243,7 @@ wrap.addEventListener('pointerdown', e=>{
   }
   else if(strokeTool==='move'){ moveBase = activeData().slice(); }
   else { setPreview({layer:doc.al, data:activeData().slice()}); }
+  if((e.pointerType==='pen' || e.pointerType==='touch') && !HOLD_TOOLS_SKIP.includes(strokeTool)) startHold(e);
   render(); paintThumbs();
   if(PERF) perfMark('down',performance.now()-t0);
 });
@@ -309,6 +342,7 @@ function applyStroke(rawP, col, e){
 wrap.addEventListener('pointermove', e=>{
   if(owner?.type==='pen' && e.pointerId!==owner.id) return;
   if(e.pointerType==='touch') taps.move(e.pointerId, e.clientX, e.clientY);
+  if(trackHold(e)) return;                            // đang hút màu: chỉ dời kính lúp
   if(pointers.has(e.pointerId)) pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,type:e.pointerType});
 
   const tp=touchPts();
@@ -353,6 +387,7 @@ wrap.addEventListener('pointermove', e=>{
 });
 
 function endStroke(e){
+  if(endHold(e)){ pointers.delete(e.pointerId); return; }
   if(e){
     pointers.delete(e.pointerId);
     if(touchPts().length<2 && gesture){
@@ -391,6 +426,7 @@ wrap.addEventListener('pointerup', e=>{
 });
 wrap.addEventListener('pointercancel', e=>{
   if(e.pointerType==='touch') taps.reset();
+  if(hold?.picking && e.pointerId===hold.id){ hideLoupe(); hold=null; }   // bị huỷ giữa chừng: không lấy màu
   if(e.pointerId===owner?.id) cancelStroke();
   endStroke(e);
 });

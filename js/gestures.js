@@ -30,3 +30,8 @@ export function createTapTracker({maxMs=250, slop=10}={}){
     reset
   };
 }
+
+/* Chạm giữ: đủ ms mà vẫn trong slop px (px màn hình) quanh chỗ đặt xuống. */
+export function longPressReady(down, cur, {ms=400, slop=6}={}){
+  return cur.t-down.t>=ms && Math.hypot(cur.x-down.x, cur.y-down.y)<=slop;
+}

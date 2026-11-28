@@ -19,7 +19,7 @@ function editor(){
   const doc={w:32,h:32,af:0,al:0,layers:[{name:'Test',vis:true}],frames:[[new Uint32Array(1024)]],dur:[0]};
   const view={tool:'pencil',fingerMode:'draw',brush:1,brushEff:1,pri:0xff112233,sec:0xff445566,sel:null,zoom:1};
   let marks=0, clock=1e6, timers=[];
-  const toasts=[];
+  const toasts=[], loupe={shown:0,hidden:0};
   // đồng hồ giả: Date.now, setTimeout, clearTimeout trong vm đi theo tick(ms)
   class FakeDate extends Date { static now(){ return clock; } }
   const setTimeoutFake=(fn,ms=0)=>{ const t={fn,at:clock+ms}; timers.push(t); return t; };
@@ -36,6 +36,7 @@ function editor(){
   dom.createElement=element; dom.querySelector=()=>null;
   const context=vm.createContext({doc,view,board,$,document:dom,window:win,Uint32Array,
     Date:FakeDate,setTimeout:setTimeoutFake,clearTimeout:clearTimeoutFake,toast:t=>toasts.push(t),
+    showLoupe(){ loupe.shown++; },hideLoupe(){ loupe.hidden++; },
     RED:0xff0000ff,BLUE:0xffff0000,YELLOW:0xff00ffff,
     activeData:()=>doc.frames[doc.af][doc.al],blank:()=>new Uint32Array(doc.w*doc.h),
     cloneLayer:l=>JSON.parse(JSON.stringify(l)),
@@ -62,7 +63,7 @@ function editor(){
     event('pointerdown',11,x,y,'touch'); event('pointerdown',12,x+6,y,'touch');
     tick(50); event('pointerup',11,x,y,'touch'); event('pointerup',12,x+6,y,'touch');
   };
-  return {doc,view,run,event,stroke,tap2,tick,toasts,wrap:$('#wrap'),dom,win,marks:()=>marks,pixel:(x,y)=>doc.frames[0][0][y*32+x]};
+  return {doc,view,run,event,stroke,tap2,tick,toasts,loupe,wrap:$('#wrap'),dom,win,marks:()=>marks,pixel:(x,y)=>doc.frames[0][0][y*32+x]};
 }
 
 test('one stroke commits once; undo and redo restore pixels',()=>{
@@ -299,4 +300,29 @@ test('chạm ba ngón làm lại bước vừa hoàn tác',()=>{
 test('bút đang vẽ dở thì hai ngón chạm không hoàn tác',()=>{
   const e=editor(); e.event('pointerdown',1,2,2,'pen'); e.tap2(9,9); e.event('pointerup',1,2,2,'pen');
   assert.notEqual(e.pixel(2,2),0); assert.equal(e.marks(),1);
+});
+
+test('bút chì chạm giữ: lấy màu, không để lại pixel, không thêm bước',()=>{
+  // trong editor() mỗi đơn vị toạ độ client là 1px màn hình (canvas giả 32×32, zoom 1); slop tính theo px màn hình
+  const e=editor(); e.run('activeData()[4*32+4]=RED; view.pri=BLUE'); const before=e.marks();
+  e.event('pointerdown',1,6,6,'pen'); e.event('pointermove',1,5,5,'pen');
+  e.event('pointermove',1,4,4,'pen');                                       // lệch 2.8px ≤ 6px: vẫn là giữ
+  e.tick(400); e.event('pointerup',1,4,4,'pen');                            // hút màu tại chỗ nhấc bút
+  assert.equal(e.run('view.pri'),e.run('RED')); assert.equal(e.marks(),before);
+  assert.equal(e.pixel(6,6),0);                                             // chấm ở pointerdown đã được trả lại
+  assert.equal(e.pixel(4,4),e.run('RED'));
+  assert.ok(e.loupe.shown>0 && e.loupe.hidden>0, 'kính lúp hiện rồi tắt');
+});
+test('đã kéo quá 6px trước 400ms thì vẫn là nét vẽ bình thường',()=>{
+  const e=editor(); e.event('pointerdown',1,2,2,'pen'); e.event('pointermove',1,12,2,'pen');
+  e.tick(400); e.event('pointerup',1,12,2,'pen'); assert.equal(e.marks(),1); assert.notEqual(e.pixel(12,2),0);
+  assert.equal(e.loupe.shown,0);
+});
+test('đã lệch quá 6px rồi quay về chỗ cũ thì cũng không thành hút màu',()=>{
+  const e=editor(); e.event('pointerdown',1,2,2,'pen'); e.event('pointermove',1,10,2,'pen'); e.event('pointermove',1,2,2,'pen');
+  e.tick(400); e.event('pointerup',1,2,2,'pen'); assert.equal(e.marks(),1); assert.equal(e.loupe.shown,0);
+});
+test('chạm giữ với dụng cụ Chọn không hút màu',()=>{
+  const e=editor(); e.view.tool='select'; e.event('pointerdown',1,4,4,'pen'); e.tick(400); e.event('pointerup',1,4,4,'pen');
+  assert.equal(e.loupe.shown,0);
 });

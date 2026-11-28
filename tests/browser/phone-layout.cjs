@@ -143,7 +143,33 @@ async function checkTapUndo(browser, origin) {
   }
 }
 
+// A2: ngón chạm giữ yên trên một pixel đỏ = màu chính thành đỏ, không thêm pixel nào, kính lúp hiện rồi tắt.
+async function checkHoldPick(browser, origin) {
+  const {page, errors} = await phonePage(browser, origin, '/index.html');
+  try {
+    const cdp = await page.context().newCDPSession(page);
+    await page.evaluate(async () => {
+      const {activeData, view} = await import('/js/state.js'); const {render} = await import('/js/render.js');
+      activeData()[5*32+5] = 0xff0000ff; view.pri = 0xffff0000; render();
+    });
+    const b = await page.locator('#board').boundingBox(), cell = b.width/32;
+    const pt = {x:b.x+5.5*cell, y:b.y+5.5*cell, id:1};
+    await cdp.send('Input.dispatchTouchEvent', {type:'touchStart', touchPoints:[pt]});
+    await page.waitForTimeout(550);
+    assert.ok(await page.locator('.loupe').isVisible(), 'kính lúp hiện khi giữ');
+    await cdp.send('Input.dispatchTouchEvent', {type:'touchEnd', touchPoints:[]});
+    const st = await page.evaluate(async () => { const {activeData, view} = await import('/js/state.js'); return {pri:view.pri, n:activeData().filter(Boolean).length}; });
+    assert.equal(st.pri, 0xff0000ff, 'chạm giữ lấy màu đỏ');
+    assert.equal(st.n, 1, 'không để lại pixel mới');
+    assert.equal(await page.locator('.loupe').isVisible(), false, 'kính lúp tắt khi nhấc');
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+}
+
 module.exports = async function testPhoneLayout(browser, origin) {
+  await checkHoldPick(browser, origin);
   await checkPuppetWithoutRig(browser, origin);
   await checkTapUndo(browser, origin);
   for (const path of ['/index.html', '/puppet.html']) {

@@ -1,7 +1,7 @@
 // Run: node --test tests/gestures.mjs — phân loại chạm nhiều ngón trên canvas.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createTapTracker} from '../js/gestures.js';
+import {createTapTracker, longPressReady} from '../js/gestures.js';
 
 test('hai ngón chạm nhanh = undo, ba ngón = redo',()=>{
   const g=createTapTracker();
@@ -24,4 +24,10 @@ test('bốn ngón không phải undo hay redo',()=>{
   for(let i=1;i<=4;i++) g.down(i,i*10,0,0);
   for(let i=1;i<4;i++) g.up(i,50);
   assert.equal(g.up(4,60),null);
+});
+
+test('longPressReady: đủ giờ và chưa lệch',()=>{
+  assert.equal(longPressReady({x:0,y:0,t:0},{x:3,y:4,t:400}),true);
+  assert.equal(longPressReady({x:0,y:0,t:0},{x:7,y:0,t:900}),false);
+  assert.equal(longPressReady({x:0,y:0,t:0},{x:0,y:0,t:399}),false);
 });
