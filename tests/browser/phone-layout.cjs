@@ -328,7 +328,39 @@ async function checkTouchTargets(browser, origin) {
   }
 }
 
+// B6: màn rộng thì bảng màu nằm luôn dưới danh sách lớp; chế độ tay trái đổi chỗ hai cột bên.
+async function checkWideLayout(browser, origin) {
+  const page = await browser.newPage({viewport:{width:1280,height:800}});
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const ready = () => page.waitForFunction(() => !document.querySelector('.app')?.inert);
+  try {
+    await page.goto(origin+'/index.html'); await ready();
+    assert.ok(await page.locator('#swatches').isVisible(), 'bảng màu hiện không cần bấm thẻ');
+    assert.ok(await page.locator('#layers').isVisible(), 'danh sách lớp vẫn ở trên');
+    assert.equal(await page.locator('[role=tab][data-pane="pColor"]').isVisible(), false, 'thẻ Màu ẩn khi đã hiện sẵn');
+    await page.locator('#leftHandBtn').click();
+    let L = await page.locator('.col.left').boundingBox(), W = await page.locator('#wrap').boundingBox();
+    assert.ok(L.x > W.x, 'tay trái: cột dụng cụ sang phải canvas');
+    await page.reload(); await ready();
+    L = await page.locator('.col.left').boundingBox(); W = await page.locator('#wrap').boundingBox();
+    assert.ok(L.x > W.x, 'tay trái được nhớ sau khi tải lại');
+    assert.equal(await page.locator('#leftHandBtn').getAttribute('aria-pressed'), 'true');
+    await page.setViewportSize({width:1100,height:800}); await page.waitForTimeout(150);
+    assert.ok(await page.locator('[role=tab][data-pane="pColor"]').isVisible(), 'màn hẹp hơn: thẻ Màu quay lại');
+    assert.equal(await page.locator('#pColor .color-block').count(), 1, 'khối màu về lại thẻ Màu');
+    await page.goto(origin+'/puppet.html'); await ready();
+    await page.setViewportSize({width:1280,height:800});
+    assert.ok(await page.locator('#tab-rigPartsPane').isVisible(), 'Ghép rối giữ nguyên các thẻ');
+    await page.evaluate(() => localStorage.removeItem('lo-pixel-left-hand'));
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+}
+
 module.exports = async function testPhoneLayout(browser, origin) {
+  await checkWideLayout(browser, origin);
   await checkTouchTargets(browser, origin);
   await checkColorPicker(browser, origin);
   await checkGifExport(browser, origin);

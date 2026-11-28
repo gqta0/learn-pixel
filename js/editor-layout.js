@@ -169,6 +169,41 @@ export function layoutEditor(mode) {
   });
   bindPhoneMenus(mode);
   bindPhoneFrames(mode);
+  bindWideColors(mode, panel);
+  bindLeftHand();
+}
+
+/* Màn rộng (≥ 1180px, trang Vẽ): cột phải đủ chỗ cho cả lớp lẫn màu, nên khối Màu nằm luôn dưới danh sách lớp
+   và thẻ Màu ẩn đi. Hẹp lại thì trả khối Màu về thẻ của nó. */
+function bindWideColors(mode, panel){
+  if(mode!=='draw') return;
+  const WIDE=matchMedia('(min-width: 1180px)');
+  const layers=get('#pLayers'), color=get('#pColor'), blocks=[get('.color-block'), get('#rampBlock')];
+  const tab=panel.querySelector('[role="tab"][data-pane="pColor"]');
+  const place=()=>{
+    if(WIDE.matches){
+      layers.append(...blocks); tab.hidden=true;
+      if(tab.getAttribute('aria-selected')==='true') selectTab?.('pLayers');
+    } else { color.append(...blocks); tab.hidden=false; }
+  };
+  WIDE.addEventListener('change',place);
+  place();
+}
+
+/* Chế độ tay trái: cầm bút tay trái thì bàn tay che cột bên trái — đổi chỗ hai cột bên, và trên điện thoại
+   đưa ô màu chính, ô xem trước sang mép trái. Nhớ trong trình duyệt. */
+function bindLeftHand(){
+  const btn=get('#leftHandBtn'), KEY='lo-pixel-left-hand';
+  const set=on=>{
+    document.body.classList.toggle('left-hand',on);
+    btn?.setAttribute('aria-pressed',String(on)); btn?.classList.toggle('on',on);
+  };
+  try{ set(localStorage.getItem(KEY)==='1'); }catch(_){ set(false); }
+  btn?.addEventListener('click',()=>{
+    const on=!document.body.classList.contains('left-hand');
+    set(on);
+    try{ localStorage.setItem(KEY,on?'1':'0'); }catch(_){}
+  });
 }
 
 const PHONE=matchMedia('(max-width: 679px) and (orientation: portrait)');

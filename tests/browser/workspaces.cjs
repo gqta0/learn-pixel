@@ -42,7 +42,8 @@ async function run() {
     assert.equal(await countPixels(page),2);
     await page.locator('#tab-pLayers').focus();
     await page.keyboard.press('ArrowRight');
-    assert.equal(await page.locator('#tab-pColor').getAttribute('aria-selected'),'true');
+    // màn ≥ 1180px: khối Màu nằm luôn dưới danh sách lớp, thẻ Màu ẩn nên mũi tên đi tới Học vẽ
+    assert.equal(await page.locator('#tab-pHoc').getAttribute('aria-selected'),'true');
     await page.getByRole('navigation',{name:'Nhóm chức năng'}).getByText('Ghép rối').click();
     await page.waitForURL('**/puppet.html');
     await page.waitForFunction(() => document.querySelector('#rigInfo')?.textContent.includes('14 động tác'));

@@ -569,3 +569,20 @@ body[data-workspace="tile"] { min-height:100dvh; display:grid; grid-template-row
   body:is([data-workspace="draw"],[data-workspace="puppet"]) #quickRamp { flex-basis: 44px; height: 44px; }
   body:is([data-workspace="draw"],[data-workspace="puppet"]) #quickRamp .qr-swap { height: 44px; }
 }
+
+/* Chế độ tay trái: đổi chỗ cột dụng cụ và cột bảng; điện thoại đưa ô màu chính, ô xem trước sang trái */
+@media (min-width: 1001px) {
+  body.left-hand[data-workspace] .workspace { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(170px, 205px); }
+  body.left-hand[data-workspace] .workspace > .col.right { order: 1; }
+  body.left-hand[data-workspace] .workspace > .stage { order: 2; }
+  body.left-hand[data-workspace] .workspace > .col.left { order: 3; }
+}
+@media (pointer: coarse) and (orientation: landscape) and (min-width: 900px) and (max-width: 1600px) {
+  body.left-hand[data-workspace] .workspace { grid-template-columns: clamp(326px,29vw,380px) minmax(0,1fr) clamp(140px,14vw,190px); }
+}
+@media (max-width: 679px) and (orientation: portrait) {
+  body.left-hand:is([data-workspace="draw"],[data-workspace="puppet"]) #qbColor {
+    order: -1; left: 0; right: auto; margin-left: 0; margin-right: 6px; box-shadow: 8px 0 0 4px var(--panel);
+  }
+  body.left-hand[data-workspace="draw"] .float-preview { left: 8px; right: auto; }
+}
