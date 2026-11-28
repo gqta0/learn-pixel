@@ -9,7 +9,7 @@ import { pushUndo, undo, redo } from './history.js';
 import { render, fitZoom, setZoom } from './render.js';
 import { paintThumbs, paintPreview, togglePlay } from './frames.js';
 import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.js';
-import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches, paintRamp, setRampFamily, setRampMaterial, setRampBase, useRampBase, syncColors, rampCols,
+import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches, paintRamp, setRampFamily, pickMaterial, setRampMaterial, setRampBase, useRampBase, syncColors, rampCols,
          attachPalettePopup, openQuickPalette, palByName, isUserPal, savePaletteAs, deleteUserPal,
          fillPalSelect, importPaletteText, addCurrentColor, sortPalette, prunePalette, paletteFromArt, rampFromCurrent } from './palette.js';
 import { mountPalettePicker } from './palpick.js';
@@ -208,6 +208,7 @@ $('#palSel').addEventListener('change', e=>{
 $('#rampSteps').addEventListener('change', paintRamp);
 $('#hueShift').addEventListener('input', paintRamp);
 $('#rampFamily').addEventListener('change', setRampFamily);
+$('#matPick').addEventListener('change', pickMaterial);
 $('#rampUseBase').addEventListener('click', useRampBase);
 $('#rampColor').addEventListener('input', e=>setRampBase(e.target.value));
 $('#rampHex').addEventListener('change', e=>setRampBase(e.target.value));

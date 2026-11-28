@@ -163,6 +163,17 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 .colors{display:flex;gap:8px;align-items:center}
 .chip{width:34px;height:34px;border:1px solid var(--line);border-radius:2px;position:relative}
 .chip.sec{width:24px;height:24px}
+.color-block #chipPri{width:44px;height:44px;flex:none}
+.cur-color{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cur-color b{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cur-color code{font:11px var(--mono);color:var(--dim)}
+.color-block .chip.sec{flex:none}
+.mix-color{position:relative;overflow:hidden;flex:none}
+.mix-color input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.color-block #matPick{width:100%;margin-top:2px}
+.mat-strip{margin-top:8px}
+#matStrip .pal-cell .swatch{height:40px}
+#matStrip .pal-cell:nth-child(3) .swatch{height:48px}
 .swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:8px}
 .swatches.is-grouped{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .pal-group{background:var(--panel-2);border:1px solid var(--line);border-radius:3px;padding:6px 8px}
@@ -172,6 +183,21 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 }
 .pal-group-title small{color:var(--dim);font-size:11px}
 .pal-group-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(28px,1fr));gap:6px}
+/* Dải v4: 5 ô liền nhau tối → sáng, bậc giữa (màu gốc) nhô lên một nấc, mã dưới mỗi ô. */
+.pal-ramp + .pal-ramp, .pal-ramp + .pal-singles{margin-top:8px}
+.pal-ramp-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+.pal-ramp-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end}
+.pal-cell{min-width:0;display:flex;flex-direction:column}
+.pal-cell .swatch{aspect-ratio:auto;width:100%;height:30px;border-radius:0;box-shadow:none}
+.pal-ramp-strip .pal-cell:nth-child(3) .swatch{height:36px}
+.pal-cell .swatch[aria-current=true],.pal-cell .swatch.issec{z-index:1}
+.pal-cell .swatch[aria-current=true]{box-shadow:0 0 0 2px var(--text)}
+.pal-cell .swatch.issec{box-shadow:0 0 0 2px var(--cyan)}
+.pal-cell code{font:10px/1.2 var(--mono);color:var(--dim);text-align:center;padding-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pal-ramp-strip .pal-cell:nth-child(3) code{color:var(--text);font-weight:700}
+.pal-singles{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
+.pal-singles .swatch{box-shadow:0 0 0 1px var(--line)}
+.color-block .swatches.is-grouped{max-height:min(60vh,520px)}
 .color-block .swatches{max-height:250px;overflow-y:auto;padding:3px}
 .pen-settings summary{cursor:pointer;min-height:28px;margin:0}
 .pen-settings[open] summary{margin-bottom:10px}

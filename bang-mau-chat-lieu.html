@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bảng màu chất liệu · Genesis v4</title>
+<style>
+/* Giao diện lấy màu từ chính nhóm "Dùng chung" của bảng. */
+:root{--bg:#251c24;--panel:#30262f;--line:#4a3f49;--ink:#f1edf2;--mute:#cdc1b5;--stone:#857870;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,Menlo,monospace}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,"Segoe UI",Roboto,sans-serif}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+
+.bar{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:2px solid var(--line);padding:8px clamp(12px,3vw,32px) 0}
+.pick{display:flex;align-items:center;gap:10px;max-width:1280px;margin:auto}
+#chip{flex:none;width:44px;height:44px;background:#857870;box-shadow:inset 0 0 0 2px var(--ink)}
+.pick div{min-width:0;flex:1}
+#chosen{display:block;width:100%;background:none;border:0;padding:0;color:var(--ink);font:700 18px/1.2 var(--mono);letter-spacing:.04em}
+#label{display:block;color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#q{flex:0 1 190px;min-width:0;height:44px;background:var(--panel);border:2px solid var(--line);border-radius:0;color:var(--ink);padding:0 10px;font:inherit}
+#q::placeholder{color:var(--stone)}
+nav{display:flex;gap:6px;overflow-x:auto;max-width:1280px;margin:8px auto 0;padding-bottom:8px;scrollbar-width:none}
+nav a{flex:none;padding:9px 12px;background:var(--panel);color:var(--mute);text-decoration:none;font-size:13px;font-weight:600}
+nav a:hover{color:var(--ink)}
+
+main{max-width:1280px;margin:auto;padding:16px clamp(12px,3vw,32px) 48px}
+h1{margin:0;font-size:clamp(24px,5vw,40px);font-weight:800;letter-spacing:-.01em;line-height:1.1}
+main>p{margin:6px 0 0;color:var(--mute);max-width:60ch}
+section{scroll-margin-top:120px;margin-top:28px}
+h2{display:flex;align-items:baseline;gap:10px;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+h2 small{color:var(--stone);font:400 12px var(--mono);letter-spacing:0;text-transform:none}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px}
+article{background:var(--panel);padding:8px 10px 6px}
+article header{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px}
+h3{margin:0;font-size:14px;font-weight:600}
+
+button{appearance:none;background:none;border:0;border-radius:0;padding:0;margin:0;color:inherit;font:inherit;cursor:pointer;min-width:0;text-align:left}
+button code{display:block;padding:5px 0 3px;color:var(--mute);font:11px var(--mono)}
+button.ok code{font-size:0}
+button.ok code::after{content:"Đã chép";font:700 11px var(--mono);color:var(--ink)}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.all{flex:none;padding:6px 8px;border:1px solid var(--line)}
+.all code{padding:0}
+
+/* Dải 5 bậc liền nhau, bậc màu gốc nhô lên một nấc. */
+.ramp{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;padding-top:8px}
+.ramp span{display:block;height:52px}
+.ramp button:nth-child(3) span{height:60px}
+.ramp button:nth-child(3) code{color:var(--ink);font-weight:700}
+.ramp code{text-align:center}
+
+.singles{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin-top:10px}
+.singles button{background:var(--panel);padding:6px 6px 2px}
+.singles span{display:block;height:44px}
+.singles b{display:block;padding-top:5px;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.singles b+code{padding-top:0}
+#none{margin-top:28px;color:var(--mute)}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="pick">
+    <span id="chip"></span>
+    <div><input id="chosen" readonly aria-label="Mã màu đã chọn" value="#857870"><span id="label" role="status">Đá ấm · Màu gốc</span></div>
+    <input id="q" type="search" placeholder="Tìm tên hoặc mã" aria-label="Tìm màu theo tên hoặc mã HEX">
+  </div>
+  <nav id="nav" aria-label="Nhóm màu"></nav>
+</div>
+<main>
+  <h1>Bảng màu chất liệu</h1>
+  <p>Mỗi dải 5 bậc đi từ tối đến sáng, bậc nhô lên là màu gốc. Chạm một ô để chép mã HEX.</p>
+  <div id="groups"></div>
+  <p id="none" hidden>Không có màu nào khớp. Thử tên chất liệu như “gỗ”, “đồng”, hoặc vài ký tự của mã.</p>
+</main>
+<script>
+// Dữ liệu chép từ js/genesis-v4.js (V4_GROUPS, V4_COMMON, V4_ACCENTS). Sửa bảng ở đó thì sửa cả ở đây.
+// [tên nhóm, [[tên dải, 5 mã tối → sáng]], [[tên màu lẻ, mã]]]
+const GROUPS=[
+['Dùng chung',[],[['','251C24'],['','423D52'],['','857870'],['','CDC1B5'],['','F1EDF2'],['','FFFFFF']]],
+['Da',[
+ ['Da sáng','BA8271 DAA087 F3BFA2 F8CBAD FADCC3'],
+ ['Da trung bình','915C4B A87258 B8886B CAA082 DDC0A8'],
+ ['Da ngăm','7A402F 8B4F35 966143 B18161 CDAC92'],
+ ['Da nâu sâu','5E3025 6A3B29 724832 936D55 BA9F8A']],[]],
+['Tóc',[
+ ['Tóc đen tím','2A1F2D 332637 3B2C3E 68576B 9D8E9F'],
+ ['Tóc nâu hạt dẻ','5B3300 744300 875208 AD7636 D0A372'],
+ ['Tóc vàng','917145 BF9A64 E5BD82 F1CA8E F9DAAA']],[]],
+['Vải',[
+ ['Áo lam','0A619C 337DC7 5B98E6 7FAFFC ACC7FF'],
+ ['Vải đỏ thẫm','700032 8B0638 9E2440 C85560 EA8886'],
+ ['Vải hồng','994474 C85F90 EC7FA9 FF97B7 FFBAC8']],
+ [['Vải đỏ bụi','A1514A'],['Vải tím tro','9886A7']]],
+['Lá',[
+ ['Lá non','006B3B 00A23B 63C74D 91D857 C1E779'],
+ ['Lá ô liu','335018 5B722D 7F8C45 A5A963 CEC88E']],
+ [['Rêu sáng','A4AD62']]],
+['Gỗ và đất',[
+ ['Nâu đỏ · gỗ, đất đỏ, gốm nung','643730 804A40 965B4F B97B6E D9A599'],
+ ['Gỗ vàng','715B49 947A64 B1957C C8AB91 DDC6B1'],
+ ['Gỗ óc chó','4C3427 604334 705140 967663 BEA393'],
+ ['Gỗ ngả xám','545048 6F6A60 858075 A19C91 C1BDB4'],
+ ['Gỗ bạch dương','7A674A A18B68 C1AA83 D3BC94 E3D2B1']],
+ [['Gỗ hun','5F524B'],['Đất nung cam','D1732E']]],
+['Đá và khoáng vật',[
+ ['Đá ấm','564B46 6F625B 857870 A3978F C1B7B0'],
+ ['Đá lạnh','3D5B5E 54767C 6D8F96 8BAAB2 ACC5CE'],
+ ['Đá rêu','32462F 3E5A40 4D6B53 708F7A 98B5A4'],
+ ['Đá bazan','37343D 47424C 554F59 7D7780 A8A1A9'],
+ ['Hắc diện thạch','232236 343047 423D52 8A8596 E0DDE4'],
+ ['Sa thạch vàng','785B3D 997A54 B59870 C9B089 DAC9A7'],
+ ['Cẩm thạch hồng','6F5D64 927C82 B19A9F C6B0B4 DAC7C9'],
+ ['Khoáng lục','31523D 3F6A54 527F6B 739F8E 99BFB3']],
+ [['Đá lam đậm','4F7277']]],
+['Kim loại',[
+ ['Sắt tím xám','2F2C48 494260 5E5572 9C94AB E5E1E9'],
+ ['Thép lam','003C69 1657A1 4271BA 88A8E1 DDE6FC'],
+ ['Bạc','434E5B 6F7A8A 969FAF BDC3CF EAECF0'],
+ ['Thiếc','374248 59646C 778189 AAB1B7 E6E8EA'],
+ ['Vàng','834800 C77B00 FFA600 FFCA81 FFEDD0'],
+ ['Đồng thau','604000 8E6800 AC8D3E CDB983 EFEBD7'],
+ ['Đồng','693100 965512 B3783D D6AB80 F4E6D6'],
+ ['Đồng thiếc','5E2A00 814917 996637 C5A07D F0E4D6']],
+ [['Vàng oxy hóa','875208'],['Ánh đồng','E5BD82']]],
+['Kính và tinh thể',[
+ ['Kính ngọc','005D56 008978 28B093 7BCDB0 D2EDDE'],
+ ['Băng','276A7A 549DA9 87C8CF AADBDD DEF0EF'],
+ ['Tinh thể lam','2D479B 3D72CA 5B98E6 86BDF6 D0E8FD'],
+ ['Tinh thể chàm','443083 5752AC 6A72C4 91A2E2 D4E0F8']],
+ [['Băng lam sáng','BFE0F8'],['Tinh thể bạc hà','E6FFF4']]],
+['Năng lượng',[
+ ['Lửa đỏ','75062D B10B37 CA4949 F99C8B FFEAE3'],
+ ['Lửa vàng','814702 C27900 E6AC55 F4D395 F8F3E5'],
+ ['Năng lượng xanh','00683A 00A270 3FD0A6 8EEBD4 E5F8F4'],
+ ['Ma lực tím','2D007D 4C00A5 681AB7 BA87EE F4E6FC']],
+ [['Ma lực tím hồng','C955E7'],['Tia lửa vàng','FFD900']]],
+];
+const STEPS=['Bóng sâu','Bóng','Màu gốc','Mặt sáng','Điểm sáng'];
+// Bỏ dấu để gõ "da" vẫn ra "đá", "go" ra "gỗ".
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d');
+const swatch=(hex,label,name,key)=>`<button type="button" data-hex="#${hex}" data-label="${label}"${key?` data-k="${key}"`:''} aria-label="Chép ${label}, #${hex}"><span style="background:#${hex}"></span>${name?`<b>${name}</b>`:''}<code>#${hex}</code></button>`;
+
+document.querySelector('#nav').innerHTML=GROUPS.map(([name],i)=>`<a href="#g${i}">${name}</a>`).join('');
+document.querySelector('#groups').innerHTML=GROUPS.map(([group,ramps,singles],i)=>{
+  const count=[ramps.length&&ramps.length+' dải',singles.length&&singles.length+' màu lẻ'].filter(Boolean).join(' · ');
+  const cards=ramps.map(([name,hexes])=>{
+    const list=hexes.split(' ');
+    return `<article data-k="${norm(name+' '+hexes)}"><header><h3>${name}</h3><button type="button" class="all" data-hex="${list.map(h=>'#'+h).join(' ')}" data-label="Cả dải ${name}"><code>Chép cả dải</code></button></header><div class="ramp">${list.map((h,s)=>swatch(h,name+' · '+STEPS[s])).join('')}</div></article>`;
+  }).join('');
+  const lone=singles.map(([name,hex])=>swatch(hex,name||group,name,norm(name+' '+group+' '+hex))).join('');
+  return `<section id="g${i}"><h2>${group} <small>${count}</small></h2>${cards&&`<div class="cards">${cards}</div>`}${lone&&`<div class="singles">${lone}</div>`}</section>`;
+}).join('');
+
+const field=document.querySelector('#chosen'),label=document.querySelector('#label'),chip=document.querySelector('#chip');
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('button[data-hex]');
+  if(!button)return;
+  const text=button.dataset.hex;
+  field.value=text;
+  label.textContent=button.dataset.label;
+  if(!text.includes(' '))chip.style.background=text;
+  try{
+    await navigator.clipboard.writeText(text);
+    button.classList.add('ok');
+    setTimeout(()=>button.classList.remove('ok'),900);
+  }catch{
+    // Không có quyền clipboard (mở từ tệp, trình duyệt cũ): bôi sẵn mã để chép tay.
+    field.focus();field.select();
+    label.textContent='Mã đã bôi sẵn, giữ để chép';
+  }
+});
+
+document.querySelector('#q').addEventListener('input',event=>{
+  const query=norm(event.target.value.trim().replace(/^#/,''));
+  document.querySelectorAll('[data-k]').forEach(el=>el.hidden=!el.dataset.k.includes(query));
+  let any=false;
+  document.querySelectorAll('section').forEach(sec=>{
+    sec.hidden=!sec.querySelector('[data-k]:not([hidden])');
+    any||=!sec.hidden;
+  });
+  document.querySelector('#none').hidden=any;
+});
+</script>
+</body>
+</html>
