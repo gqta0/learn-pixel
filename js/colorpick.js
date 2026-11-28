@@ -4,10 +4,11 @@
 import { rgbToHsl, hslToHex, hexToInt, nearestOklab } from './color.js';
 import { palette } from './palette.js';
 
-let box=null, outside=null;
+let box=null, outside=null, onKey=null;
 export function closeColorPicker(){
   box?.remove(); box=null;
   if(outside){ document.removeEventListener('pointerdown', outside, true); outside=null; }
+  if(onKey){ document.removeEventListener('keydown', onKey, true); onKey=null; }
 }
 
 export function openColorPicker(anchor, startHex, onPick){
@@ -77,6 +78,11 @@ export function openColorPicker(anchor, startHex, onPick){
     box.style.left=Math.max(8, Math.min(r.left, innerWidth-p.width-8))+'px';
     box.style.top=Math.max(8, Math.min(r.bottom+6, innerHeight-p.height-8))+'px';
   }
-  outside=e=>{ if(box && !box.contains(e.target) && e.target!==anchor) closeColorPicker(); };
-  setTimeout(()=>document.addEventListener('pointerdown', outside, true));
+  // chạm ra ngoài chỉ đóng bảng: chặn luôn cú chạm đó để nó không vẽ xuống canvas phía dưới (như popup.js)
+  outside=e=>{
+    if(!box || box.contains(e.target) || e.target===anchor) return;
+    e.preventDefault(); e.stopPropagation(); closeColorPicker();
+  };
+  onKey=e=>{ if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); closeColorPicker(); } };
+  setTimeout(()=>{ document.addEventListener('pointerdown', outside, true); document.addEventListener('keydown', onKey, true); });
 }

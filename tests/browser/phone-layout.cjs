@@ -281,6 +281,17 @@ async function checkColorPicker(browser, origin) {
     await hex.fill('#ffa601'); await hex.press('Enter');
     await box.locator('.btn', {hasText:'Dùng màu này'}).tap();
     assert.equal(await pri(), '#ffa600', 'bám về màu gần nhất trong Genesis v4');
+    // chạm ra ngoài (lên canvas) chỉ đóng bảng, không vẽ; Esc cũng đóng
+    const count = () => page.evaluate(async () => (await import('/js/state.js')).activeData().filter(Boolean).length);
+    const n0 = await count();
+    await page.locator('#mixBtn').tap();
+    const w = await page.locator('#wrap').boundingBox();
+    await page.touchscreen.tap(w.x + w.width/2, w.y + 30);
+    assert.equal(await box.isVisible(), false, 'chạm ra ngoài thì đóng');
+    assert.equal(await count(), n0, 'chạm ra ngoài không được vẽ lên canvas');
+    await page.locator('#mixBtn').tap();
+    await page.keyboard.press('Escape');
+    assert.equal(await box.isVisible(), false, 'Esc đóng bảng pha màu');
     assert.deepEqual(errors, []);
   } finally {
     await page.close();
