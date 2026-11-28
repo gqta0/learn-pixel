@@ -2,6 +2,7 @@
 import { $, setText, setHidden } from './dom.js';
 import { doc, view, TH } from './state.js';
 import { buf, compositeToBuf, inside, clampSel, layerLength } from './raster.js';
+import { fitScale } from './fit.js';
 
 export const board = $('#board');
 const ctx = board.getContext('2d');
@@ -166,9 +167,10 @@ function showZoom(text){ for(const id of ['#zoomLbl','#zoomChip']){ const el=$(i
 export function fitZoom(){
   fitOnResize=true;
   view.hover=null;
-  const wrap=$('#wrap');
-  const fit=Math.min((wrap.clientWidth-40)/doc.w, (wrap.clientHeight-40)/doc.h);
-  view.zoom = Math.max(1, Math.min(28, Math.floor(fit)));
+  const wrap=$('#wrap'), cs=getComputedStyle(wrap);
+  const padX=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight), padY=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
+  // clientWidth/Height tính cả phần đệm: trừ đệm thật của từng chiều, chừa thêm 16px để mép tranh không dính khung
+  view.zoom = fitScale(doc.w, doc.h, wrap.clientWidth-padX, wrap.clientHeight-padY, 16);
   centerOnRender=true;
   showZoom('×'+view.zoom);
 }

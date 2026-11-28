@@ -246,6 +246,7 @@ $('#applySize').addEventListener('click', ()=>{
 $('#zoomIn').addEventListener('click', ()=>setZoom(view.zoom+2));
 $('#zoomOut').addEventListener('click', ()=>setZoom(view.zoom-2));
 $('#zoomFit').addEventListener('click', ()=>{ fitZoom(); render(); });
+$('#zoomChip').addEventListener('click', ()=>{ fitZoom(); render(); });
 function toggleBtn(sel, key){
   $(sel).addEventListener('click', e=>{
     view[key]=!view[key];

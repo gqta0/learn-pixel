@@ -30,6 +30,13 @@ async function checkPortrait(browser, origin, path) {
     assert.ok(qb.y >= wrap.y + wrap.height - 1, `${path}: thanh dụng cụ nằm dưới canvas`);
     assert.equal(await page.locator('#drawStatus').isVisible(), false, `${path}: dòng phím tắt ẩn trên điện thoại`);
     assert.equal(await page.locator('#qbUndo').isVisible(), false, `${path}: ↶ chỉ còn trên thanh trên`);
+    // B2: bản vẽ 32×32 mới vừa khung theo phần đệm thật (×11 = 352px ở bề ngang 375)
+    const fitted = await page.locator('#board').boundingBox();
+    assert.ok(fitted.width >= 350, `${path}: canvas 32×32 chỉ rộng ${fitted.width}px`);
+    await page.evaluate(async () => { const {setZoom} = await import('/js/render.js'); setZoom(3); });
+    assert.ok((await page.locator('#board').boundingBox()).width < 120);
+    await page.locator('#zoomChip').tap();
+    assert.ok((await page.locator('#board').boundingBox()).width >= 350, `${path}: chạm ×N phải vừa khung lại`);
     await page.locator('#wsMenuBtn').tap();
     const links = await page.locator('.popup .btn', {hasText:/Ghép rối|Vẽ tile|Vẽ thường/}).count();
     assert.equal(links, 3, `${path}: ≡ phải liệt kê ba trang`);
