@@ -40,3 +40,17 @@ test('chèn / xoá / dời khung (marksInsert / marksRemove / marksMove) dời l
   marksRemove(2); assert.deepEqual(doc.tags,[{name:'a',from:2,to:2,dir:'fwd'}]);
   marksMove(2,0); assert.deepEqual(doc.tags,[{name:'a',from:0,to:0,dir:'fwd'}]);
 });
+
+test('nhỏ: dời khung ra khỏi thẻ thì thẻ co lại, không giãn trùm khung lạ',()=>{
+  doc.layers=[{name:'L',vis:true}];
+  doc.tags=[{name:'a',from:1,to:2,dir:'fwd'}];
+  marksMove(2,5); assert.deepEqual(doc.tags,[{name:'a',from:1,to:1,dir:'fwd'}]);
+});
+test('nhỏ: dời một khung từ ngoài vào giữa thẻ thì thẻ dài ra',()=>{
+  doc.tags=[{name:'a',from:1,to:3,dir:'fwd'}];
+  marksMove(5,2); assert.deepEqual(doc.tags,[{name:'a',from:1,to:4,dir:'fwd'}]);
+});
+test('nhỏ: dời khung trong thẻ thì thẻ giữ nguyên khoảng',()=>{
+  doc.tags=[{name:'a',from:1,to:3,dir:'fwd'}];
+  marksMove(1,3); assert.deepEqual(doc.tags,[{name:'a',from:1,to:3,dir:'fwd'}]);
+});

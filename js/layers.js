@@ -36,7 +36,7 @@ export function paintLayers(){
       popover(ren, 'Lớp “'+L.name+'”', [
         {label:'✎ Đổi tên…', fn:rename},
         {label:L.lock?'🔓 Mở khoá':'🔒 Khoá lớp', on:!!L.lock, title:'Khoá: không vẽ, tô, dán, dời được lên lớp này',
-         fn:()=>{ if(L.lock) delete L.lock; else L.lock=true; paintLayers(); }},
+         fn:()=>{ if(L.lock) delete L.lock; else L.lock=true; paintLayers(); render(); }},   // render() kích hoạt tự lưu
         {heading:'Độ mờ'},
         ...[1,0.75,0.5,0.25].map(v=>({label:Math.round(v*100)+'%', on:(L.op ?? 1)===v, fn:()=>setOp(v)}))
       ]);

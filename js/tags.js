@@ -31,6 +31,23 @@ export function remapTags(tags, map){
   return out;
 }
 
+/* dời khung from tới vị trí to (như marksMove): coi là bỏ khung ở from rồi chèn lại ở to.
+   Dời một khung ra khỏi thẻ thì thẻ co lại, dời từ ngoài vào giữa thì thẻ dài ra; thẻ chỉ có đúng khung đó thì đi theo nó. */
+export function remapTagsMove(tags, from, to){
+  const out=[];
+  for(const t of tags||[]){
+    if(t.from===from && t.to===from){ out.push({...t, from:to, to}); continue; }
+    let a=t.from, b=t.to;
+    const inside=from>=a && from<=b;
+    if(from<a){ a--; b--; } else if(inside) b--;            // bỏ khung from
+    if(inside){                                             // khung của thẻ: còn trong thẻ nếu chèn lại trong [a, b+1]
+      if(to<a){ a++; b++; } else if(to<=b+1) b++;
+    } else if(to<=a){ a++; b++; } else if(to<=b) b++;       // khung ngoài: chèn giữa thẻ thì thẻ dài ra
+    out.push({...t, from:a, to:b});
+  }
+  return out;
+}
+
 /* thứ tự khung của một vòng chạy */
 export function tagFrames(tag){
   const up=[];

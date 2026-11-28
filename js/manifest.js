@@ -97,8 +97,13 @@ export function sheetPixels(p, plan, cols){
 
 /* thẻ hoạt ảnh → animation của SpriteFrames: thứ tự khung theo chiều của thẻ, bỏ khung quá số ô của sheet,
    trùng tên thì thêm _2, _3 (Godot cần tên animation khác nhau). durations theo số nhịp, chỉ số theo khung. */
-export function tagAnims(tags, count, durations, loop=true){
+export function tagAnims(tags, count, durations, loop=true, allName=null){
   const used=new Set(), out=[];
+  // allName: thêm một animation chạy hết các khung, đặt đầu tiên — khung ngoài mọi thẻ vẫn có chỗ trong Godot
+  if(allName && tags?.length){
+    used.add(allName);
+    out.push({name:allName, frames:Array.from({length:count},(_,i)=>i), loop, durations:Array.from({length:count},(_,i)=>durations[i] ?? 1)});
+  }
   for(const t of tags||[]){
     const frames=tagFrames(t).filter(i=>i<count);
     if(!frames.length) continue;
@@ -107,5 +112,5 @@ export function tagAnims(tags, count, durations, loop=true){
     used.add(name);
     out.push({name, frames, loop, durations:frames.map(i=>durations[i] ?? 1)});
   }
-  return out;
+  return out.length>1 || !allName ? out : [];
 }

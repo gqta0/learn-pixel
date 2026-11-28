@@ -468,7 +468,33 @@ async function checkLoupeAtTop(browser, origin) {
   }
 }
 
+// Nhỏ: đổi chiều thẻ và bật khoá lớp được tự lưu (tải lại trang vẫn còn).
+async function checkAutosaveTagLock(browser, origin) {
+  const page = await browser.newPage({viewport:{width:1280,height:800}});
+  const ready = () => page.waitForFunction(() => !document.querySelector('.app')?.inert);
+  try {
+    await page.goto(origin+'/index.html'); await ready();
+    await page.evaluate(async () => {
+      const {doc} = await import('/js/state.js'); const f = await import('/js/frames.js');
+      document.querySelector('#frAdd').click(); document.querySelector('#frAdd').click();
+      doc.tags = [{name:'chạy', from:0, to:2, dir:'fwd'}]; f.pickTag('0');
+    });
+    await page.waitForTimeout(1600);                                     // chờ lượt tự lưu của các bước trên
+    await page.locator('#tagMenuBtn').click();
+    await page.locator('.popup .btn', {hasText:'Ngược'}).click();
+    await page.locator('#layers .vis[aria-label^="Tuỳ chọn"]').first().click();
+    await page.locator('.popup .btn', {hasText:'Khoá lớp'}).click();
+    await page.waitForTimeout(1600);
+    await page.reload(); await ready();
+    const st = await page.evaluate(async () => { const {doc} = await import('/js/state.js'); return {dir:doc.tags[0]?.dir, lock:!!doc.layers[0].lock}; });
+    assert.deepEqual(st, {dir:'rev', lock:true}, 'đổi chiều thẻ và khoá lớp phải được tự lưu');
+  } finally {
+    await page.close();
+  }
+}
+
 module.exports = async function testPhoneLayout(browser, origin) {
+  await checkAutosaveTagLock(browser, origin);
   await checkLoupeAtTop(browser, origin);
   await checkLockedWriters(browser, origin);
   await checkStaleTags(browser, origin);

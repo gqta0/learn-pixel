@@ -38,7 +38,7 @@ export async function packProjects(projects, mode, zipName){
       // thẻ hoạt ảnh chỉ khớp khi sheet đủ mọi khung (ghép chung hoặc mỗi lớp đủ khung); mỗi lớp một động tác thì bỏ qua
       const tags=mode==='actions' && p.layers.length>1 ? null : p.tags;
       files.push({name:tres, data:spriteFramesTres({name:base,texture:dir+png,fw:p.w,fh:p.h,cols,count:plan.count,fps:p.fps,loop,
-        durations, anims:tagAnims(tags,plan.count,durations,loop)})});
+        durations, anims:tagAnims(tags,plan.count,durations,loop,base)})});
       sheets.push(manifestEntry(p,plan,{file:png,tres,cols,loop,tags}));
     }
   }

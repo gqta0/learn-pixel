@@ -258,3 +258,11 @@ test('tagAnims: thẻ thành animation; khung quá số khung của sheet bị b
   assert.deepEqual(a,[{name:'đánh',frames:[1,2,3,2],loop:true,durations:[2,1,1,1]},
                       {name:'đánh_2',frames:[5,4],loop:true,durations:[1,1]}]);
 });
+test('nhỏ: xuất có thẻ vẫn giữ một animation chạy hết các khung, đặt đầu tiên',async()=>{
+  const {tagAnims}=await import('../js/manifest.js');
+  const a=tagAnims([{name:'đánh',from:1,to:2,dir:'fwd'}],4,[1,1,1,1],true,'hero');
+  assert.deepEqual(a.map(x=>[x.name,x.frames]),[['hero',[0,1,2,3]],['đánh',[1,2]]]);
+  const b=tagAnims([{name:'hero',from:0,to:1,dir:'fwd'}],4,[1,1,1,1],true,'hero');
+  assert.deepEqual(b.map(x=>x.name),['hero','hero_2'], 'thẻ trùng tên animation chung thì thêm số');
+  assert.deepEqual(tagAnims([],4,[1,1,1,1],true,'hero'),[], 'không có thẻ thì không có anims (giữ .tres cũ)');
+});

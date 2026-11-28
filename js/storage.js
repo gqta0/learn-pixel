@@ -87,7 +87,7 @@ export function exportGodotFrames(){
   const durations=doc.frames.slice(0,n).map((_,i)=>doc.dur[i]>0?doc.dur[i]/beat:1);
   // có thẻ hoạt ảnh thì mỗi thẻ một animation (idle / chạy / đánh trong cùng một sheet)
   const tres=spriteFramesTres({name:base,texture:dir+png,fw:doc.w,fh:doc.h,cols,count:n,fps:view.fps||8,
-    loop,durations,anims:tagAnims(doc.tags,n,durations,loop)});
+    loop,durations,anims:tagAnims(doc.tags,n,durations,loop,base)});
   const url=URL.createObjectURL(new Blob([tres],{type:'text/plain'}));
   download(base+'.tres',url); setTimeout(()=>URL.revokeObjectURL(url),1000);
   setTimeout(()=>exportSheet(1),350);          // tải hai file liền nhau; cách một nhịp để trình duyệt không nuốt mất file sau

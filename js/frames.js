@@ -258,7 +258,7 @@ export function newTag(from=doc.af){
   const t=askTag('Tên thẻ và khoảng khung, ví dụ: chạy 1-8', 'chạy '+(from+1)+'-'+doc.frames.length);
   if(!t) return;
   pushUndo(); doc.tags.push({...t, dir:'fwd'});
-  pickTag(String(doc.tags.length-1));
+  pickTag(String(doc.tags.length-1)); render();
 }
 export function tagMenu(anchor){
   const k=view.tag, t=k!=null ? doc.tags[k] : null;
@@ -269,7 +269,7 @@ export function tagMenu(anchor){
     {heading:'Sửa'},
     {label:'＋ Thẻ mới…', fn:()=>newTag()}];
   if(t){
-    const set=fn=>{ pushUndo(); fn(); paintThumbs(); paintPreview(); };
+    const set=fn=>{ pushUndo(); fn(); paintThumbs(); paintPreview(); render(); };   // render() kích hoạt tự lưu
     items.push({heading:'Thẻ “'+t.name+'”'},
       ...[['fwd','→ Xuôi'],['rev','← Ngược'],['ping','⇄ Qua lại']].map(([dir,label])=>({label, on:t.dir===dir, fn:()=>set(()=>{ t.dir=dir; })})),
       {label:'✎ Đổi tên / khoảng…', fn:()=>{ const n=askTag('Tên thẻ và khoảng khung', t.name+' '+(t.from+1)+'-'+(t.to+1)); if(n) set(()=>Object.assign(t,n)); }},

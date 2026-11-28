@@ -1,7 +1,7 @@
 /* Trạng thái dùng chung: tài liệu đang vẽ, thiết lập khung nhìn, chủ đề sáng/tối.
    Module này không phụ thuộc DOM và không gọi ngược lên giao diện. */
 import { hexToInt } from './color.js';
-import { remapTags } from './tags.js';
+import { remapTags, remapTagsMove } from './tags.js';
 
 /* ---------------- tài liệu ---------------- */
 export const doc = {
@@ -85,14 +85,14 @@ export function cloneLayer(l, frameCount=Infinity){
   return out;
 }
 /* chèn / bỏ / dời một khung thì mốc của mọi lớp dời theo, mốc vẫn dính đúng hình */
-function remapMarks(fn){
+function remapMarks(fn, tagsFn=tags=>remapTags(tags, fn)){
   doc.layers.forEach(L=>{
     if(!L.marks) return;
     const m={};
     for(const [k,v] of Object.entries(L.marks)){ const j=fn(+k); if(j>=0) m[j]=v; }
     if(Object.keys(m).length) L.marks=m; else delete L.marks;
   });
-  doc.tags=remapTags(doc.tags, fn);      // thẻ hoạt ảnh cũng dời theo khung
+  doc.tags=tagsFn(doc.tags);             // thẻ hoạt ảnh cũng dời theo khung
 }
 export const marksInsert=at=>remapMarks(i=>i>=at?i+1:i);
 export const marksRemove=at=>remapMarks(i=>i===at?-1:i>at?i-1:i);
@@ -102,5 +102,5 @@ export function marksMove(from,to){
     if(from<to && i>from && i<=to) return i-1;
     if(from>to && i>=to && i<from) return i+1;
     return i;
-  });
+  }, tags=>remapTagsMove(tags, from, to));
 }
