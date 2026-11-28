@@ -39,6 +39,12 @@ function composite(frameIdx, target, only=-1){
     }
   }
 }
+/* ảnh đã ghép của một khung, bản sao riêng (để mã hoá GIF, không đụng vùng đệm màn hình) */
+export function frameData(frameIdx){
+  const out=new Uint32Array(doc.w*doc.h);
+  composite(frameIdx, out);
+  return out;
+}
 /* ghép một khung vào vùng đệm; sau đó cứ drawImage(buf, …) là xong */
 export function compositeToBuf(frameIdx, only=-1){
   ensureBuf();

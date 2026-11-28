@@ -14,7 +14,7 @@ import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches
          fillPalSelect, importPaletteText, addCurrentColor, sortPalette, prunePalette, paletteFromArt, rampFromCurrent } from './palette.js';
 import { mountPalettePicker } from './palpick.js';
 import { setTool, setTheme, setView, syncFingerBtn, syncPixelPerfectBtn, attachMods } from './tools.js';
-import { clearSave, exportPng, exportSheet, exportPalettePng, exportJson, importJson, exportGodotFrames,
+import { clearSave, exportPng, exportSheet, exportGif, exportPalettePng, exportJson, importJson, exportGodotFrames,
          loadRef, refToPixels, refToPalette, serialize, autosave } from './storage.js';
 import { updateProgress, TRACKS, setTrack, buildExercises } from './content/exercises.js';
 import { buildTheory } from './content/lessons.js';
@@ -500,6 +500,7 @@ $('#refClear').addEventListener('click', ()=>{ view.ref=null; render(); });
 
 $('#expPng').addEventListener('click', exportPng);
 $('#expSheet').addEventListener('click', exportSheet);
+$('#expGif').addEventListener('click', exportGif);
 $('#expPal').addEventListener('click', exportPalettePng);
 $('#expGodot').addEventListener('click', ()=>{
   const r=exportGodotFrames();

@@ -222,7 +222,42 @@ async function checkTags(browser, origin) {
   }
 }
 
+// A8: Tệp → ⬇ GIF tải một GIF mà chính Chromium giải được, đúng khổ ×4 và đúng màu pixel.
+async function checkGifExport(browser, origin) {
+  const page = await browser.newPage({viewport:{width:1280,height:800}, acceptDownloads:true});
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  try {
+    await page.goto(origin+'/index.html');
+    await page.waitForFunction(() => !document.querySelector('.app')?.inert);
+    await page.evaluate(async () => {
+      const {activeData} = await import('/js/state.js'); const {render} = await import('/js/render.js');
+      activeData()[0] = 0xff0000ff; render(); document.querySelector('#frAdd').click();
+      (await import('/js/state.js')).activeData()[1] = 0xffff0000;
+      document.querySelector('#expScale').value = '4';
+    });
+    await page.locator('[data-pane="pFile"], .tab:has-text("Tệp")').first().click().catch(()=>{});
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#expGif').click()]);
+    assert.match(dl.suggestedFilename(), /\.gif$/);
+    const bytes = await (await dl.createReadStream()).toArray().then(parts => Buffer.concat(parts));
+    assert.equal(bytes.subarray(0,6).toString('latin1'), 'GIF89a');
+    const px = await page.evaluate(async b64 => {
+      const blob = await (await fetch('data:image/gif;base64,'+b64)).blob();
+      const bmp = await createImageBitmap(blob);
+      const cv = new OffscreenCanvas(bmp.width, bmp.height), g = cv.getContext('2d'); g.drawImage(bmp, 0, 0);
+      return {w:bmp.width, h:bmp.height, first:[...g.getImageData(1,1,1,1).data], empty:[...g.getImageData(60,60,1,1).data]};
+    }, bytes.toString('base64'));
+    assert.deepEqual([px.w, px.h], [128, 128], 'khổ ×4');
+    assert.deepEqual(px.first, [255,0,0,255], 'ô đỏ ở khung đầu');
+    assert.equal(px.empty[3], 0, 'ô trống trong suốt');
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+}
+
 module.exports = async function testPhoneLayout(browser, origin) {
+  await checkGifExport(browser, origin);
   await checkTags(browser, origin);
   await checkLockedLayer(browser, origin);
   await checkHoldPick(browser, origin);

@@ -3,9 +3,10 @@ import { currentId, adoptCurrent } from './library.js';
 /* Xuất PNG / spritesheet / .json, mở lại dự án, và lưu tự động vào trình duyệt. */
 import { $, toast } from './dom.js';
 import { doc, view, activeData, cloneLayer } from './state.js';
-import { cleanTags } from './tags.js';
+import { cleanTags, tagFrames } from './tags.js';
+import { encodeGif } from './gif.js';
 import { tagAnims } from './manifest.js';
-import { frameToCanvas, invalidateBuf, layerLength } from './raster.js';
+import { frameToCanvas, invalidateBuf, layerLength, frameData } from './raster.js';
 import { pushUndo, captureUndo } from './history.js';
 import { render, fitZoom } from './render.js';
 import { paintThumbs } from './frames.js';
@@ -42,6 +43,23 @@ function sheetPlan(){
   const n=only>=0 ? Math.max(1,layerLength(only)) : doc.frames.length;
   const base=sanitizeFilename(doc.name,'spritesheet')+(only>=0 ? '_'+sanitizeFilename(doc.layers[only].name,'lop') : '');
   return {only,n,base};
+}
+/* GIF hoạt ảnh: đang chạy một thẻ thì chỉ xuất thẻ đó (đúng chiều chạy), không thì mọi khung.
+   Cỡ theo ô Cỡ xuất, thời lượng theo từng khung (hoặc fps). Quá 255 màu thì báo nguyên văn lý do. */
+export function exportGif(){
+  const tag=view.tag!=null ? doc.tags[view.tag] : null;
+  const order=tag ? tagFrames(tag) : doc.frames.map((_,i)=>i);
+  const scale=Math.max(1, parseInt($('#expScale')?.value,10) || 1);
+  const beat=1000/Math.max(1, view.fps||8);
+  let bytes;
+  try{
+    bytes=encodeGif({w:doc.w, h:doc.h, scale, frames:order.map(i=>frameData(i)), delays:order.map(i=>doc.dur[i]>0 ? doc.dur[i] : beat)});
+  }catch(err){ toast(err.message, 5000); return false; }
+  const name=sanitizeFilename(doc.name,'ban-ve')+(tag ? '_'+sanitizeFilename(tag.name,'the') : '')+'.gif';
+  const url=URL.createObjectURL(new Blob([bytes],{type:'image/gif'}));
+  download(name,url); setTimeout(()=>URL.revokeObjectURL(url),60000);
+  toast('Đã xuất '+name+' · '+order.length+' khung');
+  return true;
 }
 export function exportSheet(scale){
   const s=Number(scale)>0 ? scale : parseInt($('#expScale').value,10);   // nút bấm truyền vào một Event, không phải tỉ lệ
