@@ -85,3 +85,24 @@ test('quá 255 màu thì báo lỗi rõ ràng',()=>{
   const f=new Uint32Array(300); for(let i=0;i<300;i++) f[i]=px(i&255, i>>8, 7);
   assert.throws(()=>encodeGif({w:300,h:1,frames:[f],delays:[100]}),/255 màu, tranh đang có 300 màu/);
 });
+
+test('pixel bán trong suốt thành chấm hạt Bayer 4×4 theo độ mờ',()=>{
+  const opaque=a=>{
+    const f=new Uint32Array(16).fill(px(255,0,0,a));
+    const fr=parseGif(encodeGif({w:4,h:4,frames:[f],delays:[100]})).frames[0];
+    return fr.indices.filter(i=>i!==fr.ti).length;
+  };
+  assert.equal(opaque(255),16);
+  assert.equal(opaque(128),8);
+  assert.equal(opaque(64),4);
+  assert.equal(opaque(1),0);
+});
+test('chấm hạt theo ô của tranh, không theo điểm ảnh đã phóng',()=>{
+  const f=new Uint32Array([px(255,0,0,128)]);
+  const fr=parseGif(encodeGif({w:1,h:1,frames:[f],delays:[100],scale:4})).frames[0];
+  assert.equal(new Set(fr.indices).size,1, 'một ô tranh phóng ×4 vẫn là một khối một màu');
+});
+test('GIF quá lớn thì báo lỗi thay vì treo máy',()=>{
+  const f=new Uint32Array(256*256);
+  assert.throws(()=>encodeGif({w:256,h:256,frames:[f,f,f],delays:[100,100,100],scale:16}),/GIF quá lớn/);
+});
