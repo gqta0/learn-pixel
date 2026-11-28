@@ -7,7 +7,7 @@ import { hexToInt, intToHex } from './color.js';
 import { invalidateBuf, flipData, rotateData, outlineData, shiftLayer, copySel, clearSel, pasteClip, normSel, layerLength } from './raster.js';
 import { pushUndo, undo, redo } from './history.js';
 import { render, fitZoom, setZoom } from './render.js';
-import { paintThumbs, paintPreview, togglePlay } from './frames.js';
+import { paintThumbs, paintPreview, togglePlay, goFrame } from './frames.js';
 import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.js';
 import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches, paintRamp, setRampFamily, pickMaterial, setRampMaterial, setRampBase, useRampBase, syncColors, rampCols,
          attachPalettePopup, openQuickPalette, palByName, isUserPal, savePaletteAs, deleteUserPal,
@@ -247,6 +247,10 @@ $('#zoomIn').addEventListener('click', ()=>setZoom(view.zoom+2));
 $('#zoomOut').addEventListener('click', ()=>setZoom(view.zoom-2));
 $('#zoomFit').addEventListener('click', ()=>{ fitZoom(); render(); });
 $('#zoomChip').addEventListener('click', ()=>{ fitZoom(); render(); });
+$('#frPrev').addEventListener('click', ()=>goFrame(doc.af-1));
+$('#frNext').addEventListener('click', ()=>goFrame(doc.af+1));
+$('#miniPlay').addEventListener('click', togglePlay);
+$('#miniAdd').addEventListener('click', ()=>$('#frAdd').click());
 function toggleBtn(sel, key){
   $(sel).addEventListener('click', e=>{
     view[key]=!view[key];
@@ -600,8 +604,8 @@ window.addEventListener('keydown', e=>{
   if(k==='x'){ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); }
   if(k==='['){ view.brush=Math.max(1,view.brush-1); view.brushEff=view.brush; $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }
   if(k===']'){ view.brush=Math.min(6,view.brush+1); view.brushEff=view.brush; $('#brush').value=view.brush; $('#brushLbl').textContent=view.brush; render(); }
-  if(k===','){ doc.af=Math.max(0,doc.af-1); paintThumbs(); render(); window.dispatchEvent(new CustomEvent('framechange')); }
-  if(k==='.'){ doc.af=Math.min(doc.frames.length-1,doc.af+1); paintThumbs(); render(); window.dispatchEvent(new CustomEvent('framechange')); }
+  if(k===','){ goFrame(doc.af-1); }
+  if(k==='.'){ goFrame(doc.af+1); }
 });
 let rzT=null;
 window.addEventListener('resize', ()=>{

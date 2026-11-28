@@ -248,6 +248,15 @@
       </div>
 
       <div class="filmstrip">
+        <div class="frame-mini" id="frameMini">
+          <button class="btn tiny" id="miniPlay" type="button" aria-label="Chạy / dừng">▶</button>
+          <button class="btn tiny" id="frPrev" type="button" aria-label="Khung trước">‹</button>
+          <span class="kbd frame-pos" id="frPos" aria-live="polite">1/1</span>
+          <button class="btn tiny" id="frNext" type="button" aria-label="Khung sau">›</button>
+          <button class="btn tiny" id="miniAdd" type="button" aria-label="Thêm khung trống">＋</button>
+          <span class="frame-mini-gap"></span>
+          <button class="btn tiny" id="frameToggle" type="button" aria-expanded="false" aria-label="Mở dải khung hình">⌃</button>
+        </div>
         <div style="flex:1;min-width:0">
           <p class="eyebrow" style="margin-bottom:6px">Khung hình <span class="kbd" id="layerLenInfo" style="text-transform:none;letter-spacing:0"></span></p>
           <div class="frames" id="frames"></div>

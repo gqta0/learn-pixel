@@ -26,8 +26,14 @@ function markMenu(anchor,i){
     ...(cur?[{label:'✕ Bỏ mốc “'+cur+'”',fn:()=>setMark(i,'')}]:[])
   ]);
 }
+/* sang khung i (kẹp trong dải): ảnh nhỏ, ‹ › của hàng thu gọn, phím , . cùng đi qua đây */
+export function goFrame(i){
+  doc.af=Math.max(0, Math.min(doc.frames.length-1, i));
+  paintThumbs(); render(); window.dispatchEvent(new CustomEvent('framechange'));
+}
 export function paintThumbs(){
   const box=$('#frames'); box.innerHTML='';
+  const pos=$('#frPos'); if(pos) pos.textContent=(doc.af+1)+'/'+doc.frames.length;
   // nhiều lớp dài khác nhau: làm mờ những khung lớp đang chọn không có hình
   const len=layerLength(doc.al), short=doc.layers.length>1 && len<doc.frames.length;
   const info=$('#layerLenInfo');
@@ -44,7 +50,7 @@ export function paintThumbs(){
     b.appendChild(cv); b.appendChild(tag);
     const mk=doc.layers[doc.al]?.marks?.[i];
     if(mk){ const t=document.createElement('i'); t.className='frame-mark'; t.textContent=mk; b.appendChild(t); b.title=(b.title?b.title+' · ':'')+'Mốc: '+mk; }
-    b.addEventListener('click', ()=>{ doc.af=i; paintThumbs(); render(); window.dispatchEvent(new CustomEvent('framechange')); });
+    b.addEventListener('click', ()=>goFrame(i));
     onLongPress(b, ()=>{
       const items = [
         {label:'+ Khung trống sau khung này', fn:()=>{
@@ -196,6 +202,7 @@ function stepFrame(){
 export function togglePlay(){
   view.playing=!view.playing;
   $('#playBtn').textContent = view.playing ? '⏸' : '▶';
+  const mini=$('#miniPlay'); if(mini) mini.textContent = view.playing ? '⏸' : '▶';
   $('#playBtn').classList.toggle('on', view.playing);
   clearTimeout(pvTimer);
   if(view.playing){

@@ -16,7 +16,7 @@ async function checkPortrait(browser, origin, path) {
   const {page, errors} = await phonePage(browser, origin, path);
   try {
     const wrap = await page.locator('#wrap').boundingBox();
-    assert.ok(wrap.height >= 406, `${path}: canvas cao ${wrap.height}px, cần ≥ 50% của 812`);
+    assert.ok(wrap.height >= 487, `${path}: canvas cao ${wrap.height}px, cần ≥ 60% của 812`);
     const top = await page.locator('.topbar').boundingBox();
     assert.ok(top.height <= 48, `${path}: thanh trên cao ${top.height}px`);
     assert.equal(await page.locator('#sizeW').isVisible(), false, `${path}: ô khổ phải nằm sau ⋯`);
@@ -37,6 +37,31 @@ async function checkPortrait(browser, origin, path) {
     assert.ok((await page.locator('#board').boundingBox()).width < 120);
     await page.locator('#zoomChip').tap();
     assert.ok((await page.locator('#board').boundingBox()).width >= 350, `${path}: chạm ×N phải vừa khung lại`);
+    // B3: dải khung thu gọn, ô xem trước nổi
+    assert.ok((await page.locator('#frameMini').boundingBox()).height <= 48, `${path}: hàng khung thu gọn quá cao`);
+    assert.equal(await page.locator('#frames').isVisible(), false, `${path}: dải ảnh nhỏ thu gọn mặc định`);
+    await page.locator('#miniAdd').tap();
+    assert.equal(await page.locator('#frPos').textContent(), '2/2');
+    await page.locator('#frPrev').tap();
+    assert.equal(await page.locator('#frPos').textContent(), '1/2');
+    await page.locator('#frNext').tap();
+    assert.equal(await page.locator('#frPos').textContent(), '2/2');
+    await page.locator('#frameToggle').tap();
+    assert.ok(await page.locator('#frames').isVisible(), `${path}: ⌃ mở dải ảnh nhỏ`);
+    await page.locator('#frameToggle').tap();
+    const fp = page.locator('.float-preview');
+    if (path === '/puppet.html') assert.equal(await fp.isVisible(), false, 'Ghép rối đã có rối nổi');
+    else {
+      assert.ok(await fp.isVisible(), 'ô xem trước nổi trên canvas');
+      const ca = await page.locator('.canvasarea').boundingBox(), b0 = await fp.boundingBox();
+      await page.mouse.move(b0.x+b0.width/2, b0.y+b0.height/2); await page.mouse.down();
+      await page.mouse.move(ca.x-200, ca.y-200, {steps:5}); await page.mouse.up();
+      const b = await fp.boundingBox();
+      assert.ok(b.x >= ca.x - 1 && b.y >= ca.y - 1, 'kéo ra ngoài vẫn kẹp trong vùng canvas');
+      const playing = () => page.evaluate(async () => (await import('/js/state.js')).view.playing);
+      await fp.tap(); assert.equal(await playing(), true, 'chạm ô xem trước = chạy');
+      await fp.tap(); assert.equal(await playing(), false);
+    }
     await page.locator('#wsMenuBtn').tap();
     const links = await page.locator('.popup .btn', {hasText:/Ghép rối|Vẽ tile|Vẽ thường/}).count();
     assert.equal(links, 3, `${path}: ≡ phải liệt kê ba trang`);

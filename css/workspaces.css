@@ -515,3 +515,22 @@ body[data-workspace="tile"] { min-height:100dvh; display:grid; grid-template-row
   body:is([data-workspace="draw"],[data-workspace="puppet"]) #qbUndo { display: none; }
   body:is([data-workspace="draw"],[data-workspace="puppet"]) #qbColor { position: sticky; right: 0; margin-left: auto; box-shadow: -8px 0 0 4px var(--panel); }
 }
+
+/* Điện thoại dọc: dải khung thu gọn một hàng, ô xem trước nổi trên canvas */
+.frame-mini, .float-preview { display: none; }
+@media (max-width: 679px) and (orientation: portrait) {
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .filmstrip { flex-wrap: wrap; padding: 0 8px; gap: 6px; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .filmstrip:not(.mini-open) > :not(.frame-mini) { display: none; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .frame-mini {
+    display: flex; align-items: center; gap: 4px; flex: 1 0 100%; height: 44px;
+  }
+  .frame-mini .frame-mini-gap { flex: 1 1 auto; }
+  .frame-mini .frame-pos { min-width: 44px; text-align: center; font-family: var(--mono); }
+  body[data-workspace="draw"] .float-preview:not([hidden]) {
+    display: block; position: absolute; top: 8px; right: 8px; z-index: 16; padding: 4px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    box-shadow: 0 4px 14px #0006; touch-action: none; cursor: grab;
+  }
+  .float-preview .preview-scroll { max-width: 72px; max-height: 72px; overflow: hidden; pointer-events: none; }
+  .float-preview canvas { display: block; max-width: 72px; max-height: 72px; width: auto; height: auto; image-rendering: pixelated; }
+}

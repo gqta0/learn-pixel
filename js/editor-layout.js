@@ -164,6 +164,64 @@ export function layoutEditor(mode) {
     setEditorView(view===document.body.dataset.view?'draw':view);
   });
   bindPhoneMenus(mode);
+  bindPhoneFrames(mode);
+}
+
+const PHONE=matchMedia('(max-width: 679px) and (orientation: portrait)');
+/* Điện thoại dọc: dải khung thu về một hàng 44px (⌃ mở dải ảnh nhỏ), ô xem trước nổi trên canvas,
+   kéo để dời (nhớ vị trí), chạm để chạy / dừng. Ghép rối đã có rối nổi nên không có ô này. */
+function bindPhoneFrames(mode){
+  const strip=get('#editorFrames'), toggle=get('#frameToggle');
+  const KEY_OPEN='lo-pixel-frames-open', KEY_POS='lo-pixel-preview-pos';
+  const setOpen=open=>{
+    strip.classList.toggle('mini-open',open);
+    toggle.setAttribute('aria-expanded',String(open));
+    toggle.textContent=open?'⌄':'⌃';
+  };
+  try{ setOpen(localStorage.getItem(KEY_OPEN)==='1'); }catch(_){ setOpen(false); }
+  toggle.addEventListener('click',()=>{
+    const open=!strip.classList.contains('mini-open');
+    setOpen(open);
+    try{ localStorage.setItem(KEY_OPEN,open?'1':'0'); }catch(_){}
+  });
+
+  const area=get('.canvasarea'), scroll=get('.preview-scroll'), home=scroll.parentElement;
+  const box=create('div',{class:'float-preview',role:'button',tabindex:'0','aria-label':'Ô xem trước: chạm để chạy hoặc dừng, kéo để dời'});
+  box.hidden=true;
+  area.append(box);
+  const clamp=(x,y)=>{
+    const a=area.getBoundingClientRect(), b=box.getBoundingClientRect();
+    return [Math.min(Math.max(0,x),Math.max(0,a.width-b.width)), Math.min(Math.max(0,y),Math.max(0,a.height-b.height))];
+  };
+  const put=(x,y)=>{ [x,y]=clamp(x,y); box.style.left=x+'px'; box.style.top=y+'px'; box.style.right='auto'; };
+  const place=()=>{
+    const float=PHONE.matches && mode!=='puppet';
+    if(float){ box.append(scroll); box.hidden=false; }
+    else { home.prepend(scroll); box.hidden=true; }
+  };
+  PHONE.addEventListener('change',place);
+  place();
+  try{ const p=JSON.parse(localStorage.getItem(KEY_POS)); if(p) requestAnimationFrame(()=>put(p.x,p.y)); }catch(_){}
+  let drag=null;
+  box.addEventListener('pointerdown',e=>{
+    const a=area.getBoundingClientRect(), b=box.getBoundingClientRect();
+    drag={x:e.clientX,y:e.clientY,ox:b.left-a.left,oy:b.top-a.top,moved:false};
+    box.setPointerCapture?.(e.pointerId);
+  });
+  box.addEventListener('pointermove',e=>{
+    if(!drag) return;
+    const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+    if(!drag.moved && Math.hypot(dx,dy)<6) return;
+    drag.moved=true; put(drag.ox+dx,drag.oy+dy);
+  });
+  box.addEventListener('pointerup',()=>{
+    if(!drag) return;
+    const moved=drag.moved; drag=null;
+    if(!moved){ get('#miniPlay').click(); return; }
+    try{ localStorage.setItem(KEY_POS,JSON.stringify({x:parseFloat(box.style.left),y:parseFloat(box.style.top)})); }catch(_){}
+  });
+  box.addEventListener('pointercancel',()=>{ drag=null; });
+  box.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); get('#miniPlay').click(); } });
 }
 
 /* Điện thoại dọc: thanh trên chỉ còn một hàng. ≡ gom trang, thư viện, sáng/tối;
