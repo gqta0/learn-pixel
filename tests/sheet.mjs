@@ -239,7 +239,7 @@ test('a jump sheet with the arc drawn in can be pixelized in place: every frame 
   assert.equal(keep.h,35); assert.equal(keep.frames[1][0],rgba(0x1e,0x1e,0xc8)); assert.equal(keep.frames[0][0],0);
 });
 
-const FIXTURE_OLD=readFileSync(new URL('./fixtures/sprite-frames-old.tres',import.meta.url),'utf8');
+const FIXTURE_OLD=readFileSync(new URL('./fixtures/sprite-frames-old.tres',import.meta.url),'utf8').replace(/\r\n/g,'\n');   // git có thể đổi sang CRLF khi checkout
 const tresArgs={name:'run',texture:'res://run.png',fw:16,fh:16,cols:4,count:6,fps:8,loop:true,durations:[1,1,2,1,1,1]};
 test('không có anims thì .tres y hệt bản cũ',()=>{ assert.equal(spriteFramesTres(tresArgs), FIXTURE_OLD); });
 test('hai thẻ thành hai animation, thẻ ping dùng thứ tự qua lại, tên tiếng Việt giữ nguyên',()=>{
