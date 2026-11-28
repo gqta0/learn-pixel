@@ -326,3 +326,27 @@ test('chạm giữ với dụng cụ Chọn không hút màu',()=>{
   const e=editor(); e.view.tool='select'; e.event('pointerdown',1,4,4,'pen'); e.tick(400); e.event('pointerup',1,4,4,'pen');
   assert.equal(e.loupe.shown,0);
 });
+
+test('nét bút chì cong, giữ yên → thành đường thẳng từ điểm đầu; nhấc lên là một bước',()=>{
+  const e=editor(); e.event('pointerdown',1,2,2,'pen'); e.event('pointermove',1,6,9,'pen');
+  e.event('pointermove',1,12,4,'pen'); e.tick(600); e.event('pointerup',1,12,4,'pen');
+  assert.notEqual(e.pixel(7,3),0);   // nằm trên đoạn (2,2)-(12,4)
+  assert.equal(e.pixel(6,9),0);      // khúc cong đã bị thay
+  assert.equal(e.marks(),1);
+  assert.ok(e.toasts.includes('Đường thẳng'));
+});
+test('vẽ chậm nhưng vẫn nhích (mỗi 500ms) không bao giờ thành đường thẳng',()=>{
+  // zoom 1 trong editor(): mỗi lần nhích 4px màn hình, quá ngưỡng rung tay 3px
+  const e=editor(); e.event('pointerdown',1,2,2,'pen'); e.event('pointermove',1,9,2,'pen');
+  e.tick(500); e.event('pointermove',1,13,2,'pen');
+  e.tick(500); e.event('pointermove',1,17,5,'pen');
+  e.tick(500); e.event('pointerup',1,17,5,'pen');
+  assert.notEqual(e.pixel(13,2),0);  // đường thẳng (2,2)-(17,5) sẽ không đi qua (13,2)
+  assert.notEqual(e.pixel(17,5),0);
+});
+test('giữ yên cuối nét với dụng cụ tẩy không đổi thành đường thẳng',()=>{
+  const e=editor(); e.run('activeData().fill(RED)'); e.view.tool='eraser';
+  e.event('pointerdown',1,2,2,'pen'); e.event('pointermove',1,6,9,'pen'); e.event('pointermove',1,12,4,'pen');
+  e.tick(600); e.event('pointerup',1,12,4,'pen');
+  assert.equal(e.pixel(6,9),0);      // nét tẩy cong vẫn còn
+});

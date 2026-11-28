@@ -3,7 +3,7 @@ import { $, setText, toast } from './dom.js';
 import { doc, view, activeData } from './state.js';
 import { board, render, requestRender, setZoom, PERF, perfMark } from './render.js';
 import { pushUndo, captureUndo, undo, redo } from './history.js';
-import { createTapTracker, longPressReady } from './gestures.js';
+import { createTapTracker, longPressReady, stillFor } from './gestures.js';
 import { showLoupe, hideLoupe } from './loupe.js';
 import { syncColors, paintSwatches, shadeStep } from './palette.js';
 import { markToday } from './daily.js';
@@ -104,6 +104,7 @@ function hudText(p){
   setText($('#hud'),t);
 }
 function cancelStroke(){
+  endQuickShape();
   if(hold && !hold.picking){ clearTimeout(hold.timer); hold=null; }
   if(!drawing) return;
   if(strokeUndo) strokeData.set(strokeUndo.frames[strokeUndo.af][strokeUndo.al]);
@@ -162,6 +163,30 @@ function trackHold(e){
   if(Math.hypot(e.clientX-hold.down.x, e.clientY-hold.down.y)>6){ hold.moved=true; clearTimeout(hold.timer); }
   return false;
 }
+/* Nét bút chì đã đi quá 6px rồi đứng yên 600ms (lệch ≤ 3px màn hình) = cả nét thành đường thẳng từ điểm đầu,
+   kéo tiếp thì đường thẳng xoay theo, nhấc lên là một bước hoàn tác. Nhích tay liên tục thì không bao giờ đổi. */
+let qs=null;     // {anchor, samples, timer, lastP, lastCol, lastE}
+function trackQuickShape(e, col){
+  if(strokeTool!=='pencil' || !hold?.moved) return;
+  const at={x:e.clientX, y:e.clientY, t:Date.now()};
+  qs ??= {samples:[]};
+  qs.samples.push(at); if(qs.samples.length>64) qs.samples.shift();
+  qs.lastP=posFrom(e); qs.lastCol=col; qs.lastE=e;
+  if(!qs.anchor || Math.hypot(at.x-qs.anchor.x, at.y-qs.anchor.y)>3){
+    qs.anchor=at; clearTimeout(qs.timer);
+    qs.timer=setTimeout(toLine, 600);
+  }
+}
+function toLine(){
+  if(!qs || !drawing || strokeTool!=='pencil' || !strokeUndo || !stillFor(qs.samples, Date.now())) return;
+  strokeData.set(strokeUndo.frames[strokeUndo.af][strokeUndo.al]);
+  strokeTool='line'; pixelPerfectHistory=[];
+  setPreview({layer:doc.al, data:activeData().slice()});
+  applyStroke(qs.lastP, qs.lastCol, qs.lastE);
+  toast('Đường thẳng', 1200);
+  requestRender();
+}
+function endQuickShape(){ if(qs){ clearTimeout(qs.timer); qs=null; } }
 function endHold(e){
   if(!hold || (e && e.pointerId!==hold.id)) return false;
   clearTimeout(hold.timer);
@@ -378,6 +403,7 @@ wrap.addEventListener('pointermove', e=>{
   const evs = (list && list.length) ? list : [e];
   if(strokeTool==='pencil' || strokeTool==='eraser' || strokeTool==='shade' || strokeTool==='dither'){
     evs.forEach(ev=>{ view.brushEff=effBrush(ev); applyStroke(posFrom(ev), col, ev); });
+    trackQuickShape(e, col);
   }else{
     view.brushEff=effBrush(e);
     applyStroke(p, col, e);
@@ -387,6 +413,7 @@ wrap.addEventListener('pointermove', e=>{
 });
 
 function endStroke(e){
+  if(!e || e.pointerId===owner?.id) endQuickShape();
   if(endHold(e)){ pointers.delete(e.pointerId); return; }
   if(e){
     pointers.delete(e.pointerId);

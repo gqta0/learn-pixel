@@ -35,3 +35,14 @@ export function createTapTracker({maxMs=250, slop=10}={}){
 export function longPressReady(down, cur, {ms=400, slop=6}={}){
   return cur.t-down.t>=ms && Math.hypot(cur.x-down.x, cur.y-down.y)<=slop;
 }
+
+/* Đầu bút đã đứng yên ms cuối chưa: lấy vị trí lúc đầu khoảng ms (mẫu cuối cùng có t ≤ now-ms) và mọi mẫu sau nó,
+   tất cả phải trong slop px quanh mẫu mới nhất. Chưa có mẫu nào cũ đủ ms thì chưa tính. */
+export function stillFor(samples, now, ms=600, slop=3){
+  let k=-1;
+  for(let i=0;i<samples.length;i++) if(samples[i].t<=now-ms) k=i;
+  if(k<0) return false;
+  const last=samples[samples.length-1];
+  for(let i=k;i<samples.length;i++) if(Math.hypot(samples[i].x-last.x, samples[i].y-last.y)>slop) return false;
+  return true;
+}

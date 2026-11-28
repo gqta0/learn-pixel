@@ -1,7 +1,7 @@
 // Run: node --test tests/gestures.mjs — phân loại chạm nhiều ngón trên canvas.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createTapTracker, longPressReady} from '../js/gestures.js';
+import {createTapTracker, longPressReady, stillFor} from '../js/gestures.js';
 
 test('hai ngón chạm nhanh = undo, ba ngón = redo',()=>{
   const g=createTapTracker();
@@ -30,4 +30,13 @@ test('longPressReady: đủ giờ và chưa lệch',()=>{
   assert.equal(longPressReady({x:0,y:0,t:0},{x:3,y:4,t:400}),true);
   assert.equal(longPressReady({x:0,y:0,t:0},{x:7,y:0,t:900}),false);
   assert.equal(longPressReady({x:0,y:0,t:0},{x:0,y:0,t:399}),false);
+});
+
+test('stillFor: đứng yên 600ms mới tính, vẽ chậm không tính',()=>{
+  assert.equal(stillFor([{x:0,y:0,t:0},{x:20,y:5,t:100},{x:21,y:5,t:300}],720),true);
+  assert.equal(stillFor([{x:0,y:0,t:0},{x:20,y:5,t:100},{x:26,y:5,t:500}],720),false);
+  assert.equal(stillFor([{x:0,y:0,t:100}],720),true);     // một mẫu đã đứng yên đủ lâu
+  assert.equal(stillFor([{x:0,y:0,t:300}],900),true);
+  assert.equal(stillFor([{x:0,y:0,t:300}],899),false);    // chưa đủ 600ms
+  assert.equal(stillFor([],720),false);
 });
