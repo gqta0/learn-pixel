@@ -52,6 +52,10 @@ export function layoutEditor(mode) {
     else setEditorView('draw');
   });
   panel.prepend(expand);
+  // bảng đang kéo lên đầy màn hình mà bút chạm canvas: thu về 40% để thấy chỗ vừa vẽ
+  get('#wrap').addEventListener('pointerdown',e=>{
+    if(e.pointerType==='pen' && panel.classList.contains('expanded')) setExpanded(false);
+  });
 
   const strip=get('.filmstrip');
   strip.id='editorFrames';

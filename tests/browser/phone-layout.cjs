@@ -62,6 +62,23 @@ async function checkPortrait(browser, origin, path) {
       await fp.tap(); assert.equal(await playing(), true, 'chạm ô xem trước = chạy');
       await fp.tap(); assert.equal(await playing(), false);
     }
+    // B4: bảng ≤ 40% không đè canvas, canvas vừa khung lại
+    for (const view of ['colors','layers','tools']) {
+      const navBtn = page.locator(`#mnav [data-view="${view}"]`);
+      if (!await navBtn.isVisible()) continue;          // Ghép rối không có thẻ Lớp
+      await navBtn.tap();
+      const sheet = page.locator(view==='tools' ? '#editorTools' : '#editorPanel');
+      const panel = await sheet.boundingBox(), w = await page.locator('#wrap').boundingBox();
+      assert.ok(panel.height <= 0.42*812, `${path} ${view}: bảng cao ${panel.height}px`);
+      assert.ok(w.y + w.height <= panel.y + 1, `${path} ${view}: bảng đè lên canvas (${w.y+w.height} > ${panel.y})`);
+      assert.ok(w.height >= 0.4*812, `${path} ${view}: canvas còn ${w.height}px`);
+      await page.waitForTimeout(100);
+      const board = await page.locator('#board').boundingBox();
+      assert.ok(board.width <= w.width, `${path} ${view}: canvas chưa vừa lại`);
+    }
+    assert.equal(await page.locator('#tools').isVisible(), false, `${path}: lưới dụng cụ trùng thanh nhanh`);
+    assert.ok(await page.locator('#brush').isVisible() && await page.locator('#pixPerfBtn').isVisible(), `${path}: bảng Cọ còn tuỳ chọn`);
+    await page.locator('#mnav [data-view="draw"]').tap();
     await page.locator('#wsMenuBtn').tap();
     const links = await page.locator('.popup .btn', {hasText:/Ghép rối|Vẽ tile|Vẽ thường/}).count();
     assert.equal(links, 3, `${path}: ≡ phải liệt kê ba trang`);

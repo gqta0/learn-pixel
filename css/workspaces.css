@@ -534,3 +534,16 @@ body[data-workspace="tile"] { min-height:100dvh; display:grid; grid-template-row
   .float-preview .preview-scroll { max-width: 72px; max-height: 72px; overflow: hidden; pointer-events: none; }
   .float-preview canvas { display: block; max-width: 72px; max-height: 72px; width: auto; height: auto; image-rendering: pixelated; }
 }
+
+/* Điện thoại dọc: bảng Cọ / Màu / Lớp chiếm tối đa 40% màn hình và đẩy canvas lên chứ không đè.
+   Kéo lên (Mở rộng bảng) mới thành 90%; Học vẽ và Tệp không vẽ nên mở cao luôn. */
+@media (max-width: 679px) and (orientation: portrait) {
+  body:is([data-workspace="draw"],[data-workspace="puppet"]):is([data-view="tools"],[data-view="colors"],[data-view="layers"]) .stage { bottom: 40dvh; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]):is([data-view="tools"],[data-view="colors"],[data-view="layers"]) :is(#quickRamp, .quickbar, .filmstrip) { display: none; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]):is([data-view="tools"],[data-view="colors"],[data-view="layers"]) :is(.col.left, .col.right) {
+    height: 40dvh; max-height: 40dvh;
+  }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .col.right.expanded,
+  body:is([data-workspace="draw"],[data-workspace="puppet"]):is([data-view="learn"],[data-view="file"]) .col.right { height: 90%; max-height: 90%; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) #tools { display: none; }
+}
