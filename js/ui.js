@@ -151,21 +151,19 @@ if(penActionEl){
 }
 
 $('#qbUndo').addEventListener('click', undo);
-$('#qbColor').addEventListener('click', ()=>openQuickPalette($('#qbColor'), ()=>setView(document.body.dataset.workspace==='puppet'?'tools':'colors')));
+const openColorPanel=()=>setView('colors');
+$('#qbColor').addEventListener('click', ()=>openQuickPalette($('#qbColor'),openColorPanel));
 $$('.quickbar .qb[data-q]').forEach(b=>{ b.addEventListener('click', ()=>setTool(b.dataset.q)); attachMods(b, b.dataset.q); });
-attachPalettePopup($('#qbColor'), ()=>setView(document.body.dataset.workspace==='puppet'?'tools':'colors'));
-attachPalettePopup($('#chipPri'), ()=>setView(document.body.dataset.workspace==='puppet'?'tools':'colors'));
-$('#chipPri').addEventListener('click', ()=>openQuickPalette($('#chipPri'), ()=>setView(document.body.dataset.workspace==='puppet'?'tools':'colors')));
-$$('#mnav button').forEach(b=>b.addEventListener('click', ()=>{
-  setView(b.dataset.view);
-}));
+attachPalettePopup($('#qbColor'),openColorPanel);
+attachPalettePopup($('#chipPri'),openColorPanel);
+$('#chipPri').addEventListener('click', ()=>openQuickPalette($('#chipPri'),openColorPanel));
 
 const palGrp = $('#palGroup');
 if(palGrp){
-  palGrp.checked = !!view.groupPalette;
+  palGrp.value = view.paletteGrouping;
   palGrp.addEventListener('change', e=>{
-    view.groupPalette = e.target.checked;
-    try{ localStorage.setItem('lo-pixel-pal-group', String(view.groupPalette)); }catch(_){}
+    view.paletteGrouping = e.target.value;
+    try{ localStorage.setItem('lo-pixel-pal-group',view.paletteGrouping); }catch(_){}
     paintSwatches();
   });
 }

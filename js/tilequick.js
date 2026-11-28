@@ -38,7 +38,7 @@ let host=null;
 const paletteKey=()=>host?.paletteKey()||'genesis';
 /* bộ đang mở nếu là khuôn 56 ô blob, không thì null (sẽ tạo bộ mới) */
 const terrainTarget=()=>{ const ts=host?.ts(); return ts?.layout==='blob56' ? {id:ts.id,size:ts.size,shape:ts.shape||'inset'} : null; };
-const sameTarget=a=>!!a && a.size===st.size && a.shape===st.shape;
+const sameTarget=a=>!!a && st.destination!=='new' && a.size===st.size && a.shape===st.shape;
 
 /* ---------------- cài đặt (nhớ qua lần mở sau, chung với thẻ ở trang Vẽ) ---------------- */
 function defaultStratum(i){
@@ -48,7 +48,7 @@ function defaultStratum(i){
 }
 function defaults(){
   return {v:3,palette:'genesis',stratum:0,strata:GEN_STRATA.map((_,i)=>defaultStratum(i)),layout:'stairs',deco:true,hero:true,
-    size:16,shape:'inset',scope:'all',keepEdited:true,macro:true};
+    size:16,shape:'inset',scope:'all',keepEdited:true,macro:false,destination:'current'};
 }
 function load(){
   try{
@@ -64,6 +64,7 @@ function fix(s){
   if(!GEN_SIZES.includes(s.size)) s.size=16;
   if(s.shape!=='flush') s.shape='inset';
   if(!SCOPES[s.scope]) s.scope='all';
+  if(s.destination!=='new') s.destination='current';
   if(!PREVIEW_LAYOUTS[s.layout]) s.layout='stairs';
   if(!(s.stratum>=0 && s.stratum<6)) s.stratum=0;
   return s;
@@ -107,18 +108,21 @@ function thumb(cv,x,n=16){
 /* khung bản đồ rộng bằng cột, cao tối đa nửa màn hình */
 function fitMap(){
   const cv=$('#tqMap'), box=cv?.parentElement; if(!cv||!box) return;
-  const cw=box.clientWidth-8, ch=innerHeight*.5;
-  if(cw<=0) return;
-  let z=Math.min(cw/cv.width, ch>40?ch/cv.height:Infinity);
-  z=z>=2?Math.floor(z):z;                     // từ ×2 trở lên phóng nguyên lần cho pixel sắc; nhỏ hơn thì vừa khung
-  cv.style.width=Math.max(1,Math.round(cv.width*z))+'px';
-  cv.style.height=Math.max(1,Math.round(cv.height*z))+'px';
+  const cw=box.clientWidth-16, ch=box.clientHeight-16;
+  if(cw<=0 || ch<=0) return;
+  const fit=Math.min(cw/cv.width,ch/cv.height), density=window.devicePixelRatio||1;
+  const z=fit*density>=1 ? Math.floor(fit*density)/density : fit;
+  cv.style.width=cv.width*z+'px';
+  cv.style.height=cv.height*z+'px';
 }
-let raf=0, thumbsDirty=false;
+let raf=0, thumbTimer=0;
 function schedule(thumbs=false){
-  if(thumbs) thumbsDirty=true;
+  if(thumbs){
+    clearTimeout(thumbTimer);
+    thumbTimer=setTimeout(()=>{ if(isOpen()) paintStrata(); },120);
+  }
   if(raf) return;
-  raf=requestAnimationFrame(()=>{ raf=0; paintPreview(); if(thumbsDirty){ thumbsDirty=false; paintStrata(); } });
+  raf=requestAnimationFrame(()=>{ raf=0; if(isOpen()) paintPreview(); });
 }
 function paintPreview(){
   const n=st.size, shape=st.shape;
@@ -139,7 +143,6 @@ function paintLint(x){
   const n=st.size, L=lintTerrain(x.tiles,n,st.shape,PALETTES[palName()]), box=$('#tqLint');
   box.replaceChildren(
     chip(!L.offPalette.length,L.offPalette.length?L.offPalette.length+' màu ngoài '+GEN_PALETTES[st.palette]:'100% màu '+GEN_PALETTES[st.palette]+' · '+L.colors+' màu','Mọi pixel lấy từ bảng màu vai trò, mà bảng vai trò chỉ chọn được màu của bảng gốc đang chọn'),
-    chip(true,'viền một màu','Viền đá, tinh thể, khe cuội, mạch vữa đều dùng một màu viền duy nhất'),
     chip(!L.floating,L.floating?L.floating+' pixel lơ lửng':'không pixel lơ lửng','Pixel có màu mà bốn ô kề đều trống'),
     chip(!L.alpha&&!L.color,L.alpha||L.color?L.alpha+' lỗi alpha · '+L.color+' lệch màu/vân':'56 ô nối liền mọi cặp','Cùng phép soi với thẻ Soi lỗi')
   );
@@ -258,6 +261,7 @@ function syncControls(){
   $('#tqStratumName').textContent='Tầng '+(st.stratum+1)+' · '+GEN_STRATA[st.stratum].title;
   $('#tqPalette').textContent='Bảng: '+GEN_PALETTES[st.palette]+' · theo bảng màu của bộ đang mở';
   $('#tqSize').value=String(st.size); $('#tqShape').value=st.shape; $('#tqScope').value=st.scope;
+  $('#tqDestination').value=st.destination;
   $('#tqKeepEdited').checked=st.keepEdited;
   $('#tqDeco').checked=st.deco; $('#tqHero').checked=st.hero; $('#tqMacro').checked=st.macro!==false;
   document.querySelectorAll('#tqLayout button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.layout===st.layout));
@@ -265,7 +269,7 @@ function syncControls(){
 }
 
 /* ---------------- seed ---------------- */
-function rollAll(){ const s=cur(); s.seed=randomSeed(); s.seeds=null; save(); syncControls(); schedule(true); }
+function rollAll(){ const s=cur(); s.seed=randomSeed(); s.seeds=null; save(); $('#tqSeed').value=s.seed; schedule(true); }
 function rollGroup(group){
   const s=cur();
   s.seeds={...makeSeeds(s.seed),...(s.seeds||{}),[group]:randomSeed()};
@@ -325,11 +329,14 @@ function syncTarget(){
   const a=terrainTarget(), note=$('#tqTarget'), lock=$('#tqLocks'), btn=$('#tqApply');
   if(!note) return;
   const same=sameTarget(a), ts=host?.ts();
-  note.textContent=!a ? (ts ? 'Bộ “'+ts.name+'” không phải khuôn 56 ô: sẽ tạo bộ 56 ô mới (bộ này giữ nguyên).' : 'Chưa có bộ nào: sẽ tạo bộ 56 ô mới.') :
-    same ? 'Ghi vào bộ đang mở “'+ts.name+'” ('+a.size+' px, '+shapeText(a.shape)+').' :
-    'Bộ đang mở là '+a.size+' px, '+shapeText(a.shape)+' — khác lựa chọn, nên sẽ tạo bộ 56 ô mới (bộ cũ vẫn trong danh sách).';
-  btn.textContent=same?'⚡ Ghi vào bộ 56 ô đang mở':'⚡ Tạo bộ 56 ô từ công thức';
   const L=lockState(), parts=[];
+  const plan=same ? planApply({scopeTest:SCOPES[st.scope].test,locks:L.locks,edited:L.edited,keepEdited:st.keepEdited,known:L.known}) : null;
+  note.textContent=same ? ts.name+' · '+plan.slots.length+' ô sẽ cập nhật'+(plan.kept?' · giữ '+plan.kept+' ô':'') :
+    'Bộ mới · '+st.size+'×'+st.size+' px · '+shapeText(st.shape);
+  btn.textContent=same?'Áp dụng vào bộ':'Tạo bộ 56 ô';
+  for(const id of ['#tqDraw','#tqUndo','#tqRedo']) $(id).hidden=!ts;
+  for(const id of ['#tqScope','#tqKeepEdited']) $(id).disabled=!same;
+  $('#tqDestination').disabled=!a;
   if(same && L.locks.size) parts.push('🔒 khoá '+ids(L.locks));
   if(same && L.edited.size) parts.push('✎ đã sửa tay '+ids(L.edited));
   if(same && L.untracked.size) parts.push('Ô có tranh chưa từng tạo nhanh được giữ khi bật “Giữ ô đã sửa tay”.');
@@ -366,13 +373,14 @@ async function apply(){
     record?.(true);
     toast('Đã ghi '+plan.slots.length+' ô'+(plan.kept?' · giữ '+plan.kept+' ô khoá/sửa tay':'')+'. Ctrl+Z để hoàn tác.',3200);
   } else {
-    const buttons=[$('#tqApply'),$('#emptyQuick')];
-    buttons.forEach(b=>{ b.disabled=true; });
+    const button=$('#tqApply');
+    button.disabled=true;
     try{
       ts=await host.createFromTiles(n,shape,x.tiles,'⚡ '+GEN_RECIPES[s.recipe].title+' · '+n+' px');
-    } finally { buttons.forEach(b=>{ b.disabled=false; }); }
+    } finally { button.disabled=false; }
     if(!ts) return false;
     generationChange(ts.id,TERRAIN_TILES.map(t=>t.slot),x.tiles)?.(true);
+    st.destination='current'; $('#tqDestination').value=st.destination; save();
     toast('Đã tạo bộ 56 ô '+n+' px từ “'+GEN_RECIPES[s.recipe].title+'”. Xem ở thẻ Bộ ô.',3200);
   }
   const px=slotPixels(ts);
@@ -479,8 +487,9 @@ function mount(){
   $('#tqColorsReset').addEventListener('click',()=>{ cur().colors={}; save(); paintColors(); schedule(true); });
   $('#tqSize').addEventListener('change',e=>{ st.size=+e.target.value; save(); syncTarget(); schedule(); });
   $('#tqShape').addEventListener('change',e=>{ st.shape=e.target.value; save(); syncTarget(); paintRecipes(); schedule(true); });
-  $('#tqScope').addEventListener('change',e=>{ st.scope=e.target.value; save(); });
-  $('#tqKeepEdited').addEventListener('change',e=>{ st.keepEdited=e.target.checked; save(); });
+  $('#tqScope').addEventListener('change',e=>{ st.scope=e.target.value; save(); syncTarget(); });
+  $('#tqKeepEdited').addEventListener('change',e=>{ st.keepEdited=e.target.checked; save(); syncTarget(); });
+  $('#tqDestination').addEventListener('change',e=>{ st.destination=e.target.value; save(); syncTarget(); });
   $('#tqDeco').addEventListener('change',e=>{ st.deco=e.target.checked; save(); schedule(); });
   $('#tqHero').addEventListener('change',e=>{ st.hero=e.target.checked; save(); schedule(); });
   $('#tqMacro').addEventListener('change',e=>{ st.macro=e.target.checked; save(); schedule(true); });

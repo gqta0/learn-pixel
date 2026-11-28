@@ -21,9 +21,13 @@ doc.frames.push(newFrame());
 /* lớp đang chọn của khung đang mở */
 export function activeData(){ return doc.frames[doc.af][doc.al]; }
 
-let savedGroup = true, savedPenBtn = 'sec';
+let paletteGrouping='tone', savedPenBtn='sec';
 // Trình duyệt chặn bộ nhớ (chế độ riêng tư, iframe) thì localStorage ném lỗi — không được làm sập app.
-try { savedGroup = localStorage.getItem('lo-pixel-pal-group') !== 'false'; } catch(_) {}
+try {
+  const saved=localStorage.getItem('lo-pixel-pal-group');
+  if(saved==='material' || saved==='all') paletteGrouping=saved;
+  else if(saved==='false') paletteGrouping='all';
+} catch(_) {}
 try { savedPenBtn = localStorage.getItem('lo-pixel-pen-btn') || 'sec'; } catch(_) {}
 
 export const view = {
@@ -38,7 +42,7 @@ export const view = {
   gameSize:false, gameH:(()=>{ try{ return Math.max(8,Math.min(256,parseInt(localStorage.getItem('lo-pixel-game-h'),10)||56)); }catch(_){ return 56; } })(),
   penButton: savedPenBtn, wrapMove:false,
   pixelPerfect:false, ditherPattern:'50', ditherMode:'sec',
-  groupPalette: savedGroup,
+  paletteGrouping,
   palettePinned: false
 };
 

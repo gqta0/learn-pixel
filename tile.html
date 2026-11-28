@@ -14,13 +14,17 @@
     <a href="puppet.html">Ghép rối</a>
     <a href="tile.html" aria-current="page">Vẽ tile</a>
   </nav>
-  <a class="btn" href="tile.html?panel=atlas">Atlas</a>
-  <button class="btn" id="tileTheme" type="button" aria-label="Đổi nền sáng/tối">☀</button>
-  <span id="tileSave" role="status"></span>
-  <select id="tsSel" aria-label="Bộ tile đang mở"></select>
-  <button class="btn" id="tsNew" title="Tạo bộ tile mới">＋ <span class="wide">Bộ mới</span></button>
-  <button class="btn" id="tsMore" aria-haspopup="menu" title="Nhân bản, đổi tên, xoá, nhập / xuất">⋯</button>
-  <button class="btn accent" id="tsGodot" title="Tải ZIP cho Godot 4: tileset.png + tileset.tres + layout.json">⬇ Godot</button>
+  <div class="tp-project">
+    <select id="tsSel" aria-label="Bộ tile đang mở"></select>
+    <span id="tileSave" role="status"></span>
+  </div>
+  <div class="tp-actions">
+    <button class="btn" id="tsNew" title="Tạo bộ tile mới">＋ <span class="wide">Bộ mới</span></button>
+    <a class="btn" href="tile.html?panel=atlas">Atlas</a>
+    <button class="btn" id="tsMore" aria-label="Nhập, xuất và quản lý bộ tile" aria-haspopup="menu">⋯</button>
+    <button class="btn accent" id="tsGodot" title="Tải ZIP cho Godot 4: tileset.png + tileset.tres + layout.json">Xuất Godot</button>
+    <button class="btn" id="tileTheme" type="button" aria-label="Đổi nền sáng/tối">☀</button>
+  </div>
 </header>
 <div class="tp-menu" id="tsMenu" role="menu" hidden>
   <button role="menuitem" data-act="dup">⧉ Nhân bản bộ này</button>
@@ -46,33 +50,48 @@
       <strong id="slotTitle">—</strong>
       <button class="btn tiny" id="slotNext" title="Ô sau (→)">▶</button>
     </div>
+    <div class="tp-viewbar">
+      <div class="tp-seg" role="radiogroup" aria-label="Khung nhìn">
+        <button data-ctx="single" class="on" role="radio" aria-checked="true">Một ô</button>
+        <button data-ctx="context" role="radio" aria-checked="false" title="Chạm ô hàng xóm để chuyển sang sửa ô đó">Hàng xóm</button>
+        <button data-ctx="repeat" role="radio" aria-checked="false" title="Vẽ trên mọi bản sao đều ghi vào ô giữa">Lặp 3×3</button>
+      </div>
+      <div class="tp-zoom" role="group" aria-label="Phóng to ô tile">
+        <button class="btn tiny" id="tileZoomOut" aria-label="Thu nhỏ ô tile">−</button>
+        <button class="btn tiny" id="tileZoomFit" title="Đưa ô tile về vừa khung">Vừa khung</button>
+        <button class="btn tiny" id="tileZoomIn" aria-label="Phóng to ô tile">+</button>
+        <button class="btn tiny" id="tilePan" aria-pressed="false" title="Kéo canvas bằng chuột hoặc ngón tay. S Pen vẫn vẽ được.">Kéo</button>
+      </div>
+    </div>
     <div class="tp-canvaswrap" id="edWrap"><canvas id="ed" tabindex="0" aria-label="Vẽ ô tile đang chọn"></canvas></div>
-    <p class="tp-hint" id="edHint" role="status" aria-live="polite"></p>
+    <p class="tp-hint" id="edHint" role="status"></p>
     <div class="tp-tools" role="toolbar" aria-label="Dụng cụ">
-      <button data-tool="pencil" class="on" title="Bút (B)">✏️</button>
-      <button data-tool="eraser" title="Tẩy (E)">🧽</button>
-      <button data-tool="fill" title="Tô loang (G)">🪣</button>
-      <button data-tool="picker" title="Hút màu (I)">💧</button>
-      <button data-tool="line" title="Đường thẳng (L)">／</button>
-      <button data-tool="rect" title="Chữ nhật (U)">▭</button>
+      <button data-tool="pencil" class="on" aria-pressed="true" title="Phím B">Bút</button>
+      <button data-tool="eraser" aria-pressed="false" title="Phím E">Tẩy</button>
+      <button data-tool="fill" aria-pressed="false" title="Phím G">Tô</button>
+      <button data-tool="picker" aria-pressed="false" title="Phím I">Hút</button>
+      <button data-tool="line" aria-pressed="false" title="Phím L">Đường</button>
+      <button data-tool="rect" aria-pressed="false" title="Phím U">Khung</button>
       <span class="sep"></span>
       <button id="brushBtn" title="Cỡ bút">1px</button>
       <button id="wrapBtn" aria-pressed="false" title="Bút quấn mép: nét tràn mép này hiện ở mép kia (W)">⇆</button>
       <button id="mirBtn" aria-pressed="false" title="Gương ngang (M)">⇋</button>
-      <button id="guideBtn" aria-pressed="true" title="Gợi ý vai pixel (H đổi chế độ)">👁</button>
+      <button id="guideBtn" aria-pressed="false" title="Gợi ý vai pixel (H đổi chế độ)">Dẫn</button>
       <button id="lockBtn" aria-pressed="true" title="Khoá nối (K)" hidden>🔒</button>
       <span class="sep"></span>
       <button id="undoBtn" title="Hoàn tác (Ctrl+Z)">↶</button>
       <button id="redoBtn" title="Làm lại (Ctrl+Y)">↷</button>
       <button id="tileFinger" aria-pressed="false" title="Bật hoặc tắt vẽ bằng ngón tay khi dùng bút" hidden>Vẽ bằng ngón tay</button>
     </div>
-    <div class="tp-seg" role="radiogroup" aria-label="Khung nhìn">
-      <button data-ctx="context" class="on" role="radio" aria-checked="true" title="Ô đang vẽ ở giữa, 8 ô hàng xóm thật quanh nó — chạm ô hàng xóm để sang vẽ ô đó">▦ Hàng xóm</button>
-      <button data-ctx="repeat" role="radio" aria-checked="false" title="Lặp 3×3: vẽ ở bản sao nào cũng ghi vào ô giữa">⊞ Lặp 3×3</button>
-      <button data-ctx="single" role="radio" aria-checked="false" title="Chỉ một ô, to nhất">◻ Một ô</button>
+    <div class="tp-color-dock">
+      <div id="tileRecent" aria-label="Màu vừa dùng và màu trong ô"></div>
+      <details class="tp-palette">
+        <summary class="btn"><i id="tileInk" aria-hidden="true"></i><span id="tileInkHex"></span> · Bảng màu</summary>
+        <div class="tp-pal" id="pal" role="group" aria-label="Bảng màu theo tông"></div>
+      </details>
     </div>
-    <div class="tp-pal" id="pal" aria-label="Bảng màu"></div>
-    <div class="tp-frames" aria-label="Khung hoạt ảnh của ô">
+    <details class="tp-frames">
+      <summary>Hoạt ảnh <span id="tileFrameCount"></span></summary>
       <div class="tp-framebar">
         <b>Khung</b>
         <button class="btn tiny" id="frAdd" title="Thêm khung (chép khung đang vẽ)">＋</button>
@@ -84,21 +103,37 @@
         <button class="btn tiny" id="playBtn" title="Chạy hoạt ảnh (Space)">▶</button>
       </div>
       <div class="tp-framelist" id="frames"></div>
-    </div>
+    </details>
   </section>
 
   <section class="tp-side" id="tilePanel" data-drawer="closed">
-    <div class="tile-drawer-controls">
-      <button class="btn" id="tileDrawer" type="button" aria-controls="tilePanelContent" aria-expanded="false">Bảng điều khiển</button>
-      <button class="btn" id="tileDrawerExpand" type="button" aria-controls="tilePanelContent" aria-expanded="false" hidden>Mở rộng</button>
+    <div class="tile-drawer-controls" role="group" aria-label="Công cụ dưới màn hình">
+      <button class="btn" id="tileDrawer" type="button" aria-controls="paneGrid" aria-expanded="false">
+        <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#grid"/></svg><span class="nav-label">Bộ ô</span>
+      </button>
+      <button class="btn" id="tileDrawerMap" type="button" aria-controls="paneMap" aria-expanded="false">
+        <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#map"/></svg><span class="nav-label">Soi map</span>
+      </button>
+      <button class="btn" id="tileDrawerCheck" type="button" aria-controls="paneCheck" aria-expanded="false">
+        <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#check"/></svg><span class="nav-label">Soi lỗi</span>
+      </button>
+      <button class="btn" id="tileDrawerDetail" type="button" aria-controls="paneDetail" aria-expanded="false">
+        <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#detail"/></svg><span class="nav-label">Chi tiết</span>
+      </button>
+      <button class="btn" id="tileDrawerQuick" type="button" aria-controls="paneQuick">
+        <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#bolt"/></svg><span class="nav-label">Tạo nhanh</span>
+      </button>
+      <button class="btn" id="tileDrawerExpand" type="button" aria-controls="tilePanelContent" aria-expanded="false" hidden>
+        <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#expand"/></svg><span class="nav-label">Mở rộng</span>
+      </button>
     </div>
     <div id="tilePanelContent">
-    <nav class="tp-tabs" role="tablist">
+    <nav class="tp-tabs" role="tablist" aria-label="Không gian làm việc của tile">
       <button role="tab" data-pane="grid" data-panel="paneGrid" aria-selected="true">Bộ ô</button>
       <button role="tab" data-pane="map" data-panel="paneMap" aria-selected="false">Soi map</button>
       <button role="tab" data-pane="check" data-panel="paneCheck" aria-selected="false">Soi lỗi<b class="tp-badge" id="chkBadge" hidden></b></button>
       <button role="tab" data-pane="detail" data-panel="paneDetail" aria-selected="false">Chi tiết</button>
-      <button role="tab" data-pane="quick" data-panel="paneQuick" aria-selected="false" title="Tạo nhanh cả bộ 56 ô từ một công thức">⚡<span class="tp-tab-long"> Tạo nhanh</span></button>
+      <button role="tab" data-pane="quick" data-panel="paneQuick" aria-selected="false">Tạo nhanh</button>
     </nav>
     <div class="tp-pane" id="paneGrid">
       <p class="tp-note" id="layoutNote"></p>
@@ -142,32 +177,32 @@
     </div>
     <div class="tp-pane tq" id="paneQuick" hidden aria-label="Tạo nhanh bộ 56 ô từ công thức">
       <div class="tq-stage">
+        <h2>Terrain 56</h2>
+        <div class="tq-map-wrap"><canvas id="tqMap" aria-label="Bản đồ xem trước bộ ô đang tạo"></canvas></div>
+        <p class="tp-note tq-map-note" id="tqMapNote"></p>
         <div class="tq-row tq-map-bar">
           <div class="tq-seg" id="tqLayout" role="group" aria-label="Bản đồ xem trước"></div>
           <label class="tq-check"><input type="checkbox" id="tqDeco" checked> Trang trí</label>
           <label class="tq-check" title="Cao theo “Cỡ trong game” đã chọn ở trang Vẽ (mặc định 56 px)"><input type="checkbox" id="tqHero" checked> Nhân vật</label>
-          <label class="tq-check" title="Ô đặc lấy ô con của tấm vân lớn 3×3 theo toạ độ, như game sẽ làm — hết nhịp lặp mỗi ô"><input type="checkbox" id="tqMacro" checked> Vân lớn 3×3</label>
+          <label class="tq-check" title="Xem vân 3×3 dùng trong ZIP sáu tầng"><input type="checkbox" id="tqMacro"> Xem vân 3×3</label>
+          <button class="btn tiny" id="tqDice" title="Thử một seed ngẫu nhiên, giữ nguyên công thức và tinh chỉnh">Đổi seed</button>
         </div>
-        <div class="tq-map-wrap"><canvas id="tqMap" aria-label="Bản đồ xem trước bộ ô đang tạo"></canvas></div>
-        <p class="tp-note tq-map-note" id="tqMapNote"></p>
         <div class="tq-lint" id="tqLint" role="status" aria-live="polite"></div>
       </div>
-      <div class="tq-card">
-        <p class="tq-eyebrow">Sáu tầng đất</p>
-        <p class="tp-note">Tầng 1 là mặt đất. Bấm một tầng để chỉnh; vạch màu: lớp phủ xanh · linh khí lam · linh khí tím.</p>
-        <div class="tq-strata" id="tqStrata"></div>
-        <div class="tq-row">
-          <button class="btn tiny" id="tqLerp" title="Thanh trượt tầng 2–5 đổi đều từ tầng 1 xuống tầng 6">↕ Nội suy tầng 2–5</button>
-          <button class="btn tiny" id="tqStrataReset">↺ Về mặc định</button>
+      <div class="tq-settings" aria-label="Cài đặt Terrain">
+        <div class="tq-row tq-format">
+          <label for="tqSize">Khổ</label>
+          <select id="tqSize"><option value="16">16×16</option><option value="32">32×32</option></select>
+          <label for="tqShape">Mép</label>
+          <select id="tqShape"><option value="inset">Thụt mép</option><option value="flush">Kín mép</option></select>
         </div>
-      </div>
       <div class="tq-card">
-        <p class="tq-eyebrow">① Công thức · <span id="tqStratumName"></span></p>
+        <h3>Công thức <span id="tqStratumName"></span></h3>
         <p class="tp-note tq-palette" id="tqPalette" title="Màu của mọi công thức lấy từ bảng màu của bộ đang mở: Master Palette thì dùng Master, bảng khác dùng Genesis v3"></p>
         <div class="tq-recipes" id="tqRecipes"></div>
       </div>
       <div class="tq-card">
-        <p class="tq-eyebrow">② Chỉnh</p>
+        <h3>Tinh chỉnh</h3>
         <div class="tq-sliders" id="tqSliders"></div>
         <div class="tq-row">
           <label class="tq-mini" for="tqCrust">Phủ</label><select id="tqCrust"></select>
@@ -176,7 +211,6 @@
         <div class="tq-row tq-seed">
           <label class="tq-mini" for="tqSeed">Seed</label>
           <input type="number" id="tqSeed" min="1" step="1" inputmode="numeric">
-          <button class="btn tiny accent" id="tqDice" title="Đổi ngẫu nhiên toàn bộ">🎲 Đổi hết</button>
         </div>
         <div class="tq-row tq-dice" id="tqDiceGroups"></div>
         <details class="tq-adv">
@@ -196,15 +230,22 @@
           <button class="btn tiny" id="tqColorsReset">↺ Màu gốc của công thức</button>
         </details>
       </div>
-      <div class="tq-card">
-        <p class="tq-eyebrow">③ Đưa vào bộ 56 ô</p>
+      <details class="tq-card tq-adv">
+        <summary>Sáu tầng đất</summary>
+        <div class="tq-strata" id="tqStrata"></div>
         <div class="tq-row">
-          <label class="tq-mini" for="tqSize">Khổ</label>
-          <select id="tqSize"><option value="16">16×16</option><option value="32">32×32 (vẽ thật, không phóng)</option></select>
+          <button class="btn tiny" id="tqLerp" title="Thanh trượt tầng 2–5 đổi đều từ tầng 1 xuống tầng 6">Nội suy tầng 2–5</button>
+          <button class="btn tiny" id="tqStrataReset">Về mặc định</button>
         </div>
+      </details>
+      <div class="tq-card">
+        <h3>Phạm vi áp dụng</h3>
         <div class="tq-row">
-          <label class="tq-mini" for="tqShape">Mép</label>
-          <select id="tqShape"><option value="inset">Thụt mép (chừa chỗ cỏ)</option><option value="flush">Kín sát mép</option></select>
+          <label for="tqDestination">Đích</label>
+          <select id="tqDestination">
+            <option value="current">Bộ đang mở nếu cùng khổ và mép</option>
+            <option value="new">Luôn tạo bộ mới</option>
+          </select>
         </div>
         <div class="tq-row">
           <label class="tq-mini" for="tqScope">Ghi</label><select id="tqScope" title="Chỉ thay một nhóm ô; phần còn lại của bộ giữ nguyên"></select>
@@ -214,15 +255,20 @@
           <span class="tp-note" id="tqLocks"></span>
           <button class="btn tiny" id="tqLockSel" title="Khoá / mở khoá ô đang mở ở khung vẽ">🔒 Khoá ô</button>
         </div>
-        <p class="tp-note" id="tqTarget"></p>
-        <button class="btn accent tq-wide" id="tqApply">⚡ Tạo bộ 56 ô từ công thức</button>
-        <p class="tp-note" id="tqApplyNote" role="status" aria-live="polite"></p>
       </div>
       <div class="tq-card">
         <p class="tq-eyebrow">Xuất</p>
         <button class="btn tq-wide" id="tqProps" title="Cỏ, hoa, tinh thể, nhũ… mỗi thứ một ô">⬇ Trang trí rời <i>decor.png</i></button>
         <button class="btn tq-wide" id="tqZip" title="layer_1…6/: blob_tileset.png, decor.png, macro.png, tileset.tres">⬇ Cả 6 tầng <i>ZIP · layer_1…6</i></button>
         <p class="tp-note" id="tqExportNote" role="status" aria-live="polite"></p>
+      </div>
+      </div>
+      <div class="tq-commit">
+        <div><p class="tp-note" id="tqTarget"></p><p class="tp-note" id="tqApplyNote" role="status"></p></div>
+        <button class="btn" id="tqUndo" aria-label="Hoàn tác thay đổi bộ tile" hidden>↶</button>
+        <button class="btn" id="tqRedo" aria-label="Làm lại thay đổi bộ tile" hidden>↷</button>
+        <button class="btn" id="tqDraw" hidden>Về vẽ tile</button>
+        <button class="btn accent" id="tqApply">Tạo bộ 56 ô</button>
       </div>
     </div>
     <div class="tp-pane" id="paneMap" hidden>
@@ -242,10 +288,10 @@
 </main>
 
 <div class="tp-empty" id="empty" hidden>
-  <h1>🧱 Trang Tile</h1>
-  <p>Chưa có bộ tile nào. Tạo bộ mới theo khuôn 56 ô, 4×4 nối cạnh, 4×4 nối góc hoặc lưới tự do.</p>
+  <h1>Vẽ tile</h1>
+  <p>Bắt đầu từ bộ trống, thử công thức Terrain 56 hoặc mở bộ đã lưu.</p>
   <p><button class="btn accent" id="emptyNew">＋ Tạo bộ đầu tiên</button>
-     <button class="btn" id="emptyQuick" title="Dựng ngay bộ 56 ô từ công thức của ⚡ Tạo nhanh, rồi chỉnh tiếp">⚡ Tạo nhanh bộ 56 ô</button>
+     <button class="btn" id="emptyQuick">Tạo nhanh Terrain 56</button>
      <button class="btn" id="emptyTerrain" hidden>🧩 Nhập Terrain 56 từ trang Vẽ</button>
      <label class="btn">📂 Mở file .json / dự án Terrain<input type="file" id="emptyOpenJson" accept=".json,application/json" hidden></label></p>
 </div>

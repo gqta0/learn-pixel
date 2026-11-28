@@ -167,11 +167,11 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 .swatches.is-grouped{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .pal-group{background:var(--panel-2);border:1px solid var(--line);border-radius:3px;padding:6px 8px}
 .pal-group-title{
-  font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--dim);margin:0 0 5px;display:flex;justify-content:space-between;align-items:center;
+  font:600 12px var(--sans);color:var(--text);
+  margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;
 }
-.pal-group-title small{color:var(--amber);font-size:9px;font-weight:600}
-.pal-group-swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(28px,1fr));gap:6px}
+.pal-group-title small{color:var(--dim);font-size:11px}
+.pal-group-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(28px,1fr));gap:6px}
 .color-block .swatches{max-height:250px;overflow-y:auto;padding:3px}
 .pen-settings summary{cursor:pointer;min-height:28px;margin:0}
 .pen-settings[open] summary{margin-bottom:10px}
@@ -470,14 +470,13 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
 .quickbar .qb[aria-pressed=true]{background:var(--accent-bg);border-color:var(--amber);color:var(--amber)}
 .quickbar .qb.on{background:var(--cool-bg);border-color:var(--cool-bd);color:var(--cyan)}
-.mnav{display:none;position:relative;z-index:55;background:var(--panel);border-top:1px solid var(--line);flex:0 0 auto;flex-shrink:0}
-.mnav button,.mnav a{
-  flex:1;background:none;border:0;border-top:2px solid transparent;padding:7px 2px 9px;
-  display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--dim);font-size:17px;
+.mnav{display:none;position:relative;z-index:55;background:var(--panel);border-top:1px solid var(--line);flex:0 0 auto;gap:4px;padding:5px 6px}
+.mnav button{
+  flex:1 1 0;min-width:0;min-height:44px;background:none;border:1px solid transparent;border-radius:6px;
+  padding:4px;color:var(--dim);font:600 13px var(--sans);cursor:pointer;
 }
-.mnav a{text-decoration:none;font-family:inherit;line-height:normal}   /* 🧱 Tile: link sang tile.html, cùng dáng nút */
-.mnav button span,.mnav a span{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase}
-.mnav button[aria-current=true]{color:var(--amber);border-top-color:var(--amber);background:var(--tab-on)}
+.mnav button[aria-current=true]{color:var(--amber);border-color:var(--accent-bd);background:var(--tab-on)}
+.mnav button:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
 
 @media (max-width:1000px){
   body{overflow:hidden}
@@ -490,8 +489,6 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   .col{position:absolute;top:var(--stage-head-h, 42px);left:0;right:0;bottom:0;z-index:25;display:none;border:0;padding-bottom:8px;overflow-y:auto}
   body[data-view="tools"] .col.left{display:block}
   body[data-view="learn"] .col.right,
-  body[data-view="ex"] .col.right,
-  body[data-view="th"] .col.right,
   body[data-view="file"] .col.right{display:block}
   .mnav{display:flex;flex:0 0 auto;flex-shrink:0}
   .quickbar{display:flex}
@@ -514,7 +511,7 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   .frame canvas{width:auto;height:auto;max-width:40px;max-height:40px}
   .preview-scroll{max-width:110px;max-height:100px}
   .playbox canvas{width:auto;height:auto}
-  .pal-group-swatches{grid-template-columns:repeat(auto-fit,minmax(40px,1fr))}
+  .pal-group-swatches{grid-template-columns:repeat(auto-fill,minmax(40px,1fr))}
   .color-block .swatches{max-height:280px}
   .eyebrow{margin-bottom:6px}
   .block{padding:12px}
@@ -548,7 +545,7 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   /* thanh nhanh: chừa lề an toàn của máy có tai thỏ */
   .quickbar{right:calc(8px + env(safe-area-inset-right))}
   .quickbar .qb{width:48px;height:48px;border-radius:24px}
-  .mnav{padding-bottom:env(safe-area-inset-bottom)}
+  .mnav{padding-bottom:calc(5px + env(safe-area-inset-bottom))}
 }
 /* Khổ dọc: bề ngang mới là thứ hiếm, chiều cao thì dư — nên thanh nhanh
    nằm hẳn trong bố cục (ăn chiều cao) thay vì nổi đè lên tranh (ăn bề ngang).
@@ -600,8 +597,6 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
   /* dồn chỗ cho canvas: bỏ dòng toạ độ, thu đệm, thu nhãn thanh dưới */
   .canvaswrap{padding:8px}
   .hud{display:none}
-  .mnav button,.mnav a{padding:5px 2px 6px;font-size:15px}
-  .mnav button span,.mnav a span{font-size:8.5px}
   .filmstrip{padding:4px 8px}
   .filmstrip .eyebrow{display:none}
   .filmstrip .frames{flex-direction:row;overflow-x:auto;flex-shrink:0}

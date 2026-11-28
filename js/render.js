@@ -10,8 +10,13 @@ let onRender=()=>{};
 export function bindRenderEffect(effect){ onRender=effect; }
 /* Khổ khung chứa chỉ đọc lại khi nó đổi (ResizeObserver), không đọc mỗi lần vẽ. */
 let padDirty=true;
+let fitOnResize=false;
 const wrapEl=$('#wrap');
-if(typeof ResizeObserver==='function') new ResizeObserver(()=>{ padDirty=true; requestRender(); }).observe(wrapEl);
+if(typeof ResizeObserver==='function') new ResizeObserver(()=>{
+  padDirty=true;
+  if(fitOnResize && !view.drawing && wrapEl.clientWidth && wrapEl.clientHeight) fitZoom();
+  requestRender();
+}).observe(wrapEl);
 /* Gom mọi lời gọi vẽ trong một khung hình thành một lần: bút S-Pen bắn nhiều sự kiện mỗi khung. */
 let rq=0;
 export function requestRender(){ if(!rq) rq=requestAnimationFrame(()=>{ rq=0; render(); }); }
@@ -157,6 +162,7 @@ export function render(){
 /* ---------------- phóng to / thu nhỏ ---------------- */
 /* vừa khung: trừ đúng phần đệm thật của khung chứa, để màn hình thấp vẫn dùng hết chỗ */
 export function fitZoom(){
+  fitOnResize=true;
   view.hover=null;
   const wrap=$('#wrap');
   const fit=Math.min((wrap.clientWidth-40)/doc.w, (wrap.clientHeight-40)/doc.h);
@@ -165,6 +171,7 @@ export function fitZoom(){
   $('#zoomLbl').textContent='×'+view.zoom;
 }
 export function setZoom(z,anchor){
+  fitOnResize=false;
   view.hover=null;
   const wrap=$('#wrap'), wr=wrap.getBoundingClientRect(), before=board.getBoundingClientRect();
   const point=anchor || {x:wr.left+wrap.clientWidth/2,y:wr.top+wrap.clientHeight/2};

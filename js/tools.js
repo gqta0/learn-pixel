@@ -1,4 +1,4 @@
-import { showEditorTab } from './editor-layout.js';
+export { setEditorView as setView } from './editor-layout.js';
 /* Dụng cụ vẽ, chủ đề sáng/tối, và chuyển khung nhìn trên điện thoại. */
 import { $, $$ } from './dom.js';
 import { view, setTH } from './state.js';
@@ -157,11 +157,4 @@ export function setTheme(name){
   rebuild('.lesson', '#thList', buildTheory);
   rebuild('.phase',  '#exList', buildExercises);
   render(); paintThumbs();
-}
-export function setView(v){
-  document.body.dataset.view=v;
-  $$('#mnav button').forEach(b=>b.setAttribute('aria-current', b.dataset.view===v?'true':'false'));
-  if (v==='learn' || v==='ex' || v==='th') showEditorTab('pHoc');
-  if (v==='colors') showEditorTab('pColor');
-  window.dispatchEvent(new CustomEvent('viewchange', {detail: {view: v}}));
 }

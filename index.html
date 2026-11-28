@@ -80,9 +80,12 @@
           <button class="btn tiny" id="palDel" title="Xoá bảng màu đã lưu này" style="display:none">✕</button>
         </div>
         <div class="row" style="margin-top:6px;justify-content:space-between;align-items:center">
-          <label class="mini" style="cursor:pointer;display:flex;align-items:center;gap:6px">
-            <input type="checkbox" id="palGroup" checked> Phân loại nhóm
-          </label>
+          <label class="mini" for="palGroup">Xem màu</label>
+          <select id="palGroup" class="grow">
+            <option value="tone">Theo tông màu</option>
+            <option value="material">Theo chất liệu</option>
+            <option value="all">Toàn bộ</option>
+          </select>
         </div>
         <div class="swatches" id="swatches"></div>
         <p class="kbd" id="palInfo" style="margin:7px 0 0"></p>
@@ -706,12 +709,25 @@
     </p>
   </div>
 
-  <nav class="mnav" id="mnav">
-    <button data-view="draw" aria-current="true">✏️<span>Vẽ</span></button>
-    <button data-view="tools" aria-current="false"><span>Cọ</span></button>
-    <button data-view="colors" aria-current="false"><span>Màu</span></button>
-    <button data-view="learn" aria-current="false">🎓<span>Học vẽ</span></button>
-    <button data-view="file" aria-current="false" aria-controls="editorPanel" aria-expanded="false"><span>Bảng điều khiển</span></button>
+  <nav class="mnav" id="mnav" aria-label="Công cụ dưới màn hình">
+    <button type="button" data-view="draw" aria-controls="editorStage" aria-current="true">
+      <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#pencil"/></svg><span class="nav-label">Vẽ</span>
+    </button>
+    <button type="button" data-view="tools" aria-controls="editorTools" aria-expanded="false">
+      <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#brush"/></svg><span class="nav-label">Cọ</span>
+    </button>
+    <button type="button" data-view="colors" aria-controls="editorPanel" aria-expanded="false">
+      <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#palette"/></svg><span class="nav-label">Màu</span>
+    </button>
+    <button type="button" data-view="layers" aria-controls="editorPanel" aria-expanded="false">
+      <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#layers"/></svg><span class="nav-label">Lớp</span>
+    </button>
+    <button type="button" data-view="learn" aria-controls="editorPanel" aria-expanded="false">
+      <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#book"/></svg><span class="nav-label">Học vẽ</span>
+    </button>
+    <button type="button" data-view="file" aria-controls="editorPanel" aria-expanded="false">
+      <svg class="nav-icon" aria-hidden="true"><use href="icons/navigation.svg#file"/></svg><span class="nav-label">Tệp</span>
+    </button>
   </nav>
 </div>
 <dialog id="resizeDialog" aria-labelledby="resizeTitle">

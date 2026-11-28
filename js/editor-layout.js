@@ -9,7 +9,11 @@ const create = (tag, attrs, text) => {
   return node;
 };
 const appendLink = (where, href, label) => where.append(create('a', {class:'btn tiny', href}, label));
-let selectTab;
+let selectTab, setMode;
+
+export function setEditorView(view) {
+  setMode?.(view);
+}
 
 export function showEditorTab(id) {
   selectTab?.(id);
@@ -18,6 +22,9 @@ export function showEditorTab(id) {
 export function layoutEditor(mode) {
   const panel = get('.col.right');
   panel.id = 'editorPanel';
+  get('.col.left').id = 'editorTools';
+  get('.stage').id = 'editorStage';
+  const navButtons = Array.from(get('#mnav').querySelectorAll('button'));
   const tabList = panel.querySelector('.tabs');
   tabList.setAttribute('aria-label', 'Bảng điều khiển');
   const addTab = (id, label, content = []) => {
@@ -30,16 +37,6 @@ export function layoutEditor(mode) {
   const rig = get('#pRig');
   const status = get('#workspaceSave');
   status.textContent = '';
-  const mobilePanel = get('#mnav [data-view="file"]');
-  mobilePanel.addEventListener('click', event => {
-    if (document.body.dataset.view === 'file') {
-      event.stopImmediatePropagation();
-      get('#mnav [data-view="draw"]').click();
-    }
-  });
-  addEventListener('viewchange', () => {
-    mobilePanel.setAttribute('aria-expanded', String(document.body.dataset.view === 'file'));
-  });
   tabList.replaceChildren();
   const expand = create('button', {type:'button', class:'btn tiny drawer-expand', 'aria-expanded':'false'}, 'Mở rộng bảng');
   const setExpanded=open=>{
@@ -51,14 +48,16 @@ export function layoutEditor(mode) {
   bindDrawerDrag(expand,direction=>{
     if(direction==='up') setExpanded(true);
     else if(panel.classList.contains('expanded')) setExpanded(false);
-    else get('#mnav [data-view="draw"]').click();
+    else setEditorView('draw');
   });
   panel.prepend(expand);
 
   const strip=get('.filmstrip');
   strip.id='editorFrames';
-  const stripToggle=create('button',{type:'button',class:'btn tiny frame-strip-toggle','aria-controls':strip.id,'aria-expanded':'true'},'Khung hình');
-  get('.stagebar').append(stripToggle);
+  const compact=matchMedia('(pointer: coarse) and (min-width: 680px) and (max-width: 1600px)').matches;
+  if(compact) strip.classList.add('collapsed');
+  const stripToggle=create('button',{type:'button',class:'btn tiny frame-strip-toggle','aria-controls':strip.id,'aria-expanded':String(!compact)},'Khung hình');
+  get('#zoomFit').after(stripToggle);
   stripToggle.addEventListener('click',()=>{
     const collapsed=strip.classList.toggle('collapsed');
     stripToggle.setAttribute('aria-expanded',String(!collapsed));
@@ -94,9 +93,12 @@ export function layoutEditor(mode) {
     addTab('rigShadePane', 'Soi & đổ bóng', [lint, shade]);
     const files = addTab('rigFilesPane', 'Nhân vật & xuất', [characterActions, characterNote, bundle]);
     files.append(get('#expJson').parentElement);
+    addTab('pColor','Màu',[get('.color-block'),get('#rampBlock')]);
     get('#mnav [data-view="learn"]').hidden = true;
-    get('#mnav [data-view="colors"]').remove();
-    get('#mnav [data-view="tools"]').textContent = 'Cọ & màu';
+    get('#mnav [data-view="layers"]').hidden = true;
+    const puppetTab=get('#mnav [data-view="file"]');
+    puppetTab.querySelector('.nav-label').textContent = 'Ghép rối';
+    puppetTab.querySelector('use').setAttribute('href','icons/navigation.svg#puppet');
     selected = 'rigPartsPane';
   } else if (mode === 'atlas') {
     const links = create('div', {class:'block atlas-links'});
@@ -106,7 +108,7 @@ export function layoutEditor(mode) {
     panel.prepend(links);
     addTab('pLayers', 'Lớp & khung', [get('#pFile > .block')]);
     addTab('pColor', 'Màu', [get('.color-block'), get('#rampBlock')]);
-    addTab('pFile', 'File');
+    addTab('pFile', 'Tệp');
     get('#mnav [data-view="learn"]').hidden = true;
     selected = 'pLayers';
   } else {
@@ -116,7 +118,7 @@ export function layoutEditor(mode) {
     addTab('pLayers', 'Lớp & khung', [get('#pFile > .block')]);
     addTab('pColor', 'Màu', [get('.color-block'), get('#rampBlock')]);
     addTab('pHoc', 'Học vẽ');
-    addTab('pFile', 'File');
+    addTab('pFile', 'Tệp');
     const atlas = get('#atOpen');
     atlas.hidden = true;
     appendLink(atlas.parentElement, 'tile.html?panel=atlas', 'Mở Atlas');
@@ -126,7 +128,38 @@ export function layoutEditor(mode) {
     pane.hidden=true;
     pane.classList.remove('on');
   }
-  selectTab = initTabs(tabList, id => {
-    window.dispatchEvent(new CustomEvent('editor-tab', {detail:id}));
-  }, selected);
+  const paneByView={colors:'pColor',layers:'pLayers',learn:'pHoc',file:mode==='puppet'?'rigPartsPane':'pFile'};
+  const markView=view=>{
+    document.body.dataset.view=view;
+    for(const b of navButtons){
+      const active=String(b.dataset.view===view);
+      b.setAttribute('aria-current',active);
+      if(b.hasAttribute('aria-expanded')) b.setAttribute('aria-expanded',active);
+    }
+    window.dispatchEvent(new CustomEvent('viewchange',{detail:{view}}));
+  };
+  const notifyTab=id=>window.dispatchEvent(new CustomEvent('editor-tab',{detail:id}));
+  selectTab=initTabs(tabList,id=>{
+    if(paneByView[document.body.dataset.view]){
+      const view=Object.keys(paneByView).find(view=>paneByView[view]===id) || 'file';
+      markView(view);
+    }
+    panel.scrollTop=0;
+    notifyTab(id);
+  },selected);
+  setMode=view=>{
+    if(view!==document.body.dataset.view){
+      setExpanded(false);
+      if(view==='tools') get('#editorTools').scrollTop=0;
+      panel.scrollTop=0;
+    }
+    const pane=paneByView[view];
+    if(pane) selectTab(pane);
+    markView(view);
+    if(pane) notifyTab(pane);
+  };
+  for(const b of navButtons) b.addEventListener('click',()=>{
+    const view=b.dataset.view;
+    setEditorView(view===document.body.dataset.view?'draw':view);
+  });
 }

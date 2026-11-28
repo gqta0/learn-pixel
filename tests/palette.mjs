@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {TERRAIN_CREATE_PRESETS} from '../js/terrainio.js';
 import {GENESIS_NAME, GENESIS_COLORS} from '../js/genesis.js';
+import {groupColorTones} from '../js/palgroups.js';
 
 const src=readFileSync(new URL('../js/masterpal.js', import.meta.url),'utf8');   // Master + COLOR_TOKENS nằm ở masterpal.js (thuần)
 const palSrc=readFileSync(new URL('../js/palette.js', import.meta.url),'utf8');
@@ -23,6 +24,13 @@ function oklab(hex){
           0.0259040371*l+0.7827717662*m-0.8086757660*s];
 }
 const dist=(a,b)=>Math.hypot(...oklab(a).map((v,i)=>v-oklab(b)[i]));
+
+test('tone groups order colors from dark to light while retaining original swatch indexes',()=>{
+  const groups=groupColorTones(['#ffffff','#fe5959','#8b4528','#120f13','#ad2525','#095ece','#60bb4d']);
+  assert.deepEqual(groups.map(({group,colors})=>[group,colors.map(({index})=>index)]),[
+    ['Đen, xám và trắng',[3,0]],['Đỏ',[4,1]],['Nâu',[2]],['Lục',[6]],['Lam',[5]]
+  ]);
+});
 
 test('Master name matches its colour count, every colour is unique and has a token',()=>{
   assert.equal(masterName, `Master Palette (${master.length} màu)`);

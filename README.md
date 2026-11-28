@@ -253,11 +253,11 @@ Chọn **Vẽ tile** từ thanh điều hướng hoặc mở thẳng `tile.html`
 - **Vẽ nhanh:**
   - *Hàng xóm*: ô đang vẽ nằm giữa, 8 ô sẽ đứng cạnh nó trong map nằm quanh. Chạm một ô hàng xóm để sang vẽ ô đó. Pixel mép không khớp ô hàng xóm hiện vạch đỏ.
   - *Lặp 3×3*: vẽ ở bản sao nào cũng ghi vào ô giữa.
-  - *Một ô*: chỉ hiện ô đang vẽ, to nhất.
+  - *Một ô*: khung mặc định để vẽ. Dùng **− / + / Vừa khung** để soi pixel và **Kéo** để di chuyển bằng ngón tay. Trên PC, giữ chuột giữa để kéo hoặc Ctrl+lăn để phóng.
   - Bút quấn mép (W), gương ngang, gợi ý vai pixel (H), hoàn tác theo ô.
 - **Tile hoạt ảnh:** mỗi ô có khung riêng và thời lượng riêng, có bóng khung trước, chạy thử ngay trong khung vẽ và trên Soi map.
-- **Các thẻ dưới khung vẽ:** **Bộ ô** (lưới mọi ô theo đúng chỗ trong atlas, chạm để vẽ) · **Soi map** ·
-  **Soi lỗi** · **Chi tiết** · **⚡ Tạo nhanh**. Bộ Terrain 56 dùng đủ năm thẻ, xem
+- **Bảng bên cạnh hoặc dưới khung vẽ:** **Bộ ô** (lưới mọi ô theo đúng chỗ trong atlas, chạm để vẽ) · **Soi map** ·
+  **Soi lỗi** · **Chi tiết** · **Tạo nhanh**. Xem
   [Terrain 56](#terrain-56--template-có-hướng-dẫn-pixel) bên dưới.
 - **Soi map 16×10:** vẽ vật liệu lên map, ô tự chọn theo khuôn. Chạm một ô trên map để mở ô đó.
 - **⬇ Godot:** ZIP gồm `tileset.png`, `tileset.tres` và `layout.json`.
@@ -274,7 +274,7 @@ Chọn **Vẽ tile** từ thanh điều hướng hoặc mở thẳng `tile.html`
 Tạo bằng **＋ Bộ mới → Terrain 56** (16 hoặc 32 px, dáng mép, preset màu), bằng **⚡ Tạo nhanh**,
 hoặc mở file cũ. Năm thẻ của Trang Tile, mỗi thẻ một việc:
 
-- **Bộ ô** — 56 ô theo atlas 10×7; chạm một ô để vẽ. Khi vẽ, **👁** bật gợi ý vai pixel
+- **Bộ ô** — 56 ô theo atlas 10×7; chạm một ô để vẽ. Khi vẽ, **Dẫn** bật gợi ý vai pixel
   (phím **H** đổi Khung viền → Phủ mờ → Tắt; chỉ hiện trên màn hình, không vào file xuất),
   **🔒 Khoá nối** (phím **K**) giữ nguyên pixel connector đã có ở mép để khỏi vô tình khoét thủng.
 - **Soi map** — vẽ vật liệu lên map, ô tự chọn theo mask và biến thể.
@@ -310,7 +310,7 @@ cao theo **🎮 Cỡ trong game** đã chọn ở trang Vẽ. Các thẻ chỉnh
    vết nứt, sỏi, rễ, kiểu ruột (đá khối xếp so le / tảng đá trong nền tối / cuội xếp kín),
    kiểu mặt (không viền — khối đá chạy thẳng lên mặt / cuội bo tròn / đá phiến), hướng nắng,
    và đổi màu từng vai trò (chỉ chọn được màu của bảng gốc).
-3. **Đưa vào bộ** — chưa có bộ Terrain 56 thì tạo bộ mới; có rồi thì ghi vào bộ đang mở.
+3. **Đưa vào bộ** — xem thử công thức trước khi tạo bộ đầu tiên. Thanh dưới bản đồ cho biết đích ghi và số ô sẽ cập nhật. Để thử một phương án riêng với cùng kích thước, chọn **Đích → Luôn tạo bộ mới**.
    **Ghi** cho chọn phạm vi (cả 56 ô, chỉ ô có mặt trên, chỉ 4 ô ruột, ô có trần, ô có
    tường). **Giữ ô đã sửa tay** bảo vệ cả ô vẽ từ đầu, ô đã sửa sau lần tạo trước và ô có hoạt ảnh.
    **🔒 Khoá ô** giữ riêng ô đang mở. Mỗi bộ nhớ các ô khoá của mình khi anh chuyển qua lại.

@@ -4,7 +4,7 @@ import { view, doc } from './state.js';
 import { rampHueProfile, hexToInt, intToHex, intToCss, rgbToHsl } from './color.js';
 import { autosave } from './storage.js';
 import { onLongPress, popover } from './popup.js';
-import { parsePaletteText } from './palgroups.js';
+import { groupColorTones, parsePaletteText } from './palgroups.js';
 import { GENESIS_NAME, GENESIS_COLORS, GENESIS_PALETTES, GENESIS_TOKENS } from './genesis.js';
 export { GENESIS_NAME } from './genesis.js';
 import { V4_NAME, V4_COLORS, V4_TOKENS, V4_GROUPS, V4_RAMPS, V4_COMMON, V4_ACCENTS, V4_SHADE_TOKENS } from './genesis-v4.js';
@@ -173,7 +173,7 @@ export function shadingTokens(){
 }
 function colorToken(hex,isV4){
   const key=hex.toLowerCase();
-  return isV4 ? V4_TOKENS[key] : COLOR_TOKENS[key];
+  return isV4 ? V4_TOKENS[key] : COLOR_TOKENS[key] || V4_TOKENS[key];
 }
 function createSwatchBtn(hex, i, cur, sec, dung, isV4){
   const b=document.createElement('button');
@@ -197,44 +197,49 @@ function createSwatchBtn(hex, i, cur, sec, dung, isV4){
 
 export function paintSwatches(){
   autosave();
-  const box=$('#swatches'); box.innerHTML='';
+  const box=$('#swatches'), scroll=box.scrollTop;
+  box.replaceChildren();
   const cur=intToHex(view.pri), sec=intToHex(view.sec), dung=usedInFrame();
   const isV4=usesV4();
   let n=0;
   palette.forEach(hex=>{ if(dung.has(hex)) n++; });
 
-  if(view.groupPalette){
+  if(view.paletteGrouping!=='all'){
     box.classList.add('is-grouped');
-    const groups = new Map();
-    palette.forEach((hex,i)=>{
-      const meta = colorToken(hex,isV4);
-      const grp = meta ? meta.group : 'Chung';
-      if(!groups.has(grp)) groups.set(grp, []);
-      groups.get(grp).push({hex, i});
-    });
-
-    groups.forEach((items, grp)=>{
+    let groups;
+    if(view.paletteGrouping==='material'){
+      const byMaterial=new Map();
+      palette.forEach((hex,index)=>{
+        const name=colorToken(hex,isV4)?.group || 'Chung';
+        if(!byMaterial.has(name)) byMaterial.set(name,{group:name,colors:[]});
+        byMaterial.get(name).colors.push({hex,index});
+      });
+      groups=byMaterial.values();
+    }else groups=groupColorTones(palette);
+    for(const {group,colors} of groups){
       const gEl=document.createElement('div');
       gEl.className='pal-group';
       const tEl=document.createElement('div');
       tEl.className='pal-group-title';
-      tEl.innerHTML=`<span>${grp}</span><small>${items.length}</small>`;
+      const title=document.createElement('span'), count=document.createElement('small');
+      title.textContent=group; count.textContent=colors.length; tEl.append(title,count);
       gEl.appendChild(tEl);
 
       const sBox=document.createElement('div');
       sBox.className='pal-group-swatches';
-      items.forEach(it=>{
-        sBox.appendChild(createSwatchBtn(it.hex, it.i, cur, sec, dung, isV4));
+      colors.forEach(({hex,index})=>{
+        sBox.appendChild(createSwatchBtn(hex,index,cur,sec,dung,isV4));
       });
       gEl.appendChild(sBox);
       box.appendChild(gEl);
-    });
+    }
   } else {
     box.classList.remove('is-grouped');
     palette.forEach((hex,i)=>{
       box.appendChild(createSwatchBtn(hex, i, cur, sec, dung, isV4));
     });
   }
+  box.scrollTop=scroll;
 
   const goc=palByName($('#palSel').value);
   const daSua = goc && (goc.length!==palette.length || goc.some((h,k)=>h!==palette[k]));

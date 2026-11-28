@@ -5,6 +5,7 @@ import { bindDrawerDrag } from './drawer.js';
    đúng một ô vào `doc` (khổ ô × khổ ô) để dùng lại bút, tẩy, tô loang… của raster.js. */
 import { paintStamp, paintLine, paintRect, paintFill } from './pixel-brush.js';
 import { hexToInt, intToHex } from './color.js';
+import { groupColorTones } from './palgroups.js';
 import { GENESIS_COLORS, GENESIS_TOKENS } from './genesis.js';
 import { MASTER_COLORS, COLOR_TOKENS } from './masterpal.js';
 import { ROLE_COLORS, ROLE_NAMES, TERRAIN_TILES, DIRECTIONS, terrainSlotCell, maskToCr31, paintTerrainGuide,
@@ -34,7 +35,7 @@ function toast(msg,ms=2600){ const el=$('#toast'); el.textContent=msg; el.classL
 let ts=null, lay=null, slot=0, frame=0;
 let list=[];                                    // [{id,name,layout}] để đổ vào ô chọn bộ
 const GUIDE_MODES=['wireframe','tint','off'];
-const ui={tool:'pencil',ctx:'context',guide:GUIDE_MODES.includes(lsGet('lo-pixel-tile-guide'))?lsGet('lo-pixel-tile-guide'):'wireframe',lock:true,onion:false,playing:false,mapPlaying:false,mtool:'paint'};
+const ui={tool:'pencil',ctx:'single',guide:GUIDE_MODES.includes(lsGet('lo-pixel-tile-guide'))?lsGet('lo-pixel-tile-guide'):'off',lock:true,onion:false,playing:false,mapPlaying:false,mtool:'paint'};
 const view={brush:1, mirX:false, wrapPaint:false, pri:hexToInt('#857870')};
 const stamp=(data,x,y,col)=>paintStamp(data,x,y,col,ts.size,ts.size,view);
 const lineStamp=(data,x,y,x1,y1,col)=>paintLine(data,x,y,x1,y1,col,ts.size,ts.size,view);
@@ -61,7 +62,10 @@ function restoreSnap(e,forward){
 }
 function undo(){ if(!undoS.length) return; const e=undoS.pop(); redoS.push(snapOf(e)); restoreSnap(e,false); syncUndo(); }
 function redo(){ if(!redoS.length) return; const e=redoS.pop(); undoS.push(snapOf(e)); restoreSnap(e,true); syncUndo(); }
-function syncUndo(){ $('#undoBtn').disabled=!undoS.length; $('#redoBtn').disabled=!redoS.length; }
+function syncUndo(){
+  $('#undoBtn').disabled=$('#tqUndo').disabled=!undoS.length;
+  $('#redoBtn').disabled=$('#tqRedo').disabled=!redoS.length;
+}
 
 /* ---------------- lưu (IndexedDB chung với trang Vẽ) ---------------- */
 let saveT=0, pending=false, loadedAt=0;
@@ -136,9 +140,6 @@ function load(next){
   rolesCache.clear();
   lsSet(LAST_KEY,ts.id);
   $('#empty').hidden=true; $('#tpMain').hidden=false; $('#tsGodot').disabled=$('#tsMore').disabled=false;
-  const quickTab=$('[data-pane="quick"]');
-  if(lay.match!=='blob' && quickTab.getAttribute('aria-selected')==='true') selectTileTab('grid');
-  quickTab.hidden=lay.match!=='blob';
   setText($('#layoutNote'),lay.name+' · ô '+ts.size+'×'+ts.size+(lay.match==='blob'||lay.match==='sides'?' · '+(ts.shape==='flush'?'kín sát mép':'thụt mép'):''));
   mapPreset();
   buildGrid(); paintPalette(); fillSelect();
@@ -162,7 +163,7 @@ function selectSlot(s,f=0){
   const info=lay.slots[slot];
   setText($('#slotTitle'),'#'+String(slot).padStart(2,'0')+' · '+info.title);
   $$('#grid button').forEach(b=>b.setAttribute('aria-current',String(+b.dataset.slot===slot)));
-  paintFrames(); drawEditor(); paintMap();
+  paintQuickColors(); paintFrames(); drawEditor(); paintMap();
   for(const cb of selectCbs) cb();
 }
 const selectCbs=[];
@@ -188,23 +189,50 @@ function frameAtTime(t,ms){
 }
 
 /* ---------------- khung vẽ ---------------- */
-const ed=$('#ed'), ectx=ed.getContext('2d');
-let edZ=1, edCells=3, edT=0;
+const ed=$('#ed'), ectx=ed.getContext('2d'), edWrap=$('#edWrap');
+const zoomLevels=[1,1.5,2,3,4];
+let edZ=1, edCells=1, edT=0, zoomIndex=0;
 const cellsOf=()=>ui.ctx==='single'?1:3;
 let drawQ=0;
 function requestDraw(){ if(!drawQ) drawQ=requestAnimationFrame(()=>{ drawQ=0; drawEditor(); }); }
 function layoutEditor(){
-  const wrap=$('#edWrap'), n=ts.size; edCells=cellsOf();
-  const side=Math.min(wrap.clientWidth,wrap.clientHeight)||300;
-  edZ=Math.max(1,Math.floor(side*dpr()/(n*edCells)));
+  const n=ts.size; edCells=cellsOf();
+  const side=Math.min(edWrap.clientWidth,edWrap.clientHeight)-24;
+  edZ=Math.max(1,Math.floor(Math.min(4096,side*dpr()*zoomLevels[zoomIndex])/(n*edCells)));
   const W=n*edCells*edZ;
   if(ed.width!==W){ ed.width=ed.height=W; }
   const css=(W/dpr())+'px';
   if(ed.style.width!==css){ ed.style.width=ed.style.height=css; }
 }
+function setTileZoom(next,x,y){
+  if(!ts || stroke || !edWrap.clientWidth) return;
+  const level=Math.max(0,Math.min(zoomLevels.length-1,next));
+  if(level===zoomIndex) return;
+  const wrap=edWrap.getBoundingClientRect(), before=ed.getBoundingClientRect();
+  x??=wrap.left+edWrap.clientWidth/2;
+  y??=wrap.top+edWrap.clientHeight/2;
+  const px=(x-before.left)/before.width, py=(y-before.top)/before.height;
+  zoomIndex=level;
+  $('#tileZoomFit').textContent=level?'×'+zoomLevels[level]:'Vừa khung';
+  $('#tileZoomIn').disabled=level===zoomLevels.length-1;
+  $('#tileZoomOut').disabled=level===0;
+  drawEditor();
+  const after=ed.getBoundingClientRect();
+  edWrap.scrollLeft+=after.left+after.width*px-x;
+  edWrap.scrollTop+=after.top+after.height*py-y;
+}
+$('#tileZoomOut').disabled=true;
+$('#tileZoomOut').addEventListener('click',()=>setTileZoom(zoomIndex-1));
+$('#tileZoomIn').addEventListener('click',()=>setTileZoom(zoomIndex+1));
+$('#tileZoomFit').addEventListener('click',()=>setTileZoom(0));
+edWrap.addEventListener('wheel',e=>{
+  if(!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  setTileZoom(zoomIndex+Math.sign(-e.deltaY),e.clientX,e.clientY);
+},{passive:false});
 function drawEditor(){
   syncLockBtn();
-  if(!ts) return;
+  if(!ts || !edWrap.clientWidth) return;
   if(drawQ){ cancelAnimationFrame(drawQ); drawQ=0; }
   layoutEditor();
   const n=ts.size, z=edZ, c=edCells, lw=Math.max(1,Math.round(dpr()));
@@ -219,7 +247,7 @@ function drawEditor(){
     drawTile(ectx,frameAt(ts,s,f),n,cx*n*z,cy*n*z,z);
   }
   ectx.globalAlpha=1;
-  const ox=(c===1?0:n)*z, oy=ox, px=curData();
+  const ox=(c===1?0:n)*z, oy=ox;
   // gợi ý vai pixel theo khuôn: khung viền hoặc phủ mờ; dải cyan ở mép nối
   const roles=ui.guide!=='off' ? rolesOf(slot) : null;
   if(roles && !ui.playing) paintGuide(ectx,roles,n,z,ox,oy,ui.guide);
@@ -274,11 +302,34 @@ function paintSeams(ctxSlots,ox,oy,z,lw){
       else ectx.fillRect(dx<0?ox-t/2:ox+n*z-t/2,oy+p*z,t,z);
     }
   }
-  if(bad) setText($('#edHint'),'⚠ '+bad+' pixel mép không khớp ô hàng xóm (vạch đỏ)');
+  if(bad) setText($('#edHint'),bad+' pixel lệch mép');
 }
 
 /* ---------------- nét vẽ ---------------- */
 let stroke=null;           // {id,type,before,base,start,last,col,wrapWas}
+let tilePan=null;
+const panButton=$('#tilePan');
+panButton.addEventListener('click',()=>{
+  const on=panButton.getAttribute('aria-pressed')!=='true';
+  panButton.setAttribute('aria-pressed',String(on));
+  edWrap.classList.toggle('panning',on);
+});
+edWrap.addEventListener('pointerdown',e=>{
+  const middle=e.pointerType==='mouse' && e.button===1;
+  const pan=panButton.getAttribute('aria-pressed')==='true' && e.pointerType!=='pen' && e.button===0;
+  if(!(middle || pan) || stroke || tilePan) return;
+  e.preventDefault();
+  e.stopPropagation();
+  tilePan={id:e.pointerId,x:e.clientX,y:e.clientY};
+  edWrap.setPointerCapture(e.pointerId);
+},true);
+edWrap.addEventListener('pointermove',e=>{
+  if(tilePan?.id!==e.pointerId) return;
+  edWrap.scrollLeft+=tilePan.x-e.clientX;
+  edWrap.scrollTop+=tilePan.y-e.clientY;
+  tilePan.x=e.clientX; tilePan.y=e.clientY;
+});
+edWrap.addEventListener('lostpointercapture',e=>{ if(tilePan?.id===e.pointerId) tilePan=null; });
 const fingerButton=$('#tileFinger');
 fingerButton.addEventListener('click',()=>{
   fingerButton.setAttribute('aria-pressed',String(fingerButton.getAttribute('aria-pressed')!=='true'));
@@ -320,7 +371,7 @@ ed.addEventListener('pointerdown',e=>{
   const tool=e.button===2 || ((e.buttons||0)&32) ? 'eraser' : ui.tool;
   if(tool==='picker'){
     const v=curData()[mod(p.y,n)*n+mod(p.x,n)];
-    if(v>>>24){ view.pri=v; paintPalette(); }
+    if(v>>>24) selectInk(v);
     return;
   }
   const before=snap(slot), data=curData();
@@ -357,7 +408,14 @@ ed.addEventListener('pointermove',e=>{
 });
 function endStroke(e){
   if(!stroke || (e && e.pointerId!==stroke.id)) return;
-  const s=stroke; stroke=null; view.wrapPaint=s.wrapWas;
+  const s=stroke;
+  if(e?.type==='pointerup' && (s.tool==='line' || s.tool==='rect')){
+    const p=toLocal(edPos(e));
+    s.data.set(s.base);
+    if(s.tool==='line') lineStamp(s.data,s.start.x,s.start.y,p.x,p.y,s.col);
+    else rectStamp(s.data,s.start.x,s.start.y,p.x,p.y,s.col,false);
+  }
+  stroke=null; view.wrapPaint=s.wrapWas;
   commit(s.before);
 }
 function cancelStroke(){
@@ -368,7 +426,7 @@ function commit(before){
   const now=curData(), was=before.frames[frame];
   // khoá nối: pixel ở mép nối về lại như trước nét vẽ, cả nét vẽ vẫn chỉ là một bước hoàn tác
   if(was && ui.lock){ const idx=connectorIndices(lay,slot,ts.size,ts.shape); if(idx.length) now.set(keepConnectors(was,now,idx)); }
-  if(was && now.some((v,i)=>v!==was[i])){ pushUndo(before); changed(slot); }
+  if(was && now.some((v,i)=>v!==was[i])){ pushUndo(before); changed(slot); paintQuickColors(); }
   drawEditor();
 }
 ed.addEventListener('pointerup',endStroke);
@@ -421,6 +479,7 @@ function paintFrames(){
   });
   const ms=$('#frMs'); if(document.activeElement!==ms) ms.value=t.dur[frame]||'';
   $('#frAdd').disabled=t.frames.length>=MAX_FRAMES;
+  setText($('#tileFrameCount'),(frame+1)+' / '+t.frames.length);
   $('#frDel').disabled=t.frames.length<2; $('#frLeft').disabled=frame===0; $('#frRight').disabled=frame>=t.frames.length-1;
 }
 function frameOp(fn){
@@ -445,26 +504,65 @@ $('#playBtn').addEventListener('click',()=>togglePlay());
 
 /* ---------------- bảng màu ---------------- */
 function paletteOf(){ return ts?.palette?.length ? ts.palette : GENESIS_COLORS; }
+const recentColors=[];
+function selectInk(color){
+  view.pri=color;
+  if(ui.tool==='eraser'||ui.tool==='picker') setTool('pencil');
+  paintPalette();
+}
+function paintQuickColors(){
+  const cur=intToHex(view.pri).toLowerCase();
+  const colors=new Set([cur,...recentColors]);
+  for(const color of curData()){
+    if(colors.size>=6) break;
+    if(color>>>24) colors.add(intToHex(color).toLowerCase());
+  }
+  $('#tileInk').style.background=cur;
+  setText($('#tileInkHex'),cur.toUpperCase());
+  $('#tileRecent').replaceChildren(...[...colors].map(hex=>swatch(hex,cur)));
+}
+function swatch(hex,cur){
+  const b=document.createElement('button'); b.style.background=hex; b.title=hex; b.setAttribute('aria-label','Chọn màu '+hex);
+  b.setAttribute('aria-pressed',String(hex.toLowerCase()===cur));
+  if(hex.toLowerCase()===cur) b.classList.add('on');
+  b.addEventListener('click',()=>selectInk(hexToInt(hex)));
+  return b;
+}
 function paintPalette(){
-  const box=$('#pal'), cur=intToHex(view.pri).toLowerCase();
-  box.replaceChildren(...paletteOf().map(hex=>{
-    const b=document.createElement('button'); b.style.background=hex; b.title=hex;
-    if(hex.toLowerCase()===cur) b.classList.add('on');
-    b.addEventListener('click',()=>{ view.pri=hexToInt(hex); if(ui.tool==='eraser'||ui.tool==='picker') setTool('pencil'); paintPalette(); });
-    return b;
-  }));
-  const add=document.createElement('label'); add.title='Thêm màu vào bảng của bộ này'; add.textContent='＋';
-  const inp=document.createElement('input'); inp.type='color'; inp.value=cur.slice(0,7);
+  const box=$('#pal'), cur=intToHex(view.pri).toLowerCase(), scroll=box.scrollTop;
+  const old=recentColors.indexOf(cur);
+  if(old>=0) recentColors.splice(old,1);
+  recentColors.unshift(cur);
+  recentColors.length=Math.min(6,recentColors.length);
+  paintQuickColors();
+  const groups=groupColorTones(paletteOf()).map(({group,colors})=>{
+    const section=document.createElement('section'); section.className='tp-color-group'; section.setAttribute('aria-label',group);
+    const title=document.createElement('h3'); title.textContent=group;
+    const chips=document.createElement('div'); chips.className='tp-color-chips';
+    chips.append(...colors.map(({hex})=>swatch(hex,cur)));
+    section.append(title,chips);
+    return section;
+  });
+  const add=document.createElement('label'); add.className='tp-add-color'; add.textContent='Thêm màu';
+  const inp=document.createElement('input'); inp.type='color'; inp.value=cur;
   inp.addEventListener('change',()=>{
     if(!ts.palette.length) ts.palette=GENESIS_COLORS.slice();
     if(!ts.palette.includes(inp.value)) ts.palette.push(inp.value);
     view.pri=hexToInt(inp.value); pending=true; ts.rev++; save(); paintPalette();
   });
-  add.append(inp); box.append(add);
+  add.append(inp); box.replaceChildren(add,...groups);
+  box.scrollTop=scroll;
 }
 
 /* ---------------- dụng cụ ---------------- */
-function setTool(t){ ui.tool=t; $$('.tp-tools [data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t)); }
+function setTool(t){
+  ui.tool=t;
+  for(const b of $$('.tp-tools [data-tool]')){
+    const selected=b.dataset.tool===t;
+    b.classList.toggle('on',selected);
+    b.setAttribute('aria-pressed',String(selected));
+  }
+}
 $$('.tp-tools [data-tool]').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
 $('#brushBtn').addEventListener('click',e=>{ view.brush=view.brush%3+1; e.currentTarget.textContent=view.brush+'px'; });
 const toggle=(id,get,set)=>$(id).addEventListener('click',e=>{ set(!get()); e.currentTarget.setAttribute('aria-pressed',get()); drawEditor(); });
@@ -487,6 +585,8 @@ function syncLockBtn(){
 $('#lockBtn').addEventListener('click',()=>{ ui.lock=!ui.lock; syncLockBtn(); });
 $('#undoBtn').addEventListener('click',undo);
 $('#redoBtn').addEventListener('click',redo);
+$('#tqUndo').addEventListener('click',undo);
+$('#tqRedo').addEventListener('click',redo);
 $$('[data-ctx]').forEach(b=>b.addEventListener('click',()=>{
   ui.ctx=b.dataset.ctx;
   $$('[data-ctx]').forEach(o=>{ o.classList.toggle('on',o===b); o.setAttribute('aria-checked',String(o===b)); });
@@ -502,9 +602,13 @@ window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey) && k==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
   if((e.ctrlKey||e.metaKey) && k==='y'){ e.preventDefault(); redo(); return; }
+  if($('#tpMain').hasAttribute('data-generating')) return;
   if(e.ctrlKey||e.metaKey||e.altKey) return;
   const tools={b:'pencil',e:'eraser',g:'fill',i:'picker',l:'line',u:'rect'};
   if(tools[k]) setTool(tools[k]);
+  else if(k==='+' || k==='=') setTileZoom(zoomIndex+1);
+  else if(k==='-') setTileZoom(zoomIndex-1);
+  else if(k==='0') setTileZoom(0);
   else if(k==='w') $('#wrapBtn').click();
   else if(k==='m') $('#mirBtn').click();
   else if(k==='h') $('#guideBtn').click();
@@ -604,16 +708,27 @@ $('#mapPlay').addEventListener('click',e=>{
 });
 const drawer=$('#tilePanel');
 const drawerButton=$('#tileDrawer'), expandButton=$('#tileDrawerExpand');
+const drawerTabs={grid:drawerButton,map:$('#tileDrawerMap'),check:$('#tileDrawerCheck'),detail:$('#tileDrawerDetail')};
+function syncDrawerTabs(){
+  for(const button of Object.values(drawerTabs)){
+    const active=drawer.dataset.drawer!=='closed' && !document.getElementById(button.getAttribute('aria-controls')).hidden;
+    button.setAttribute('aria-expanded',String(active));
+  }
+}
 function setDrawer(state){
   const open=state!=='closed';
   drawer.dataset.drawer=state;
-  drawerButton.setAttribute('aria-expanded',String(open));
+  syncDrawerTabs();
   expandButton.hidden=!open;
   expandButton.setAttribute('aria-expanded',String(state==='expanded'));
-  expandButton.textContent=state==='expanded'?'Thu bảng':'Mở rộng';
+  expandButton.querySelector('.nav-label').textContent=state==='expanded'?'Thu bảng':'Mở rộng';
   if(open) paintMap();
 }
-drawerButton.addEventListener('click',()=>setDrawer(drawer.dataset.drawer==='closed'?'half':'closed'));
+for(const [pane,button] of Object.entries(drawerTabs)) button.addEventListener('click',()=>{
+  if(button.getAttribute('aria-expanded')==='true'){ setDrawer('closed'); return; }
+  if(drawer.dataset.drawer==='closed') setDrawer('half');
+  $('.tp-tabs [data-pane="'+pane+'"]').click();
+});
 expandButton.addEventListener('click',()=>setDrawer(drawer.dataset.drawer==='expanded'?'half':'expanded'));
 bindDrawerDrag(drawerButton,direction=>{
   const current=drawer.dataset.drawer;
@@ -622,9 +737,24 @@ bindDrawerDrag(drawerButton,direction=>{
 });
 
 const selectTileTab=initTabs($('.tp-tabs'), pane=>{
+  const generating=pane==='quick';
+  const main=$('#tpMain'), wasGenerating=main.hasAttribute('data-generating');
+  main.toggleAttribute('data-generating',generating);
+  if(generating){ quick.open(); return; }
+  if(!ts){ showEmpty(); return; }
+  if(wasGenerating && drawerButton.getClientRects().length && drawer.dataset.drawer==='closed') setDrawer('half');
+  drawer.scrollTop=0;
+  $('#tilePanelContent').scrollTop=0;
+  syncDrawerTabs();
+  requestDraw();
   paintMap();
-  if(pane==='quick') quick.open();
 }, 'grid');
+$('#tileDrawerQuick').addEventListener('click',()=>$('#tab-paneQuick').click());
+$('#tqDraw').addEventListener('click',()=>{
+  $('#tab-paneGrid').click();
+  if($('#tileDrawer').getClientRects().length) setDrawer('closed');
+  requestAnimationFrame(()=>ed.focus({preventScroll:true}));
+});
 window.addEventListener('resize',()=>paintMap());
 
 /* ---------------- host chung cho các tab phụ (Soi lỗi, …) ---------------- */
@@ -875,8 +1005,12 @@ $('#tsOpenPng').addEventListener('change',async e=>{
   }catch(err){ toast('Không nạp được: '+err.message); }
 });
 $('#emptyTerrain').addEventListener('click',importTerrain56);
-/* chưa có bộ nào: ⚡ dựng ngay bộ 56 ô từ công thức đang chọn rồi mở thẻ Tạo nhanh để chỉnh tiếp */
-$('#emptyQuick').addEventListener('click',async ()=>{ slot=0; if(await quick.apply()) $('.tp-tabs [data-pane=quick]').click(); });
+$('#emptyQuick').addEventListener('click',()=>{
+  slot=0;
+  $('#empty').hidden=true; $('#tpMain').hidden=false;
+  $('#tab-paneQuick').click();
+  $('#tqSize').focus({preventScroll:true});
+});
 $('#tsGodot').addEventListener('click',exportGodot);
 $('#tsSel').addEventListener('change',async e=>{ if(await save()===false){ fillSelect(); return; } slot=0; await openSet(e.target.value); });
 
@@ -907,6 +1041,8 @@ document.addEventListener('click',async e=>{
 });
 
 function showEmpty(){
+  $('#tpMain').removeAttribute('data-generating');
+  selectTileTab('grid');
   $('#tpMain').hidden=true; $('#empty').hidden=false;
   let a=null; try{ a=JSON.parse(lsGet(ATLAS_KEY)||'null'); }catch(_){}
   $('#emptyTerrain').hidden=a?.terrain!=='lo-pixel.terrain56.v1';

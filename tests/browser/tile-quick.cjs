@@ -16,6 +16,11 @@ async function run() {
     const thumb = slot => page.locator('#grid button[data-slot="'+slot+'"] canvas').evaluate(cv => cv.toDataURL());
 
     await page.locator('#emptyQuick').click();
+    await page.locator('#tqApply').waitFor();
+    const beforeCreate = await page.locator('#tqApply').boundingBox();
+    assert.ok(beforeCreate.y+beforeCreate.height<=900,'creation action fits the viewport');
+    assert.equal(await selected(),'','opening the generator starts with a preview');
+    await page.locator('#tqApply').click();
     await waitForSaved();
     assert.deepEqual(errors, [], 'first generation completes without reading a missing tileset');
     assert.equal(await page.locator('#tab-paneQuick').getAttribute('aria-selected'), 'true');
@@ -38,11 +43,11 @@ async function run() {
     await page.locator('#tqApply').click();
     const regenerated = await thumb(46);
     assert.notEqual(regenerated, generated);
-    await page.locator('#undoBtn').click();
+    await page.locator('#tqUndo').click();
     assert.equal(await thumb(46), generated);
-    await page.locator('#redoBtn').click();
+    await page.locator('#tqRedo').click();
     assert.equal(await thumb(46), regenerated);
-    await page.locator('#undoBtn').click();
+    await page.locator('#tqUndo').click();
     await page.locator('#tqApply').click();
     assert.equal(await thumb(46), regenerated, 'undo restores which pixels were generated');
 
@@ -50,9 +55,11 @@ async function run() {
     await page.selectOption('#tpNewPreset','');
     await page.locator('#newDlg button[value=ok]').click();
     await page.waitForFunction(() => document.querySelector('#tsSel').options.length === 3);
+    await page.locator('#tqDraw').click();
     await page.locator('[data-ctx=single]').click();
     await page.locator('#ed').click();
     const handDrawn = await thumb(0);
+    await page.locator('#tab-paneQuick').click();
     await page.selectOption('#tqScope','inner');
     await page.locator('#tqApply').click();
     await page.selectOption('#tqScope','all');
@@ -71,6 +78,15 @@ async function run() {
       return paints;
     });
     assert.equal(mapPaints, 1, 'undoing a whole terrain generation paints the current map once');
+    const existing=await selected();
+    await page.locator('#tab-paneQuick').click();
+    await page.selectOption('#tqDestination','new');
+    await page.locator('#tqApply').click();
+    await page.waitForFunction(id=>{
+      const select=document.querySelector('#tsSel');
+      return select.value && select.value!==id && select.options.length===4;
+    },existing);
+    assert.equal(await page.locator('#tsSel option').count(),4,'a new generation can keep the same size and edge shape');
     assert.deepEqual(errors, []);
     console.log('PASS: first generation, changing size, per-set locks and hand-drawn slots');
   } finally { await browser.close(); }

@@ -48,7 +48,7 @@ for(const layout of ['sides16','free']) test('blank '+layout+' tiles retain the 
   await page.reload();
   await page.locator('#tpMain').waitFor();
   const master = await page.evaluate(async () => (await import('./js/masterpal.js')).MASTER_COLORS);
-  assert.deepEqual(await page.locator('#pal button').evaluateAll(buttons => buttons.map(b => b.title)),master);
+  assert.deepEqual(await page.locator('#pal button').evaluateAll(buttons => buttons.map(b => b.title).sort()),master.slice().sort());
 });
 
 test('a PNG timeline preserves held poses and returns to the first pose',async t => {
