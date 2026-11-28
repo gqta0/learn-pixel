@@ -78,6 +78,13 @@ const MODS={
     ...brushItems()
   ]},
   select:{t:'Vùng chọn', items:()=>[
+    {heading:'Kiểu chọn'},
+    ...[['rect','⬚ Chữ nhật','Kéo để chọn một khung chữ nhật'],
+        ['wand','🪄 Theo màu (liền)','Chạm một ô: chọn mọi ô cùng màu nối liền với nó'],
+        ['wandAll','🪄 Theo màu (cả lớp)','Chạm một ô: chọn mọi ô cùng màu trên lớp'],
+        ['lasso','➰ Lasso','Kéo để khoanh tự do']]
+      .map(([mode,label,title])=>({label, title, on:view.selMode===mode, fn:()=>{ view.selMode=mode; }})),
+    {heading:'Thao tác'},
     {label:'✂ Cắt',      fn:()=>$('#selCut').click()},
     {label:'⧉ Chép',     fn:()=>$('#selCopy').click()},
     {label:'📋 Dán',     fn:()=>$('#selPaste').click()},

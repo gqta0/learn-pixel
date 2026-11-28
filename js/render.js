@@ -3,6 +3,7 @@ import { $, setText, setHidden } from './dom.js';
 import { doc, view, TH } from './state.js';
 import { buf, compositeToBuf, inside, clampSel, layerLength } from './raster.js';
 import { fitScale } from './fit.js';
+import { maskOutline } from './selection.js';
 
 export const board = $('#board');
 const ctx = board.getContext('2d');
@@ -142,11 +143,16 @@ export function render(){
   if(view.sel) setText($('#selSize'),view.sel.w+'×'+view.sel.h);
   if(view.sel){
     const s=view.sel;
+    // vùng theo mặt nạ: vẽ đúng đường biên các ô; chữ nhật: một khung như cũ
+    const trace=()=>{
+      ctx.beginPath();
+      if(s.mask) for(const [x0,y0,x1,y1] of maskOutline(s)){ ctx.moveTo(x0*z+lw/2,y0*z+lw/2); ctx.lineTo(x1*z+lw/2,y1*z+lw/2); }
+      else ctx.rect(s.x*z+lw/2, s.y*z+lw/2, s.w*z-lw, s.h*z-lw);
+      ctx.stroke();
+    };
     ctx.setLineDash([3*lw,3*lw]);
-    ctx.strokeStyle='#000'; ctx.lineWidth=lw;
-    ctx.strokeRect(s.x*z+lw/2, s.y*z+lw/2, s.w*z-lw, s.h*z-lw);
-    ctx.strokeStyle='#58d5ff'; ctx.lineDashOffset=3*lw;
-    ctx.strokeRect(s.x*z+lw/2, s.y*z+lw/2, s.w*z-lw, s.h*z-lw);
+    ctx.strokeStyle='#000'; ctx.lineWidth=lw; trace();
+    ctx.strokeStyle='#58d5ff'; ctx.lineDashOffset=3*lw; trace();
     ctx.setLineDash([]); ctx.lineDashOffset=0;
   }
   if(view.symLine){

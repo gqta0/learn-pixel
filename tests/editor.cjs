@@ -44,7 +44,7 @@ function editor(){
     render(){},requestRender(){},PERF:false,perfMark(){},setText:(el,t)=>{el.textContent=t;},syncAll(){},paintThumbs(){},paintSwatches(){},syncColors(){},syncFingerBtn(){},
     markToday(){marks++;},shadeStep:v=>v,setZoom:z=>{view.zoom=z;}
   });
-  for(const file of ['color','gestures','history','pixel-brush','raster','input']){
+  for(const file of ['color','selection','gestures','history','pixel-brush','raster','input']){
     const source=readFileSync(join(__dirname,'../js',file+'.js'),'utf8')
       .replace(/^import\s[\s\S]*?;\s*$/gm,'')
       .replace(/^export\s*\{[^}]*\};/gm,'').replace(/\bexport\s+/g,'');
@@ -368,4 +368,53 @@ test('lớp khoá: clearSel, pasteClip, shiftLayer, flipData, rotateData, outlin
   assert.equal(e.run('rotateData(activeData(),true)'),false);
   assert.equal(e.run('outlineData(activeData(),BLUE,false)'),false);
   assert.deepEqual(e.run('Array.from(activeData())'),before);
+});
+
+/* chữ L đỏ: (2,2),(2,3),(3,3); nền trong suốt — hộp bao 2×2 có ô (3,2) trống ngoài mặt nạ */
+const drawL=e=>e.run('for(const [x,y] of [[2,2],[2,3],[3,3]]) activeData()[y*32+x]=RED');
+test('tô loang trong vùng chọn theo màu không lem ra ô ngoài mặt nạ trong hộp bao',()=>{
+  const e=editor(); drawL(e);
+  e.run('view.sel=wandMask(activeData(),32,32,2,2)');
+  assert.deepEqual(JSON.parse(e.run('JSON.stringify([view.sel.x,view.sel.y,view.sel.w,view.sel.h])')),[2,2,2,2]);
+  e.run("view.tool='fill'; view.pri=BLUE"); e.event('pointerdown',1,2,2); e.event('pointerup',1,2,2);
+  for(const [x,y] of [[2,2],[2,3],[3,3]]) assert.equal(e.pixel(x,y),e.run('BLUE'));
+  assert.equal(e.pixel(3,2),0);
+});
+test('chép rồi dán vùng mặt nạ không xoá pixel nền ngoài mặt nạ',()=>{
+  const e=editor(); drawL(e);
+  // ô (3,2) nằm trong hộp bao nhưng ngoài mặt nạ, mang màu vàng: không được theo vào bộ nhớ tạm
+  e.run('view.sel=wandMask(activeData(),32,32,2,2); activeData()[2*32+3]=YELLOW; copySel(activeData()); activeData()[12*32+13]=BLUE; view.sel={x:12,y:12,w:2,h:2}; pasteClip(activeData())');
+  assert.equal(e.pixel(13,12),e.run('BLUE'));
+  for(const [x,y] of [[12,12],[12,13],[13,13]]) assert.equal(e.pixel(x,y),e.run('RED'));
+});
+test('dời vùng mặt nạ chỉ dời ô trong mặt nạ',()=>{
+  const e=editor(); drawL(e);
+  e.run('view.sel=wandMask(activeData(),32,32,2,2); activeData()[2*32+3]=YELLOW; shiftLayer(activeData(),5,0,view.sel,false)');
+  assert.equal(e.pixel(3,2),e.run('YELLOW'));
+  for(const [x,y] of [[7,2],[7,3],[8,3]]) assert.equal(e.pixel(x,y),e.run('RED'));
+  assert.equal(e.pixel(2,2),0);
+});
+test('mặt nạ sống sót qua dán và clampSel',()=>{
+  const e=editor(); drawL(e);
+  e.run('view.sel=wandMask(activeData(),32,32,2,2); copySel(activeData()); view.sel={x:12,y:12,w:2,h:2}; pasteClip(activeData()); clampSel()');
+  assert.deepEqual(JSON.parse(e.run('JSON.stringify([...view.sel.mask])')),[1,0,1,1]);
+});
+test('xoá vùng mặt nạ chỉ xoá ô trong mặt nạ; lật vùng mặt nạ từ chối',()=>{
+  const e=editor(); drawL(e);
+  e.run('view.sel=wandMask(activeData(),32,32,2,2); activeData()[2*32+3]=YELLOW; clearSel(activeData())');
+  assert.equal(e.pixel(3,2),e.run('YELLOW')); assert.equal(e.pixel(2,2),0);
+  e.run('view.sel={x:2,y:2,w:2,h:2,mask:new Uint8Array([1,0,1,1])}');
+  assert.equal(e.run('flipData(activeData(),true)'),false);
+  assert.equal(e.run('rotateData(activeData(),true)'),false);
+  assert.equal(e.pixel(3,2),e.run('YELLOW'));
+});
+test('dụng cụ Chọn ở chế độ theo màu chọn ngay khi chạm',()=>{
+  const e=editor(); drawL(e); e.run("view.tool='select'; view.selMode='wand'");
+  e.event('pointerdown',1,2,3); e.event('pointerup',1,2,3);
+  assert.deepEqual(JSON.parse(e.run('JSON.stringify([view.sel.x,view.sel.y,view.sel.w,view.sel.h,[...view.sel.mask]])')),[2,2,2,2,[1,0,1,1]]);
+});
+test('dụng cụ Chọn ở chế độ lasso khoanh theo đường kéo',()=>{
+  const e=editor(); e.run("view.tool='select'; view.selMode='lasso'");
+  e.event('pointerdown',1,0,0); e.event('pointermove',1,6,0); e.event('pointermove',1,0,6); e.event('pointerup',1,0,6);
+  assert.ok(e.run('selHas(view.sel,1,1)') && !e.run('selHas(view.sel,5,5)'));
 });

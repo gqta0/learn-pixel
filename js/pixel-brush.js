@@ -1,6 +1,7 @@
 // Phép vẽ trên bộ đệm pixel dùng chung cho tranh và tile.
+import { selHas } from './selection.js';
 const pixelInside=(x,y,w,h)=>x>=0 && y>=0 && x<w && y<h;
-export const pixelInSelection=(x,y,s)=>!s || (x>=s.x && y>=s.y && x<s.x+s.w && y<s.y+s.h);
+export const pixelInSelection=(x,y,s)=>selHas(s,x,y);
 
 export function paintPixel(data,x,y,col,width,height,settings,seen){
   if(settings.wrapPaint){ x=((x%width)+width)%width; y=((y%height)+height)%height; }   // bút quấn mép: tràn mép này hiện ở mép kia

@@ -4,6 +4,7 @@ import { doc, view, activeData, isLocked } from './state.js';
 import { board, render, requestRender, setZoom, PERF, perfMark } from './render.js';
 import { pushUndo, captureUndo, undo, redo } from './history.js';
 import { createTapTracker, longPressReady, stillFor } from './gestures.js';
+import { wandMask, lassoMask } from './selection.js';
 import { showLoupe, hideLoupe } from './loupe.js';
 import { syncColors, paintSwatches, shadeStep } from './palette.js';
 import { markToday } from './daily.js';
@@ -18,7 +19,8 @@ const pointers=new Map();
 let penSeen=false, gesture=null, panning=null;
 let pixelPerfectHistory=[];
 let owner=null, strokeUndo=null, strokeData=null, strokeSelection=null, spaceDown=false;
-let lastDot=null;     // điểm cuối của nét bút trước — Shift+bấm nối thẳng từ đây
+let lastDot=null;
+let lassoPts=null;      // điểm của đường khoanh lasso đang kéo     // điểm cuối của nét bút trước — Shift+bấm nối thẳng từ đây
 const LINE_TOOLS=['pencil','eraser','shade','dither'];
 const wrap=$('#wrap');
 
@@ -242,7 +244,15 @@ wrap.addEventListener('pointerdown', e=>{
     pick(p, !isPenPicker && penAlt(e) && (e.pointerType!=='pen' || (view.penButton||'sec')==='sec'));
     drawing=false; view.drawing=false; owner=null; return;
   }
-  if(strokeTool==='select'){ view.sel=null; render(); return; }   // kéo tiếp mới thành vùng
+  if(strokeTool==='select'){
+    // theo màu: chọn ngay khi chạm (trên lớp đang vẽ) · lasso: gom điểm khi kéo · chữ nhật: kéo tiếp mới thành vùng
+    if(view.selMode==='wand' || view.selMode==='wandAll'){
+      view.sel=wandMask(activeData(), doc.w, doc.h, p.x, p.y, {contiguous:view.selMode==='wand'});
+      drawing=false; view.drawing=false; owner=null; render(); return;
+    }
+    lassoPts = view.selMode==='lasso' ? [p] : null;
+    view.sel=null; render(); return;
+  }
   if(isLocked()){ drawing=false; view.drawing=false; owner=null; toast('Lớp đang khoá'); return; }
   // Ghép rối · Khoá trong ô: nét bắt đầu ở ô nào thì chỉ vẽ trong ô đó (dùng lại vùng chọn)
   // lockCell: ô chữ nhật · null = sheet rối nhưng ngoài mọi ô (vẽ / xoá tự do, để dọn được pixel lạc) · undefined = không khoá
@@ -316,6 +326,13 @@ function applyStroke(rawP, col, e){
   const t=strokeTool;
   const p = constrainPoint(start, rawP, e, t);
 
+  if(t==='select' && lassoPts){
+    const prev=lassoPts[lassoPts.length-1];
+    if(prev.x!==rawP.x || prev.y!==rawP.y) lassoPts.push({x:rawP.x, y:rawP.y});
+    view.sel=lassoMask(lassoPts, doc.w, doc.h);
+    $('#hud').textContent = `➰ ${view.sel ? view.sel.w+'×'+view.sel.h : '—'} px   •   ${rawP.x}, ${rawP.y}`;
+    return;
+  }
   if(t==='select'){
     view.sel=normSel(start.x,start.y,p.x,p.y);
     const w = Math.abs(p.x - start.x) + 1, h = Math.abs(p.y - start.y) + 1;

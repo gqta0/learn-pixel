@@ -3,6 +3,7 @@ import { paintPixel, paintStamp, paintLine, paintRect, paintFill, pixelInSelecti
    Thuần tính toán — không đụng tới giao diện, không tự vẽ lại màn hình. */
 import { rgba, blendOver, blendOverOp } from './color.js';
 import { doc, view, blank, isLocked } from './state.js';
+import { selHas, cropSel } from './selection.js';
 export { blendOver, blendOverOp };
 
 /* ---------------- ghép lớp ---------------- */
@@ -125,10 +126,11 @@ export function shiftLayer(data,dx,dy,selection=null,wrap=false){
     data.set(out);
     return;
   }
-  for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++) out[idx(x,y)]=0;
+  const mine=(x,y)=>!selection || selHas(selection,x,y);   // vùng chọn mặt nạ: chỉ dời ô trong mặt nạ
+  for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++) if(mine(x,y)) out[idx(x,y)]=0;
   for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++){
     const v=data[idx(x,y)];
-    if(v && inside(x+dx,y+dy)) out[idx(x+dx,y+dy)]=v;
+    if(v && mine(x,y) && inside(x+dx,y+dy)) out[idx(x+dx,y+dy)]=v;
   }
   data.set(out);
 }
@@ -152,7 +154,7 @@ export function outlineData(data,col,corners=false,at=null){
   }
   const hits=[];
   for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++){
-    if(data[idx(x,y)]) continue;
+    if(data[idx(x,y)] || !selHas(view.sel,x,y)) continue;
     if(solid(x-1,y)||solid(x+1,y)||solid(x,y-1)||solid(x,y+1) ||
        (corners && (solid(x-1,y-1)||solid(x+1,y-1)||solid(x-1,y+1)||solid(x+1,y+1)))) hits.push(idx(x,y));
   }
@@ -163,6 +165,7 @@ export function outlineData(data,col,corners=false,at=null){
    vùng chọn vuông, hoặc cả lớp khi canvas vuông. Trả về false nếu không xoay được. */
 export function rotateData(data,cw=true){
   if(isLocked()) return false;                     // lớp khoá: không lối nào ghi được
+  if(view.sel?.mask) return false;                 // lật / xoay chỉ cho vùng chữ nhật
   const s=view.sel || {x:0,y:0,w:doc.w,h:doc.h};
   if(s.w!==s.h) return false;
   const n=s.w, out=data.slice();
@@ -175,16 +178,15 @@ export function rotateData(data,cw=true){
 }
 /* ---------------- vùng chọn & bộ nhớ tạm ---------------- */
 export function inSel(x,y){
-  return pixelInSelection(x,y,view.sel);
+  return selHas(view.sel,x,y);
 }
 /* Khổ canvas đổi thì vùng chọn cũ có thể nằm ngoài tranh. Để nguyên là mọi nét
    vẽ bị chặn hết mà người dùng không thấy vùng chọn đâu để mà bỏ. */
 export function clampSel(){
   const s=view.sel;
   if(!s) return;
-  const x=Math.max(0,s.x), y=Math.max(0,s.y);
-  const w=Math.min(doc.w,s.x+s.w)-x, h=Math.min(doc.h,s.y+s.h)-y;
-  view.sel = (w>0 && h>0) ? {x,y,w,h} : null;
+  if(s.x>=0 && s.y>=0 && s.x+s.w<=doc.w && s.y+s.h<=doc.h) return;   // nằm trọn trong tranh: giữ nguyên (cả mặt nạ)
+  view.sel = cropSel(s, 0, 0, doc.w, doc.h);
 }
 export function normSel(x0,y0,x1,y1){
   const x=Math.max(0,Math.min(x0,x1)), y=Math.max(0,Math.min(y0,y1));
@@ -196,14 +198,14 @@ export function hasClip(){ return !!clip; }
 export function copySel(data){
   const s=view.sel; if(!s) return false;
   const out=new Uint32Array(s.w*s.h);
-  for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++) out[y*s.w+x]=data[idx(s.x+x,s.y+y)];
-  clip={x:s.x,y:s.y,w:s.w,h:s.h,data:out};
+  for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++) if(selHas(s,s.x+x,s.y+y)) out[y*s.w+x]=data[idx(s.x+x,s.y+y)];
+  clip={x:s.x,y:s.y,w:s.w,h:s.h,data:out,mask:s.mask||null};
   return true;
 }
 export function clearSel(data){
   if(isLocked()) return false;
   const s=view.sel; if(!s) return false;
-  for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++) data[idx(s.x+x,s.y+y)]=0;
+  for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++) if(selHas(s,s.x+x,s.y+y)) data[idx(s.x+x,s.y+y)]=0;
   return true;
 }
 /* dán vào góc trên-trái của vùng chọn; chưa chọn thì dán về đúng chỗ cũ.
@@ -217,12 +219,14 @@ export function pasteClip(data){
     const v=clip.data[y*clip.w+x];
     if(v && inside(ox+x,oy+y)) data[idx(ox+x,oy+y)]=v;
   }
-  view.sel=normSel(ox,oy,ox+clip.w-1,oy+clip.h-1);
+  // vùng chọn sau khi dán ôm đúng mảng vừa dán, mang theo mặt nạ (cắt nếu tràn mép tranh)
+  view.sel=cropSel(clip.mask ? {x:ox,y:oy,w:clip.w,h:clip.h,mask:clip.mask} : {x:ox,y:oy,w:clip.w,h:clip.h}, 0, 0, doc.w, doc.h);
   return true;
 }
 /* lật lớp theo chiều ngang hoặc dọc */
 export function flipData(data,horiz){
   if(isLocked()) return false;                     // lớp khoá: không lối nào ghi được
+  if(view.sel?.mask) return false;                 // lật / xoay chỉ cho vùng chữ nhật
   const out=data.slice(), s=view.sel || {x:0,y:0,w:doc.w,h:doc.h};
   for(let y=0;y<s.h;y++) for(let x=0;x<s.w;x++)
     out[idx(s.x+x,s.y+y)] = data[idx(s.x+(horiz?s.w-1-x:x),s.y+(horiz?y:s.h-1-y))];

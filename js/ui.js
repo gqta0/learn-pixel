@@ -4,7 +4,7 @@ import { MAX_SIDE } from './sheet.js';
 import { $, $$, syncNavHeight, toast } from './dom.js';
 import { doc, view, blank, newFrame, activeData, marksInsert, marksRemove, marksMove, isLocked } from './state.js';
 import { hexToInt, intToHex } from './color.js';
-import { invalidateBuf, flipData, rotateData, outlineData, shiftLayer, copySel, clearSel, pasteClip, normSel, layerLength } from './raster.js';
+import { invalidateBuf, flipData, rotateData, outlineData, shiftLayer, copySel, clearSel, pasteClip, normSel, layerLength, inSel } from './raster.js';
 import { pushUndo, undo, redo } from './history.js';
 import { render, fitZoom, setZoom } from './render.js';
 import { paintThumbs, paintPreview, togglePlay, goFrame } from './frames.js';
@@ -63,14 +63,15 @@ function blockLocked(li=doc.al){
   toast('Lớp đang khoá');
   return true;
 }
+const maskRefused=()=>{ if(!view.sel?.mask) return false; toast('Lật / xoay cần vùng chữ nhật'); return true; };
 function flipLayer(horiz){
-  if(blockLocked()) return;
+  if(blockLocked() || maskRefused()) return;
   pushUndo();
   flipData(activeData(), horiz);
   changed();
 }
 function rotateLayer(cw){
-  if(blockLocked()) return;
+  if(blockLocked() || maskRefused()) return;
   const s=view.sel || {w:doc.w,h:doc.h};
   if(s.w!==s.h){
     toast(view.sel ? 'Chỉ xoay được vùng chọn vuông — vùng đang là '+s.w+'×'+s.h+'.'
@@ -312,7 +313,7 @@ function moveSelToLayer(target){
   let moved=0;
   for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++){
     const i=y*doc.w+x;
-    if(src[i]){ dst[i]=src[i]; src[i]=0; moved++; }
+    if(src[i] && inSel(x,y)){ dst[i]=src[i]; src[i]=0; moved++; }
   }
   if(!moved){ undo(); toast('Vùng chọn không có pixel nào trên lớp đang vẽ.'); return; }
   doc.al=target; invalidateBuf(); syncAll();
