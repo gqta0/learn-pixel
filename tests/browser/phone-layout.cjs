@@ -256,7 +256,39 @@ async function checkGifExport(browser, origin) {
   }
 }
 
+// A9: nút Pha mở bộ pha màu trong app: gõ HEX dùng được; bật "Bám màu bảng" thì lấy màu gần nhất trong bảng.
+async function checkColorPicker(browser, origin) {
+  const {page, errors} = await phonePage(browser, origin, '/index.html');
+  const pri = () => page.evaluate(async () => { const {view} = await import('/js/state.js'); const {intToHex} = await import('/js/color.js'); return intToHex(view.pri).toLowerCase(); });
+  try {
+    await page.locator('#mnav [data-view="colors"]').tap();
+    await page.locator('#mixBtn').tap();
+    const box = page.locator('.colorpick');
+    assert.ok(await box.isVisible(), 'bộ pha màu hiện');
+    const bb = await box.boundingBox();
+    assert.ok(bb.y >= 0 && bb.y + bb.height <= 812 && bb.width <= 375, `bộ pha màu tràn màn hình: ${JSON.stringify(bb)}`);
+    for (const r of await box.locator('input[type=range]').all()) assert.ok((await r.boundingBox()).height >= 44, 'thanh trượt cao ≥ 44px');
+    const useBtn = await box.locator('.btn', {hasText:'Dùng màu này'}).boundingBox(), nav = await page.locator('#mnav').boundingBox();
+    assert.ok(useBtn.y + useBtn.height <= nav.y + 1, 'nút Dùng màu này không bị thanh điều hướng che');
+    const hex = box.locator('input[type=text]');
+    assert.ok(parseFloat(await hex.evaluate(el => getComputedStyle(el).fontSize)) >= 16, 'ô HEX ≥ 16px');
+    await hex.fill('#123456'); await hex.press('Enter');
+    await box.locator('.btn', {hasText:'Dùng màu này'}).tap();
+    assert.equal(await pri(), '#123456');
+    assert.equal(await box.isVisible(), false, 'dùng xong thì đóng');
+    await page.locator('#mixBtn').tap();
+    await box.locator('label', {hasText:'Bám màu bảng'}).tap();
+    await hex.fill('#ffa601'); await hex.press('Enter');
+    await box.locator('.btn', {hasText:'Dùng màu này'}).tap();
+    assert.equal(await pri(), '#ffa600', 'bám về màu gần nhất trong Genesis v4');
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+}
+
 module.exports = async function testPhoneLayout(browser, origin) {
+  await checkColorPicker(browser, origin);
   await checkGifExport(browser, origin);
   await checkTags(browser, origin);
   await checkLockedLayer(browser, origin);

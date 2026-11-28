@@ -168,8 +168,6 @@ label.mini{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:va
 .cur-color b{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cur-color code{font:11px var(--mono);color:var(--dim)}
 .color-block .chip.sec{flex:none}
-.mix-color{position:relative;overflow:hidden;flex:none}
-.mix-color input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .color-block #matPick{width:100%;margin-top:2px}
 .mat-strip{margin-top:8px}
 #matStrip .pal-cell .swatch{height:40px}
@@ -864,3 +862,19 @@ dialog h2{font-size:18px;margin:0 0 10px}
 .frame .frame-tag{position:absolute;left:2px;right:2px;bottom:1px;height:3px;border-radius:2px;pointer-events:none}
 .tag-ctl{display:inline-flex;gap:4px;align-items:center;min-width:0}
 .tag-ctl select{max-width:150px}
+
+/* bộ pha màu trong app */
+.colorpick{width:300px;display:flex;flex-direction:column;gap:8px}
+.colorpick.cp-sheet{width:100%;max-width:none;border-radius:12px 12px 0 0}
+.cp-chips{display:flex;align-items:center;gap:8px}
+.cp-chips span{width:44px;height:32px;border-radius:4px;border:1px solid var(--line)}
+.cp-chips b{font:600 13px var(--mono);margin-left:auto}
+.cp-row{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--dim)}
+.cp-row input[type=range]{width:100%;min-height:44px;-webkit-appearance:none;appearance:none;border-radius:6px;margin:0}
+.cp-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:40px;border-radius:5px;background:#fff;border:2px solid #000;box-shadow:0 0 0 1px #fff}
+.cp-text{font:16px var(--mono);min-height:44px;padding:0 10px}
+.cp-snap{display:flex;align-items:center;gap:8px;min-height:44px;font-size:13px}
+.cp-snap input{width:22px;height:22px}
+.cp-near{width:22px;height:22px;border-radius:4px;border:1px solid var(--line)}
+.cp-actions{display:flex;gap:8px}
+.cp-actions .btn{flex:1;min-height:44px}

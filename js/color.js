@@ -121,3 +121,23 @@ export function blendOverOp(d, s, op=1){
   if(!sa) return d;
   return blendOver(d, ((s&0xffffff)|(sa<<24))>>>0);
 }
+
+/* OKLab của một mã HEX: [L, a, b] — khoảng cách trong không gian này gần với mắt người thấy */
+export function hexToOklab(hex){
+  const v=hexToInt(hex);
+  const [r,g,b]=[v&255,(v>>8)&255,(v>>16)&255].map(c=>{ const x=c/255; return x<=.04045 ? x/12.92 : ((x+.055)/1.055)**2.4; });
+  const l=Math.cbrt(.4122214708*r+.5363325363*g+.0514459929*b);
+  const m=Math.cbrt(.2119034982*r+.6806995451*g+.1073969566*b);
+  const s=Math.cbrt(.0883024619*r+.2817188376*g+.6299787005*b);
+  return [.2104542553*l+.793617785*m-.0040720468*s, 1.9779984951*l-2.428592205*m+.4505937099*s, .0259040371*l+.7827717662*m-.808675766*s];
+}
+/* màu trong list gần hex nhất theo OKLab; list rỗng thì null */
+export function nearestOklab(hex, list){
+  const [L,A,B]=hexToOklab(hex);
+  let best=null, bd=Infinity;
+  for(const c of list){
+    const [l,a,b]=hexToOklab(c), d=(l-L)**2+(a-A)**2+(b-B)**2;
+    if(d<bd){ bd=d; best=c; }
+  }
+  return best;
+}

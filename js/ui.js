@@ -8,6 +8,7 @@ import { invalidateBuf, flipData, rotateData, outlineData, shiftLayer, copySel, 
 import { pushUndo, undo, redo } from './history.js';
 import { render, fitZoom, setZoom } from './render.js';
 import { paintThumbs, paintPreview, togglePlay, goFrame, pickTag, tagMenu } from './frames.js';
+import { openColorPicker } from './colorpick.js';
 import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.js';
 import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches, paintRamp, setRampFamily, pickMaterial, setRampMaterial, setRampBase, useRampBase, syncColors, rampCols,
          attachPalettePopup, openQuickPalette, palByName, isUserPal, savePaletteAs, deleteUserPal,
@@ -180,7 +181,7 @@ if(palGrp){
   });
 }
 
-$('#colPick').addEventListener('input', e=>{ view.pri=hexToInt(e.target.value); syncColors(); });
+$('#mixBtn').addEventListener('click', e=>openColorPicker(e.currentTarget, intToHex(view.pri), hex=>{ view.pri=hexToInt(hex); syncColors(); }));
 const swapColors=()=>{ const t=view.pri; view.pri=view.sec; view.sec=t; syncColors(); };
 $('#swapCol').addEventListener('click', swapColors);
 $('#qrSwap').addEventListener('click', swapColors);

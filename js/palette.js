@@ -337,7 +337,6 @@ export function syncColors(){
   $('#chipSec').style.background = intToCss(view.sec);
   const qrSec=$('#qrSec'); if(qrSec) qrSec.style.background = intToCss(view.sec);
   $('#qbColor').firstElementChild.style.background = intToCss(view.pri);
-  $('#colPick').value = intToHex(view.pri);
   paintMaterial();
   paintSwatches();
   if(!rampCols.length) paintRamp();
