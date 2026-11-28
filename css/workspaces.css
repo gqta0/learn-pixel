@@ -547,3 +547,11 @@ body[data-workspace="tile"] { min-height:100dvh; display:grid; grid-template-row
   body:is([data-workspace="draw"],[data-workspace="puppet"]):is([data-view="learn"],[data-view="file"]) .col.right { height: 90%; max-height: 90%; }
   body:is([data-workspace="draw"],[data-workspace="puppet"]) #tools { display: none; }
 }
+
+@media (max-width: 679px) and (orientation: portrait) {
+  /* hàng thu gọn phải vừa 375px: ẩn ô chọn thẻ (menu 🏷 có danh sách thẻ), tên thẻ trên nút cắt bớt */
+  .frame-mini { gap: 3px; }
+  .frame-mini .tag-ctl select { display: none; }
+  .frame-mini #tagMenuBtn { max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; line-height: 44px; }
+  .frame-mini .frame-pos { min-width: 40px; }
+}

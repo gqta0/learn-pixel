@@ -194,7 +194,36 @@ async function checkLockedLayer(browser, origin) {
   }
 }
 
+// A6: thẻ hoạt ảnh — tạo "chạy 2-3" từ menu 🏷, chọn thẻ, chạy thì ô xem trước chỉ đi qua khung 2–3.
+async function checkTags(browser, origin) {
+  const {page, errors} = await phonePage(browser, origin, '/index.html');
+  page.on('dialog', d => d.accept('chạy 2-3'));
+  try {
+    for (let i = 0; i < 4; i++) await page.locator('#miniAdd').tap();        // 5 khung
+    await page.locator('#tagMenuBtn').tap();
+    await page.locator('.popup .btn', {hasText:'Thẻ mới'}).tap();
+    const tags = await page.evaluate(async () => (await import('/js/state.js')).doc.tags);
+    assert.deepEqual(tags, [{name:'chạy', from:1, to:2, dir:'fwd'}]);
+    assert.ok(await page.locator('#frameMini #tagMenuBtn').isVisible(), 'nút thẻ nằm trong hàng thu gọn');
+    const mini = await page.locator('#frameMini').evaluate(el => [el.scrollWidth, el.clientWidth]);
+    assert.ok(mini[0] <= mini[1] + 1, `hàng thu gọn tràn: ${mini}`);
+    await page.locator('#tagMenuBtn').tap();
+    await page.locator('.popup .btn', {hasText:'chạy (2–3)'}).tap();
+    assert.match(await page.locator('#tagMenuBtn').textContent(), /chạy/, 'nút thẻ hiện tên thẻ đang chạy');
+    assert.equal(await page.locator('#frPos').textContent(), '2/5', 'chọn thẻ thì nhảy tới khung đầu của thẻ');
+    await page.locator('#miniPlay').tap();
+    const seen = new Set();
+    for (let i = 0; i < 12; i++) { seen.add(await page.locator('#preview').getAttribute('data-frame')); await page.waitForTimeout(70); }
+    await page.locator('#miniPlay').tap();
+    assert.deepEqual([...seen].sort(), ['1','2'], 'chạy thẻ chỉ đi qua khung 2–3 (chỉ số 1, 2)');
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+}
+
 module.exports = async function testPhoneLayout(browser, origin) {
+  await checkTags(browser, origin);
   await checkLockedLayer(browser, origin);
   await checkHoldPick(browser, origin);
   await checkPuppetWithoutRig(browser, origin);

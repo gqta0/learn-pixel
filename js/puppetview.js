@@ -496,7 +496,7 @@ function createSheet(kind){
   doc.w=w; doc.h=h; doc.anchor=null; doc.charH=0; doc.puppet=kind;
   doc.name=(kind==='head'?'Đầu ':'Thân ')+'nhân vật';
   doc.layers=[{name:'Miếng',vis:true}];
-  doc.frames=[[new Uint32Array(w*h)]]; doc.dur=[]; doc.af=0; doc.al=0;
+  doc.frames=[[new Uint32Array(w*h)]]; doc.dur=[]; doc.af=0; doc.al=0; doc.tags=[];
   view.sel=null; rig.part=null;
   invalidateBuf(); syncAll();
   const id=saveCurrent(doc.name,true);

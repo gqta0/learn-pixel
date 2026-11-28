@@ -44,7 +44,7 @@ function editor(){
     render(){},requestRender(){},PERF:false,perfMark(){},setText:(el,t)=>{el.textContent=t;},syncAll(){},paintThumbs(){},paintSwatches(){},syncColors(){},syncFingerBtn(){},
     markToday(){marks++;},shadeStep:v=>v,setZoom:z=>{view.zoom=z;}
   });
-  for(const file of ['color','selection','gestures','history','pixel-brush','raster','input']){
+  for(const file of ['color','selection','tags','gestures','history','pixel-brush','raster','input']){
     const source=readFileSync(join(__dirname,'../js',file+'.js'),'utf8')
       .replace(/^import\s[\s\S]*?;\s*$/gm,'')
       .replace(/^export\s*\{[^}]*\};/gm,'').replace(/\bexport\s+/g,'');
@@ -417,4 +417,10 @@ test('dụng cụ Chọn ở chế độ lasso khoanh theo đường kéo',()=>{
   const e=editor(); e.run("view.tool='select'; view.selMode='lasso'");
   e.event('pointerdown',1,0,0); e.event('pointermove',1,6,0); e.event('pointermove',1,0,6); e.event('pointerup',1,0,6);
   assert.ok(e.run('selHas(view.sel,1,1)') && !e.run('selHas(view.sel,5,5)'));
+});
+
+test('tạo thẻ rồi hoàn tác thì thẻ mất, làm lại thì có lại',()=>{
+  const e=editor(); e.run("doc.tags=[]; pushUndo(); doc.tags.push({name:'chạy',from:0,to:0,dir:'fwd'})");
+  e.run('undo()'); assert.equal(e.run('doc.tags.length'),0);
+  e.run('redo()'); assert.equal(e.run('doc.tags[0].name'),'chạy');
 });

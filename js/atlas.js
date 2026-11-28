@@ -180,7 +180,7 @@ export function editSelection(){
   pushUndo(); forgetCurrent();          // ô atlas mở ra là một bản riêng
   doc.w=r.w; doc.h=r.h;
   doc.layers=[{name:'Ô atlas',vis:true}];
-  doc.dur=[];
+  doc.dur=[]; doc.tags=[];
   const px=atlas.cv.getContext('2d').getImageData(r.x,r.y,r.w,r.h);
   doc.frames=[[new Uint32Array(px.data.buffer.slice(0))]];
   doc.af=0; doc.al=0;

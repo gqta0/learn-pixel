@@ -27,7 +27,7 @@ export function captureUndo(withSettings=false){
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers: doc.layers.map(l=>cloneLayer(l)),
     frames: doc.frames.map(f=>f.map(d=>d.slice())),
-    dur: doc.dur.slice(), sel:view.sel ? {...view.sel} : null,
+    dur: doc.dur.slice(), tags:(doc.tags||[]).map(t=>({...t})), sel:view.sel ? {...view.sel} : null,
     atlasEdit:doc.atlasEdit ? {...doc.atlasEdit} : null,
     anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0, puppet:doc.puppet||null,    // đổi khổ dời điểm chân: hoàn tác phải trả về cùng lúc
     lib:docId.get(), settings:withSettings ? readSettings() : null
@@ -38,6 +38,7 @@ function restore(s){
   doc.layers=s.layers.map(l=>cloneLayer(l));
   doc.frames=s.frames.map(f=>f.map(d=>d.slice()));
   doc.dur=(s.dur||[]).slice();
+  doc.tags=(s.tags||[]).map(t=>({...t}));
   view.sel=s.sel ? {...s.sel} : null;
   doc.atlasEdit=s.atlasEdit ? {...s.atlasEdit} : null;
   doc.anchor=s.anchor ? {...s.anchor} : null; doc.charH=s.charH||0; doc.puppet=s.puppet||null;

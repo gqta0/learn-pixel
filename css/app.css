@@ -859,3 +859,8 @@ dialog h2{font-size:18px;margin:0 0 10px}
 
 /* hàng lớp: dấu khoá và độ mờ cạnh tên */
 .layer .nm .layer-tag{margin-left:6px;font:600 11px var(--mono);color:var(--dim);white-space:nowrap}
+
+/* thẻ hoạt ảnh: dải màu dưới ảnh nhỏ của khung, ô chọn thẻ cạnh nút chạy */
+.frame .frame-tag{position:absolute;left:2px;right:2px;bottom:1px;height:3px;border-radius:2px;pointer-events:none}
+.tag-ctl{display:inline-flex;gap:4px;align-items:center;min-width:0}
+.tag-ctl select{max-width:150px}

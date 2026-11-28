@@ -1,4 +1,5 @@
 import { blendOverOp } from './color.js';
+import { cleanTags } from './tags.js';
 /* Kế hoạch xuất và bảng kê cho game: từ một dự án đã lưu (định dạng serialize) ra danh sách
    sheet cần vẽ, kèm số khung, thời lượng từng khung, điểm chân và mốc có tên.
    Thuần dữ liệu — không DOM — để kiểm thử được bằng Node; pack.js lo phần vẽ PNG và ZIP. */
@@ -25,7 +26,8 @@ export function decodeProject(d){
       ...(l.lock===true ? {lock:true} : {}), ...(Number(l.op)>=0 && Number(l.op)<1 ? {op:Number(l.op)} : {})})),
     frames:d.frames.map(f=>f.map(a=>d.version>=2 ? unrle(a,len) : Uint32Array.from(a))),
     dur:Array.isArray(d.dur)?d.dur:[], fps:Number(d.fps)>0?Number(d.fps):8,
-    anchor:d.anchor||null, charH:Number(d.charH)||0
+    anchor:d.anchor||null, charH:Number(d.charH)||0,
+    tags:cleanTags(d.tags, d.frames.length)
   };
 }
 export function layerLen(p,li){

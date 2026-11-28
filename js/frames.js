@@ -6,6 +6,7 @@ import { buf, compositeToBuf, frameToCanvas, layerLength } from './raster.js';
 import { render } from './render.js';
 import { pushUndo } from './history.js';
 import { onLongPress, popover } from './popup.js';
+import { tagFrames, parseTagInput } from './tags.js';
 
 /* Mốc có tên: game cần biết khung nào rời đất, đỉnh, chạm đất, ra đòn. Mốc gắn với lớp đang chọn
    (mỗi lớp có thể là một động tác) và đi theo khung khi chèn, xoá, dời khung. */
@@ -32,6 +33,7 @@ export function goFrame(i){
   paintThumbs(); render(); window.dispatchEvent(new CustomEvent('framechange'));
 }
 export function paintThumbs(){
+  fillTagPick();
   const box=$('#frames'); box.innerHTML='';
   const pos=$('#frPos'); if(pos) pos.textContent=(doc.af+1)+'/'+doc.frames.length;
   // nhiều lớp dài khác nhau: làm mờ những khung lớp đang chọn không có hình
@@ -48,11 +50,17 @@ export function paintThumbs(){
     tag.title='Khung '+(i+1);
     if(short && i>=len){ b.classList.add('frame-out'); b.title='Lớp “'+doc.layers[doc.al].name+'” không có hình từ khung '+(len+1); }
     b.appendChild(cv); b.appendChild(tag);
+    const tg=doc.tags.findIndex(t=>i>=t.from && i<=t.to);
+    if(tg>=0){
+      const band=document.createElement('s'); band.className='frame-tag'; band.style.background=tagColor(tg);
+      b.appendChild(band); b.title=(b.title?b.title+' · ':'')+'Thẻ: '+doc.tags[tg].name;
+    }
     const mk=doc.layers[doc.al]?.marks?.[i];
     if(mk){ const t=document.createElement('i'); t.className='frame-mark'; t.textContent=mk; b.appendChild(t); b.title=(b.title?b.title+' · ':'')+'Mốc: '+mk; }
     b.addEventListener('click', ()=>goFrame(i));
     onLongPress(b, ()=>{
       const items = [
+        {label:'🏷 Tạo thẻ từ khung này…', fn:()=>newTag(i)},
         {label:'+ Khung trống sau khung này', fn:()=>{
           pushUndo();
           marksInsert(i+1);
@@ -156,8 +164,12 @@ function paintGameSize(only){
   pvCtx.drawImage(scene,0,0,pvCv.width,pvCv.height);
   pvCv.title='Cỡ trong game: nhân vật cao '+view.gameH+' px (mốc '+ref+' px của bản vẽ, ×'+(Math.round(k*1000)/1000)+'), gạch 16 px, soi ×'+z;
 }
+/* thẻ đang chọn thì chỉ chạy đúng thứ tự khung của thẻ (xuôi / ngược / qua lại) */
+function tagOrder(){ const t=view.tag!=null ? doc.tags[view.tag] : null; return t ? tagFrames(t) : null; }
+function playingFrame(){ const o=tagOrder(); return o ? o[pvFrame % o.length] : pvFrame % playLen(); }
 export function paintPreview(){
-  const f = view.playing ? (pvFrame % playLen()) : doc.af;
+  const f = view.playing ? playingFrame() : doc.af;
+  pvCv.dataset.frame = f;
   pvCv.classList.toggle('real-size',view.realSize);
   compositeToBuf(f, soloOn() ? doc.al : -1);
   if(view.gameSize){ paintGameSize(); return; }
@@ -182,8 +194,10 @@ export function paintPreview(){
    mà bài Giãn cách dạy: khung lấy đà giữ lâu, khung bung chỉ một nhịp chớp */
 function frameMs(i){ return doc.dur[i] || 1000/Math.max(1,view.fps); }
 function stepFrame(){
-  const n=playLen();
-  if(view.pingPong && n > 2){
+  const n=playLen(), order=tagOrder();
+  if(order){
+    pvFrame=(pvFrame+1)%order.length;
+  } else if(view.pingPong && n > 2){
     pvFrame += pvDir;
     if(pvFrame >= n - 1){
       pvFrame = n - 1;
@@ -197,7 +211,7 @@ function stepFrame(){
     pvDir = 1;
   }
   paintPreview();
-  pvTimer=setTimeout(stepFrame, frameMs(pvFrame));
+  pvTimer=setTimeout(stepFrame, frameMs(playingFrame()));
 }
 export function togglePlay(){
   view.playing=!view.playing;
@@ -207,6 +221,55 @@ export function togglePlay(){
   clearTimeout(pvTimer);
   if(view.playing){
     pvFrame=0; pvDir=1; paintPreview();
-    pvTimer=setTimeout(stepFrame, frameMs(0));
+    pvTimer=setTimeout(stepFrame, frameMs(playingFrame()));
   } else paintPreview();
+}
+
+/* ---------------- thẻ hoạt ảnh ---------------- */
+const tagColor=k=>'hsl('+((k*67+20)%360)+' 70% 55%)';
+function fillTagPick(){
+  const sel=$('#tagPick'); if(!sel) return;
+  if(view.tag!=null && !doc.tags[view.tag]) view.tag=null;
+  sel.replaceChildren(new Option('Tất cả khung',''),
+    ...doc.tags.map((t,k)=>new Option(t.name+' ('+(t.from+1)+'–'+(t.to+1)+')', String(k))));
+  sel.value=view.tag==null ? '' : String(view.tag);
+  const t=view.tag!=null ? doc.tags[view.tag] : null;
+  $('#tagMenuBtn').textContent='🏷'+(t ? ' '+t.name : '');
+}
+export function pickTag(value){
+  view.tag = value==='' || value==null ? null : Number(value);
+  pvFrame=0; pvDir=1;
+  const t=view.tag!=null ? doc.tags[view.tag] : null;
+  if(t) goFrame(t.from); else paintThumbs();
+  paintPreview();
+}
+function askTag(text, preset){
+  const v=prompt(text, preset);
+  if(v==null) return null;
+  const t=parseTagInput(v, doc.frames.length);
+  if(!t) alert('Viết tên rồi khoảng khung, ví dụ: chạy 1-8 (khung đếm từ 1 tới '+doc.frames.length+').');
+  return t;
+}
+export function newTag(from=doc.af){
+  const t=askTag('Tên thẻ và khoảng khung, ví dụ: chạy 1-8', 'chạy '+(from+1)+'-'+doc.frames.length);
+  if(!t) return;
+  pushUndo(); doc.tags.push({...t, dir:'fwd'});
+  pickTag(String(doc.tags.length-1));
+}
+export function tagMenu(anchor){
+  const k=view.tag, t=k!=null ? doc.tags[k] : null;
+  // chọn thẻ để chạy ngay trong menu (trên điện thoại ô chọn thẻ ẩn cho hàng thu gọn khỏi tràn)
+  const items=[{heading:'Chạy'},
+    {label:'Tất cả khung', on:k==null, fn:()=>pickTag('')},
+    ...doc.tags.map((x,i)=>({label:x.name+' ('+(x.from+1)+'–'+(x.to+1)+')', on:i===k, fn:()=>pickTag(String(i))})),
+    {heading:'Sửa'},
+    {label:'＋ Thẻ mới…', fn:()=>newTag()}];
+  if(t){
+    const set=fn=>{ pushUndo(); fn(); paintThumbs(); paintPreview(); };
+    items.push({heading:'Thẻ “'+t.name+'”'},
+      ...[['fwd','→ Xuôi'],['rev','← Ngược'],['ping','⇄ Qua lại']].map(([dir,label])=>({label, on:t.dir===dir, fn:()=>set(()=>{ t.dir=dir; })})),
+      {label:'✎ Đổi tên / khoảng…', fn:()=>{ const n=askTag('Tên thẻ và khoảng khung', t.name+' '+(t.from+1)+'-'+(t.to+1)); if(n) set(()=>Object.assign(t,n)); }},
+      {label:'✕ Xoá thẻ', fn:()=>set(()=>{ doc.tags.splice(k,1); view.tag=null; })});
+  }
+  popover(anchor,'Thẻ hoạt ảnh',items);
 }

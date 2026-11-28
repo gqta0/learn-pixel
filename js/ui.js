@@ -7,7 +7,7 @@ import { hexToInt, intToHex } from './color.js';
 import { invalidateBuf, flipData, rotateData, outlineData, shiftLayer, copySel, clearSel, pasteClip, normSel, layerLength, inSel } from './raster.js';
 import { pushUndo, undo, redo } from './history.js';
 import { render, fitZoom, setZoom } from './render.js';
-import { paintThumbs, paintPreview, togglePlay, goFrame } from './frames.js';
+import { paintThumbs, paintPreview, togglePlay, goFrame, pickTag, tagMenu } from './frames.js';
 import { paintLayers, addLayer, delLayer, mergeDown, moveLayer } from './layers.js';
 import { PALETTES, MASTER_NAME, MASTER_REMAP, palette, setPalette, paintSwatches, paintRamp, setRampFamily, pickMaterial, setRampMaterial, setRampBase, useRampBase, syncColors, rampCols,
          attachPalettePopup, openQuickPalette, palByName, isUserPal, savePaletteAs, deleteUserPal,
@@ -263,6 +263,8 @@ $('#frPrev').addEventListener('click', ()=>goFrame(doc.af-1));
 $('#frNext').addEventListener('click', ()=>goFrame(doc.af+1));
 $('#miniPlay').addEventListener('click', togglePlay);
 $('#miniAdd').addEventListener('click', ()=>$('#frAdd').click());
+$('#tagPick').addEventListener('change', e=>pickTag(e.target.value));
+$('#tagMenuBtn').addEventListener('click', e=>tagMenu(e.currentTarget));
 function toggleBtn(sel, key){
   $(sel).addEventListener('click', e=>{
     view[key]=!view[key];

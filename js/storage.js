@@ -3,6 +3,7 @@ import { currentId, adoptCurrent } from './library.js';
 /* Xuất PNG / spritesheet / .json, mở lại dự án, và lưu tự động vào trình duyệt. */
 import { $, toast } from './dom.js';
 import { doc, view, activeData, cloneLayer } from './state.js';
+import { cleanTags } from './tags.js';
 import { frameToCanvas, invalidateBuf, layerLength } from './raster.js';
 import { pushUndo, captureUndo } from './history.js';
 import { render, fitZoom } from './render.js';
@@ -91,7 +92,7 @@ export function serialize(){
     app:'lo-pixel', version:2, ...drawingSettings(),
     w:doc.w, h:doc.h, af:doc.af, al:doc.al,
     layers:structuredClone(doc.layers),
-    frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur.slice(), atlasEdit:doc.atlasEdit ? {...doc.atlasEdit} : null,
+    frames:doc.frames.map(f=>f.map(d=>rle(d))), dur:doc.dur.slice(), tags:(doc.tags||[]).map(t=>({...t})), atlasEdit:doc.atlasEdit ? {...doc.atlasEdit} : null,
     anchor:doc.anchor ? {...doc.anchor} : null, charH:doc.charH||0, puppet:doc.puppet||null,
     done: Array.from(doneSet)
   };
@@ -106,6 +107,7 @@ export function applyData(d,{libraryId,importFile=false}={}){
   doc.layers=layers.map((l,i)=>cloneLayer({...l,name:l.name||'Lớp '+(i+1)},decoded.length));
   doc.frames=decoded;
   doc.dur=(d.dur||[]).slice();
+  doc.tags=cleanTags(d.tags, doc.frames.length);
   doc.af=Math.max(0,Math.min(Number.isInteger(d.af)?d.af:0,doc.frames.length-1));
   doc.al=Math.max(0,Math.min(Number.isInteger(d.al)?d.al:0,doc.layers.length-1));
   doc.atlasEdit=d.atlasEdit && typeof d.atlasEdit==='object' ? {...d.atlasEdit} : null;

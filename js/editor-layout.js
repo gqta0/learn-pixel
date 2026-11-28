@@ -198,10 +198,12 @@ function bindPhoneFrames(mode){
     return [Math.min(Math.max(0,x),Math.max(0,a.width-b.width)), Math.min(Math.max(0,y),Math.max(0,a.height-b.height))];
   };
   const put=(x,y)=>{ [x,y]=clamp(x,y); box.style.left=x+'px'; box.style.top=y+'px'; box.style.right='auto'; };
+  const tagCtl=get('#tagCtl'), tagHome=tagCtl.parentElement, tagAfter=get('#playBtn'), gap=get('.frame-mini-gap');
   const place=()=>{
     const float=PHONE.matches && mode!=='puppet';
     if(float){ box.append(scroll); box.hidden=false; }
     else { home.prepend(scroll); box.hidden=true; }
+    if(PHONE.matches) gap.before(tagCtl); else tagAfter.after(tagCtl);
   };
   PHONE.addEventListener('change',place);
   place();

@@ -1,6 +1,7 @@
 /* Trạng thái dùng chung: tài liệu đang vẽ, thiết lập khung nhìn, chủ đề sáng/tối.
    Module này không phụ thuộc DOM và không gọi ngược lên giao diện. */
 import { hexToInt } from './color.js';
+import { remapTags } from './tags.js';
 
 /* ---------------- tài liệu ---------------- */
 export const doc = {
@@ -12,7 +13,8 @@ export const doc = {
   af:0, al:0, atlasEdit:null,
   anchor:null,         // điểm chân {x,y} trong khung (y = mặt đất), có từ lúc nhập sheet — xuất kèm cho game
   charH:0,             // chiều cao nhân vật (px) lúc nhập — để xem ở cỡ trong game
-  puppet:null          // 'head' | 'body': bản vẽ là sheet miếng của Ghép rối (xem puppetview.js)
+  puppet:null,         // 'head' | 'body': bản vẽ là sheet miếng của Ghép rối (xem puppetview.js)
+  tags:[]              // thẻ hoạt ảnh {name, from, to, dir} — xem tags.js
 };
 export function blank(){ return new Uint32Array(doc.w*doc.h); }
 export function newFrame(){ return doc.layers.map(()=>blank()); }
@@ -44,7 +46,7 @@ export const view = {
   pressure:true, fingerMode:'draw', brushEff:1, hover:null, showGround:true, onionWrap:true,
   gameSize:false, gameH:(()=>{ try{ return Math.max(8,Math.min(256,parseInt(localStorage.getItem('lo-pixel-game-h'),10)||56)); }catch(_){ return 56; } })(),
   penButton: savedPenBtn, wrapMove:false,
-  pixelPerfect:false, ditherPattern:'50', ditherMode:'sec',
+  pixelPerfect:false, ditherPattern:'50', ditherMode:'sec', tag:null,
   paletteGrouping,
   palettePinned: false
 };
@@ -90,6 +92,7 @@ function remapMarks(fn){
     for(const [k,v] of Object.entries(L.marks)){ const j=fn(+k); if(j>=0) m[j]=v; }
     if(Object.keys(m).length) L.marks=m; else delete L.marks;
   });
+  doc.tags=remapTags(doc.tags, fn);      // thẻ hoạt ảnh cũng dời theo khung
 }
 export const marksInsert=at=>remapMarks(i=>i>=at?i+1:i);
 export const marksRemove=at=>remapMarks(i=>i===at?-1:i>at?i-1:i);
