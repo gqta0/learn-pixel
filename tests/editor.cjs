@@ -271,8 +271,11 @@ test('an old save carrying the terrain frame link loads without bringing the lin
     +codec+'\n'+src.slice(start,end).replace(/\bexport\s+/,''));
   const old={w:2,h:2,version:1,layers:[{name:'A',vis:true}],frames:[[[0,0,0,0]]],
     [OLD_LINK]:{atlasId:'t1',labels:true,slots:[0,1,2]}};
+  e.run("view.tag=0; doc.tags=[{name:'cũ',from:0,to:0,dir:'fwd'}]");
   assert.doesNotThrow(()=>e.run('applyData('+JSON.stringify(old)+')'));
   assert.equal(e.doc.w,2);
+  assert.equal(e.run('view.tag'),null, 'mở tranh khác thì bỏ thẻ đang chạy');           // soát: thẻ cũ không theo sang tranh mới
+  assert.equal(e.run('doc.tags.length'),0);
   assert.equal(e.doc[OLD_LINK],undefined);
 });
 test('undo snapshots no longer record a terrain link',()=>{
@@ -423,4 +426,26 @@ test('tạo thẻ rồi hoàn tác thì thẻ mất, làm lại thì có lại',
   const e=editor(); e.run("doc.tags=[]; pushUndo(); doc.tags.push({name:'chạy',from:0,to:0,dir:'fwd'})");
   e.run('undo()'); assert.equal(e.run('doc.tags.length'),0);
   e.run('redo()'); assert.equal(e.run('doc.tags[0].name'),'chạy');
+});
+
+/* ---- lượt sửa sau khi soát cả nhánh ---- */
+test('soát: giữ yên khi bút bắn pointermove 120 Hz (mỗi 8ms) vẫn thành đường thẳng',()=>{
+  const e=editor(); e.event('pointerdown',1,2,2,'pen'); e.event('pointermove',1,6,9,'pen'); e.event('pointermove',1,12,4,'pen');
+  for(let i=0;i<90;i++){ e.tick(8); e.event('pointermove',1,12+(i%2),4,'pen'); }   // rung 1px như bút thật
+  e.event('pointerup',1,12,4,'pen');
+  assert.notEqual(e.pixel(7,3),0); assert.equal(e.pixel(6,9),0);
+});
+test('soát: hoàn tác không làm đổi trạng thái khoá lớp',()=>{
+  const e=editor(); e.run('doc.layers[0].lock=false; pushUndo(); doc.layers[0].lock=true; undo()');
+  assert.equal(e.run('doc.layers[0].lock'),true);
+  e.run('redo(); doc.layers[0].lock=false; undo()');
+  assert.equal(e.run('!!doc.layers[0].lock'),false);
+});
+test('soát: lasso chỉ tính mặt nạ khi nhấc bút, lúc kéo chỉ giữ đường khoanh',()=>{
+  const e=editor(); e.run("view.tool='select'; view.selMode='lasso'");
+  e.event('pointerdown',1,0,0); e.event('pointermove',1,6,0); e.event('pointermove',1,0,6);
+  assert.equal(e.run('view.sel'),null);
+  assert.equal(e.run('view.lasso.length'),3);
+  e.event('pointerup',1,0,6);
+  assert.ok(e.run('selHas(view.sel,1,1)')); assert.equal(e.run('view.lasso'),null);
 });

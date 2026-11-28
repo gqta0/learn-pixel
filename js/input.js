@@ -19,8 +19,7 @@ const pointers=new Map();
 let penSeen=false, gesture=null, panning=null;
 let pixelPerfectHistory=[];
 let owner=null, strokeUndo=null, strokeData=null, strokeSelection=null, spaceDown=false;
-let lastDot=null;
-let lassoPts=null;      // điểm của đường khoanh lasso đang kéo     // điểm cuối của nét bút trước — Shift+bấm nối thẳng từ đây
+let lastDot=null;     // điểm cuối của nét bút trước — Shift+bấm nối thẳng từ đây
 const LINE_TOOLS=['pencil','eraser','shade','dither'];
 const wrap=$('#wrap');
 
@@ -107,6 +106,7 @@ function hudText(p){
 }
 function cancelStroke(){
   endQuickShape();
+  view.lasso=null;
   if(hold && !hold.picking){ clearTimeout(hold.timer); hold=null; }
   if(!drawing) return;
   if(strokeUndo) strokeData.set(strokeUndo.frames[strokeUndo.af][strokeUndo.al]);
@@ -172,7 +172,9 @@ function trackQuickShape(e, col){
   if(strokeTool!=='pencil' || !hold?.moved) return;
   const at={x:e.clientX, y:e.clientY, t:Date.now()};
   qs ??= {samples:[]};
-  qs.samples.push(at); if(qs.samples.length>64) qs.samples.shift();
+  qs.samples.push(at);
+  // giữ theo thời gian, không theo số mẫu: bút 120 Hz bắn ~75 mẫu trong 600ms — giữ mọi mẫu mới hơn 600ms và một mẫu cũ hơn
+  while(qs.samples.length>2 && qs.samples[1].t<=at.t-600) qs.samples.shift();
   qs.lastP=posFrom(e); qs.lastCol=col; qs.lastE=e;
   if(!qs.anchor || Math.hypot(at.x-qs.anchor.x, at.y-qs.anchor.y)>3){
     qs.anchor=at; clearTimeout(qs.timer);
@@ -180,7 +182,8 @@ function trackQuickShape(e, col){
   }
 }
 function toLine(){
-  if(!qs || !drawing || strokeTool!=='pencil' || !strokeUndo || !stillFor(qs.samples, Date.now())) return;
+  if(!qs || !drawing || strokeTool!=='pencil' || !strokeUndo) return;
+  if(!stillFor(qs.samples, Date.now())){ qs.timer=setTimeout(toLine, 100); return; }   // còn rung trong mốc 3px: thử lại sau
   strokeData.set(strokeUndo.frames[strokeUndo.af][strokeUndo.al]);
   strokeTool='line'; pixelPerfectHistory=[];
   setPreview({layer:doc.al, data:activeData().slice()});
@@ -250,7 +253,7 @@ wrap.addEventListener('pointerdown', e=>{
       view.sel=wandMask(activeData(), doc.w, doc.h, p.x, p.y, {contiguous:view.selMode==='wand'});
       drawing=false; view.drawing=false; owner=null; render(); return;
     }
-    lassoPts = view.selMode==='lasso' ? [p] : null;
+    view.lasso = view.selMode==='lasso' ? [p] : null;
     view.sel=null; render(); return;
   }
   if(isLocked()){ drawing=false; view.drawing=false; owner=null; toast('Lớp đang khoá'); return; }
@@ -326,11 +329,11 @@ function applyStroke(rawP, col, e){
   const t=strokeTool;
   const p = constrainPoint(start, rawP, e, t);
 
-  if(t==='select' && lassoPts){
-    const prev=lassoPts[lassoPts.length-1];
-    if(prev.x!==rawP.x || prev.y!==rawP.y) lassoPts.push({x:rawP.x, y:rawP.y});
-    view.sel=lassoMask(lassoPts, doc.w, doc.h);
-    $('#hud').textContent = `➰ ${view.sel ? view.sel.w+'×'+view.sel.h : '—'} px   •   ${rawP.x}, ${rawP.y}`;
+  if(t==='select' && view.lasso){
+    // lúc kéo chỉ ghi đường khoanh (render vẽ nó); mặt nạ tính một lần khi nhấc bút — tranh 256×256 không giật
+    const prev=view.lasso[view.lasso.length-1];
+    if(prev.x!==rawP.x || prev.y!==rawP.y) view.lasso.push({x:rawP.x, y:rawP.y});
+    $('#hud').textContent = `➰ ${view.lasso.length} điểm   •   ${rawP.x}, ${rawP.y}`;
     return;
   }
   if(t==='select'){
@@ -444,6 +447,7 @@ function endStroke(e){
   if(!drawing || (e && e.pointerId!==owner?.id)) return;
   const t0=PERF ? performance.now() : 0;
   drawing=false; view.drawing=false; setStrokeSeen(null); pixelPerfectHistory=[];
+  if(view.lasso){ view.sel=lassoMask(view.lasso, doc.w, doc.h); view.lasso=null; }
   // chạm một cái bằng dụng cụ chọn = bỏ chọn
   if(strokeTool==='select' && view.sel && view.sel.w===1 && view.sel.h===1) view.sel=null;
   if(LINE_TOOLS.includes(strokeTool) && last) lastDot={x:last.x,y:last.y};

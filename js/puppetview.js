@@ -4,7 +4,7 @@ import { showEditorTab } from './editor-layout.js';
    dựng khung, hướng dẫn trên canvas (qua render.setGuides — không phải lớp, không bao giờ vào file),
    rối xem trước, khoá nét trong ô, đổ bóng gợi ý, soi miếng, xuất ZIP. */
 import { $, toast } from './dom.js';
-import { doc, view } from './state.js';
+import { doc, view, isLocked } from './state.js';
 import { blendOver, blendOverOp, invalidateBuf, preview, setPreview } from './raster.js';
 import { render, setZoom, setGuides, board } from './render.js';
 import { pushUndo } from './history.js';
@@ -332,6 +332,7 @@ function toggleShadeSee(){
   shadeNote(r); render();
 }
 function commitShade(){
+  if(isLocked()){ toast('Lớp đang khoá'); return; }
   clearShadeSee();
   const r=shadeTarget(); if(!r) return;
   if(!r.changed){ toast('Miếng này mỏng quá để chia sáng tối.'); return; }
@@ -343,6 +344,7 @@ function commitShade(){
 
 /* ---------------- chép phía gần sang ô xa ---------------- */
 function copyFar(all){
+  if(isLocked()){ toast('Lớp đang khoá'); return; }
   if(!isSheet() || doc.puppet!=='body'){ toast('Mở một sheet Thân trước.'); return; }
   const fars=all ? Object.keys(P.far_parts||{}) : (isFarCell(P,rig.part) ? [rig.part] : farCellOf(P,rig.part) ? [farCellOf(P,rig.part)] : []);
   if(!fars.length){ toast('Chọn một miếng tay / chân (bên gần hoặc ô xa) trước.'); return; }

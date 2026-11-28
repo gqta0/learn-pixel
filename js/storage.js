@@ -2,7 +2,7 @@ import { rle, decodeDrawing, drawingWorkspace } from './project-data.js';
 import { currentId, adoptCurrent } from './library.js';
 /* Xuất PNG / spritesheet / .json, mở lại dự án, và lưu tự động vào trình duyệt. */
 import { $, toast } from './dom.js';
-import { doc, view, activeData, cloneLayer } from './state.js';
+import { doc, view, activeData, cloneLayer, isLocked } from './state.js';
 import { cleanTags, tagFrames } from './tags.js';
 import { encodeGif } from './gif.js';
 import { tagAnims } from './manifest.js';
@@ -48,7 +48,8 @@ function sheetPlan(){
    Cỡ theo ô Cỡ xuất, thời lượng theo từng khung (hoặc fps). Quá 255 màu thì báo nguyên văn lý do. */
 export function exportGif(){
   const tag=view.tag!=null ? doc.tags[view.tag] : null;
-  const order=tag ? tagFrames(tag) : doc.frames.map((_,i)=>i);
+  const order=(tag ? tagFrames(tag) : doc.frames.map((_,i)=>i)).filter(i=>i<doc.frames.length);
+  if(!order.length){ toast('Thẻ đang chọn không còn khung nào.'); return false; }
   const scale=Math.max(1, parseInt($('#expScale')?.value,10) || 1);
   const beat=1000/Math.max(1, view.fps||8);
   let bytes;
@@ -128,7 +129,7 @@ export function applyData(d,{libraryId,importFile=false}={}){
   doc.layers=layers.map((l,i)=>cloneLayer({...l,name:l.name||'Lớp '+(i+1)},decoded.length));
   doc.frames=decoded;
   doc.dur=(d.dur||[]).slice();
-  doc.tags=cleanTags(d.tags, doc.frames.length);
+  doc.tags=cleanTags(d.tags, doc.frames.length); view.tag=null;
   doc.af=Math.max(0,Math.min(Number.isInteger(d.af)?d.af:0,doc.frames.length-1));
   doc.al=Math.max(0,Math.min(Number.isInteger(d.al)?d.al:0,doc.layers.length-1));
   doc.atlasEdit=d.atlasEdit && typeof d.atlasEdit==='object' ? {...d.atlasEdit} : null;
@@ -306,6 +307,7 @@ export function loadRef(file){
    {mode:'raw'} giữ màu gốc (trộn trung bình như trước — nhiều màu, chỉ để tham khảo). */
 export function refToPixels(spec={mode:'raw'}){
   if(!view.ref){ toast('Chọn ảnh mẫu trước.'); return; }
+  if(isLocked()){ toast('Lớp đang khoá'); return; }
   if(spec.mode==='pal' && !spec.colors?.length){ toast('Chưa chọn màu nào — bật ít nhất một nhóm màu ở mục Nâng cao.'); return; }
   let out;
   if(spec.mode==='raw'){

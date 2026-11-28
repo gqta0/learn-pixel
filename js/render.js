@@ -155,6 +155,13 @@ export function render(){
     ctx.strokeStyle='#58d5ff'; ctx.lineDashOffset=3*lw; trace();
     ctx.setLineDash([]); ctx.lineDashOffset=0;
   }
+  if(view.lasso?.length>1){                     // đường khoanh lasso đang kéo
+    ctx.beginPath();
+    view.lasso.forEach((p,i)=>{ const x=(p.x+.5)*z, y=(p.y+.5)*z; if(i) ctx.lineTo(x,y); else ctx.moveTo(x,y); });
+    ctx.setLineDash([3*lw,3*lw]); ctx.strokeStyle='#000'; ctx.lineWidth=lw; ctx.stroke();
+    ctx.strokeStyle='#58d5ff'; ctx.lineDashOffset=3*lw; ctx.stroke();
+    ctx.setLineDash([]); ctx.lineDashOffset=0;
+  }
   if(view.symLine){
     ctx.strokeStyle='rgba(255,180,63,0.55)';
     ctx.lineWidth=lw; ctx.setLineDash([4*lw,4*lw]); ctx.beginPath();

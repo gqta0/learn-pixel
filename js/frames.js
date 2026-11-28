@@ -165,7 +165,11 @@ function paintGameSize(only){
   pvCv.title='Cỡ trong game: nhân vật cao '+view.gameH+' px (mốc '+ref+' px của bản vẽ, ×'+(Math.round(k*1000)/1000)+'), gạch 16 px, soi ×'+z;
 }
 /* thẻ đang chọn thì chỉ chạy đúng thứ tự khung của thẻ (xuôi / ngược / qua lại) */
-function tagOrder(){ const t=view.tag!=null ? doc.tags[view.tag] : null; return t ? tagFrames(t) : null; }
+function tagOrder(){
+  const t=view.tag!=null ? doc.tags[view.tag] : null;
+  const o=t ? tagFrames(t).filter(i=>i<doc.frames.length) : null;   // thẻ cũ trỏ quá số khung: bỏ khung không còn
+  return o?.length ? o : null;
+}
 function playingFrame(){ const o=tagOrder(); return o ? o[pvFrame % o.length] : pvFrame % playLen(); }
 export function paintPreview(){
   const f = view.playing ? playingFrame() : doc.af;

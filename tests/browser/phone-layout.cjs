@@ -359,7 +359,79 @@ async function checkWideLayout(browser, origin) {
   }
 }
 
+// Soát: các lối ghi khác cũng tôn trọng lớp khoá — Ảnh mẫu → pixel, Tranh → Master mới, Đổ bóng / Chép sang ô xa.
+async function checkLockedWriters(browser, origin) {
+  const page = await browser.newPage({viewport:{width:1280,height:800}});
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('dialog', d => d.accept());
+  const ready = () => page.waitForFunction(() => !document.querySelector('.app')?.inert);
+  // tóm tắt lớp đang vẽ (số ô có màu · tổng mã màu) cho thông báo lỗi ngắn gọn
+  const snapshot = () => page.evaluate(async () => { const {doc} = await import('/js/state.js'); const d = doc.frames[doc.af][doc.al]; let n = 0, sum = 0; for (const v of d) if (v) { n++; sum = (sum + v) % 1e9; } return n+'·'+sum; });
+  try {
+    await page.goto(origin+'/index.html'); await ready();
+    await page.evaluate(async () => {
+      const {doc, view, activeData} = await import('/js/state.js');
+      const ref = document.createElement('canvas'); ref.width = ref.height = 8;
+      const g = ref.getContext('2d'); g.fillStyle = '#ff0000'; g.fillRect(0, 0, 8, 8); view.ref = ref;
+      const {MASTER_REMAP} = await import('/js/palette.js'); const {hexToInt} = await import('/js/color.js');
+      activeData()[0] = hexToInt(Object.keys(MASTER_REMAP)[0]);
+      doc.layers[0].lock = true;
+    });
+    const before = await snapshot();
+    await page.evaluate(async () => (await import('/js/storage.js')).refToPixels({mode:'raw'}));
+    assert.equal(await snapshot(), before, 'Ảnh mẫu → pixel không được ghi vào lớp khoá');
+    await page.evaluate(() => document.querySelector('#remapMaster').click());
+    assert.equal(await snapshot(), before, 'Tranh → Master mới bỏ qua lớp khoá');
+    await page.goto(origin+'/puppet.html'); await ready();
+    await page.waitForFunction(() => document.querySelector('#rigInfo')?.textContent.includes('động tác'));
+    await page.evaluate(() => document.querySelector('#rigNewBody').click());
+    await page.waitForFunction(async () => (await import('/js/state.js')).doc.puppet === 'body');
+    await page.evaluate(async () => { const {doc} = await import('/js/state.js'); doc.layers[doc.al].lock = true; });
+    for (const id of ['#rigShade', '#rigFarAll']) {
+      await page.evaluate(id => document.querySelector(id).click(), id);
+      assert.equal(await page.locator('.toast').textContent(), 'Lớp đang khoá', id+' phải báo lớp khoá');
+    }
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+}
+
+// Soát: Dựng khung bài tập mới thì bỏ thẻ cũ; thẻ trỏ quá số khung cũng không làm hỏng ô xem trước.
+async function checkStaleTags(browser, origin) {
+  const page = await browser.newPage({viewport:{width:1280,height:800}});
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('dialog', d => d.accept());
+  try {
+    await page.goto(origin+'/index.html');
+    await page.waitForFunction(() => !document.querySelector('.app')?.inert);
+    const st = await page.evaluate(async () => {
+      const {doc, view} = await import('/js/state.js');
+      for (let i = 0; i < 5; i++) document.querySelector('#frAdd').click();
+      doc.tags = [{name:'chạy', from:3, to:5, dir:'fwd'}]; view.tag = 0;
+      const {setupExercise} = await import('/js/content/exercises.js');
+      setupExercise({t:'Thử', size:16, frames:1});
+      return {tags:doc.tags.length, tag:view.tag};
+    });
+    assert.deepEqual(st, {tags:0, tag:null}, 'dựng khung mới thì bỏ thẻ cũ');
+    await page.evaluate(async () => {
+      const {doc, view} = await import('/js/state.js');
+      doc.tags = [{name:'lạc', from:2, to:4, dir:'fwd'}]; view.tag = 0;   // thẻ trỏ quá số khung (chỉ có 1 khung)
+      document.querySelector('#playBtn').click();
+    });
+    await page.waitForTimeout(400);
+    await page.evaluate(() => document.querySelector('#playBtn').click());
+    assert.deepEqual(errors, [], 'thẻ trỏ quá số khung không được làm sập ô xem trước');
+  } finally {
+    await page.close();
+  }
+}
+
 module.exports = async function testPhoneLayout(browser, origin) {
+  await checkLockedWriters(browser, origin);
+  await checkStaleTags(browser, origin);
   await checkWideLayout(browser, origin);
   await checkTouchTargets(browser, origin);
   await checkColorPicker(browser, origin);

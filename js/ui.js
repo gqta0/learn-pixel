@@ -415,7 +415,8 @@ $('#remapMaster').addEventListener('click', ()=>{
   const map=new Map(Object.entries(MASTER_REMAP).map(([cu,moi])=>[hexToInt(cu),hexToInt(moi)]));
   pushUndo();
   let n=0;
-  doc.frames.forEach(f=>f.forEach(d=>{
+  doc.frames.forEach(f=>f.forEach((d,li)=>{
+    if(isLocked(li)) return;                 // lớp khoá giữ nguyên mã cũ
     for(let i=0;i<d.length;i++){ const v=map.get(d[i]); if(v!==undefined){ d[i]=v; n++; } }
   }));
   const name=MASTER_NAME;

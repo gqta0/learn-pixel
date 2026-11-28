@@ -34,8 +34,11 @@ export function captureUndo(withSettings=false){
   };
 }
 function restore(s){
+  // khoá lớp là trạng thái làm việc, không phải bước hoàn tác: cùng số lớp thì giữ khoá hiện tại theo vị trí
+  const locks=s.layers.length===doc.layers.length ? doc.layers.map(l=>l.lock===true) : null;
   doc.w=s.w; doc.h=s.h; doc.af=s.af; doc.al=s.al;
   doc.layers=s.layers.map(l=>cloneLayer(l));
+  if(locks) doc.layers.forEach((l,i)=>{ if(locks[i]) l.lock=true; else delete l.lock; });
   doc.frames=s.frames.map(f=>f.map(d=>d.slice()));
   doc.dur=(s.dur||[]).slice();
   doc.tags=(s.tags||[]).map(t=>({...t}));

@@ -30,7 +30,8 @@ export const PHASES = [
   {tr:'terraria', n:'Phần 1', t:'Khối và tường', d:'Đá, đất, cỏ, quặng, gỗ — thứ chiếm 90% màn hình.'},
   {tr:'terraria', n:'Phần 2', t:'Vật phẩm', d:'Thanh kim loại, kiếm, cuốc, thuốc — đọc được trong ô túi đồ.'},
   {tr:'terraria', n:'Phần 3', t:'Nhân vật và quái', d:'Sprite nhìn ngang đúng tỉ lệ, khung đi, slime.'},
-  {tr:'terraria', n:'Phần 4', t:'Xuất và cắm vào game', d:'Tilesheet đúng lưới, và soi cả bộ trên nền hang tối.'},
+  {tr:'terraria', n:'Phần 4', t:'Xuất và cắm vào game', d:'Tilesheet đúng lưới, và soi cả bộ trên nền hang tối.'}
+,
   {tr:'stick', n:'Phần 0', t:'Bộ khung que', d:'Chín khớp, tư thế đọc được, và thứ tự vẽ khung mà dân animation dùng.'},
   {tr:'stick', n:'Phần 1', t:'Bốn luật nền', d:'Bóng nảy, quả lắc, trễ pha, trọng lượng — học một lần dùng cả đời.'},
   {tr:'stick', n:'Phần 2', t:'Vòng lặp cơ bản', d:'Đi, chạy, nhảy — ba thứ mọi game đều cần.'},
@@ -714,7 +715,8 @@ export const EXERCISES = [
         'Sửa mọi chỗ lệch, kể cả phải vẽ lại từ đầu 1–2 asset.',
         'Lưu palette ra một PNG dải màu để dùng cho các asset sau.'],
  tips:['Mức chi tiết là thứ hay bị lệch nhất: một asset quá mịn sẽ tố cáo các asset còn lại.','Lưu file .json làm bản gốc, xuất PNG làm bản dùng.'],
- trap:'Bỏ qua pass này — game sẽ luôn trông "chắp vá" dù từng asset đều đẹp.'},
+ trap:'Bỏ qua pass này — game sẽ luôn trông "chắp vá" dù từng asset đều đẹp.'}
+,
 
 /* ===================== LỘ TRÌNH RIÊNG: NGƯỜI QUE =====================
    Bỏ hết màu, khối, viền — chỉ còn tư thế và nhịp. Vẽ một khung người que mất
@@ -1127,7 +1129,7 @@ export function setupExercise(ex){
   doc.w=W; doc.h=H;
   const names = ex.layers || ['Phác thảo','Nét chính'];
   doc.layers=names.map(n=>({name:n,vis:true}));
-  doc.frames=[]; doc.dur=[];
+  doc.frames=[]; doc.dur=[]; doc.tags=[]; view.tag=null;
   view.sel=null;                       // bài mới thì bắt đầu sạch, không nhốt nét vẽ trong vùng chọn cũ
   for(let i=0;i<nf;i++) doc.frames.push(doc.layers.map(()=>new Uint32Array(W*H)));
   doc.af=0; doc.al = ex.layers ? doc.layers.length-1 : Math.min(1, doc.layers.length-1);

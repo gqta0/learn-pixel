@@ -41,7 +41,7 @@ export const view = {
   tool:'pencil', brush:1,
   pri: hexToInt('#ffa600'), sec: hexToInt('#251c24'),
   playing:false, fps:8, tile3:false, pingPong:false, soloLayer:false,
-  lockAlpha:false, sel:null, selMode:'rect', shadeDir:1, gridStep:8, realSize:false,   // tô khối đi lên (+1) hay đi xuống (-1) trên dải
+  lockAlpha:false, sel:null, selMode:'rect', lasso:null, shadeDir:1, gridStep:8, realSize:false,   // tô khối đi lên (+1) hay đi xuống (-1) trên dải
   ref:null, refOp:0.5,
   pressure:true, fingerMode:'draw', brushEff:1, hover:null, showGround:true, onionWrap:true,
   gameSize:false, gameH:(()=>{ try{ return Math.max(8,Math.min(256,parseInt(localStorage.getItem('lo-pixel-game-h'),10)||56)); }catch(_){ return 56; } })(),
