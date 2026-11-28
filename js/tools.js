@@ -8,21 +8,23 @@ import { buildTheory } from './content/lessons.js';
 import { buildExercises } from './content/exercises.js';
 import { onLongPress, popover } from './popup.js';
 
+/* biểu tượng SVG từ icons/tools.svg — emoji vẽ khác nhau trên mỗi máy, SVG thì giống nhau */
+export const toolIcon=id=>'<svg class="tool-icon" aria-hidden="true"><use href="icons/tools.svg#'+id+'"></use></svg>';
 export const TOOLS=[
-  {id:'pencil', ic:'✏️', key:'B', name:'Bút (B) — Shift+bấm kẻ thẳng từ điểm cuối nét trước'},
-  {id:'dither', ic:'░', key:'D', name:'Chấm hạt dither (D)'},
-  {id:'eraser', ic:'🧽', key:'E', name:'Xoá (E)'},
-  {id:'fill',   ic:'🪣', key:'G', name:'Tô loang (G) — Shift+bấm: đổi mọi ô cùng màu trên lớp'},
-  {id:'picker', ic:'💧', key:'I', name:'Hút màu (I) — chuột phải lấy màu phụ; Alt+bấm hút tạm với mọi dụng cụ'},
-  {id:'line',   ic:'／', key:'L', name:'Đường thẳng (L)'},
-  {id:'rect',   ic:'▭', key:'U', name:'Chữ nhật rỗng (U)'},
-  {id:'rectf',  ic:'▬', key:'', name:'Chữ nhật đầy'},
-  {id:'ellipse',ic:'◯', key:'O', name:'Ê-líp rỗng (O)'},
-  {id:'ellipsef',ic:'⬤', key:'', name:'Ê-líp đầy'},
-  {id:'move',   ic:'✥', key:'M', name:'Dịch lớp (M) — phím mũi tên đẩy 1px; chạm giữ để lật / xoay / dịch vòng'},
-  {id:'outline',ic:'◻', key:'K', name:'Viền nhanh (K) — chạm một hình để viền bằng màu chính, chạm chỗ trống để viền cả lớp; Shift / chạm giữ: lấy cả góc chéo'},
-  {id:'shade',  ic:'◐', key:'S', name:'Tô khối theo dải (S) — bấm để sáng lên 1 bậc, chuột phải / nút bên S-Pen để tối đi'},
-  {id:'select', ic:'⬚', key:'A', name:'Chọn vùng (A) — kéo để chọn, chạm một cái để bỏ chọn'}
+  {id:'pencil', icon:'pencil', key:'B', name:'Bút (B) — Shift+bấm kẻ thẳng từ điểm cuối nét trước'},
+  {id:'dither', icon:'dither', key:'D', name:'Chấm hạt dither (D)'},
+  {id:'eraser', icon:'eraser', key:'E', name:'Xoá (E)'},
+  {id:'fill',   icon:'fill', key:'G', name:'Tô loang (G) — Shift+bấm: đổi mọi ô cùng màu trên lớp'},
+  {id:'picker', icon:'picker', key:'I', name:'Hút màu (I) — chuột phải lấy màu phụ; Alt+bấm hút tạm với mọi dụng cụ'},
+  {id:'line',   icon:'line', key:'L', name:'Đường thẳng (L)'},
+  {id:'rect',   icon:'rect', key:'U', name:'Chữ nhật rỗng (U)'},
+  {id:'rectf',  icon:'rectf', key:'', name:'Chữ nhật đầy'},
+  {id:'ellipse',icon:'ellipse', key:'O', name:'Ê-líp rỗng (O)'},
+  {id:'ellipsef',icon:'ellipsef', key:'', name:'Ê-líp đầy'},
+  {id:'move',   icon:'move', key:'M', name:'Dịch lớp (M) — phím mũi tên đẩy 1px; chạm giữ để lật / xoay / dịch vòng'},
+  {id:'outline',icon:'outline', key:'K', name:'Viền nhanh (K) — chạm một hình để viền bằng màu chính, chạm chỗ trống để viền cả lớp; Shift / chạm giữ: lấy cả góc chéo'},
+  {id:'shade',  icon:'shade', key:'S', name:'Tô khối theo dải (S) — bấm để sáng lên 1 bậc, chuột phải / nút bên S-Pen để tối đi'},
+  {id:'select', icon:'select', key:'A', name:'Chọn vùng (A) — kéo để chọn, chạm một cái để bỏ chọn'}
 ];
 /* ---------------- chạm giữ để chọn nhanh ----------------
    Mỗi nút chỉ mở đúng thứ hay phải đổi khi đang dùng chính nó. */
@@ -107,7 +109,7 @@ const MODS={
 MODS.rectf=MODS.rect; MODS.ellipsef=MODS.ellipse;
 /* đổi mặt biểu tượng tô khối cho thấy đang đi lên hay đi xuống */
 function syncShadeBtn(){
-  const ic = view.shadeDir<0 ? '◑' : '◐';
+  const ic = toolIcon(view.shadeDir<0 ? 'shade-dark' : 'shade');
   $$('[data-tool="shade"], .qb[data-q="shade"]').forEach(b=>{
     b.innerHTML = b.classList.contains('tool') ? ic+'<small>S</small>' : ic;
     b.title = 'Tô khối theo dải (S) — đang '+(view.shadeDir<0?'tối đi':'sáng lên')+
@@ -126,7 +128,8 @@ export function buildTools(){
   TOOLS.forEach(t=>{
     const b=document.createElement('button');
     b.className='tool'; b.title=t.name; b.dataset.tool=t.id;
-    b.innerHTML = t.ic + (t.key? '<small>'+t.key+'</small>':'');
+    b.innerHTML = toolIcon(t.icon) + (t.key? '<small>'+t.key+'</small>':'');
+    b.setAttribute('aria-label', t.name.split(' — ')[0]);
     b.setAttribute('aria-pressed', view.tool===t.id ? 'true':'false');
     b.addEventListener('click', ()=>setTool(t.id));
     attachMods(b, t.id);
@@ -143,7 +146,7 @@ export function setTool(id){
 export function syncFingerBtn(){
   const pan = view.fingerMode==='pan';
   const b=$('#fingerBtn');
-  if(b){ b.textContent = pan?'✋':'✍️'; b.classList.toggle('on', pan);
+  if(b){ b.innerHTML = toolIcon(pan?'hand':'finger-draw'); b.classList.toggle('on', pan);
          b.title = pan?'Ngón tay: kéo & phóng canvas':'Ngón tay: vẽ'; }
   const b2=$('#fingerBtn2');
   if(b2){ b2.textContent = pan?'Ngón tay: kéo & phóng':'Ngón tay: vẽ'; b2.classList.toggle('on', pan); }

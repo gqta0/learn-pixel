@@ -287,7 +287,49 @@ async function checkColorPicker(browser, origin) {
   }
 }
 
+// B5: ở 375×812, mọi thứ bấm được trong từng bảng cao ≥ 44px (ô màu ≥ 28px), ô nhập chữ ≥ 16px; nút dụng cụ dùng SVG.
+async function checkTouchTargets(browser, origin) {
+  for (const path of ['/index.html', '/puppet.html']) {
+    const {page} = await phonePage(browser, origin, path);
+    try {
+      const problems = [];
+      for (const view of ['draw','tools','colors','layers','learn','file']) {
+        const btn = page.locator(`#mnav [data-view="${view}"]`);
+        if (!await btn.isVisible()) continue;
+        if (view !== 'draw') { await btn.tap(); await page.locator('.drawer-expand').first().isVisible().then(v => v && view!=='tools' ? page.locator('#editorPanel .drawer-expand').click() : null).catch(()=>{}); }
+        const found = await page.evaluate(view => {
+          const sel = 'button, select, a.btn, input:not([type=checkbox]):not([type=radio]):not([type=hidden]), [role=tab], label:has(> input[type=checkbox]), label:has(> input[type=radio])';
+          const shown = el => { const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return null;
+            const cx = Math.min(innerWidth-1, Math.max(0, r.left+r.width/2)), cy = Math.min(innerHeight-1, Math.max(0, r.top+r.height/2));
+            if (r.bottom <= 0 || r.top >= innerHeight) return null;           // ngoài màn hình (cuộn tới mới thấy) vẫn tính
+            return r; };
+          const out = [];
+          for (const el of document.querySelectorAll(sel)) {
+            if (el.closest('[hidden], .popup, .tile-only') || getComputedStyle(el).visibility === 'hidden') continue;
+            const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
+            let p = el, vis = true; while (p && p !== document.body) { const cs = getComputedStyle(p); if (cs.display === 'none') { vis = false; break; } p = p.parentElement; }
+            if (!vis) continue;
+            const min = el.classList.contains('swatch') ? 28 : 44;
+            const name = (el.id ? '#'+el.id : el.tagName.toLowerCase()+'.'+[...el.classList].join('.')) + ' «' + (el.textContent || el.title || el.getAttribute('aria-label') || '').trim().slice(0,18) + '»';
+            if (Math.min(r.height, el.classList.contains('swatch') ? r.width : 99) < min) out.push(view+': '+name+' '+Math.round(r.height)+'px');
+            if (/^(INPUT|SELECT)$/.test(el.tagName) && el.type !== 'range' && el.type !== 'color' && parseFloat(getComputedStyle(el).fontSize) < 16) out.push(view+': '+name+' chữ '+getComputedStyle(el).fontSize);
+          }
+          return out;
+        }, view);
+        problems.push(...found);
+        if (view !== 'draw') await page.locator('#mnav [data-view="draw"]').tap();
+      }
+      assert.deepEqual([...new Set(problems)], [], `${path}: điều khiển quá nhỏ`);
+      const q = page.locator('#quickbar .qb[data-q]');
+      assert.equal(await page.locator('#quickbar .qb[data-q] svg use').count(), await q.count(), `${path}: nút dụng cụ phải là SVG`);
+    } finally {
+      await page.close();
+    }
+  }
+}
+
 module.exports = async function testPhoneLayout(browser, origin) {
+  await checkTouchTargets(browser, origin);
   await checkColorPicker(browser, origin);
   await checkGifExport(browser, origin);
   await checkTags(browser, origin);

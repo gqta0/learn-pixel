@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- Biểu tượng dụng cụ, cùng nét với navigation.svg: khung 24×24, nét theo currentColor (CSS .tool-icon). -->
+  <symbol id="pencil" viewBox="0 0 24 24">
+    <path d="m14 6 4 4M5 19l4-.9L20 7a1.4 1.4 0 0 0 0-2l-1-1a1.4 1.4 0 0 0-2 0L6 15l-1 4Z"/>
+  </symbol>
+  <symbol id="dither" viewBox="0 0 24 24">
+    <g fill="currentColor" stroke="none">
+      <rect x="4" y="4" width="4" height="4"/><rect x="12" y="4" width="4" height="4"/>
+      <rect x="8" y="8" width="4" height="4"/><rect x="16" y="8" width="4" height="4"/>
+      <rect x="4" y="12" width="4" height="4"/><rect x="12" y="12" width="4" height="4"/>
+      <rect x="8" y="16" width="4" height="4"/><rect x="16" y="16" width="4" height="4"/>
+    </g>
+  </symbol>
+  <symbol id="eraser" viewBox="0 0 24 24">
+    <path d="M9 20h11M4.7 14.3l9-9a1.5 1.5 0 0 1 2.1 0l3.9 3.9a1.5 1.5 0 0 1 0 2.1L12 19H9.4l-4.7-4.7Zm4.6-4.6 5 5"/>
+  </symbol>
+  <symbol id="picker" viewBox="0 0 24 24">
+    <path d="m13 7 4 4M15.5 4.5a2.1 2.1 0 0 1 3 0l1 1a2.1 2.1 0 0 1 0 3L17 11l-4-4 2.5-2.5ZM14 10l-8 8-2 2-.5-.5 2-2 8-8"/>
+  </symbol>
+  <symbol id="fill" viewBox="0 0 24 24">
+    <path d="m5 11 7-7 7 7-7 7-7-7Zm0 0h14"/>
+    <path d="M20 15.5c.7 1.2 1.2 2 1.2 2.8a1.2 1.2 0 0 1-2.4 0c0-.8.5-1.6 1.2-2.8Z" fill="currentColor"/>
+  </symbol>
+  <symbol id="line" viewBox="0 0 24 24">
+    <path d="M5 19 19 5"/>
+  </symbol>
+  <symbol id="rect" viewBox="0 0 24 24">
+    <rect x="4" y="6" width="16" height="12" rx="1"/>
+  </symbol>
+  <symbol id="rectf" viewBox="0 0 24 24">
+    <rect x="4" y="6" width="16" height="12" rx="1" fill="currentColor"/>
+  </symbol>
+  <symbol id="ellipse" viewBox="0 0 24 24">
+    <ellipse cx="12" cy="12" rx="8" ry="6"/>
+  </symbol>
+  <symbol id="ellipsef" viewBox="0 0 24 24">
+    <ellipse cx="12" cy="12" rx="8" ry="6" fill="currentColor"/>
+  </symbol>
+  <symbol id="move" viewBox="0 0 24 24">
+    <path d="M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/>
+  </symbol>
+  <symbol id="outline" viewBox="0 0 24 24">
+    <rect x="4" y="4" width="16" height="16" rx="1"/>
+    <rect x="8.5" y="8.5" width="7" height="7" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="shade" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8"/>
+    <path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="shade-dark" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8"/>
+    <path d="M12 4a8 8 0 0 0 0 16Z" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="select" viewBox="0 0 24 24">
+    <rect x="4" y="5" width="16" height="14" rx="1" stroke-dasharray="3 2.6"/>
+  </symbol>
+  <symbol id="hand" viewBox="0 0 24 24">
+    <path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12m0-7.5a1.5 1.5 0 0 1 3 0V12m0-6a1.5 1.5 0 0 1 3 0v7.5c0 4-2.6 6.5-6 6.5-2.3 0-3.9-1-5.3-3.2L4.2 13.6A1.5 1.5 0 0 1 6.8 12L8 13.5"/>
+  </symbol>
+  <symbol id="finger-draw" viewBox="0 0 24 24">
+    <path d="m14 6 4 4M7 16l-1 4 4-1 10-10a1.4 1.4 0 0 0 0-2l-1-1a1.4 1.4 0 0 0-2 0L7 16Z"/>
+    <path d="M3 21c2-1 3-1 4 0" />
+  </symbol>
+  <symbol id="undo" viewBox="0 0 24 24">
+    <path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>
+  </symbol>
+  <symbol id="redo" viewBox="0 0 24 24">
+    <path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>
+  </symbol>
+  <symbol id="menu" viewBox="0 0 24 24">
+    <path d="M4 7h16M4 12h16M4 17h16"/>
+  </symbol>
+  <symbol id="more" viewBox="0 0 24 24">
+    <g fill="currentColor" stroke="none"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></g>
+  </symbol>
+</svg>

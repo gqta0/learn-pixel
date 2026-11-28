@@ -555,3 +555,17 @@ body[data-workspace="tile"] { min-height:100dvh; display:grid; grid-template-row
   .frame-mini #tagMenuBtn { max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; line-height: 44px; }
   .frame-mini .frame-pos { min-width: 40px; }
 }
+
+/* Vùng chạm trên màn cảm ứng / màn hẹp: mọi thứ bấm được cao ≥ 44px (ô màu ≥ 28px), ô nhập chữ ≥ 16px.
+   !important vì vài nhãn trong markup có min-height viết thẳng (inline). */
+@media (max-width: 1000px) {
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .col .btn,
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .col select,
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .col label.tv-check,
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .col label.pp-group { min-height: 44px !important; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .col label.tv-check { display: flex; align-items: center; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .layer .vis { min-width: 44px; min-height: 44px; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) .col [role="tab"] { min-height: 44px; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) #quickRamp { flex-basis: 44px; height: 44px; }
+  body:is([data-workspace="draw"],[data-workspace="puppet"]) #quickRamp .qr-swap { height: 44px; }
+}

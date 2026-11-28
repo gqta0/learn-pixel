@@ -878,3 +878,8 @@ dialog h2{font-size:18px;margin:0 0 10px}
 .cp-near{width:22px;height:22px;border-radius:4px;border:1px solid var(--line)}
 .cp-actions{display:flex;gap:8px}
 .cp-actions .btn{flex:1;min-height:44px}
+
+/* biểu tượng dụng cụ (icons/tools.svg) */
+.tool-icon{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.tool .tool-icon{width:24px;height:24px}
+.topbar .tool-icon{width:20px;height:20px}
