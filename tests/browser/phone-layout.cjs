@@ -188,6 +188,16 @@ async function checkLockedLayer(browser, origin) {
     assert.equal(await page.locator('.toast').textContent(), 'Lớp đang khoá');
     await page.evaluate(async () => { const {doc} = await import('/js/state.js'); const {mergeDown} = await import('/js/layers.js'); doc.al = 1; mergeDown(); });
     assert.equal(await page.evaluate(async () => (await import('/js/state.js')).doc.layers.length), 2, 'Gộp xuống vào lớp khoá phải từ chối');
+    // Gộp xuống khi lớp dưới có độ mờ: ảnh ghép trước và sau phải y hệt
+    const merged = await page.evaluate(async () => {
+      const {doc} = await import('/js/state.js'); const {pixelAt} = await import('/js/raster.js'); const {mergeDown} = await import('/js/layers.js');
+      doc.layers[0].lock = false; doc.layers[0].op = 0.5;
+      const before = [pixelAt(0,0,0), pixelAt(0,1,0)];
+      doc.al = 1; mergeDown();
+      return {before, after:[pixelAt(0,0,0), pixelAt(0,1,0)], op:doc.layers[0].op ?? 1};
+    });
+    assert.deepEqual(merged.after, merged.before, 'gộp xuống giữ đúng hình khi lớp dưới mờ');
+    assert.equal(merged.op, 1, 'lớp đã gộp hết mờ (độ mờ đã ghép vào pixel)');
     assert.deepEqual(errors, []);
   } finally {
     await page.close();

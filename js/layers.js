@@ -75,13 +75,20 @@ export function mergeDown(){
   if(doc.al===0) return;
   if(isLocked(doc.al-1)){ toast('Lớp đang khoá'); return; }
   pushUndo();
-  const op=doc.layers[doc.al].op ?? 1;                   // độ mờ lớp trên được ghép luôn vào điểm ảnh
+  // độ mờ của cả hai lớp được ghép luôn vào điểm ảnh, lớp gộp xong để 100%: nhìn y như lúc còn hai lớp
+  const op=doc.layers[doc.al].op ?? 1, opBot=doc.layers[doc.al-1].op ?? 1;
   doc.frames.forEach(f=>{
     const top=f[doc.al], bot=f[doc.al-1];
-    for(let i=0;i<bot.length;i++) if(top[i]) bot[i]=blendOverOp(bot[i],top[i],op);
+    for(let i=0;i<bot.length;i++){
+      let b=bot[i];
+      if(b && opBot<1) b=blendOverOp(0,b,opBot);
+      if(top[i]) b=blendOverOp(b,top[i],op);
+      bot[i]=b;
+    }
     f.splice(doc.al,1);
   });
   const top=doc.layers[doc.al], bot=doc.layers[doc.al-1];
+  delete bot.op;
   if(top.marks) bot.marks={...top.marks, ...(bot.marks||{})};      // lớp dưới giữ mốc của nó, thêm mốc lớp trên vào chỗ trống
   doc.layers.splice(doc.al,1);
   doc.al--; syncAll();
