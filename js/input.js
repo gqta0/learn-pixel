@@ -1,8 +1,9 @@
 /* Chuột, cảm ứng, S-Pen và bàn phím: biến thao tác của người dùng thành nét vẽ. */
-import { $, setText } from './dom.js';
+import { $, setText, toast } from './dom.js';
 import { doc, view, activeData } from './state.js';
 import { board, render, requestRender, setZoom, PERF, perfMark } from './render.js';
-import { pushUndo, captureUndo } from './history.js';
+import { pushUndo, captureUndo, undo, redo } from './history.js';
+import { createTapTracker } from './gestures.js';
 import { syncColors, paintSwatches, shadeStep } from './palette.js';
 import { markToday } from './daily.js';
 import { paintThumbs } from './frames.js';
@@ -134,9 +135,15 @@ function getEffectiveTool(e){
   return view.tool;
 }
 
+/* hai ngón chạm nhanh = hoàn tác, ba ngón = làm lại; ghi nhận trước khoảng chờ 140ms sau khi chụm,
+   không thì ngón thứ hai bị coi là bắt đầu chụm. Bút đang vẽ thì chạm tay bị bỏ qua ngay dòng dưới. */
+const taps=createTapTracker();
+
 wrap.addEventListener('pointerdown', e=>{
   const t0=PERF ? performance.now() : 0;
   if(e.pointerType==='touch' && owner?.type==='pen') return;
+  if(e.pointerType==='touch') taps.down(e.pointerId, e.clientX, e.clientY, Date.now());
+  else if(e.pointerType==='pen') taps.reset();
   if(e.pointerType==='pen'){
     markPen();
     if(owner?.type==='touch') cancelStroke();
@@ -301,6 +308,7 @@ function applyStroke(rawP, col, e){
 
 wrap.addEventListener('pointermove', e=>{
   if(owner?.type==='pen' && e.pointerId!==owner.id) return;
+  if(e.pointerType==='touch') taps.move(e.pointerId, e.clientX, e.clientY);
   if(pointers.has(e.pointerId)) pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,type:e.pointerType});
 
   const tp=touchPts();
@@ -373,7 +381,16 @@ function endStroke(e){
   if(PERF) perfMark('up',performance.now()-t0);
 }
 wrap.addEventListener('pointerup', endStroke);
+wrap.addEventListener('pointerup', e=>{
+  if(e.pointerType!=='touch') return;
+  const act=taps.up(e.pointerId, Date.now());
+  if(!act) return;
+  if(act==='undo') undo(); else redo();
+  toast(act==='undo' ? 'Đã hoàn tác' : 'Đã làm lại', 1200);
+  globalThis.navigator?.vibrate?.(10);
+});
 wrap.addEventListener('pointercancel', e=>{
+  if(e.pointerType==='touch') taps.reset();
   if(e.pointerId===owner?.id) cancelStroke();
   endStroke(e);
 });

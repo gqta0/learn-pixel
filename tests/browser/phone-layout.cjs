@@ -8,7 +8,7 @@ async function phonePage(browser, origin, path, size={width:375,height:812}) {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(origin+path);
   await page.waitForSelector('#board');
-  await page.waitForFunction(() => document.querySelectorAll('#quickRamp .swatch').length > 0 || document.readyState === 'complete');
+  await page.waitForFunction(() => !document.querySelector('.app')?.inert);   // khởi động xong mới gỡ inert
   return {page, errors};
 }
 
@@ -117,8 +117,35 @@ async function checkPuppetWithoutRig(browser, origin) {
   }
 }
 
+// A1: chấm một pixel, chạm hai ngón thì nét mất, chạm ba ngón thì nét về.
+async function checkTapUndo(browser, origin) {
+  const {page, errors} = await phonePage(browser, origin, '/index.html');
+  try {
+    const cdp = await page.context().newCDPSession(page);
+    const b = await page.locator('#board').boundingBox();
+    const x = b.x + b.width/2, y = b.y + b.height/2;
+    const count = () => page.evaluate(async () => (await import('/js/state.js')).activeData().filter(Boolean).length);
+    await page.mouse.click(x, y);
+    assert.equal(await count(), 1, 'chấm được một pixel');
+    const touch = async n => {
+      const pts = Array.from({length:n}, (_, i) => ({x:x+i*30, y:y+40, id:i+1}));
+      await cdp.send('Input.dispatchTouchEvent', {type:'touchStart', touchPoints:pts});
+      await cdp.send('Input.dispatchTouchEvent', {type:'touchEnd', touchPoints:[]});
+    };
+    await touch(2);
+    assert.equal(await count(), 0, 'hai ngón chạm = hoàn tác');
+    await page.waitForTimeout(200);
+    await touch(3);
+    assert.equal(await count(), 1, 'ba ngón chạm = làm lại');
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+}
+
 module.exports = async function testPhoneLayout(browser, origin) {
   await checkPuppetWithoutRig(browser, origin);
+  await checkTapUndo(browser, origin);
   for (const path of ['/index.html', '/puppet.html']) {
     await checkPortrait(browser, origin, path);
     await checkLandscape(browser, origin, path);

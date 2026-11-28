@@ -18,16 +18,32 @@ function editor(){
   const $=id=>{if(!nodes.has(id)) nodes.set(id,element()); return nodes.get(id);};
   const doc={w:32,h:32,af:0,al:0,layers:[{name:'Test',vis:true}],frames:[[new Uint32Array(1024)]],dur:[0]};
   const view={tool:'pencil',fingerMode:'draw',brush:1,brushEff:1,pri:0xff112233,sec:0xff445566,sel:null,zoom:1};
-  let marks=0;
+  let marks=0, clock=1e6, timers=[];
+  const toasts=[];
+  // đồng hồ giả: Date.now, setTimeout, clearTimeout trong vm đi theo tick(ms)
+  class FakeDate extends Date { static now(){ return clock; } }
+  const setTimeoutFake=(fn,ms=0)=>{ const t={fn,at:clock+ms}; timers.push(t); return t; };
+  const clearTimeoutFake=t=>{ timers=timers.filter(x=>x!==t); };
+  const tick=ms=>{
+    const end=clock+ms;
+    for(;;){
+      const due=timers.filter(t=>t.at<=end).sort((a,b)=>a.at-b.at)[0];
+      if(!due) break;
+      timers=timers.filter(t=>t!==due); clock=due.at; due.fn();
+    }
+    clock=end;
+  };
   dom.createElement=element; dom.querySelector=()=>null;
   const context=vm.createContext({doc,view,board,$,document:dom,window:win,Uint32Array,
+    Date:FakeDate,setTimeout:setTimeoutFake,clearTimeout:clearTimeoutFake,toast:t=>toasts.push(t),
+    RED:0xff0000ff,BLUE:0xffff0000,YELLOW:0xff00ffff,
     activeData:()=>doc.frames[doc.af][doc.al],blank:()=>new Uint32Array(doc.w*doc.h),
     cloneLayer:l=>JSON.parse(JSON.stringify(l)),
     rgba:(r,g,b,a)=>(r|(g<<8)|(b<<16)|(a<<24))>>>0,
     render(){},requestRender(){},PERF:false,perfMark(){},setText:(el,t)=>{el.textContent=t;},syncAll(){},paintThumbs(){},paintSwatches(){},syncColors(){},syncFingerBtn(){},
     markToday(){marks++;},shadeStep:v=>v,setZoom:z=>{view.zoom=z;}
   });
-  for(const file of ['history','pixel-brush','raster','input']){
+  for(const file of ['gestures','history','pixel-brush','raster','input']){
     const source=readFileSync(join(__dirname,'../js',file+'.js'),'utf8')
       .replace(/^import\s[\s\S]*?;\s*$/gm,'')
       .replace(/^export\s*\{[^}]*\};/gm,'').replace(/\bexport\s+/g,'');
@@ -41,7 +57,12 @@ function editor(){
     for(const fn of $('#wrap').listeners[type]||[]) fn(e);
   }
   const stroke=(x=2,y=2)=>{event('pointerdown',1,x,y);event('pointerup',1,x,y);};
-  return {doc,view,run,event,stroke,wrap:$('#wrap'),dom,win,marks:()=>marks,pixel:(x,y)=>doc.frames[0][0][y*32+x]};
+  // hai ngón (id 11, 12) cách nhau 6px chạm xuống rồi nhấc lên trong 50ms
+  const tap2=(x=9,y=9)=>{
+    event('pointerdown',11,x,y,'touch'); event('pointerdown',12,x+6,y,'touch');
+    tick(50); event('pointerup',11,x,y,'touch'); event('pointerup',12,x+6,y,'touch');
+  };
+  return {doc,view,run,event,stroke,tap2,tick,toasts,wrap:$('#wrap'),dom,win,marks:()=>marks,pixel:(x,y)=>doc.frames[0][0][y*32+x]};
 }
 
 test('one stroke commits once; undo and redo restore pixels',()=>{
@@ -53,7 +74,8 @@ test('one stroke commits once; undo and redo restore pixels',()=>{
 test('pinch during selection never undoes the previous stroke',()=>{
   const e=editor();e.stroke();e.view.tool='select';
   e.event('pointerdown',2,4,4,'touch');e.event('pointermove',2,6,6,'touch');
-  e.event('pointerdown',3,10,10,'touch');e.event('pointerup',2,6,6,'touch');e.event('pointerup',3,10,10,'touch');
+  e.event('pointerdown',3,10,10,'touch');e.event('pointermove',3,40,40,'touch');
+  e.event('pointerup',2,6,6,'touch');e.event('pointerup',3,40,40,'touch');
   assert.notEqual(e.pixel(2,2),0);assert.equal(e.view.sel,null);
   e.run('undo()');assert.equal(e.pixel(2,2),0);
 });
@@ -255,4 +277,26 @@ test('an old save carrying the terrain frame link loads without bringing the lin
 test('undo snapshots no longer record a terrain link',()=>{
   const e=editor();e.doc[OLD_LINK]={atlasId:'t1',slots:[0]};
   assert.equal(e.run('captureUndo()')[OLD_LINK],undefined);
+});
+
+test('chạm hai ngón hoàn tác đúng một bước, nét ngón đầu đã huỷ không tính',()=>{
+  const e=editor();
+  e.event('pointerdown',1,2,2,'pen'); e.event('pointerup',1,2,2,'pen');   // bước 1: pixel (2,2)
+  e.event('pointerdown',1,5,5,'pen'); e.event('pointerup',1,5,5,'pen');   // bước 2: pixel (5,5)
+  e.run("view.fingerMode='draw'");                                         // bút đã đổi sang 'pan'; bật lại để ngón vẽ được
+  e.tap2(9,9);                                                             // ngón 11 kịp chấm (9,9) rồi bị ngón 12 huỷ
+  assert.notEqual(e.pixel(2,2),0); assert.equal(e.pixel(5,5),0); assert.equal(e.pixel(9,9),0);
+  assert.deepEqual(e.toasts,['Đã hoàn tác']);
+});
+test('chạm ba ngón làm lại bước vừa hoàn tác',()=>{
+  const e=editor(); e.event('pointerdown',1,5,5,'pen'); e.event('pointerup',1,5,5,'pen');
+  e.tap2(); assert.equal(e.pixel(5,5),0);
+  e.tick(200);
+  for(const id of [21,22,23]) e.event('pointerdown',id,10+id,20,'touch');
+  e.tick(40); for(const id of [21,22,23]) e.event('pointerup',id,10+id,20,'touch');
+  assert.notEqual(e.pixel(5,5),0);
+});
+test('bút đang vẽ dở thì hai ngón chạm không hoàn tác',()=>{
+  const e=editor(); e.event('pointerdown',1,2,2,'pen'); e.tap2(9,9); e.event('pointerup',1,2,2,'pen');
+  assert.notEqual(e.pixel(2,2),0); assert.equal(e.marks(),1);
 });
