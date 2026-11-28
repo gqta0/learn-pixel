@@ -70,11 +70,18 @@
       <div class="block color-block">
         <p class="eyebrow">Màu</p>
         <div class="colors">
-          <input type="color" id="colPick" value="#ffa600">
           <button class="chip" id="chipPri" title="Màu chính — mở bảng màu nhanh" aria-label="Màu chính — mở bảng màu nhanh"></button>
+          <div class="cur-color">
+            <b id="curName">Màu chính</b>
+            <code id="curHex"></code>
+          </div>
           <div class="chip sec" id="chipSec" title="Màu phụ (Shift+bấm ô màu)"></div>
-          <button class="btn tiny" id="swapCol" title="Đổi chỗ (X)">⇆</button>
+          <button class="btn tiny" id="swapCol" title="Đổi màu chính và màu phụ (X)" aria-label="Đổi màu chính và màu phụ">⇆</button>
+          <label class="btn tiny mix-color" title="Pha màu tự do">Pha<input type="color" id="colPick" value="#ffa600" aria-label="Pha màu chính tự do"></label>
         </div>
+        <label class="mini" for="matPick">Vật liệu</label>
+        <select id="matPick" class="ramp-family"></select>
+        <div class="pal-ramp-strip mat-strip" id="matStrip" role="group" aria-label="Dải 5 màu của vật liệu, tối đến sáng"></div>
         <div class="row" style="margin-top:8px">
           <select id="palSel" class="grow"></select>
           <button class="btn tiny" id="palDel" title="Xoá bảng màu đã lưu này" style="display:none">✕</button>
