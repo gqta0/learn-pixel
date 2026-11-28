@@ -4,6 +4,14 @@ import { doc, view, TH } from './state.js';
 import { buf, compositeToBuf, inside, clampSel, layerLength } from './raster.js';
 import { fitScale } from './fit.js';
 import { maskOutline } from './selection.js';
+/* đường biên của mặt nạ tính một lần cho mỗi mặt nạ (mặt nạ không bao giờ sửa tại chỗ), theo toạ độ trong hộp bao;
+   dời vùng chọn chỉ đổi x, y nên vẫn dùng lại được */
+const outlineCache=new WeakMap();
+function maskEdges(s){
+  let rel=outlineCache.get(s.mask);
+  if(!rel || rel.w!==s.w){ rel=Object.assign(maskOutline({x:0,y:0,w:s.w,h:s.h,mask:s.mask}),{w:s.w}); outlineCache.set(s.mask,rel); }
+  return rel;
+}
 
 export const board = $('#board');
 const ctx = board.getContext('2d');
@@ -146,7 +154,7 @@ export function render(){
     // vùng theo mặt nạ: vẽ đúng đường biên các ô; chữ nhật: một khung như cũ
     const trace=()=>{
       ctx.beginPath();
-      if(s.mask) for(const [x0,y0,x1,y1] of maskOutline(s)){ ctx.moveTo(x0*z+lw/2,y0*z+lw/2); ctx.lineTo(x1*z+lw/2,y1*z+lw/2); }
+      if(s.mask) for(const [x0,y0,x1,y1] of maskEdges(s)){ ctx.moveTo((s.x+x0)*z+lw/2,(s.y+y0)*z+lw/2); ctx.lineTo((s.x+x1)*z+lw/2,(s.y+y1)*z+lw/2); }
       else ctx.rect(s.x*z+lw/2, s.y*z+lw/2, s.w*z-lw, s.h*z-lw);
       ctx.stroke();
     };
